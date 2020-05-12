@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/avast/retry-go v2.6.0+incompatible
+	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/stretchr/testify v1.3.0
