@@ -23,11 +23,11 @@ func (p *JoinWorkers) Run(config *config.ClusterConfig) error {
 		}
 		joinCmd := fmt.Sprintf("sudo docker swarm join --token %s %s", config.WorkerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as worker", h.Address)
-		output, err := h.ExecWithOutput(joinCmd)
+		err := h.Exec(joinCmd)
 		if err != nil {
-			return fmt.Errorf("Failed to join worker node to swarm: %s", output)
+			return fmt.Errorf("Failed to join worker %s node to swarm", h.Address)
 		}
-		log.Debugf("%s: joined succesfully", h.Address)
+		log.Infof("%s: joined succesfully", h.Address)
 	}
 	return nil
 }

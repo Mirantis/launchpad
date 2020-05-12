@@ -29,6 +29,7 @@ func Install(ctx *cli.Context) error {
 	phaseManager := phase.NewPhaseManager(&clusterConfig)
 
 	phaseManager.AddPhase(&phase.Connect{})
+	phaseManager.AddPhase(&phase.GatherHostFacts{})
 	phaseManager.AddPhase(&phase.InstallEngine{})
 	phaseManager.AddPhase(&phase.PullImages{})
 	phaseManager.AddPhase(&phase.InitSwarm{})

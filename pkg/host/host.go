@@ -20,6 +20,12 @@ type RemoteHost interface {
 	Disconnect() error
 }
 
+// HostMetadata resolved metadata for host
+type HostMetadata struct {
+	Hostname        string
+	InternalAddress string
+}
+
 type Hosts []*Host
 
 type Host struct {
@@ -27,9 +33,10 @@ type Host struct {
 	User             string   `yaml:"user"`
 	SSHPort          int      `yaml:"sshPort" validate:"gt=0,lte=65535"`
 	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file"`
-	Role             string   `yaml:"role" validate:"oneof=master worker"`
+	Role             string   `yaml:"role" validate:"oneof=controller worker"`
 	ExtraArgs        []string `yaml:"extraArgs"`
 	PrivateInterface string   `validate:"omitempty,gt=2"`
+	Metadata         *HostMetadata
 
 	sshClient *ssh.Client
 }
@@ -44,6 +51,9 @@ func (h *Host) Normalize() {
 
 	if h.SSHPort == 0 {
 		h.SSHPort = 22
+	}
+	if h.PrivateInterface == "" {
+		h.PrivateInterface = "eth0"
 	}
 }
 
@@ -82,6 +92,12 @@ func (h *Host) Exec(cmd string) error {
 		return err
 	}
 	defer session.Close()
+
+	modes := ssh.TerminalModes{}
+	err = session.RequestPty("xterm", 80, 40, modes)
+	if err != nil {
+		return err
+	}
 
 	stdout, err := session.StdoutPipe()
 	if err != nil {
@@ -144,5 +160,5 @@ func (h *Host) PullImage(name string) error {
 }
 
 func (h *Host) SwarmAddress() string {
-	return fmt.Sprintf("%s:%d", h.Address, 2377)
+	return fmt.Sprintf("%s:%d", h.Metadata.InternalAddress, 2377)
 }
