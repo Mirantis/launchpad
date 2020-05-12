@@ -19,7 +19,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Controllers()[0]
 
 	// FIXME DO NOT USE HARDCODED PASSWD etc. :D
-	installCmd := fmt.Sprintf("sudo docker run --rm -a STDERR -v /var/run/docker.sock:/var/run/docker.sock %s install --admin-username admin --admin-password orcaorcaorca --force-minimums", InstallerImage)
+	installCmd := fmt.Sprintf("sudo docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install --admin-username admin --admin-password orcaorcaorca --force-minimums", InstallerImage)
 	log.Debugf("Running installer with cmd: %s", installCmd)
 	err := swarmLeader.Exec(installCmd)
 	if err != nil {
