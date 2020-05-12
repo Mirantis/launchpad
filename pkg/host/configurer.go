@@ -3,6 +3,7 @@ package host
 type HostConfigurer interface {
 	ResolveHostname() string
 	ResolveInternalIP() string
+	InstallBasePackages() error
 	InstallEngine() error
 }
 

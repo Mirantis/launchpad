@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
+	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	"github.com/Mirantis/mcc/pkg/host"
 	"github.com/cobaugh/osrelease"
