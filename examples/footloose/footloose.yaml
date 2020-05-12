@@ -13,6 +13,8 @@ machines:
       source: /lib/modules
       destination: /lib/modules
     - type: volume
+      destination: /var/lib/containerd
+    - type: volume
       destination: /var/lib/docker
     - type: volume
       destination: /var/lib/kubelet
@@ -31,6 +33,8 @@ machines:
     - type: bind
       source: /lib/modules
       destination: /lib/modules
+    - type: volume
+      destination: /var/lib/containerd
     - type: volume
       destination: /var/lib/docker
     - type: volume
