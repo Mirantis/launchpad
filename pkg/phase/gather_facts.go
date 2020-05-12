@@ -2,11 +2,12 @@ package phase
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
+	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	"github.com/Mirantis/mcc/pkg/host"
+	"github.com/cobaugh/osrelease"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,29 +32,60 @@ func (p *GatherHostFacts) Run(config *config.ClusterConfig) error {
 func investigateHost(h *host.Host, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	h.Metadata = &host.HostMetadata{
-		Hostname:        resolveHostname(h),
-		InternalAddress: resolveInternalIP(h),
+	os, err := resolveOsRelease(h)
+	if err != nil {
+		return
 	}
+	h.Metadata = &host.HostMetadata{
+		Os: os,
+	}
+	err = resolveHostConfigurer(h)
+	if err != nil {
+		log.Errorln(err.Error())
+		return
+	}
+	h.Metadata.Hostname = h.Configurer.ResolveHostname()
+	h.Metadata.InternalAddress = h.Configurer.ResolveInternalIP()
 
 	log.Debugf("host %s has internal address: %s", h.Address, h.Metadata.InternalAddress)
 }
 
-func resolveHostname(h *host.Host) string {
-	hostname, _ := h.ExecWithOutput("hostname -s")
+func resolveOsRelease(h *host.Host) (*host.OsRelease, error) {
+	err := h.Exec("uname | grep -q -i linux")
+	if err != nil {
+		return nil, err
+	}
+	output, err := h.ExecWithOutput("cat /etc/os-release")
+	if err != nil {
+		return nil, err
+	}
+	info, err := osrelease.ReadString(output)
+	if err != nil {
+		return nil, err
+	}
+	osRelease := &host.OsRelease{
+		ID:      info["ID"],
+		IDLike:  info["ID_LIKE"],
+		Name:    info["PRETTY_NAME"],
+		Version: info["VERSION_ID"],
+	}
+	if osRelease.IDLike == "" {
+		osRelease.IDLike = osRelease.ID
+	}
 
-	return hostname
+	return osRelease, nil
 }
 
-func resolveInternalIP(h *host.Host) string {
-	output, _ := h.ExecWithOutput(fmt.Sprintf("ip -o addr show dev %s scope global", h.PrivateInterface))
-	lines := strings.Split(output, "\r\n")
-	for _, line := range lines {
-		items := strings.Fields(line)
-		addrItems := strings.Split(items[3], "/")
-		if addrItems[0] != h.Address {
-			return addrItems[0]
+func resolveHostConfigurer(h *host.Host) error {
+	configurers := host.GetHostConfigurers()
+	for _, resolver := range configurers {
+		configurer := resolver(h)
+		if configurer != nil {
+			h.Configurer = configurer
 		}
 	}
-	return h.Address
+	if h.Configurer == nil {
+		return fmt.Errorf("%s: has unsupported OS (%s)", h.Address, h.Metadata.Os.Name)
+	}
+	return nil
 }
