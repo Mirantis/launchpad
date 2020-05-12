@@ -20,10 +20,19 @@ type RemoteHost interface {
 	Disconnect() error
 }
 
+// OsRelease host operating system info
+type OsRelease struct {
+	ID      string
+	IDLike  string
+	Name    string
+	Version string
+}
+
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
 	Hostname        string
 	InternalAddress string
+	Os              *OsRelease
 }
 
 type Hosts []*Host
@@ -37,6 +46,7 @@ type Host struct {
 	ExtraArgs        []string `yaml:"extraArgs"`
 	PrivateInterface string   `validate:"omitempty,gt=2"`
 	Metadata         *HostMetadata
+	Configurer       HostConfigurer
 
 	sshClient *ssh.Client
 }

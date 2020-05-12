@@ -3,8 +3,6 @@ package phase
 import (
 	"sync"
 
-	"github.com/Mirantis/mcc/pkg/configurer"
-
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/host"
 	retry "github.com/avast/retry-go"
@@ -33,11 +31,7 @@ func (p *InstallEngine) installEngine(host *host.Host, wg *sync.WaitGroup) error
 	err := retry.Do(
 		func() error {
 			logrus.Infof("%s: installing engine", host.Address)
-			configurer, err := configurer.ForHost(host)
-			if err != nil {
-				return err
-			}
-			err = configurer.InstallEngine()
+			err := host.Configurer.InstallEngine()
 
 			return err
 		},
