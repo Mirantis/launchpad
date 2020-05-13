@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/host"
+	"github.com/Mirantis/mcc/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
 // LinuxConfigurer is a generic linux host configurer
 type LinuxConfigurer struct {
-	Host *host.Host
+	Host *config.Host
 }
 
 // InstallEngine install Docker EE engine on Linux
-func (c *LinuxConfigurer) InstallEngine() error {
-	err := c.Host.Exec("curl https://s3-us-west-2.amazonaws.com/internal-docker-ee-builds/install.sh | DOCKER_URL=http://repos-internal.mirantis.com.s3.amazonaws.com CHANNEL=test bash")
+func (c *LinuxConfigurer) InstallEngine(engineConfig *config.EngineConfig) error {
+	cmd := fmt.Sprintf("curl %s | DOCKER_URL=%s CHANNEL=%s VERSION=%s bash", engineConfig.InstallURL, engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
+	err := c.Host.Exec(cmd)
 	if err != nil {
 		return err
 	}
@@ -25,7 +26,7 @@ func (c *LinuxConfigurer) InstallEngine() error {
 		return err
 	}
 
-	log.Infof("Succesfully installed engine on %s", c.Host.Address)
+	log.Infof("Succesfully installed engine (%s) on %s", engineConfig.Version, c.Host.Address)
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/host"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +24,7 @@ func (p *Disconnect) Run(config *config.ClusterConfig) error {
 	return nil
 }
 
-func (p *Disconnect) disconnectHost(host *host.Host, wg *sync.WaitGroup) error {
+func (p *Disconnect) disconnectHost(host *config.Host, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	host.Connect()
 	logrus.Printf("%s: SSH connection closed", host.Address)

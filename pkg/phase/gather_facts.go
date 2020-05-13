@@ -7,7 +7,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/config"
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
-	"github.com/Mirantis/mcc/pkg/host"
 	"github.com/cobaugh/osrelease"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,14 +29,14 @@ func (p *GatherHostFacts) Run(config *config.ClusterConfig) error {
 	return nil
 }
 
-func investigateHost(h *host.Host, wg *sync.WaitGroup) {
+func investigateHost(h *config.Host, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	os, err := resolveOsRelease(h)
 	if err != nil {
 		return
 	}
-	h.Metadata = &host.HostMetadata{
+	h.Metadata = &config.HostMetadata{
 		Os: os,
 	}
 	err = resolveHostConfigurer(h)
@@ -51,7 +50,7 @@ func investigateHost(h *host.Host, wg *sync.WaitGroup) {
 	log.Debugf("host %s has internal address: %s", h.Address, h.Metadata.InternalAddress)
 }
 
-func resolveOsRelease(h *host.Host) (*host.OsRelease, error) {
+func resolveOsRelease(h *config.Host) (*config.OsRelease, error) {
 	err := h.Exec("uname | grep -q -i linux")
 	if err != nil {
 		return nil, err
@@ -64,7 +63,7 @@ func resolveOsRelease(h *host.Host) (*host.OsRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	osRelease := &host.OsRelease{
+	osRelease := &config.OsRelease{
 		ID:      info["ID"],
 		IDLike:  info["ID_LIKE"],
 		Name:    info["PRETTY_NAME"],
@@ -77,8 +76,8 @@ func resolveOsRelease(h *host.Host) (*host.OsRelease, error) {
 	return osRelease, nil
 }
 
-func resolveHostConfigurer(h *host.Host) error {
-	configurers := host.GetHostConfigurers()
+func resolveHostConfigurer(h *config.Host) error {
+	configurers := config.GetHostConfigurers()
 	for _, resolver := range configurers {
 		configurer := resolver(h)
 		if configurer != nil {
