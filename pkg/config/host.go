@@ -44,7 +44,7 @@ type Host struct {
 	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file"`
 	Role             string   `yaml:"role" validate:"oneof=controller worker"`
 	ExtraArgs        []string `yaml:"extraArgs"`
-	PrivateInterface string   `validate:"omitempty,gt=2"`
+	PrivateInterface string   `yaml:"privateInterface" validate:"omitempty,gt=2"`
 	Metadata         *HostMetadata
 	Configurer       HostConfigurer
 
