@@ -22,7 +22,7 @@ machines:
     - containerPort: 22
       hostPort: 9022
     - containerPort: 443
-      hostPort: 443
+      hostPort: 9443
 - count: 1
   backend: docker
   spec:
@@ -41,4 +41,4 @@ machines:
       destination: /var/lib/kubelet
     portMappings:
     - containerPort: 22
-      hostPort: 9022
+      hostPort: 9122

@@ -4,6 +4,6 @@ hosts:
     user: "root"
     role: "controller"
   - address: "127.0.0.1"
-    sshPort: 9023
+    sshPort: 9122
     user: "root"
     role: "worker"
