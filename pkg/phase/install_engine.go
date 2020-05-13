@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/host"
 	retry "github.com/avast/retry-go"
 	"github.com/sirupsen/logrus"
 )
@@ -19,21 +18,21 @@ func (p *InstallEngine) Run(config *config.ClusterConfig) error {
 	var wg sync.WaitGroup
 	for _, host := range config.Hosts {
 		wg.Add(1)
-		go p.installEngine(host, &wg)
+		go p.installEngine(host, &config.Engine, &wg)
 	}
 	wg.Wait()
 
 	return nil
 }
 
-func (p *InstallEngine) installEngine(host *host.Host, wg *sync.WaitGroup) error {
+func (p *InstallEngine) installEngine(host *config.Host, engineConfig *config.EngineConfig, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	err := retry.Do(
 		func() error {
 			logrus.Infof("%s: installing base packages", host.Address)
 			err := host.Configurer.InstallBasePackages()
 			logrus.Infof("%s: installing engine", host.Address)
-			err = host.Configurer.InstallEngine()
+			err = host.Configurer.InstallEngine(engineConfig)
 
 			return err
 		},

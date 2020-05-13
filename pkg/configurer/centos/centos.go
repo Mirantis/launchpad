@@ -1,8 +1,8 @@
 package centos
 
 import (
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/configurer"
-	"github.com/Mirantis/mcc/pkg/host"
 )
 
 type CentOSConfigurer struct {
@@ -13,7 +13,7 @@ func (c *CentOSConfigurer) InstallBasePackages() error {
 	return c.Host.Exec("sudo yum install -y curl")
 }
 
-func resolveCentosConfigurer(h *host.Host) host.HostConfigurer {
+func resolveCentosConfigurer(h *config.Host) config.HostConfigurer {
 	if h.Metadata.Os.ID == "centos" {
 		return &CentOSConfigurer{
 			LinuxConfigurer: configurer.LinuxConfigurer{
@@ -26,5 +26,5 @@ func resolveCentosConfigurer(h *host.Host) host.HostConfigurer {
 }
 
 func init() {
-	host.RegisterHostConfigurer(resolveCentosConfigurer)
+	config.RegisterHostConfigurer(resolveCentosConfigurer)
 }

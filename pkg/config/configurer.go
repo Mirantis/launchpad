@@ -1,10 +1,10 @@
-package host
+package config
 
 type HostConfigurer interface {
 	ResolveHostname() string
 	ResolveInternalIP() string
 	InstallBasePackages() error
-	InstallEngine() error
+	InstallEngine(engineConfig *EngineConfig) error
 }
 
 type HostConfigurerBuilder func(h *Host) HostConfigurer

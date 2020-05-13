@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/host"
 	retry "github.com/avast/retry-go"
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +26,7 @@ func (p *Connect) Run(config *config.ClusterConfig) error {
 	return nil
 }
 
-func (p *Connect) connectHost(host *host.Host, wg *sync.WaitGroup) error {
+func (p *Connect) connectHost(host *config.Host, wg *sync.WaitGroup) error {
 	host.Normalize() // FIXME we need to handle this better somewhere else...
 	defer wg.Done()
 	err := retry.Do(

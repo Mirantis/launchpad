@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/host"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,11 +35,12 @@ func (p *PullImages) Run(config *config.ClusterConfig) error {
 
 func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) {
 	controller := config.Controllers()[0]
-	err := controller.PullImage(InstallerImage)
+	image := fmt.Sprintf("%s/ucp:%s", config.Ucp.ImageRepo, config.Ucp.Version)
+	err := controller.PullImage(image)
 	if err != nil {
 		return []string{}, err
 	}
-	output, err := controller.ExecWithOutput(fmt.Sprintf("sudo docker run --rm %s images --list", InstallerImage))
+	output, err := controller.ExecWithOutput(fmt.Sprintf("sudo docker run --rm %s images --list", image))
 	if err != nil {
 		return []string{}, fmt.Errorf("failed to get image list")
 	}
@@ -49,7 +49,7 @@ func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) 
 }
 
 // Pulls images on a host in parallel using a workerpool with 5 workers. Essentially we pull 5 images in parallel.
-func (p *PullImages) pullImages(host *host.Host, images []string, wg *sync.WaitGroup) error {
+func (p *PullImages) pullImages(host *config.Host, images []string, wg *sync.WaitGroup) error {
 	defer wg.Done()
 
 	wp := workerpool.New(5)
