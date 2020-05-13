@@ -6,9 +6,9 @@ import (
 
 const (
 	ImageRepo = "docker.io/docker"
-	Version   = "3.3.0-rc.1"
+	Version   = "3.3.0-rc1"
 
-	EngineVersion    = "19.03.8-rc.1"
+	EngineVersion    = "19.03.8-rc1"
 	EngineChannel    = "test"
 	EngineRepoURL    = "http://repos-internal.mirantis.com.s3.amazonaws.com"
 	EngineInstallURL = "https://s3-us-west-2.amazonaws.com/internal-docker-ee-builds/install.sh"
