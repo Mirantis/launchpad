@@ -1,16 +1,16 @@
 package config
 
 type EngineConfig struct {
-	Version    string
-	RepoURL    string
-	InstallURL string
-	Channel    string
+	Version    string `yaml:"version"`
+	RepoURL    string `yaml:"repoUrl"`
+	InstallURL string `yaml:"installURL"`
+	Channel    string `yaml:"channel"`
 }
 
 func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawConfig EngineConfig
-	raw := NewEngineConfig()
-
+	config := NewEngineConfig()
+	raw := rawConfig(config)
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}

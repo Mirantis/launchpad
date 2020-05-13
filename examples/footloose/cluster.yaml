@@ -7,3 +7,8 @@ hosts:
     sshPort: 9023
     user: "root"
     role: "worker"
+ucp:
+  installArgs:
+    - --admin-username=admin
+    - --admin-password=orcaorcaorca
+    - --default-node-orchestrator=kubernetes

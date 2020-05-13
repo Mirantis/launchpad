@@ -1,14 +1,15 @@
 package config
 
 type UcpConfig struct {
-	Version   string
-	ImageRepo string
+	Version      string   `yaml:"version"`
+	ImageRepo    string   `yaml:"imageRepo"`
+	InstallFlags []string `yaml:"installFlags,flow"`
 }
 
 func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawConfig UcpConfig
-	raw := NewUcpConfig()
-
+	type rawUcpConfig UcpConfig
+	config := NewUcpConfig()
+	raw := rawUcpConfig(config)
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}
