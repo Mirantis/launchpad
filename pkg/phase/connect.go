@@ -27,7 +27,6 @@ func (p *Connect) Run(config *config.ClusterConfig) error {
 }
 
 func (p *Connect) connectHost(host *config.Host, wg *sync.WaitGroup) error {
-	host.Normalize() // FIXME we need to handle this better somewhere else...
 	defer wg.Done()
 	err := retry.Do(
 		func() error {
