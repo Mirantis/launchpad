@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"path"
 	"strings"
 
+	"github.com/creasty/defaults"
 	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh"
 
@@ -39,36 +39,36 @@ type Hosts []*Host
 type Host struct {
 	Address          string   `yaml:"address" validate:"required,hostname|ip"`
 	User             string   `yaml:"user"`
-	SSHPort          int      `yaml:"sshPort" validate:"gt=0,lte=65535"`
-	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file"`
+	SSHPort          int      `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
+	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
 	Role             string   `yaml:"role" validate:"oneof=controller worker"`
 	ExtraArgs        []string `yaml:"extraArgs"`
-	PrivateInterface string   `yaml:"privateInterface" validate:"omitempty,gt=2"`
+	PrivateInterface string   `yaml:"privateInterface" default:"eth0" validate:"gt=2"`
 	Metadata         *HostMetadata
 	Configurer       HostConfigurer
 
 	sshClient *ssh.Client
 }
 
-// Normalize puts in the defaults
-// FIXME Maybe better to handle this during yaml unmarshaling...
-func (h *Host) Normalize() {
-	if h.SSHKeyPath == "" {
-		homeDir, _ := homedir.Dir()
-		h.SSHKeyPath = path.Join(homeDir, ".ssh", "id_rsa")
+func (s *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	defaults.Set(s)
+
+	type plain Host
+	if err := unmarshal((*plain)(s)); err != nil {
+		return err
 	}
 
-	if h.SSHPort == 0 {
-		h.SSHPort = 22
-	}
-	if h.PrivateInterface == "" {
-		h.PrivateInterface = "eth0"
-	}
+	return nil
 }
 
 // Connect to the host
 func (h *Host) Connect() error {
-	key, err := ioutil.ReadFile(h.SSHKeyPath)
+	keypath, err := homedir.Expand(h.SSHKeyPath)
+	if err != nil {
+		return err
+	}
+
+	key, err := ioutil.ReadFile(keypath)
 	if err != nil {
 		return err
 	}
