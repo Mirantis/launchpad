@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage("Build") {
             steps {
-                echo "hello world!"
+                echo "hello world! maybe now?!?"
                 sh "make build"
             }
         }
