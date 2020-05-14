@@ -2,7 +2,7 @@ package phase
 
 import (
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type PhaseManager struct {
@@ -26,7 +26,7 @@ func (m *PhaseManager) AddPhase(phase Phase) {
 // Run executes all the added Phases in order
 func (m *PhaseManager) Run() error {
 	for _, phase := range m.phases {
-		logrus.Infof("==> Running phase: %s", phase.Title())
+		log.Infof("==> Running phase: %s", phase.Title())
 		err := phase.Run(m.config)
 		if err != nil {
 			return err

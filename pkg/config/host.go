@@ -9,8 +9,9 @@ import (
 
 	"github.com/creasty/defaults"
 	"github.com/mitchellh/go-homedir"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type RemoteHost interface {
@@ -52,13 +53,6 @@ type Host struct {
 func (s *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(s)
 
-	if keypath, err := homedir.Expand(s.SSHKeyPath); err != nil {
-		logrus.Errorf("invalid SSH key path '%s': %s", s.SSHKeyPath, err)
-		return err
-	} else {
-		s.SSHKeyPath = keypath
-	}
-
 	type plain Host
 	if err := unmarshal((*plain)(s)); err != nil {
 		return err
@@ -69,7 +63,12 @@ func (s *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Connect to the host
 func (h *Host) Connect() error {
-	key, err := ioutil.ReadFile(h.SSHKeyPath)
+	keypath, err := homedir.Expand(h.SSHKeyPath)
+	if err != nil {
+		return err
+	}
+
+	key, err := ioutil.ReadFile(keypath)
 	if err != nil {
 		return err
 	}
@@ -118,7 +117,7 @@ func (h *Host) Exec(cmd string) error {
 		return err
 	}
 
-	logrus.Debugf("executing command: %s", cmd)
+	log.Debugf("executing command: %s", cmd)
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
@@ -127,10 +126,10 @@ func (h *Host) Exec(cmd string) error {
 	outputScanner := bufio.NewScanner(multiReader)
 
 	for outputScanner.Scan() {
-		logrus.Debugf("%s:  %s", h.Address, outputScanner.Text())
+		log.Debugf("%s:  %s", h.Address, outputScanner.Text())
 	}
 	if err := outputScanner.Err(); err != nil {
-		logrus.Errorf("%s:  %s", h.Address, err.Error())
+		log.Errorf("%s:  %s", h.Address, err.Error())
 	}
 
 	return nil
@@ -163,7 +162,7 @@ func trimOutput(output []byte) string {
 func (h *Host) PullImage(name string) error {
 	output, err := h.ExecWithOutput(fmt.Sprintf("sudo docker pull %s", name))
 	if err != nil {
-		logrus.Warnf("%s: failed to pull image %s: \n%s", h.Address, name, output)
+		log.Warnf("%s: failed to pull image %s: \n%s", h.Address, name, output)
 		return err
 	}
 	return nil

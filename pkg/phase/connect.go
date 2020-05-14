@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/config"
 	retry "github.com/avast/retry-go"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // Connect connects to each of the hosts
@@ -30,19 +30,19 @@ func (p *Connect) connectHost(host *config.Host, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	err := retry.Do(
 		func() error {
-			logrus.Infof("%s: opening SSH connection", host.Address)
+			log.Infof("%s: opening SSH connection", host.Address)
 			err := host.Connect()
 			if err != nil {
-				logrus.Errorf("%s: failed to connect -> %s", host.Address, err.Error())
+				log.Errorf("%s: failed to connect -> %s", host.Address, err.Error())
 			}
 			return err
 		},
 	)
 	if err != nil {
-		logrus.Errorf("%s: failed to open connection", host.Address)
+		log.Errorf("%s: failed to open connection", host.Address)
 		return err
 	}
 
-	logrus.Printf("%s: SSH connection opened", host.Address)
+	log.Printf("%s: SSH connection opened", host.Address)
 	return nil
 }
