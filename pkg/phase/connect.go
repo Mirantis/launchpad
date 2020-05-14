@@ -9,11 +9,13 @@ import (
 // Connect connects to each of the hosts
 type Connect struct{}
 
+// Title for the phase
 func (p *Connect) Title() string {
 	return "Open SSH Connection"
 }
 
-func (p *Connect) Run(config *config.ClusterConfig) *PhaseError {
+// Run connects to all the hosts in parallel
+func (p *Connect) Run(config *config.ClusterConfig) error {
 	return runParallelOnHosts(config.Hosts, config, p.connectHost)
 }
 

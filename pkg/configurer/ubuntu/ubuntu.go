@@ -5,11 +5,14 @@ import (
 	"github.com/Mirantis/mcc/pkg/configurer"
 )
 
-type UbuntuConfigurer struct {
+// Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
+// might be on OS version specific implementation such as for Bionic.
+type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-func (c *UbuntuConfigurer) InstallBasePackages() error {
+// InstallBasePackages installs the needed base packages on Ubuntu
+func (c *Configurer) InstallBasePackages() error {
 	err := c.FixContainerizedHost()
 	if err != nil {
 		return err
@@ -24,7 +27,7 @@ func resolveUbuntuConfigurer(h *config.Host) config.HostConfigurer {
 	switch h.Metadata.Os.Version {
 	case "18.04":
 		configurer := &BionicConfigurer{
-			UbuntuConfigurer: UbuntuConfigurer{
+			Configurer: Configurer{
 				LinuxConfigurer: configurer.LinuxConfigurer{
 					Host: h,
 				},

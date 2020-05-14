@@ -26,7 +26,7 @@ func Install(ctx *cli.Context) error {
 
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
 
-	phaseManager := phase.NewPhaseManager(&clusterConfig)
+	phaseManager := phase.NewManager(&clusterConfig)
 
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherHostFacts{})

@@ -7,6 +7,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// NewInstallCommand creates new install command to be called from cli
 func NewInstallCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "install",

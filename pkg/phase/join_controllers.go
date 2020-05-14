@@ -9,13 +9,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// JoinControllers phase implementation
 type JoinControllers struct{}
 
+// Title for the phase
 func (p *JoinControllers) Title() string {
 	return "Join controllers"
 }
 
-func (p *JoinControllers) Run(config *config.ClusterConfig) *PhaseError {
+// Run joins the controller nodes into swarm
+func (p *JoinControllers) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Controllers()[0]
 	for _, h := range config.Controllers() {
 		if util.IsSwarmNode(h) {
@@ -26,7 +29,7 @@ func (p *JoinControllers) Run(config *config.ClusterConfig) *PhaseError {
 		log.Debugf("%s: joining as controller", h.Address)
 		output, err := h.ExecWithOutput(joinCmd)
 		if err != nil {
-			return NewPhaseError(fmt.Sprintf("Failed to join controller node to swarm: %s", output))
+			return NewError(fmt.Sprintf("Failed to join controller node to swarm: %s", output))
 		}
 		log.Debugf("%s: joined succesfully", h.Address)
 	}

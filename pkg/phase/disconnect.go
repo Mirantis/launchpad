@@ -5,13 +5,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Disconnect phase implementation
 type Disconnect struct{}
 
+// Title for the phase
 func (p *Disconnect) Title() string {
 	return "Close SSH Connection"
 }
 
-func (p *Disconnect) Run(config *config.ClusterConfig) *PhaseError {
+// Run disconnects from all the hosts
+func (p *Disconnect) Run(config *config.ClusterConfig) error {
 	return runParallelOnHosts(config.Hosts, config, p.disconnectHost)
 }
 
