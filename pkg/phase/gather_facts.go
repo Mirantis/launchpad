@@ -2,7 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -17,37 +16,30 @@ func (p *GatherHostFacts) Title() string {
 	return "Gather Host Facts"
 }
 
-func (p *GatherHostFacts) Run(config *config.ClusterConfig) error {
-	var wg sync.WaitGroup
-	for _, host := range config.Hosts {
-		wg.Add(1)
-		log.Infof("gathering host %s facts", host.Address)
-		go investigateHost(host, &wg)
-	}
-	wg.Wait()
-
-	return nil
+func (p *GatherHostFacts) Run(config *config.ClusterConfig) *PhaseError {
+	return runParallelOnHosts(config.Hosts, config, investigateHost)
 }
 
-func investigateHost(h *config.Host, wg *sync.WaitGroup) {
-	defer wg.Done()
+func investigateHost(h *config.Host, c *config.ClusterConfig) error {
+	log.Infof("gathering host %s facts", h.Address)
 
 	os, err := resolveOsRelease(h)
 	if err != nil {
-		return
+		return err
 	}
 	h.Metadata = &config.HostMetadata{
 		Os: os,
 	}
 	err = resolveHostConfigurer(h)
 	if err != nil {
-		log.Errorln(err.Error())
-		return
+		return err
 	}
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.InternalAddress = h.Configurer.ResolveInternalIP()
 
 	log.Debugf("host %s has internal address: %s", h.Address, h.Metadata.InternalAddress)
+
+	return nil
 }
 
 func resolveOsRelease(h *config.Host) (*config.OsRelease, error) {
