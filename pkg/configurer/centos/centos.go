@@ -5,11 +5,13 @@ import (
 	"github.com/Mirantis/mcc/pkg/configurer"
 )
 
-type CentOSConfigurer struct {
+// Configurer is the CentOS specific implementation of a host configurer
+type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-func (c *CentOSConfigurer) InstallBasePackages() error {
+// InstallBasePackages install all the needed base packages on the host
+func (c *Configurer) InstallBasePackages() error {
 	err := c.FixContainerizedHost()
 	if err != nil {
 		return err
@@ -19,7 +21,7 @@ func (c *CentOSConfigurer) InstallBasePackages() error {
 
 func resolveCentosConfigurer(h *config.Host) config.HostConfigurer {
 	if h.Metadata.Os.ID == "centos" {
-		return &CentOSConfigurer{
+		return &Configurer{
 			LinuxConfigurer: configurer.LinuxConfigurer{
 				Host: h,
 			},

@@ -11,23 +11,28 @@ import (
 
 // Phase interface
 type Phase interface {
-	Run(config *config.ClusterConfig) *PhaseError
+	Run(config *config.ClusterConfig) error
 	Title() string
 }
 
-type PhaseError struct {
+// Error collects multiple error into one as we execute many phases in parallel
+// for many hosts.
+type Error struct {
 	Errors []error
 }
 
-func (e *PhaseError) AddError(err error) {
+// AddError adds new error to the collection
+func (e *Error) AddError(err error) {
 	e.Errors = append(e.Errors, err)
 }
 
-func (e *PhaseError) Count() int {
+// Count returns the current count of errors
+func (e *Error) Count() int {
 	return len(e.Errors)
 }
 
-func (e *PhaseError) Error() string {
+// Error returns the combined stringified error
+func (e *Error) Error() string {
 	messages := []string{}
 	for _, err := range e.Errors {
 		messages = append(messages, err.Error())
@@ -35,15 +40,16 @@ func (e *PhaseError) Error() string {
 	return strings.Join(messages, "\n")
 }
 
-func NewPhaseError(err string) *PhaseError {
-	return &PhaseError{
+// NewError creates new phase.Error
+func NewError(err string) *Error {
+	return &Error{
 		Errors: []error{errors.New(err)},
 	}
 }
 
-func runParallelOnHosts(hosts []*config.Host, c *config.ClusterConfig, action func(host *config.Host, config *config.ClusterConfig) error) *PhaseError {
+func runParallelOnHosts(hosts []*config.Host, c *config.ClusterConfig, action func(host *config.Host, config *config.ClusterConfig) error) error {
 	var wg sync.WaitGroup
-	phaseError := &PhaseError{}
+	phaseError := &Error{}
 	for _, host := range hosts {
 		wg.Add(1)
 		go func(h *config.Host) {

@@ -4,19 +4,24 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/config"
+	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
+	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	"github.com/cobaugh/osrelease"
 	log "github.com/sirupsen/logrus"
 )
 
+// GatherHostFacts phase implementation to collect facts (OS, version etc.) from hosts
 type GatherHostFacts struct{}
 
+// Title for the phase
 func (p *GatherHostFacts) Title() string {
 	return "Gather Host Facts"
 }
 
-func (p *GatherHostFacts) Run(config *config.ClusterConfig) *PhaseError {
+// Run collect all the facts from hosts in parallel
+func (p *GatherHostFacts) Run(config *config.ClusterConfig) error {
 	return runParallelOnHosts(config.Hosts, config, investigateHost)
 }
 

@@ -8,13 +8,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// JoinWorkers phase implementation
 type JoinWorkers struct{}
 
+// Title for the phase
 func (p *JoinWorkers) Title() string {
 	return "Join workers"
 }
 
-func (p *JoinWorkers) Run(config *config.ClusterConfig) *PhaseError {
+// Run joins all the workers nodes to swarm if not already part of it.
+func (p *JoinWorkers) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Controllers()[0]
 	for _, h := range config.Workers() {
 		if util.IsSwarmNode(h) {
@@ -25,7 +28,7 @@ func (p *JoinWorkers) Run(config *config.ClusterConfig) *PhaseError {
 		log.Debugf("%s: joining as worker", h.Address)
 		err := h.Exec(joinCmd)
 		if err != nil {
-			return NewPhaseError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
+			return NewError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
 		}
 		log.Infof("%s: joined succesfully", h.Address)
 	}

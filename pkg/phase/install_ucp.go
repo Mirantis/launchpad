@@ -17,7 +17,7 @@ func (p *InstallUCP) Title() string {
 }
 
 // Run the installer container
-func (p *InstallUCP) Run(config *config.ClusterConfig) *PhaseError {
+func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Controllers()[0]
 
 	if config.Ucp.Metadata.Installed {
@@ -30,7 +30,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) *PhaseError {
 	installCmd := fmt.Sprintf("sudo docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
 	err := swarmLeader.Exec(installCmd)
 	if err != nil {
-		return NewPhaseError("Failed to run UCP installer")
+		return NewError("Failed to run UCP installer")
 	}
 	return nil
 }

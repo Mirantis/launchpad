@@ -9,16 +9,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// PullImages phase implementation
 type PullImages struct{}
 
+// Title for the phase
 func (p *PullImages) Title() string {
 	return "Pull images"
 }
 
-func (p *PullImages) Run(c *config.ClusterConfig) *PhaseError {
+// Run pulls all the needed images on controllers in parallel.
+// Parallel on each host and pulls 5 images at a time on each host.
+func (p *PullImages) Run(c *config.ClusterConfig) error {
 	images, err := p.listImages(c)
 	if err != nil {
-		return NewPhaseError(err.Error())
+		return NewError(err.Error())
 	}
 	log.Debugf("loaded images list: %v", images)
 

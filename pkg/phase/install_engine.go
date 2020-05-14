@@ -6,13 +6,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// InstallEngine phase implementation
 type InstallEngine struct{}
 
+// Title for the phase
 func (p *InstallEngine) Title() string {
 	return "Install Docker EE Engine on the hosts"
 }
 
-func (p *InstallEngine) Run(config *config.ClusterConfig) *PhaseError {
+// Run installs the engine on each host
+func (p *InstallEngine) Run(config *config.ClusterConfig) error {
 	return runParallelOnHosts(config.Hosts, config, p.installEngine)
 }
 
