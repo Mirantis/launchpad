@@ -15,7 +15,3 @@ build-all:
 	GOOS=linux GOARCH=amd64 go build $(BUILD_FLAGS) -o bin/mcc-linux-x64 main.go
 	GOOS=windows GOARCH=amd64 go build $(BUILD_FLAGS) -o bin/mcc-win-x64.exe main.go
 	GOOS=darwin GOARCH=amd64 go build $(BUILD_FLAGS) -o bin/mcc-darwin-x64 main.go
-
-dump_envs:
-	@echo COMMIT=$(GIT_COMMIT)
-
