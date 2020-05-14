@@ -1,0 +1,18 @@
+hosts:
+  - address: "192.168.64.10"
+    user: "ubuntu"
+    role: "controller"
+    sshKeyPath: "/var/root/Library/Application Support/multipassd/ssh-keys/id_rsa"
+    privateInterface: enp0s2
+  - address: "192.168.64.11"
+    user: "ubuntu"
+    role: "worker"
+    sshKeyPath: "/var/root/Library/Application Support/multipassd/ssh-keys/id_rsa"
+    privateInterface: enp0s2
+ucp:
+  installFlags:
+    - --admin-username=admin
+    - --admin-password=v3ryS3cret
+    - --default-node-orchestrator=kubernetes
+    - --force-minimums
+    - --pod-cidr=10.32.0.0/16
