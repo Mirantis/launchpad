@@ -18,3 +18,13 @@ func IsSwarmNode(host *config.Host) bool {
 
 	return true
 }
+
+func SwarmClusterId(leader *config.Host) string {
+	output, err := leader.ExecWithOutput("sudo docker info --format '{{ .Swarm.Cluster.ID}}'")
+	if err != nil {
+		log.Warnf("failed to get hosts swarm status")
+		return ""
+	}
+
+	return output
+}
