@@ -10,6 +10,10 @@ type UbuntuConfigurer struct {
 }
 
 func (c *UbuntuConfigurer) InstallBasePackages() error {
+	err := c.FixContainerizedHost()
+	if err != nil {
+		return err
+	}
 	return c.Host.Exec("sudo apt-get update && sudo apt-get install -y curl apt-utils")
 }
 

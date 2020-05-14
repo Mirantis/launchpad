@@ -10,6 +10,10 @@ type CentOSConfigurer struct {
 }
 
 func (c *CentOSConfigurer) InstallBasePackages() error {
+	err := c.FixContainerizedHost()
+	if err != nil {
+		return err
+	}
 	return c.Host.Exec("sudo yum install -y curl")
 }
 

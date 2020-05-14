@@ -3,6 +3,7 @@ package config
 type HostConfigurer interface {
 	ResolveHostname() string
 	ResolveInternalIP() string
+	IsContainerized() bool
 	InstallBasePackages() error
 	InstallEngine(engineConfig *EngineConfig) error
 }

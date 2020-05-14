@@ -50,3 +50,20 @@ func (c *LinuxConfigurer) ResolveInternalIP() string {
 	}
 	return c.Host.Address
 }
+
+// IsContainerized checks if host is actually a container
+func (c *LinuxConfigurer) IsContainerized() bool {
+	err := c.Host.Exec("grep 'container=docker' /proc/1/environ")
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// FixContainerizedHost configures host if host is containerized environment
+func (c *LinuxConfigurer) FixContainerizedHost() error {
+	if c.IsContainerized() {
+		return c.Host.Exec("sudo mount --make-rshared /")
+	}
+	return nil
+}

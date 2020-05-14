@@ -29,10 +29,8 @@ func (p *InstallEngine) installEngine(host *config.Host, engineConfig *config.En
 	defer wg.Done()
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: installing base packages", host.Address)
-			err := host.Configurer.InstallBasePackages()
 			log.Infof("%s: installing engine", host.Address)
-			err = host.Configurer.InstallEngine(engineConfig)
+			err := host.Configurer.InstallEngine(engineConfig)
 
 			return err
 		},
