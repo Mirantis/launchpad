@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type Disconnect struct{}
@@ -27,6 +27,6 @@ func (p *Disconnect) Run(config *config.ClusterConfig) error {
 func (p *Disconnect) disconnectHost(host *config.Host, wg *sync.WaitGroup) error {
 	defer wg.Done()
 	host.Connect()
-	logrus.Printf("%s: SSH connection closed", host.Address)
+	log.Printf("%s: SSH connection closed", host.Address)
 	return nil
 }
