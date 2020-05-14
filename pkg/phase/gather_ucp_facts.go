@@ -1,7 +1,6 @@
 package phase
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/config"
@@ -15,12 +14,12 @@ func (p *GatherUcpFacts) Title() string {
 	return "Gather UCP facts"
 }
 
-func (p *GatherUcpFacts) Run(conf *config.ClusterConfig) error {
+func (p *GatherUcpFacts) Run(conf *config.ClusterConfig) *PhaseError {
 	swarmLeader := conf.Controllers()[0]
 	exists, existingVersion, err := ucpExists(swarmLeader)
 
 	if err != nil {
-		return fmt.Errorf("Failed to check existing UCP version")
+		return NewPhaseError("Failed to check existing UCP version")
 	}
 
 	conf.Ucp.Metadata = &config.UcpMetadata{

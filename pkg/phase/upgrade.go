@@ -19,13 +19,13 @@ func (p *UpgradeUcp) Title() string {
 }
 
 // Run the installer container
-func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
+func (p *UpgradeUcp) Run(config *config.ClusterConfig) *PhaseError {
 	swarmLeader := config.Controllers()[0]
 
 	// Check specified bootstrapper images version
 	bootstrapperVersion, err := swarmLeader.ExecWithOutput(fmt.Sprintf(`sudo docker image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Ucp.GetBootstrapperImage()))
 	if err != nil {
-		return fmt.Errorf("Failed to check bootstrapper image version")
+		return NewPhaseError("Failed to check bootstrapper image version")
 	}
 
 	if bootstrapperVersion == config.Ucp.Metadata.InstalledVersion {
@@ -39,7 +39,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
 	err = swarmLeader.Exec(upgradeCmd)
 	if err != nil {
-		return fmt.Errorf("Failed to run UCP upgrade")
+		return NewPhaseError("Failed to run UCP upgrade")
 	}
 
 	return nil

@@ -1,8 +1,6 @@
 package phase
 
 import (
-	"sync"
-
 	"github.com/Mirantis/mcc/pkg/config"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
@@ -14,23 +12,15 @@ func (p *InstallEngine) Title() string {
 	return "Install Docker EE Engine on the hosts"
 }
 
-func (p *InstallEngine) Run(config *config.ClusterConfig) error {
-	var wg sync.WaitGroup
-	for _, host := range config.Hosts {
-		wg.Add(1)
-		go p.installEngine(host, &config.Engine, &wg)
-	}
-	wg.Wait()
-
-	return nil
+func (p *InstallEngine) Run(config *config.ClusterConfig) *PhaseError {
+	return runParallelOnHosts(config.Hosts, config, p.installEngine)
 }
 
-func (p *InstallEngine) installEngine(host *config.Host, engineConfig *config.EngineConfig, wg *sync.WaitGroup) error {
-	defer wg.Done()
+func (p *InstallEngine) installEngine(host *config.Host, c *config.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: installing engine", host.Address)
-			err := host.Configurer.InstallEngine(engineConfig)
+			err := host.Configurer.InstallEngine(&c.Engine)
 
 			return err
 		},

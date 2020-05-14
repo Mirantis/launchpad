@@ -15,7 +15,7 @@ func (p *JoinControllers) Title() string {
 	return "Join controllers"
 }
 
-func (p *JoinControllers) Run(config *config.ClusterConfig) error {
+func (p *JoinControllers) Run(config *config.ClusterConfig) *PhaseError {
 	swarmLeader := config.Controllers()[0]
 	for _, h := range config.Controllers() {
 		if util.IsSwarmNode(h) {
@@ -26,7 +26,7 @@ func (p *JoinControllers) Run(config *config.ClusterConfig) error {
 		log.Debugf("%s: joining as controller", h.Address)
 		output, err := h.ExecWithOutput(joinCmd)
 		if err != nil {
-			return fmt.Errorf("Failed to join controller node to swarm: %s", output)
+			return NewPhaseError(fmt.Sprintf("Failed to join controller node to swarm: %s", output))
 		}
 		log.Debugf("%s: joined succesfully", h.Address)
 	}

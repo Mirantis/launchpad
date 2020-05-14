@@ -14,7 +14,7 @@ func (p *JoinWorkers) Title() string {
 	return "Join workers"
 }
 
-func (p *JoinWorkers) Run(config *config.ClusterConfig) error {
+func (p *JoinWorkers) Run(config *config.ClusterConfig) *PhaseError {
 	swarmLeader := config.Controllers()[0]
 	for _, h := range config.Workers() {
 		if util.IsSwarmNode(h) {
@@ -25,7 +25,7 @@ func (p *JoinWorkers) Run(config *config.ClusterConfig) error {
 		log.Debugf("%s: joining as worker", h.Address)
 		err := h.Exec(joinCmd)
 		if err != nil {
-			return fmt.Errorf("Failed to join worker %s node to swarm", h.Address)
+			return NewPhaseError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
 		}
 		log.Infof("%s: joined succesfully", h.Address)
 	}
