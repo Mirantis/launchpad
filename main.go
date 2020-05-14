@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
+
+	"github.com/Mirantis/mcc/version"
 
 	"github.com/Mirantis/mcc/cmd"
 
@@ -10,6 +13,15 @@ import (
 )
 
 func main() {
+	versionCmd := &cli.Command{
+		Name: "version",
+		Action: func(ctx *cli.Context) error {
+			fmt.Printf("version: %s\n", version.Version)
+			fmt.Printf("commit: %s\n", version.GitCommit)
+			return nil
+		},
+	}
+
 	app := &cli.App{
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
@@ -27,6 +39,7 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			cmd.NewInstallCommand(),
+			versionCmd,
 		},
 	}
 
