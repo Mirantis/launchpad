@@ -5,13 +5,23 @@ MCC_VERSION = 0.0.1
 LD_FLAGS = "-w -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(MCC_VERSION)
 BUILD_FLAGS = -a -tags "netgo static_build" -installsuffix netgo -ldflags $(LD_FLAGS) -extldflags '-static'"
 
+BUILDER_IMAGE = golang:1.13
+GO = docker run --rm -v "$(CURDIR)":"$(CURDIR)" \
+	-w "$(CURDIR)" \
+	-e GOPATH\
+	-e GOOS \
+	-e GOARCH \
+	-e GOEXE \
+	$(BUILDER_IMAGE) \
+	go
+
 test:
 	go test -v ./...
 
 build:
-	go build $(BUILD_FLAGS) -o bin/mcc main.go
+	$(GO) build $(BUILD_FLAGS) -o bin/mcc main.go
 
 build-all:
-	GOOS=linux GOARCH=amd64 go build $(BUILD_FLAGS) -o bin/mcc-linux-x64 main.go
-	GOOS=windows GOARCH=amd64 go build $(BUILD_FLAGS) -o bin/mcc-win-x64.exe main.go
-	GOOS=darwin GOARCH=amd64 go build $(BUILD_FLAGS) -o bin/mcc-darwin-x64 main.go
+	GOOS=linux GOARCH=amd64 $(GO) build $(BUILD_FLAGS) -o bin/mcc-linux-x64 main.go
+	GOOS=windows GOARCH=amd64 $(GO) build $(BUILD_FLAGS) -o bin/mcc-win-x64.exe main.go
+	GOOS=darwin GOARCH=amd64 $(GO) build $(BUILD_FLAGS) -o bin/mcc-darwin-x64 main.go
