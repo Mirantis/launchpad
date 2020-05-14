@@ -11,7 +11,6 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -118,7 +117,7 @@ func (h *Host) Exec(cmd string) error {
 		return err
 	}
 
-	logrus.Debugf("executing command: %s", cmd)
+	log.Debugf("executing command: %s", cmd)
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
@@ -127,10 +126,10 @@ func (h *Host) Exec(cmd string) error {
 	outputScanner := bufio.NewScanner(multiReader)
 
 	for outputScanner.Scan() {
-		logrus.Debugf("%s:  %s", h.Address, outputScanner.Text())
+		log.Debugf("%s:  %s", h.Address, outputScanner.Text())
 	}
 	if err := outputScanner.Err(); err != nil {
-		logrus.Errorf("%s:  %s", h.Address, err.Error())
+		log.Errorf("%s:  %s", h.Address, err.Error())
 	}
 
 	return nil
