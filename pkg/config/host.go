@@ -37,7 +37,7 @@ type Hosts []*Host
 
 type Host struct {
 	Address          string   `yaml:"address" validate:"required,hostname|ip"`
-	User             string   `yaml:"user" validate:"required"`
+	User             string   `yaml:"user"`
 	SSHPort          int      `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
 	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
 	Role             string   `yaml:"role" validate:"oneof=controller worker"`
