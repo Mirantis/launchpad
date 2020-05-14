@@ -94,18 +94,22 @@ func (h *Host) Connect() error {
 	return nil
 }
 
-// Exec a command on the host and streams the logs
-func (h *Host) Exec(cmd string) error {
+// Exec a command on the host piping stdin and streams the logs
+func (h *Host) ExecCmd(cmd string, stdin string) error {
 	session, err := h.sshClient.NewSession()
 	if err != nil {
 		return err
 	}
 	defer session.Close()
 
-	modes := ssh.TerminalModes{}
-	err = session.RequestPty("xterm", 80, 40, modes)
-	if err != nil {
-		return err
+	if stdin == "" {
+		// FIXME not requesting a pty for commands with stdin input for now,
+		// as it appears the pipe doesn't get closed with stdinpipe.Close()
+		modes := ssh.TerminalModes{}
+		err = session.RequestPty("xterm", 80, 40, modes)
+		if err != nil {
+			return err
+		}
 	}
 
 	stdout, err := session.StdoutPipe()
@@ -117,9 +121,22 @@ func (h *Host) Exec(cmd string) error {
 		return err
 	}
 
+	stdinPipe, err := session.StdinPipe()
+	if err != nil {
+		return err
+	}
+
 	log.Debugf("executing command: %s", cmd)
 	if err := session.Start(cmd); err != nil {
 		return err
+	}
+
+	if stdin != "" {
+		log.Debugf("writing data to command stdin: %s", stdin)
+		go func() {
+			defer stdinPipe.Close()
+			io.WriteString(stdinPipe, stdin)
+		}()
 	}
 
 	multiReader := io.MultiReader(stdout, stderr)
@@ -133,6 +150,16 @@ func (h *Host) Exec(cmd string) error {
 	}
 
 	return nil
+}
+
+// Exec a command on the host and streams the logs
+func (h *Host) Exec(cmd string) error {
+	return h.ExecCmd(cmd, "")
+}
+
+// Exec a printf-formatted command on the host and streams the logs
+func (h *Host) Execf(cmd string, args ...interface{}) error {
+	return h.Exec(fmt.Sprintf(cmd, args...))
 }
 
 // ExecWithOutput execs a command on the host and return output
