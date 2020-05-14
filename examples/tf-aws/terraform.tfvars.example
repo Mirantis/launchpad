@@ -1,0 +1,4 @@
+cluster_name = "my-ucp-cluster"
+master_count = 1
+worker_count = 3
+admin_password = "v3rys3cretzzz!"
