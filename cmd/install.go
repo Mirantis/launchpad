@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/Mirantis/mcc/pkg/install"
-	"github.com/Mirantis/mcc/pkg/util"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -23,11 +22,7 @@ func NewInstallCommand() *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			log.Info("Install called")
-			util.TrackAnalyticsEvent("install", nil)
 			err := install.Install(ctx)
-			if err != nil {
-				util.TrackAnalyticsEvent("installFailed", nil)
-			}
 			return err
 		},
 	}

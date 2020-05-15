@@ -9,7 +9,7 @@ const (
 	// ProdSegmentToken is the API token we use for Segment in production.
 	ProdSegmentToken = "xxx"
 	// DevSegmentToken is the API token we use for Segment in development.
-	DevSegmentToken = "yyy"
+	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
 )
 
 // Analytics is the interface used for our analytics client.
@@ -28,23 +28,19 @@ func AnalyticsClient() Analytics {
 // TrackAnalyticsEvent uploads the given event to segment if analytics tracking
 // is enabled in the UCP config.
 func TrackAnalyticsEvent(event string, properties map[string]interface{}) error {
-	userID, err := AnalyticsUserID()
-	if err != nil {
-		return err
-	}
-
 	client := AnalyticsClient()
 	defer client.Close()
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
-	properties["machineID"] = AnalyticsMachineID()
 	msg := analytics.Track{
-		UserId:     userID,
-		Event:      event,
-		Properties: properties,
+		AnonymousId: AnalyticsMachineID(),
+		Event:       event,
+		Properties:  properties,
 	}
-
+	if userID := AnalyticsUserID(); userID != "" {
+		msg.UserId = userID
+	}
 	return client.Enqueue(msg)
 }
 
@@ -56,6 +52,6 @@ func AnalyticsMachineID() string {
 }
 
 // AnalyticsUserID returs user id for our analytics events.
-func AnalyticsUserID() (string, error) {
-	return "joe@example.org", nil // TODO Read from config
+func AnalyticsUserID() string {
+	return "" // TODO Read from config
 }
