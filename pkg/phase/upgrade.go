@@ -42,5 +42,11 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 		return NewError("Failed to run UCP upgrade")
 	}
 
+	ucpMeta, err := util.CollectUcpFacts(swarmLeader)
+	if err != nil {
+		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
+	}
+	config.Ucp.Metadata = ucpMeta
+
 	return nil
 }
