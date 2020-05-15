@@ -1,8 +1,12 @@
 package config
 
 import (
-	validator "github.com/go-playground/validator/v10"
+	"io/ioutil"
+
 	"gopkg.in/yaml.v2"
+
+	validator "github.com/go-playground/validator/v10"
+	"github.com/mitchellh/go-homedir"
 )
 
 const (
@@ -71,6 +75,20 @@ func (c *ClusterConfig) Controllers() []*Host {
 	}
 
 	return controllers
+}
+
+// Helper for reading data from references to external files
+var loadExternalFile = func(path string) ([]byte, error) {
+	realpath, err := homedir.Expand(path)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	filedata, err := ioutil.ReadFile(realpath)
+	if err != nil {
+		return []byte{}, err
+	}
+	return filedata, nil
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

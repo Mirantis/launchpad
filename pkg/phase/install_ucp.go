@@ -9,6 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const configName string = "com.docker.ucp.config"
+
 // InstallUCP is the phase implementation for running the actual UCP installer container
 type InstallUCP struct{}
 
@@ -27,7 +29,25 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	}
 
 	image := fmt.Sprintf("%s/ucp:%s", config.Ucp.ImageRepo, config.Ucp.Version)
-	flags := strings.Join(config.Ucp.InstallFlags, " ")
+
+	installFlags := config.Ucp.InstallFlags
+	if config.Ucp.ConfigData != "" {
+		defer func() {
+			err := swarmLeader.Execf("sudo docker config rm %s", configName)
+			if err != nil {
+				log.Warnf("Failed to remove the temporary UCP installer configuration %s : %s", configName, err)
+			}
+		}()
+
+		installFlags = append(installFlags, "--existing-config")
+		log.Info("Creating UCP configuration")
+		err := swarmLeader.ExecCmd(fmt.Sprintf("sudo docker config create %s -", configName), config.Ucp.ConfigData)
+		if err != nil {
+			return err
+		}
+	}
+
+	flags := strings.Join(installFlags, " ")
 	installCmd := fmt.Sprintf("sudo docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
 	err := swarmLeader.Exec(installCmd)
 	if err != nil {
