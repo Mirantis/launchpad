@@ -2,9 +2,6 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
-
-	"github.com/mitchellh/go-homedir"
 )
 
 // UcpConfig has all the bits needed to configure UCP during installation
@@ -34,16 +31,11 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.ConfigFile != "" {
-		configfile, err := homedir.Expand(raw.ConfigFile)
+		configData, err := loadExternalFile(raw.ConfigFile)
 		if err != nil {
 			return err
 		}
-
-		cfg, err := ioutil.ReadFile(configfile)
-		if err != nil {
-			return err
-		}
-		raw.ConfigData = string(cfg)
+		raw.ConfigData = string(configData)
 	}
 
 	*c = UcpConfig(raw)
