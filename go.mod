@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/avast/retry-go v2.6.0+incompatible
-	github.com/cloudflare/cfssl v1.4.1
 	github.com/cobaugh/osrelease v0.0.0-20181218015638-a93a0a55a249
 	github.com/creasty/defaults v1.3.0
 	github.com/denisbrodbeck/machineid v1.0.1
@@ -19,5 +18,4 @@ require (
 	golang.org/x/crypto v0.0.0-20200429183012-4b2356b1ed79
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/yaml.v2 v2.2.4
-	k8s.io/client-go v11.0.0+incompatible
 )
