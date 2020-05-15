@@ -24,6 +24,10 @@ func Install(ctx *cli.Context) error {
 		return err
 	}
 
+	if err = clusterConfig.Validate(); err != nil {
+		return err
+	}
+
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
 
 	phaseManager := phase.NewManager(&clusterConfig)

@@ -41,7 +41,7 @@ type Hosts []*Host
 // Host contains all the needed details to work with hosts
 type Host struct {
 	Address          string   `yaml:"address" validate:"required,hostname|ip"`
-	User             string   `yaml:"user"`
+	User             string   `yaml:"user" validate:"omitempty,gt=2" default:"root"`
 	SSHPort          int      `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
 	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
 	Role             string   `yaml:"role" validate:"oneof=controller worker"`
@@ -56,6 +56,7 @@ type Host struct {
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
+	h.SSHKeyPath, _ = homedir.Expand(h.SSHKeyPath)
 
 	type plain Host
 	if err := unmarshal((*plain)(h)); err != nil {
@@ -67,12 +68,7 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Connect to the host
 func (h *Host) Connect() error {
-	keypath, err := homedir.Expand(h.SSHKeyPath)
-	if err != nil {
-		return err
-	}
-
-	key, err := ioutil.ReadFile(keypath)
+	key, err := ioutil.ReadFile(h.SSHKeyPath)
 	if err != nil {
 		return err
 	}

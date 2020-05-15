@@ -1,6 +1,7 @@
 package config
 
 import (
+	validator "github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,7 +22,7 @@ const (
 
 // ClusterConfig is the struct to read the cluster.yaml config into
 type ClusterConfig struct {
-	Hosts  Hosts        `yaml:"hosts"`
+	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
 	Ucp    UcpConfig    `yaml:"ucp"`
 	Engine EngineConfig `yaml:"engine"`
 
@@ -39,6 +40,13 @@ func FromYaml(data []byte) (ClusterConfig, error) {
 	}
 
 	return c, nil
+}
+
+// Validate validates that everything in the config makes sense
+// Currently we do only very "static" validation using https://github.com/go-playground/validator
+func (c *ClusterConfig) Validate() error {
+	validator := validator.New()
+	return validator.Struct(c)
 }
 
 // Workers filters only the workers from the cluster config
