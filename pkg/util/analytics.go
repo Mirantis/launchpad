@@ -2,7 +2,7 @@ package util
 
 import (
 	"github.com/denisbrodbeck/machineid"
-	"gopkg.in/segmentio/analytics-go.v3"
+	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
 
 const (
@@ -18,8 +18,14 @@ type Analytics interface {
 	Close() error
 }
 
+// testClient is only meant to be used in unit testing.
+var testClient Analytics
+
 // AnalyticsClient returns a client for uploading analytics data.
 func AnalyticsClient() Analytics {
+	if testClient != nil {
+		return testClient
+	}
 	segmentToken := DevSegmentToken // TODO use also ProdSegmentToken
 	segmentClient := analytics.New(segmentToken)
 	return segmentClient
