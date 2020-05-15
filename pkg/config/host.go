@@ -93,7 +93,7 @@ func (h *Host) Connect() error {
 	return nil
 }
 
-// Exec a command on the host piping stdin and streams the logs
+// ExecCmd a command on the host piping stdin and streams the logs
 func (h *Host) ExecCmd(cmd string, stdin string) error {
 	session, err := h.sshClient.NewSession()
 	if err != nil {
@@ -156,7 +156,7 @@ func (h *Host) Exec(cmd string) error {
 	return h.ExecCmd(cmd, "")
 }
 
-// Exec a printf-formatted command on the host and streams the logs
+// Execf a printf-formatted command on the host and streams the logs
 func (h *Host) Execf(cmd string, args ...interface{}) error {
 	return h.Exec(fmt.Sprintf(cmd, args...))
 }
