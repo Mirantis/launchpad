@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/creasty/defaults"
+	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh"
 
 	log "github.com/sirupsen/logrus"
@@ -54,7 +55,8 @@ type Host struct {
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
-
+	// Need to expand possible ~... paths so validation will pass
+	h.SSHKeyPath, _ = homedir.Expand(h.SSHKeyPath)
 	type plain Host
 	if err := unmarshal((*plain)(h)); err != nil {
 		return err
