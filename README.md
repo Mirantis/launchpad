@@ -2,7 +2,7 @@
 
 > The Next Generation UCP Installer & Lifecycle Management Tool
 
-The purpose of `mmc` is to provide amazing new user experience for anyone interested in getting started with UCP product. It will simplify the complex installation process and provides "from zero to hero" experience in less than 5mins for IT admin / DevOps people who are experienced with various command line tools and cloud technologies. In addition, it'll provide functionality to upgrade existing UCP clusters to new versions with no downtime or service interruptions (high availability clusters). In the future, more functionality may be added.
+The purpose of `mcc` is to provide amazing new user experience for anyone interested in getting started with UCP product. It will simplify the complex installation process and provides "from zero to hero" experience in less than 5mins for IT admin / DevOps people who are experienced with various command line tools and cloud technologies. In addition, it'll provide functionality to upgrade existing UCP clusters to new versions with no downtime or service interruptions (high availability clusters). In the future, more functionality may be added.
 
 See the [getting started](https://github.com/Mirantis/mcc/wiki/Getting-Started-with-UCP) flow.
 
