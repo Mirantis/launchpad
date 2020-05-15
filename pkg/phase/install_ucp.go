@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,5 +33,12 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}
+
+	ucpMeta, err := util.CollectUcpFacts(swarmLeader)
+	if err != nil {
+		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
+	}
+	config.Ucp.Metadata = ucpMeta
+
 	return nil
 }
