@@ -3,34 +3,32 @@ package phase
 import (
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )
 
+// PullImages phase implementation
 type PullImages struct{}
 
+// Title for the phase
 func (p *PullImages) Title() string {
 	return "Pull images"
 }
 
-func (p *PullImages) Run(config *config.ClusterConfig) error {
-
-	images, err := p.listImages(config)
+// Run pulls all the needed images on controllers in parallel.
+// Parallel on each host and pulls 5 images at a time on each host.
+func (p *PullImages) Run(c *config.ClusterConfig) error {
+	images, err := p.listImages(c)
 	if err != nil {
-		return err
+		return NewError(err.Error())
 	}
 	log.Debugf("loaded images list: %v", images)
-	var wg sync.WaitGroup
-	for _, host := range config.Controllers() {
-		wg.Add(1)
-		go p.pullImages(host, images, &wg)
-	}
-	wg.Wait()
 
-	return nil
+	return runParallelOnHosts(c.Controllers(), c, func(h *config.Host, c *config.ClusterConfig) error {
+		return p.pullImages(h, images)
+	})
 }
 
 func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) {
@@ -49,9 +47,7 @@ func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) 
 }
 
 // Pulls images on a host in parallel using a workerpool with 5 workers. Essentially we pull 5 images in parallel.
-func (p *PullImages) pullImages(host *config.Host, images []string, wg *sync.WaitGroup) error {
-	defer wg.Done()
-
+func (p *PullImages) pullImages(host *config.Host, images []string) error {
 	wp := workerpool.New(5)
 	defer wp.StopWait()
 

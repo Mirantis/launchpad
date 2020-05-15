@@ -41,10 +41,9 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 
 	flags := strings.Join(installFlags, " ")
 	installCmd := fmt.Sprintf("sudo docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
-	log.Debugf("Running installer with cmd: %s", installCmd)
 	err := swarmLeader.Exec(installCmd)
 	if err != nil {
-		return fmt.Errorf("Failed to run UCP installer")
+		return NewError("Failed to run UCP installer")
 	}
 	err = swarmLeader.Execf("sudo docker config rm %s", configName)
 	if err != nil {

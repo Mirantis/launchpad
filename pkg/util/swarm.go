@@ -5,6 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// IsSwarmNode check whether the given node is already part of swarm
 func IsSwarmNode(host *config.Host) bool {
 	output, err := host.ExecWithOutput("sudo docker info --format '{{json .Swarm.NodeID}}'")
 	if err != nil {
@@ -19,7 +20,8 @@ func IsSwarmNode(host *config.Host) bool {
 	return true
 }
 
-func SwarmClusterId(leader *config.Host) string {
+// SwarmClusterID digs the swarm cluster id from swarm leader host
+func SwarmClusterID(leader *config.Host) string {
 	output, err := leader.ExecWithOutput("sudo docker info --format '{{ .Swarm.Cluster.ID}}'")
 	if err != nil {
 		log.Warnf("failed to get hosts swarm status")

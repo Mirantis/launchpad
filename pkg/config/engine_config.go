@@ -1,5 +1,6 @@
 package config
 
+// EngineConfig holds the engine installation specific options
 type EngineConfig struct {
 	Version    string `yaml:"version"`
 	RepoURL    string `yaml:"repoUrl"`
@@ -7,6 +8,7 @@ type EngineConfig struct {
 	Channel    string `yaml:"channel"`
 }
 
+// UnmarshalYAML puts in sane defaults when unmarshaling from yaml
 func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawConfig EngineConfig
 	config := NewEngineConfig()
@@ -19,6 +21,7 @@ func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// NewEngineConfig creates new default engine config struct
 func NewEngineConfig() EngineConfig {
 	return EngineConfig{
 		Version:    EngineVersion,

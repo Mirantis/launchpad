@@ -5,26 +5,28 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type PhaseManager struct {
+// Manager executes phases to construct the cluster
+type Manager struct {
 	phases []Phase
 	config *config.ClusterConfig
 }
 
-func NewPhaseManager(config *config.ClusterConfig) *PhaseManager {
-	phaseMgr := &PhaseManager{
+// NewManager constructs new phase manager
+func NewManager(config *config.ClusterConfig) *Manager {
+	phaseMgr := &Manager{
 		config: config,
 	}
 
 	return phaseMgr
 }
 
-// AddPhase adds a Phase to PhaseManager
-func (m *PhaseManager) AddPhase(phase Phase) {
+// AddPhase adds a Phase to Manager
+func (m *Manager) AddPhase(phase Phase) {
 	m.phases = append(m.phases, phase)
 }
 
 // Run executes all the added Phases in order
-func (m *PhaseManager) Run() error {
+func (m *Manager) Run() error {
 	for _, phase := range m.phases {
 		log.Infof("==> Running phase: %s", phase.Title())
 		err := phase.Run(m.config)

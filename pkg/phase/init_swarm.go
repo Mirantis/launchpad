@@ -10,12 +10,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// InitSwarm phase implementation
 type InitSwarm struct{}
 
+// Title for the phase
 func (p *InitSwarm) Title() string {
 	return "Initialize Swarm"
 }
 
+// Run initializes the swarm on the leader or skips if swarm is already initialized
 func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Controllers()[0]
 
@@ -23,7 +26,7 @@ func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 		log.Debugf("%s: initializing swarm", swarmLeader.Address)
 		err := swarmLeader.Execf("sudo docker swarm init --advertise-addr=%s", swarmLeader.SwarmAddress())
 		if err != nil {
-			return fmt.Errorf("Failed to initialize swarm: %s", err.Error())
+			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", err.Error()))
 		}
 		log.Debugf("%s: swarm initilized succesfully", swarmLeader.Address)
 	} else {
@@ -32,13 +35,13 @@ func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 
 	mgrToken, err := swarmLeader.ExecWithOutput("sudo docker swarm join-token manager -q")
 	if err != nil {
-		return fmt.Errorf("failed to get swarm manager join-token")
+		return NewError("failed to get swarm manager join-token")
 	}
 	config.ManagerJoinToken = mgrToken
 
 	workerToken, err := swarmLeader.ExecWithOutput("sudo docker swarm join-token worker -q")
 	if err != nil {
-		return fmt.Errorf("failed to get swarm manager join-token")
+		return NewError("failed to get swarm manager join-token")
 	}
 	config.WorkerJoinToken = workerToken
 

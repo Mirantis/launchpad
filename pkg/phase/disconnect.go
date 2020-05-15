@@ -1,31 +1,24 @@
 package phase
 
 import (
-	"sync"
-
 	"github.com/Mirantis/mcc/pkg/config"
 	log "github.com/sirupsen/logrus"
 )
 
+// Disconnect phase implementation
 type Disconnect struct{}
 
+// Title for the phase
 func (p *Disconnect) Title() string {
 	return "Close SSH Connection"
 }
 
+// Run disconnects from all the hosts
 func (p *Disconnect) Run(config *config.ClusterConfig) error {
-	var wg sync.WaitGroup
-	for _, host := range config.Hosts {
-		wg.Add(1)
-		go p.disconnectHost(host, &wg)
-	}
-	wg.Wait()
-
-	return nil
+	return runParallelOnHosts(config.Hosts, config, p.disconnectHost)
 }
 
-func (p *Disconnect) disconnectHost(host *config.Host, wg *sync.WaitGroup) error {
-	defer wg.Done()
+func (p *Disconnect) disconnectHost(host *config.Host, c *config.ClusterConfig) error {
 	host.Connect()
 	log.Printf("%s: SSH connection closed", host.Address)
 	return nil

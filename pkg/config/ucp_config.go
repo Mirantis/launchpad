@@ -7,6 +7,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
+// UcpConfig has all the bits needed to configure UCP during installation
 type UcpConfig struct {
 	Version      string   `yaml:"version"`
 	ImageRepo    string   `yaml:"imageRepo"`
@@ -17,11 +18,13 @@ type UcpConfig struct {
 	Metadata *UcpMetadata
 }
 
+// UcpMetadata has the "runtime" discovered metadata of already existing installation.
 type UcpMetadata struct {
 	Installed        bool
 	InstalledVersion string
 }
 
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawUcpConfig UcpConfig
 	config := NewUcpConfig()
@@ -47,6 +50,7 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// NewUcpConfig creates new config with sane defaults
 func NewUcpConfig() UcpConfig {
 	return UcpConfig{
 		Version:   Version,
@@ -54,6 +58,7 @@ func NewUcpConfig() UcpConfig {
 	}
 }
 
-func (u *UcpConfig) GetBootstrapperImage() string {
-	return fmt.Sprintf("%s/ucp:%s", u.ImageRepo, u.Version)
+// GetBootstrapperImage combines the bootstrapper image name based on user given config
+func (c *UcpConfig) GetBootstrapperImage() string {
+	return fmt.Sprintf("%s/ucp:%s", c.ImageRepo, c.Version)
 }
