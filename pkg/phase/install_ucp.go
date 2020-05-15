@@ -31,6 +31,13 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 
 	installFlags := config.Ucp.InstallFlags
 	if config.Ucp.ConfigData != "" {
+		defer func() {
+			err := swarmLeader.Execf("sudo docker config rm %s", configName)
+			if err != nil {
+				log.Warnf("Failed to remove the temporary UCP installer configuration %s : %s", configName, err)
+			}
+		}()
+
 		installFlags = append(installFlags, "--existing-config")
 		log.Info("Creating UCP configuration")
 		err := swarmLeader.ExecCmd(fmt.Sprintf("sudo docker config create %s -", configName), config.Ucp.ConfigData)
@@ -44,10 +51,6 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	err := swarmLeader.Exec(installCmd)
 	if err != nil {
 		return NewError("Failed to run UCP installer")
-	}
-	err = swarmLeader.Execf("sudo docker config rm %s", configName)
-	if err != nil {
-		log.Warnf("Failed to remove the temporary UCP installer configuration %s : %s", configName, err)
 	}
 	return nil
 }
