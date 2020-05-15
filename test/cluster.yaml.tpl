@@ -10,7 +10,7 @@ hosts:
     user: "root"
     role: "worker"
 ucp:
-  installArgs:
+  installFlags:
     - --admin-username=admin
     - --admin-password=orcaorcaorca
     - --default-node-orchestrator=kubernetes
