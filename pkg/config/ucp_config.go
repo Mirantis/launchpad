@@ -9,7 +9,7 @@ type UcpConfig struct {
 	Version      string   `yaml:"version"`
 	ImageRepo    string   `yaml:"imageRepo"`
 	InstallFlags []string `yaml:"installFlags,flow"`
-	ConfigFile   string   `yaml:"configFile" validate:"file"`
+	ConfigFile   string   `yaml:"configFile" validate:"omitempty,file"`
 	ConfigData   string   `yaml:"configData"`
 
 	Metadata *UcpMetadata
