@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/config"
-	log "github.com/sirupsen/logrus"
 )
 
 // LinuxConfigurer is a generic linux host configurer
@@ -25,9 +24,12 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *config.EngineConfig) error
 	if err != nil {
 		return err
 	}
-
-	log.Infof("Succesfully installed engine (%s) on %s", engineConfig.Version, c.Host.Address)
 	return nil
+}
+
+// RestartEngine restarts Docker EE engine
+func (c *LinuxConfigurer) RestartEngine() error {
+	return c.Host.Exec("sudo systemctl restart docker")
 }
 
 // ResolveHostname resolves hostname

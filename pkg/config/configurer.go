@@ -8,6 +8,7 @@ type HostConfigurer interface {
 	InstallBasePackages() error
 	InstallEngine(engineConfig *EngineConfig) error
 	DockerCommandf(template string, args ...interface{}) string
+	RestartEngine() error
 }
 
 // HostConfigurerBuilder defines the builder function signature

@@ -19,7 +19,7 @@ const (
 	// EngineChannel is the default engine channel
 	EngineChannel = "test"
 	// EngineRepoURL is the default engine repo
-	EngineRepoURL = "http://repos-internal.mirantis.com.s3.amazonaws.com"
+	EngineRepoURL = "https://repos.mirantis.com/"
 	// EngineInstallURL is the default engine install script location
 	EngineInstallURL = "https://s3-us-west-2.amazonaws.com/internal-docker-ee-builds/install.sh"
 )

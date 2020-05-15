@@ -31,6 +31,7 @@ type OsRelease struct {
 type HostMetadata struct {
 	Hostname        string
 	InternalAddress string
+	EngineVersion   string
 	Os              *OsRelease
 }
 
