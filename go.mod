@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/avast/retry-go v2.6.0+incompatible
-	github.com/cloudflare/cfssl v1.4.1
 	github.com/cobaugh/osrelease v0.0.0-20181218015638-a93a0a55a249
 	github.com/creasty/defaults v1.3.0
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
