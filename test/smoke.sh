@@ -15,7 +15,7 @@ chmod +x ./footloose
 
 set +e
 ../bin/mcc --debug install
-result=$!
+result=$?
 
 ./footloose delete
 docker volume prune -f
