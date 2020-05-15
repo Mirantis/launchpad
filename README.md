@@ -4,6 +4,12 @@
 
 The purpose of `mmc` is to provide amazing new user experience for anyone interested in getting started with UCP product. It will simplify the complex installation process and provides "from zero to hero" experience in less than 5mins for IT admin / DevOps people who are experienced with various command line tools and cloud technologies. In addition, it'll provide functionality to upgrade existing UCP clusters to new versions with no downtime or service interruptions (high availability clusters). In the future, more functionality may be added.
 
+See the [getting started](https://github.com/Mirantis/mcc/wiki/Getting-Started-with-UCP) flow.
+
+## Background
+
+Based on brainstorming session, we decided to spike the tool with an idea to prove it can be done and to gather some more ideas from the field & sales organizations after there is something to show. Very soon after having the first prototypes working, the scope was changed to make it available for Barracuda release.
+
 ## Design goals
 
 * Infrastructure agnostic (works on any infra; on-prem, public cloud, private cloud, hybrid, baremetal)
@@ -18,6 +24,17 @@ The purpose of `mmc` is to provide amazing new user experience for anyone intere
 
 We will draw inspiration from existing tooling such as [Docker Cluster](https://github.com/Mirantis/cluster) and [testkit](https://github.com/Mirantis/testkit)
 
-## Development
+## Built-In Telemetry & Improved Insights
 
-Based on brainstorming session, we decided to spike the tool with an idea to prove it can be done and to gather some more ideas from the field & sales organizations after there is something to show. Very soon after having the first prototypes working, the scope was changed to make it available for Barracuda release.
+1. When tool is used, it'll send data of every action performed with relevant payload. We don't collect any sensitive data or info about the workloads running in clusters itself. That's the job for the UCP built-in telemetry (which may be disabled too). The telemetry coming out from this tool will augment the telemetry data coming from UCP (and DTR and Engine in context of UCP).
+2. Tool will require registration that we can hopefully use for sales & marketing purposes. We can see which users are actually actively interacting with our product (evaluation). In addition, it'll provide product management (or some other function) to get in touch with users to learn more about their needs. In my previous work this was super important. We contacted basically all people evaluation our product on a personal level. As outcome, we got very valuable feedback that we could apply into our products. I hope we can do this with Mirantis too; at least on some capacity.
+3. We will start seeing funnel of users from their first interaction to our product --> successfully creating a cluster (for evaluation) --> subscribing to a license. We want to pay very close attention to this % since we want most people succeed and have positive experience with our product.
+
+We try to find answer to questions like:
+
+* How many people are interested in our product (did download the tool) but fail to create a working cluster? What are the common reasons for failures? Can we enhance our product or docs to improve the conversion rate?
+* How many people are successful with our product? Did they get it up and running at first try or did they go through some hoops? How many failed attempts before working install? How long it will take from zero to hero experience?
+* How people deal with updated version of our product? Do they try to upgrade their clusters right away or is there some significant delay? Is there anything in our product to improve frequency people update?
+* What are the usage patterns; how many clusters people create? How often there is a need for new clusters?
+
+The implementation will be made using Segment + Snowflake + Looker (similar to most of our other products). Detailed telemetry events & payload (TBD).
