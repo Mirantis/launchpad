@@ -38,7 +38,7 @@ func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) 
 	if err != nil {
 		return []string{}, err
 	}
-	output, err := controller.ExecWithOutput(fmt.Sprintf("sudo docker run --rm %s images --list", image))
+	output, err := controller.ExecWithOutput(controller.Configurer.DockerCommandf("run --rm %s images --list", image))
 	if err != nil {
 		return []string{}, fmt.Errorf("failed to get image list")
 	}

@@ -24,7 +24,7 @@ func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 
 	if !util.IsSwarmNode(swarmLeader) {
 		log.Debugf("%s: initializing swarm", swarmLeader.Address)
-		err := swarmLeader.Exec(fmt.Sprintf("sudo docker swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
+		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", err.Error()))
 		}
@@ -33,13 +33,13 @@ func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 		log.Infof("%s: swarm already initialized", swarmLeader.Address)
 	}
 
-	mgrToken, err := swarmLeader.ExecWithOutput("sudo docker swarm join-token manager -q")
+	mgrToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"))
 	if err != nil {
 		return NewError("failed to get swarm manager join-token")
 	}
 	config.ManagerJoinToken = mgrToken
 
-	workerToken, err := swarmLeader.ExecWithOutput("sudo docker swarm join-token worker -q")
+	workerToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token worker -q"))
 	if err != nil {
 		return NewError("failed to get swarm manager join-token")
 	}
