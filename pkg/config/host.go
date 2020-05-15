@@ -132,7 +132,7 @@ func (h *Host) Exec(cmd string) error {
 		log.Errorf("%s:  %s", h.Address, err.Error())
 	}
 
-	return nil
+	return session.Wait()
 }
 
 // ExecWithOutput execs a command on the host and return output
