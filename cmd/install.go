@@ -22,6 +22,7 @@ func NewInstallCommand() *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			log.Info("Install called")
+
 			err := install.Install(ctx)
 			return err
 		},
