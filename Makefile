@@ -12,7 +12,7 @@ GO = docker run --rm -v "$(CURDIR)":"$(CURDIR)" \
 	-e GOOS \
 	-e GOARCH \
 	-e GOEXE \
-	$(BUILDER_IMAGE) 
+	$(BUILDER_IMAGE)
 
 builder:
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
@@ -20,7 +20,7 @@ builder:
 test:
 	go test -v ./...
 
-build:
+build: builder
 	$(GO) go build $(BUILD_FLAGS) -o bin/mcc main.go
 
 build-all: builder
@@ -31,3 +31,6 @@ build-all: builder
 lint: builder
 	$(GO) go vet ./...
 	$(GO) golint ./...
+
+smoke-test: build
+	./test/smoke.sh
