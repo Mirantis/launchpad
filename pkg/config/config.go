@@ -29,6 +29,7 @@ type ClusterConfig struct {
 	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
 	Ucp    UcpConfig    `yaml:"ucp"`
 	Engine EngineConfig `yaml:"engine"`
+	Name   string       `yaml:"name"` // TODO Should we make this required?
 
 	ManagerJoinToken string
 	WorkerJoinToken  string

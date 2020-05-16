@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/Mirantis/mcc/version"
@@ -9,6 +10,7 @@ import (
 	"github.com/Mirantis/mcc/cmd"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/writer"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,9 +34,7 @@ func main() {
 			},
 		},
 		Before: func(ctx *cli.Context) error {
-			if ctx.Bool("debug") {
-				log.SetLevel(log.DebugLevel)
-			}
+			initLogger(ctx)
 			return nil
 		},
 		Commands: []*cli.Command{
@@ -48,4 +48,28 @@ func main() {
 		log.Fatal(err)
 	}
 
+}
+
+func initLogger(ctx *cli.Context) {
+	// Enable debug logging always, we'll setup hooks later to direct logs based on level
+	log.SetLevel(log.DebugLevel)
+	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+
+	// Send logs with level >= INFO to stdout
+	stdoutWriter := &writer.Hook{
+		Writer: os.Stdout,
+		LogLevels: []log.Level{
+			log.InfoLevel,
+			log.PanicLevel,
+			log.FatalLevel,
+			log.ErrorLevel,
+			log.WarnLevel,
+		},
+	}
+	// Add debug level to stdout hook if set by user
+	if ctx.Bool("debug") {
+		stdoutWriter.LogLevels = append([]log.Level{log.DebugLevel}, stdoutWriter.LogLevels...)
+	}
+	// stdout hook on by default of course
+	log.AddHook(stdoutWriter)
 }

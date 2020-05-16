@@ -4,23 +4,31 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/urfave/cli/v2"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/writer"
 )
 
 // Install ...
 func Install(ctx *cli.Context) error {
-	cfgData, err := resolveClusterFile(ctx)
+	cfgData, _, err := resolveClusterFile(ctx)
 	if err != nil {
 		return err
 	}
 	clusterConfig, err := config.FromYaml(cfgData)
 	if err != nil {
+		return err
+	}
+
+	if err = addFileLogger(clusterConfig.Name); err != nil {
 		return err
 	}
 
@@ -54,15 +62,15 @@ func Install(ctx *cli.Context) error {
 
 }
 
-func resolveClusterFile(ctx *cli.Context) ([]byte, error) {
+func resolveClusterFile(ctx *cli.Context) ([]byte, string, error) {
 	clusterFile := ctx.String("config")
 	fp, err := filepath.Abs(clusterFile)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to lookup current directory name: %v", err)
+		return []byte{}, "", fmt.Errorf("failed to lookup current directory name: %v", err)
 	}
 	file, err := os.Open(fp)
 	if err != nil {
-		return []byte{}, fmt.Errorf("can not find cluster configuration file: %v", err)
+		return []byte{}, fp, fmt.Errorf("can not find cluster configuration file: %v", err)
 	}
 	log.Debugf("opened config file from %s", fp)
 
@@ -70,7 +78,37 @@ func resolveClusterFile(ctx *cli.Context) ([]byte, error) {
 
 	buf, err := ioutil.ReadAll(file)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to read file: %v", err)
+		return []byte{}, fp, fmt.Errorf("failed to read file: %v", err)
 	}
-	return buf, nil
+	return buf, fp, nil
+}
+
+const fileMode = 0700
+
+// adds a file logger too based on the cluster name
+// The log path will be ~/.mirantis-mcc/<cluster-name>/install.log
+// If cluster name is not given, the path will be ~/.mirantis-mcc/install.log
+func addFileLogger(clusterName string) error {
+	home, err := homedir.Dir()
+	if err != nil {
+		return err
+	}
+	baseDir := path.Join(home, ".mirantis-mcc", clusterName)
+	if err = os.MkdirAll(baseDir, fileMode); err != nil {
+		return err
+	}
+	logFileName := path.Join(baseDir, "install.log")
+	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileMode)
+
+	if err != nil {
+		return fmt.Errorf("Failed to create install log for cluster %s: %s", clusterName, err.Error())
+	}
+
+	// Send all logs to named file, this ensures we always have debug logs also available when needed
+	log.AddHook(&writer.Hook{
+		Writer:    logFile,
+		LogLevels: log.AllLevels,
+	})
+
+	return nil
 }
