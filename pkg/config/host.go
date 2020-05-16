@@ -187,7 +187,7 @@ func trimOutput(output []byte) string {
 
 // PullImage pulls the named docker image on the host
 func (h *Host) PullImage(name string) error {
-	output, err := h.ExecWithOutput(fmt.Sprintf("sudo docker pull %s", name))
+	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf("pull %s", name))
 	if err != nil {
 		log.Warnf("%s: failed to pull image %s: \n%s", h.Address, name, output)
 		return err

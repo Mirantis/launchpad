@@ -67,3 +67,9 @@ func (c *LinuxConfigurer) FixContainerizedHost() error {
 	}
 	return nil
 }
+
+// DockerCommandf accepts a printf-like template string and arguments
+// and builds a command string for running the docker cli on the host
+func (c *LinuxConfigurer) DockerCommandf(template string, args ...interface{}) string {
+	return fmt.Sprintf("sudo docker %s", fmt.Sprintf(template, args...))
+}

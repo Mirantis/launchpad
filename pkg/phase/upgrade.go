@@ -23,7 +23,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Controllers()[0]
 
 	// Check specified bootstrapper images version
-	bootstrapperVersion, err := swarmLeader.ExecWithOutput(fmt.Sprintf(`sudo docker image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Ucp.GetBootstrapperImage()))
+	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Ucp.GetBootstrapperImage()))
 	if err != nil {
 		return NewError("Failed to check bootstrapper image version")
 	}
@@ -35,7 +35,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 
 	swarmClusterID := util.SwarmClusterID(swarmLeader)
 
-	upgradeCmd := fmt.Sprintf("sudo docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s upgrade --id %s", config.Ucp.GetBootstrapperImage(), swarmClusterID)
+	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s upgrade --id %s", config.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
 	err = swarmLeader.Exec(upgradeCmd)
 	if err != nil {

@@ -29,7 +29,6 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	}
 
 	image := fmt.Sprintf("%s/ucp:%s", config.Ucp.ImageRepo, config.Ucp.Version)
-
 	installFlags := config.Ucp.InstallFlags
 	if config.Ucp.ConfigData != "" {
 		defer func() {
@@ -48,7 +47,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	}
 
 	flags := strings.Join(installFlags, " ")
-	installCmd := fmt.Sprintf("sudo docker run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
+	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
 	err := swarmLeader.Exec(installCmd)
 	if err != nil {
 		return NewError("Failed to run UCP installer")

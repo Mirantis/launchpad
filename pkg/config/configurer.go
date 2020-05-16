@@ -7,6 +7,7 @@ type HostConfigurer interface {
 	IsContainerized() bool
 	InstallBasePackages() error
 	InstallEngine(engineConfig *EngineConfig) error
+	DockerCommandf(template string, args ...interface{}) string
 }
 
 // HostConfigurerBuilder defines the builder function signature
