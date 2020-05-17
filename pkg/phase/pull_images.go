@@ -54,7 +54,7 @@ func (p *PullImages) pullImages(host *config.Host, images []string) error {
 	for _, image := range images {
 		i := image // So we can safely pass i forward to pool without it getting mutated
 		wp.Submit(func() {
-			log.Debugf("%s: pulling image %s", host.Address, i)
+			log.Infof("%s: pulling image %s", host.Address, i)
 			e := host.PullImage(i)
 			if e != nil {
 				log.Warnf("%s: failed to pull image %s", host.Address, i)

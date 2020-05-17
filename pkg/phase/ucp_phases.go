@@ -2,6 +2,7 @@ package phase
 
 import (
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,7 +29,8 @@ func (m *Manager) AddPhase(phase Phase) {
 // Run executes all the added Phases in order
 func (m *Manager) Run() error {
 	for _, phase := range m.phases {
-		log.Infof("==> Running phase: %s", phase.Title())
+		text := aurora.Green("==> Running phase: %s").String()
+		log.Infof(text, phase.Title())
 		err := phase.Run(m.config)
 		if err != nil {
 			return err

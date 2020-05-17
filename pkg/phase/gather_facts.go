@@ -26,7 +26,7 @@ func (p *GatherHostFacts) Run(config *config.ClusterConfig) error {
 }
 
 func investigateHost(h *config.Host, c *config.ClusterConfig) error {
-	log.Infof("gathering host %s facts", h.Address)
+	log.Infof("%s: gathering host facts", h.Address)
 
 	os, err := resolveOsRelease(h)
 	if err != nil {
@@ -43,7 +43,7 @@ func investigateHost(h *config.Host, c *config.ClusterConfig) error {
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.InternalAddress = h.Configurer.ResolveInternalIP()
 
-	log.Debugf("host %s has internal address: %s", h.Address, h.Metadata.InternalAddress)
+	log.Debugf("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)
 
 	return nil
 }

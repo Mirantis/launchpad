@@ -24,7 +24,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Managers()[0]
 
 	if config.Ucp.Metadata.Installed {
-		log.Infof("UCP already installed at version %s, not running installer", config.Ucp.Metadata.InstalledVersion)
+		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Ucp.Metadata.InstalledVersion)
 		return nil
 	}
 

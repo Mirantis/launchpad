@@ -29,7 +29,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 	}
 
 	if bootstrapperVersion == config.Ucp.Metadata.InstalledVersion {
-		log.Infof("Cluster already at version %s, not running upgrade", bootstrapperVersion)
+		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
 		return nil
 	}
 
