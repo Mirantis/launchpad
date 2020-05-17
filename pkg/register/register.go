@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/manifoldco/promptui"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -53,12 +54,15 @@ func Register(ctx *cli.Context) error {
 
 	userConfig := config.UserConfig{
 		Name:    name,
-		Company: ctx.String("company"),
+		Company: company,
 		Email:   email,
 	}
 	err := config.SaveUserConfig(&userConfig)
 	if err == nil {
-		log.Info("Register completed!")
+		util.IdentifyAnalyticsUser(&userConfig)
+		log.Info("Registeration completed!")
+	} else {
+		log.Error("Registration failed!")
 	}
 	return err
 }
