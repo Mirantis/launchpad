@@ -10,7 +10,12 @@ hosts:
     user: "root"
     role: "worker"
 ucp:
+  version: $UCP_VERSION
+  configData: |-
+    [scheduling_configuration]
+      default_node_orchestrator = "kubernetes"
   installFlags:
     - --admin-username=admin
     - --admin-password=orcaorcaorca
-    - --default-node-orchestrator=kubernetes
+engine:
+  version: $ENGINE_VERSION

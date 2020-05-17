@@ -46,6 +46,20 @@ pipeline {
             }
           }
         }
+        stage("Smoke test") {
+          parallel {
+            stage("Upgrade 3.2 -> 3.3 (Ubuntu 18.04)") {
+              agent {
+                  node {
+                      label 'amd64 && ubuntu-1804 && overlay2'
+                  }
+              }
+              steps {
+                sh "make smoke-upgrade-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+              }
+            }
+          }
+        }
     }
 
 }
