@@ -31,7 +31,7 @@ func (p *JoinManagers) Run(config *config.ClusterConfig) error {
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to join manager node to swarm: %s", output))
 		}
-		log.Debugf("%s: joined succesfully", h.Address)
+		log.Infof("%s: joined succesfully", h.Address)
 	}
 	return nil
 }

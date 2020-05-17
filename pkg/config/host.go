@@ -107,7 +107,7 @@ func (h *Host) Connect() error {
 }
 
 // ExecCmd a command on the host piping stdin and streams the logs
-func (h *Host) ExecCmd(cmd string, stdin string) error {
+func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 	session, err := h.sshClient.NewSession()
 	if err != nil {
 		return err
@@ -155,7 +155,11 @@ func (h *Host) ExecCmd(cmd string, stdin string) error {
 	outputScanner := bufio.NewScanner(multiReader)
 
 	for outputScanner.Scan() {
-		log.Debugf("%s:  %s", h.Address, outputScanner.Text())
+		if streamStdout {
+			log.Infof("%s:  %s", h.Address, outputScanner.Text())
+		} else {
+			log.Debugf("%s:  %s", h.Address, outputScanner.Text())
+		}
 	}
 	if err := outputScanner.Err(); err != nil {
 		log.Errorf("%s:  %s", h.Address, err.Error())
@@ -166,7 +170,7 @@ func (h *Host) ExecCmd(cmd string, stdin string) error {
 
 // Exec a command on the host and streams the logs
 func (h *Host) Exec(cmd string) error {
-	return h.ExecCmd(cmd, "")
+	return h.ExecCmd(cmd, "", false)
 }
 
 // Execf a printf-formatted command on the host and streams the logs
