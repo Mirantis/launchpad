@@ -4,7 +4,7 @@ set -e
 
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.3.0-rc1"}
-export ENGINE_VERSION=${UCP_VERSION:-"19.03.8-rc1"}
+export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8-rc1"}
 
 cd test
 rm -f ./id_rsa_mcc
