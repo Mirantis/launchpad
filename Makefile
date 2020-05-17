@@ -6,8 +6,8 @@ LD_FLAGS = "-w -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X git
 BUILD_FLAGS = -a -tags "netgo static_build" -installsuffix netgo -ldflags $(LD_FLAGS) -extldflags '-static'"
 
 BUILDER_IMAGE = mcc-builder
-GO = docker run --rm -v "$(CURDIR)":"$(CURDIR)" \
-	-w "$(CURDIR)" \
+GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
+	-w "/go/src/github.com/Mirantis/mcc" \
 	-e GOPATH\
 	-e GOOS \
 	-e GOARCH \
@@ -17,8 +17,8 @@ GO = docker run --rm -v "$(CURDIR)":"$(CURDIR)" \
 builder:
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
 
-test:
-	go test -v ./...
+unit-test: builder
+	$(GO) go test -v ./...
 
 build: builder
 	$(GO) go build $(BUILD_FLAGS) -o bin/mcc main.go

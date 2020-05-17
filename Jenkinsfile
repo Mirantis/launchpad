@@ -8,6 +8,7 @@ pipeline {
     stages {
         stage("Build") {
             steps {
+                sh "make unit-test"
                 sh "make lint"
                 sh "make build-all"
             }
