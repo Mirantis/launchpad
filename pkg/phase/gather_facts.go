@@ -33,7 +33,8 @@ func investigateHost(h *config.Host, c *config.ClusterConfig) error {
 		return err
 	}
 	h.Metadata = &config.HostMetadata{
-		Os: os,
+		Os:            os,
+		EngineVersion: resolveEngineVersion(h),
 	}
 	err = resolveHostConfigurer(h)
 	if err != nil {
@@ -85,4 +86,12 @@ func resolveHostConfigurer(h *config.Host) error {
 		return fmt.Errorf("%s: has unsupported OS (%s)", h.Address, h.Metadata.Os.Name)
 	}
 	return nil
+}
+
+func resolveEngineVersion(h *config.Host) string {
+	version, err := h.ExecWithOutput("sudo docker version -f '{{.Server.Version}}'")
+	if err != nil {
+		return ""
+	}
+	return version
 }

@@ -26,7 +26,11 @@ func (p *GatherUcpFacts) Run(conf *config.ClusterConfig) error {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
 	conf.Ucp.Metadata = ucpMeta
-	log.Debugf("Found UCP facts: %+v", conf.Ucp.Metadata)
+	if ucpMeta.Installed {
+		log.Infof("%s: UCP has version %s", swarmLeader.Address, ucpMeta.InstalledVersion)
+	} else {
+		log.Infof("%s: UCP is not installed", swarmLeader.Address)
+	}
 
 	return nil
 }

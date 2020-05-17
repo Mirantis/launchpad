@@ -34,3 +34,6 @@ lint: builder
 
 smoke-test: build
 	./test/smoke.sh
+
+smoke-upgrade-test: build
+	./test/smoke_upgrade.sh
