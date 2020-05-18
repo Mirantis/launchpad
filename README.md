@@ -55,6 +55,9 @@ No releases have been made yet. The first public release is targeted for May 28,
 
 Pre-releases will be made available soon. Schedule TBD.
 
-## Comparison to Alternative Tools
+## Comparison to Existing Tools
 
-TBD
+Overall, none of the pre-existing tools provide the convenience and flexibility we'd like to have for a tool that is designed for self service with an amazing new user experience.
+
+* **Convenience** means user experience; minimizing prerequisites, must read docs, domain specific knowledge and actual steps required for performing the install (or upgrade).
+* **Flexibility** means this tool should work in any environment, system or infrastructure the user might have already available for the purpose (=evaluation, running in prod or other). Note: with _any environment_ we should mean literally any. AWS, Azure, GCP, VMware, RH satellite managed systems, OpenStack, Mirantis private cloud where machines are ordered via IT tickets, any other private datacenter or whatever public cloud provider, rack of machines in your own home closet... etc.
