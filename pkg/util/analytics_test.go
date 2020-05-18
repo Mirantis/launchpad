@@ -3,6 +3,7 @@ package util
 import (
 	"testing"
 
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/segmentio/analytics-go.v3"
 )
@@ -36,4 +37,23 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 	require.Equal(t, "test", lastMessage.Event)
 	require.NotEmpty(t, lastMessage.AnonymousId)
 	require.Equal(t, "bar", lastMessage.Properties["foo"])
+}
+
+func TestIdentifyAnalyticsUser(t *testing.T) {
+	client := &mockClient{}
+	testClient = client
+	defer func() { testClient = nil }()
+
+	userConfig := config.UserConfig{
+		Name:    "John Doe",
+		Email:   "john.doe@example.org",
+		Company: "Acme, Inc.",
+	}
+	IdentifyAnalyticsUser(&userConfig)
+	lastMessage := client.lastMessage.(analytics.Identify)
+	require.NotNil(t, client.lastMessage)
+	require.Equal(t, "john.doe@example.org", lastMessage.UserId)
+	require.Equal(t, "John Doe", lastMessage.Traits["name"])
+	require.Equal(t, "john.doe@example.org", lastMessage.Traits["email"])
+	require.Equal(t, "Acme, Inc.", lastMessage.Traits["company"])
 }

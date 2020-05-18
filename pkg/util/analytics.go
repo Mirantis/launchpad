@@ -1,6 +1,7 @@
 package util
 
 import (
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/denisbrodbeck/machineid"
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -46,6 +47,21 @@ func TrackAnalyticsEvent(event string, properties map[string]interface{}) error 
 	}
 	if userID := AnalyticsUserID(); userID != "" {
 		msg.UserId = userID
+	}
+	return client.Enqueue(msg)
+}
+
+// IdentifyAnalyticsUser identifies user on analytics service
+func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
+	client := AnalyticsClient()
+	defer client.Close()
+	msg := analytics.Identify{
+		AnonymousId: AnalyticsMachineID(),
+		UserId:      userConfig.Email,
+		Traits: analytics.NewTraits().
+			SetName(userConfig.Name).
+			SetEmail(userConfig.Email).
+			Set("company", userConfig.Company),
 	}
 	return client.Enqueue(msg)
 }
