@@ -19,9 +19,9 @@ const (
 	// EngineChannel is the default engine channel
 	EngineChannel = "test"
 	// EngineRepoURL is the default engine repo
-	EngineRepoURL = "https://repos.mirantis.com/"
+	EngineRepoURL = "https://repos.mirantis.com"
 	// EngineInstallURL is the default engine install script location
-	EngineInstallURL = "https://s3-us-west-2.amazonaws.com/internal-docker-ee-builds/install.sh"
+	EngineInstallURL = "https://get.mirantis.com/"
 )
 
 // ClusterConfig is the struct to read the cluster.yaml config into
