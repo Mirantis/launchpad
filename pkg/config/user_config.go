@@ -3,13 +3,14 @@ package config
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
 )
 
 const (
-	configPath = "~/.mirantis-mcc"
+	configFile = "~/.mirantis-mcc/user.yaml"
 )
 
 // UserConfig struct for MCC config
@@ -21,14 +22,14 @@ type UserConfig struct {
 
 // GetUserConfig returns a new decoded Config struct
 func GetUserConfig() (*UserConfig, error) {
-	configPath, err := homedir.Expand(configPath)
+	configFile, err := homedir.Expand(configFile)
 	if err != nil {
 		return nil, err
 	}
 
 	config := &UserConfig{}
 	// Open config file
-	file, err := os.Open(configPath + "/user.yaml")
+	file, err := os.Open(configFile)
 	if err != nil {
 		return nil, err
 	}
@@ -47,30 +48,21 @@ func GetUserConfig() (*UserConfig, error) {
 
 // SaveUserConfig saves config struct to yaml file
 func SaveUserConfig(config *UserConfig) error {
-	configPath, err := homedir.Expand(configPath)
-	ensureConfigDir()
+	configFile, err := homedir.Expand(configFile)
+	if err != nil {
+		return err
+	}
+	configDir := filepath.Dir(configFile)
+	if err = ensureDir(configDir); err != nil {
+		return err
+	}
 	d, err := yaml.Marshal(&config)
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(configPath+"/user.yaml", d, 0644)
+	err = ioutil.WriteFile(configFile, d, 0644)
 	if err != nil {
 		return err
-	}
-	return nil
-}
-
-func ensureConfigDir() error {
-	configPath, err := homedir.Expand(configPath)
-	if err != nil {
-		return err
-	}
-
-	if _, serr := os.Stat(configPath); os.IsNotExist(serr) {
-		merr := os.MkdirAll(configPath, os.ModePerm)
-		if merr != nil {
-			return err
-		}
 	}
 	return nil
 }
