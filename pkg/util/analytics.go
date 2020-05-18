@@ -1,6 +1,7 @@
 package util
 
 import (
+	"os"
 	"runtime"
 
 	"github.com/Mirantis/mcc/pkg/config"
@@ -35,9 +36,17 @@ func AnalyticsClient() Analytics {
 	return segmentClient
 }
 
+// IsAnalyticsDisabled detects if analytics is disabled
+func IsAnalyticsDisabled() bool {
+	return os.Getenv("ANALYTICS_DISBALED") == "true"
+}
+
 // TrackAnalyticsEvent uploads the given event to segment if analytics tracking
 // is enabled in the UCP config.
 func TrackAnalyticsEvent(event string, properties map[string]interface{}) error {
+	if isAnalyticsDisabled() {
+		return nil
+	}
 	client := AnalyticsClient()
 	defer client.Close()
 	if properties == nil {
@@ -58,6 +67,9 @@ func TrackAnalyticsEvent(event string, properties map[string]interface{}) error 
 
 // IdentifyAnalyticsUser identifies user on analytics service
 func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
+	if isAnalyticsDisabled() {
+		return nil
+	}
 	client := AnalyticsClient()
 	defer client.Close()
 	msg := analytics.Identify{
