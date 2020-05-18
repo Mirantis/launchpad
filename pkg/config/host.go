@@ -4,11 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net"
+	"os"
 	"strings"
 
 	"github.com/creasty/defaults"
 	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -72,20 +75,29 @@ func (h *Host) Connect() error {
 	if err != nil {
 		return err
 	}
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil {
-		return err
-	}
-	config := ssh.ClientConfig{
-		User: h.User,
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
+
+	config := &ssh.ClientConfig{
+		User:            h.User,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 	address := fmt.Sprintf("%s:%d", h.Address, h.SSHPort)
 
-	client, err := ssh.Dial("tcp", address, &config)
+	if sshAgentSock := os.Getenv("SSH_AUTH_SOCK"); sshAgentSock != "" {
+		sshAgent, err := net.Dial("unix", sshAgentSock)
+		if err != nil {
+			return fmt.Errorf("cannot connect to SSH agent auth socket %s: %s", sshAgentSock, err)
+		}
+		log.Debugf("using SSH auth sock %s", sshAgentSock)
+		config.Auth = append(config.Auth, ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers))
+	} else {
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			return err
+		}
+		config.Auth = append(config.Auth, ssh.PublicKeys(signer))
+	}
+
+	client, err := ssh.Dial("tcp", address, config)
 	if err != nil {
 		return err
 	}
