@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/swarm"
 
-	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/util"
 
 	// needed to load the build func in package init
@@ -28,28 +28,34 @@ func (p *GatherFacts) Title() string {
 }
 
 // Run collect all the facts from hosts in parallel
-func (p *GatherFacts) Run(config *config.ClusterConfig) error {
-	err := runParallelOnHosts(config.Hosts, config, investigateHost)
+func (p *GatherFacts) Run(conf *config.ClusterConfig) error {
+	err := runParallelOnHosts(conf.Hosts, conf, investigateHost)
 	if err != nil {
 		return err
 	}
 	// Gather UCP related facts
-	swarmLeader := config.Managers()[0]
+	conf.Ucp.Metadata = &config.UcpMetadata{
+		ClusterID:        "",
+		Installed:        false,
+		InstalledVersion: "",
+	}
+	swarmLeader := conf.Managers()[0]
+	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
 		ucpMeta, err := util.CollectUcpFacts(swarmLeader)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 		}
-		config.Ucp.Metadata = ucpMeta
+		conf.Ucp.Metadata = ucpMeta
 		if ucpMeta.Installed {
 			log.Infof("%s: UCP has version %s", swarmLeader.Address, ucpMeta.InstalledVersion)
 		} else {
 			log.Infof("%s: UCP is not installed", swarmLeader.Address)
 		}
-		config.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
+		conf.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
 
-	err = p.validateFacts(config)
+	err = p.validateFacts(conf)
 	if err != nil {
 		return err
 	}
