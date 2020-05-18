@@ -38,7 +38,7 @@ func AnalyticsClient() Analytics {
 
 // IsAnalyticsDisabled detects if analytics is disabled
 func IsAnalyticsDisabled() bool {
-	return os.Getenv("ANALYTICS_DISBALED") == "true"
+	return os.Getenv("ANALYTICS_DISABLED") == "true"
 }
 
 // TrackAnalyticsEvent uploads the given event to segment if analytics tracking
