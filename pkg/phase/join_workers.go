@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -20,7 +20,7 @@ func (p *JoinWorkers) Title() string {
 func (p *JoinWorkers) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Managers()[0]
 	for _, h := range config.Workers() {
-		if util.IsSwarmNode(h) {
+		if swarm.IsSwarmNode(h) {
 			log.Infof("%s: already a swarm node", h.Address)
 			continue
 		}

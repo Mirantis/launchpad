@@ -4,7 +4,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/swarm"
+
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/util"
+
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	// needed to load the build func in package init
@@ -15,17 +19,52 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GatherHostFacts phase implementation to collect facts (OS, version etc.) from hosts
-type GatherHostFacts struct{}
+// GatherFacts phase implementation to collect facts (OS, version etc.) from hosts
+type GatherFacts struct{}
 
 // Title for the phase
-func (p *GatherHostFacts) Title() string {
-	return "Gather Host Facts"
+func (p *GatherFacts) Title() string {
+	return "Gather Facts"
 }
 
 // Run collect all the facts from hosts in parallel
-func (p *GatherHostFacts) Run(config *config.ClusterConfig) error {
-	return runParallelOnHosts(config.Hosts, config, investigateHost)
+func (p *GatherFacts) Run(config *config.ClusterConfig) error {
+	err := runParallelOnHosts(config.Hosts, config, investigateHost)
+	if err != nil {
+		return err
+	}
+	// Gather UCP related facts
+	swarmLeader := config.Managers()[0]
+	if swarmLeader.Metadata.EngineVersion != "" {
+		ucpMeta, err := util.CollectUcpFacts(swarmLeader)
+		if err != nil {
+			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
+		}
+		config.Ucp.Metadata = ucpMeta
+		if ucpMeta.Installed {
+			log.Infof("%s: UCP has version %s", swarmLeader.Address, ucpMeta.InstalledVersion)
+		} else {
+			log.Infof("%s: UCP is not installed", swarmLeader.Address)
+		}
+		config.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
+	}
+
+	err = p.validateFacts(config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Validates the facts check out:
+// - if swarm is already initialized its cluster ID matches with the one in local state
+func (p *GatherFacts) validateFacts(config *config.ClusterConfig) error {
+	if config.Ucp.Metadata != nil && config.Ucp.Metadata.ClusterID != config.State.ClusterID {
+		return fmt.Errorf("cluster ID local state differes (%s) from cluster state (%s). You might be attempting to re-configure wrong cluster", config.State.ClusterID, config.Ucp.Metadata.ClusterID)
+	}
+
+	log.Infof("Facts check out against local state, safe to confinue")
+	return nil
 }
 
 func investigateHost(h *config.Host, c *config.ClusterConfig) error {

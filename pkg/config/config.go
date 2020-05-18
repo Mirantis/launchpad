@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/Mirantis/mcc/pkg/state"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/mitchellh/go-homedir"
 )
@@ -29,9 +30,11 @@ type ClusterConfig struct {
 	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
 	Ucp    UcpConfig    `yaml:"ucp"`
 	Engine EngineConfig `yaml:"engine"`
+	Name   string       `yaml:"name" valdate:"required,min=3"`
 
 	ManagerJoinToken string
 	WorkerJoinToken  string
+	State            *state.State
 }
 
 // FromYaml loads the cluster config from given yaml data
@@ -97,6 +100,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	raw := rawConfig{
 		Engine: NewEngineConfig(),
 		Ucp:    NewUcpConfig(),
+		Name:   "mcc-ucp",
 	}
 
 	if err := unmarshal(&raw); err != nil {

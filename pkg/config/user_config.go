@@ -53,7 +53,7 @@ func SaveUserConfig(config *UserConfig) error {
 		return err
 	}
 	configDir := filepath.Dir(configFile)
-	if err = ensureDir(configDir); err != nil {
+	if err = EnsureDir(configDir); err != nil {
 		return err
 	}
 	d, err := yaml.Marshal(&config)
