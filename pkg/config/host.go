@@ -194,6 +194,16 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 	return trimOutput(output), nil
 }
 
+// WriteFile writes file to host with given contents
+func (h *Host) WriteFile(path string, data string, permissions string) error {
+	tempFile, _ := h.ExecWithOutput("mktemp")
+	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo mv %s %s || (rm %s; exit 1))", tempFile, tempFile, path, tempFile), data, false)
+	if err != nil {
+		return err
+	}
+	return h.Exec(fmt.Sprintf("sudo chmod %s %s", permissions, path))
+}
+
 func trimOutput(output []byte) string {
 	if len(output) > 0 {
 		return strings.TrimSpace(string(output))
