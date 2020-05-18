@@ -7,13 +7,13 @@ import (
 
 // IsSwarmNode check whether the given node is already part of swarm
 func IsSwarmNode(host *config.Host) bool {
-	output, err := host.ExecWithOutput(host.Configurer.DockerCommandf("info --format '{{json .Swarm.NodeID}}'"))
+	output, err := host.ExecWithOutput(host.Configurer.DockerCommandf(`info --format "{{.Swarm.NodeID}}"`))
 	if err != nil {
 		log.Warnf("failed to get hosts swarm status")
 		return false
 	}
 
-	if output == `""` {
+	if output == "" {
 		return false
 	}
 
@@ -22,7 +22,7 @@ func IsSwarmNode(host *config.Host) bool {
 
 // SwarmClusterID digs the swarm cluster id from swarm leader host
 func SwarmClusterID(leader *config.Host) string {
-	output, err := leader.ExecWithOutput(leader.Configurer.DockerCommandf("info --format '{{ .Swarm.Cluster.ID}}'"))
+	output, err := leader.ExecWithOutput(leader.Configurer.DockerCommandf(`info --format "{{.Swarm.Cluster.ID}}"`))
 	if err != nil {
 		log.Warnf("failed to get hosts swarm status")
 		return ""

@@ -2,12 +2,15 @@ package phase
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/mcc/pkg/config"
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
+	// needed to load the build func in package init
+	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	"github.com/cobaugh/osrelease"
 	log "github.com/sirupsen/logrus"
 )
@@ -28,31 +31,67 @@ func (p *GatherHostFacts) Run(config *config.ClusterConfig) error {
 func investigateHost(h *config.Host, c *config.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h.Address)
 
-	os, err := resolveOsRelease(h)
-	if err != nil {
-		return err
+	os := &config.OsRelease{}
+	if isWindows(h) {
+		winOs, err := resolveWindowsOsRelease(h)
+		if err != nil {
+			return err
+		}
+		os = winOs
+	} else {
+		linuxOs, err := resolveLinuxOsRelease(h)
+		if err != nil {
+			return err
+		}
+		os = linuxOs
 	}
+
 	h.Metadata = &config.HostMetadata{
-		Os:            os,
-		EngineVersion: resolveEngineVersion(h),
+		Os: os,
 	}
-	err = resolveHostConfigurer(h)
+	err := resolveHostConfigurer(h)
 	if err != nil {
 		return err
 	}
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.InternalAddress = h.Configurer.ResolveInternalIP()
+	h.Metadata.EngineVersion = resolveEngineVersion(h)
 
 	log.Debugf("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)
 
 	return nil
 }
 
-func resolveOsRelease(h *config.Host) (*config.OsRelease, error) {
-	err := h.Exec("uname | grep -q -i linux")
+func isWindows(h *config.Host) bool {
+	// need to use STDIN so that we don't request PTY (which does not work on Windows)
+	err := h.ExecCmd(`powershell`, `Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"`, false)
 	if err != nil {
-		return nil, err
+		return false
 	}
+	return true
+}
+
+func resolveWindowsOsRelease(h *config.Host) (*config.OsRelease, error) {
+	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
+	osName = strings.TrimSpace(osName)
+	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
+	osMajor = strings.TrimSpace(osMajor)
+	osMinor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMinorVersionNumber"`)
+	osMinor = strings.TrimSpace(osMinor)
+	osBuild, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentBuild"`)
+	osBuild = strings.TrimSpace(osBuild)
+
+	version := fmt.Sprintf("%s.%s.%s", osMajor, osMinor, osBuild)
+	osRelease := &config.OsRelease{
+		ID:      fmt.Sprintf("windows-%s", version),
+		Name:    osName,
+		Version: version,
+	}
+
+	return osRelease, nil
+}
+
+func resolveLinuxOsRelease(h *config.Host) (*config.OsRelease, error) {
 	output, err := h.ExecWithOutput("cat /etc/os-release")
 	if err != nil {
 		return nil, err
@@ -89,7 +128,8 @@ func resolveHostConfigurer(h *config.Host) error {
 }
 
 func resolveEngineVersion(h *config.Host) string {
-	version, err := h.ExecWithOutput("sudo docker version -f '{{.Server.Version}}'")
+	cmd := h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`)
+	version, err := h.ExecWithOutput(cmd)
 	if err != nil {
 		return ""
 	}
