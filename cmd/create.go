@@ -1,17 +1,15 @@
 package cmd
 
 import (
-	"github.com/Mirantis/mcc/pkg/install"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/Mirantis/mcc/pkg/create"
 	"github.com/urfave/cli/v2"
 )
 
-// NewInstallCommand creates new install command to be called from cli
-func NewInstallCommand() *cli.Command {
+// NewCreateCommand creates new install command to be called from cli
+func NewCreateCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "install",
-		Usage: "Install a new cluster",
+		Name:  "create",
+		Usage: "Creates a new cluster",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "config",
@@ -21,9 +19,7 @@ func NewInstallCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			log.Info("Install called")
-
-			err := install.Install(ctx)
+			err := create.Create(ctx)
 			return err
 		},
 	}

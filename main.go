@@ -38,7 +38,8 @@ func main() {
 			return nil
 		},
 		Commands: []*cli.Command{
-			cmd.NewInstallCommand(),
+			cmd.NewCreateCommand(),
+			cmd.NewUpgradeCommand(),
 			versionCmd,
 		},
 	}

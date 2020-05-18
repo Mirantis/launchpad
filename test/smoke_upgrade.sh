@@ -23,7 +23,7 @@ chmod +x ./footloose
 ./footloose create
 
 set +e
-if ! ../bin/mcc --debug install ; then
+if ! ../bin/mcc --debug create ; then
   cleanup
   exit 1
 fi
@@ -34,7 +34,7 @@ envsubst < cluster.yaml.tpl > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml
 cat cluster.yaml
 
-../bin/mcc --debug install
+../bin/mcc --debug upgrade
 result=$?
 
 cleanup
