@@ -5,6 +5,11 @@ set -e
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.3.0-rc1"}
 export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8-rc1"}
+# Use BUILD_TAG as the cluster name to avoid any conflicts with local state file(s)
+# BUILD_TAG is in the form of: jenkins-mcc-mcc-PR-51-6
+export CLUSTER_NAME=$BUILD_TAG
+
+
 
 cd test
 rm -f ./id_rsa_mcc
@@ -23,5 +28,7 @@ result=$?
 
 ./footloose delete
 docker volume prune -f
+## Clean the local state
+rm -rf ~/.mirantis-mcc/cluster/$CUSTER_NAME
 
 exit $result
