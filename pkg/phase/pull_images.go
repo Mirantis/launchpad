@@ -48,6 +48,12 @@ func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) 
 
 // Pulls images on a host in parallel using a workerpool with 5 workers. Essentially we pull 5 images in parallel.
 func (p *PullImages) pullImages(host *config.Host, images []string) error {
+	err := host.AuthenticateDocker()
+	if err != nil {
+		return err
+	}
+	defer host.Exec(host.Configurer.DockerCommandf("logout"))
+
 	wp := workerpool.New(5)
 	defer wp.StopWait()
 

@@ -110,7 +110,7 @@ func (h *Host) Connect() error {
 func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 	session, err := h.sshClient.NewSession()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer session.Close()
 
@@ -144,7 +144,6 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 	}
 
 	if stdin != "" {
-		log.Debugf("writing data to command stdin: %s", stdin)
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)
@@ -200,6 +199,25 @@ func trimOutput(output []byte) string {
 	}
 
 	return ""
+}
+
+func (h *Host) AuthenticateDocker() error {
+	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
+		pass := os.Getenv("REGISTRY_PASSWORD")
+		if pass == "" {
+			return fmt.Errorf("REGISTRY_PASSWORD not set")
+		}
+
+		log.Infof("Authenticating docker")
+		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin", user), pass, false)
+
+		if err != nil {
+			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
+		}
+	} else {
+		log.Debugf("REGISTRY_USERNAME not set, not authenticating")
+	}
+	return nil
 }
 
 // PullImage pulls the named docker image on the host
