@@ -42,7 +42,7 @@ func IsAnalyticsDisabled() bool {
 }
 
 // TrackAnalyticsEvent uploads the given event to segment if analytics tracking
-// is enabled in the UCP config.
+// is enabled.
 func TrackAnalyticsEvent(event string, properties map[string]interface{}) error {
 	if IsAnalyticsDisabled() {
 		return nil
@@ -65,7 +65,8 @@ func TrackAnalyticsEvent(event string, properties map[string]interface{}) error 
 	return client.Enqueue(msg)
 }
 
-// IdentifyAnalyticsUser identifies user on analytics service
+// IdentifyAnalyticsUser identifies user on analytics service if analytics
+// is enabled
 func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
 	if IsAnalyticsDisabled() {
 		return nil

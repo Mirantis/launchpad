@@ -1,6 +1,7 @@
 package util
 
 import (
+	"os"
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/config"
@@ -23,20 +24,29 @@ func (m *mockClient) Close() error {
 	return nil
 }
 
-// TestTrackAnalyticsEvent tests that the TrackAnalyticsOperationUsage
-// functions sends tracking message
+// TestTrackAnalyticsEvent tests that the TrackAnalyticsEvent
+// functions sends tracking message if analytics is enabled
 func TestTrackAnalyticsEvent(t *testing.T) {
 	client := &mockClient{}
 	testClient = client
 	defer func() { testClient = nil }()
-	props := make(map[string]interface{}, 1)
-	props["foo"] = "bar"
-	TrackAnalyticsEvent("test", props)
-	lastMessage := client.lastMessage.(analytics.Track)
-	require.NotNil(t, client.lastMessage)
-	require.Equal(t, "test", lastMessage.Event)
-	require.NotEmpty(t, lastMessage.AnonymousId)
-	require.Equal(t, "bar", lastMessage.Properties["foo"])
+	t.Run("Analytics disabled", func(t *testing.T) {
+		os.Setenv("ANALYTICS_DISABLED", "true")
+		defer func() { os.Unsetenv("ANALYTICS_DISABLED") }()
+		TrackAnalyticsEvent("test", nil)
+		lastMessage := client.lastMessage
+		require.Nil(t, lastMessage)
+	})
+	t.Run("Analytics enabled", func(t *testing.T) {
+		props := make(map[string]interface{}, 1)
+		props["foo"] = "bar"
+		TrackAnalyticsEvent("test", props)
+		lastMessage := client.lastMessage.(analytics.Track)
+		require.NotNil(t, client.lastMessage)
+		require.Equal(t, "test", lastMessage.Event)
+		require.NotEmpty(t, lastMessage.AnonymousId)
+		require.Equal(t, "bar", lastMessage.Properties["foo"])
+	})
 }
 
 func TestIdentifyAnalyticsUser(t *testing.T) {
@@ -49,11 +59,20 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		Email:   "john.doe@example.org",
 		Company: "Acme, Inc.",
 	}
-	IdentifyAnalyticsUser(&userConfig)
-	lastMessage := client.lastMessage.(analytics.Identify)
-	require.NotNil(t, client.lastMessage)
-	require.Equal(t, "john.doe@example.org", lastMessage.UserId)
-	require.Equal(t, "John Doe", lastMessage.Traits["name"])
-	require.Equal(t, "john.doe@example.org", lastMessage.Traits["email"])
-	require.Equal(t, "Acme, Inc.", lastMessage.Traits["company"])
+	t.Run("Analytics disabled", func(t *testing.T) {
+		os.Setenv("ANALYTICS_DISABLED", "true")
+		defer func() { os.Unsetenv("ANALYTICS_DISABLED") }()
+		IdentifyAnalyticsUser(&userConfig)
+		lastMessage := client.lastMessage
+		require.Nil(t, lastMessage)
+	})
+	t.Run("Analytics enabled", func(t *testing.T) {
+		IdentifyAnalyticsUser(&userConfig)
+		lastMessage := client.lastMessage.(analytics.Identify)
+		require.NotNil(t, client.lastMessage)
+		require.Equal(t, "john.doe@example.org", lastMessage.UserId)
+		require.Equal(t, "John Doe", lastMessage.Traits["name"])
+		require.Equal(t, "john.doe@example.org", lastMessage.Traits["email"])
+		require.Equal(t, "Acme, Inc.", lastMessage.Traits["company"])
+	})
 }
