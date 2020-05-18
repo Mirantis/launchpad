@@ -110,7 +110,7 @@ func (h *Host) Connect() error {
 func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 	session, err := h.sshClient.NewSession()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer session.Close()
 
