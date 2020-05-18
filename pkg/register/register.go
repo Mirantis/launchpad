@@ -60,7 +60,7 @@ func Register(ctx *cli.Context) error {
 	err := config.SaveUserConfig(&userConfig)
 	if err == nil {
 		util.IdentifyAnalyticsUser(&userConfig)
-		log.Info("Registeration completed!")
+		log.Info("Registration succeeded!")
 	} else {
 		log.Error("Registration failed!")
 	}
