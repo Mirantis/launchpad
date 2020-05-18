@@ -18,7 +18,7 @@ chmod +x ./footloose
 ./footloose create
 
 set +e
-../bin/mcc --debug install
+../bin/mcc --debug create
 result=$?
 
 ./footloose delete
