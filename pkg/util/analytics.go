@@ -1,7 +1,10 @@
 package util
 
 import (
+	"runtime"
+
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/version"
 	"github.com/denisbrodbeck/machineid"
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -40,6 +43,8 @@ func TrackAnalyticsEvent(event string, properties map[string]interface{}) error 
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
+	properties["os"] = runtime.GOOS
+	properties["version"] = version.Version
 	msg := analytics.Track{
 		AnonymousId: AnalyticsMachineID(),
 		Event:       event,
@@ -66,6 +71,11 @@ func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
 	return client.Enqueue(msg)
 }
 
+// NewAnalyticsEventProperties constructs new properties map and returns it
+func NewAnalyticsEventProperties() map[string]interface{} {
+	return make(map[string]interface{}, 10)
+}
+
 // AnalyticsMachineID hashes a machine id as an anonymized identifier for our
 // analytics events.
 func AnalyticsMachineID() string {
@@ -75,5 +85,9 @@ func AnalyticsMachineID() string {
 
 // AnalyticsUserID returs user id for our analytics events.
 func AnalyticsUserID() string {
-	return "" // TODO Read from config
+	userConfig, _ := config.GetUserConfig()
+	if userConfig != nil {
+		return userConfig.Email
+	}
+	return ""
 }
