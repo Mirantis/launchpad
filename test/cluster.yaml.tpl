@@ -3,7 +3,7 @@ hosts:
     sshPort: 9022
     sshKeyPath: "./id_rsa_mcc"
     user: "root"
-    role: "controller"
+    role: "manager"
   - address: "127.0.0.1"
     sshPort: 9023
     sshKeyPath: "./id_rsa_mcc"

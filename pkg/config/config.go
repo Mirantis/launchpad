@@ -65,16 +65,16 @@ func (c *ClusterConfig) Workers() []*Host {
 	return workers
 }
 
-// Controllers filters only the controllers from the cluster config
-func (c *ClusterConfig) Controllers() []*Host {
-	controllers := make([]*Host, 0)
+// Managers filters only the manager nodes from the cluster config
+func (c *ClusterConfig) Managers() []*Host {
+	managers := make([]*Host, 0)
 	for _, h := range c.Hosts {
-		if h.Role == "controller" {
-			controllers = append(controllers, h)
+		if h.Role == "manager" {
+			managers = append(managers, h)
 		}
 	}
 
-	return controllers
+	return managers
 }
 
 // Helper for reading data from references to external files

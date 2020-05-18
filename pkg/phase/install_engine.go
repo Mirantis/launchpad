@@ -34,10 +34,10 @@ func (p *InstallEngine) Run(c *config.ClusterConfig) error {
 	return runParallelOnHosts(newHosts, c, p.installEngine)
 }
 
-// Upgrades host docker engines, first controllers (one-by-one) and then ~10% rolling update to workers
+// Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
 // TODO: should we drain?
 func (p *InstallEngine) upgradeEngines(c *config.ClusterConfig) error {
-	for _, h := range c.Controllers() {
+	for _, h := range c.Managers() {
 		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Engine.Version {
 			err := p.installEngine(h, c)
 			if err != nil {

@@ -17,7 +17,7 @@ func (p *PullImages) Title() string {
 	return "Pull images"
 }
 
-// Run pulls all the needed images on controllers in parallel.
+// Run pulls all the needed images on managers in parallel.
 // Parallel on each host and pulls 5 images at a time on each host.
 func (p *PullImages) Run(c *config.ClusterConfig) error {
 	images, err := p.listImages(c)
@@ -26,19 +26,19 @@ func (p *PullImages) Run(c *config.ClusterConfig) error {
 	}
 	log.Debugf("loaded images list: %v", images)
 
-	return runParallelOnHosts(c.Controllers(), c, func(h *config.Host, c *config.ClusterConfig) error {
+	return runParallelOnHosts(c.Managers(), c, func(h *config.Host, c *config.ClusterConfig) error {
 		return p.pullImages(h, images)
 	})
 }
 
 func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) {
-	controller := config.Controllers()[0]
+	manager := config.Managers()[0]
 	image := fmt.Sprintf("%s/ucp:%s", config.Ucp.ImageRepo, config.Ucp.Version)
-	err := controller.PullImage(image)
+	err := manager.PullImage(image)
 	if err != nil {
 		return []string{}, err
 	}
-	output, err := controller.ExecWithOutput(controller.Configurer.DockerCommandf("run --rm %s images --list", image))
+	output, err := manager.ExecWithOutput(manager.Configurer.DockerCommandf("run --rm %s images --list", image))
 	if err != nil {
 		return []string{}, fmt.Errorf("failed to get image list")
 	}

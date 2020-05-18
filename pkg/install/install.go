@@ -41,7 +41,7 @@ func Install(ctx *cli.Context) error {
 	phaseManager.AddPhase(&phase.InitSwarm{})
 	phaseManager.AddPhase(&phase.InstallUCP{})
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
-	phaseManager.AddPhase(&phase.JoinControllers{})
+	phaseManager.AddPhase(&phase.JoinManagers{})
 	phaseManager.AddPhase(&phase.JoinWorkers{})
 	phaseManager.AddPhase(&phase.Disconnect{})
 

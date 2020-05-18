@@ -9,27 +9,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// JoinControllers phase implementation
-type JoinControllers struct{}
+// JoinManagers phase implementation
+type JoinManagers struct{}
 
 // Title for the phase
-func (p *JoinControllers) Title() string {
-	return "Join controllers"
+func (p *JoinManagers) Title() string {
+	return "Join managers to swarm"
 }
 
-// Run joins the controller nodes into swarm
-func (p *JoinControllers) Run(config *config.ClusterConfig) error {
-	swarmLeader := config.Controllers()[0]
-	for _, h := range config.Controllers() {
+// Run joins the manager nodes into swarm
+func (p *JoinManagers) Run(config *config.ClusterConfig) error {
+	swarmLeader := config.Managers()[0]
+	for _, h := range config.Managers() {
 		if util.IsSwarmNode(h) {
 			log.Infof("%s: Already a swarm node, not gonna re-join as manager", h.Address)
 			continue
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", config.ManagerJoinToken, swarmLeader.SwarmAddress())
-		log.Debugf("%s: joining as controller", h.Address)
+		log.Debugf("%s: joining as manager", h.Address)
 		output, err := h.ExecWithOutput(joinCmd)
 		if err != nil {
-			return NewError(fmt.Sprintf("Failed to join controller node to swarm: %s", output))
+			return NewError(fmt.Sprintf("Failed to join manager node to swarm: %s", output))
 		}
 		log.Debugf("%s: joined succesfully", h.Address)
 	}

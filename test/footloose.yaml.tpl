@@ -6,7 +6,7 @@ machines:
   backend: docker
   spec:
     image: $LINUX_IMAGE
-    name: controller%d
+    name: manager%d
     privileged: true
     volumes:
     - type: bind
