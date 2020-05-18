@@ -19,7 +19,7 @@ import (
 
 // Install ...
 func Install(ctx *cli.Context) error {
-	cfgData, _, err := resolveClusterFile(ctx)
+	cfgData, err := resolveClusterFile(ctx)
 	if err != nil {
 		return err
 	}
@@ -62,15 +62,15 @@ func Install(ctx *cli.Context) error {
 
 }
 
-func resolveClusterFile(ctx *cli.Context) ([]byte, string, error) {
+func resolveClusterFile(ctx *cli.Context) ([]byte, error) {
 	clusterFile := ctx.String("config")
 	fp, err := filepath.Abs(clusterFile)
 	if err != nil {
-		return []byte{}, "", fmt.Errorf("failed to lookup current directory name: %v", err)
+		return []byte{}, fmt.Errorf("failed to lookup current directory name: %v", err)
 	}
 	file, err := os.Open(fp)
 	if err != nil {
-		return []byte{}, fp, fmt.Errorf("can not find cluster configuration file: %v", err)
+		return []byte{}, fmt.Errorf("can not find cluster configuration file: %v", err)
 	}
 	log.Debugf("opened config file from %s", fp)
 
@@ -78,9 +78,9 @@ func resolveClusterFile(ctx *cli.Context) ([]byte, string, error) {
 
 	buf, err := ioutil.ReadAll(file)
 	if err != nil {
-		return []byte{}, fp, fmt.Errorf("failed to read file: %v", err)
+		return []byte{}, fmt.Errorf("failed to read file: %v", err)
 	}
-	return buf, fp, nil
+	return buf, nil
 }
 
 const fileMode = 0700
