@@ -21,7 +21,7 @@ func (p *JoinWorkers) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Managers()[0]
 	for _, h := range config.Workers() {
 		if util.IsSwarmNode(h) {
-			log.Infof("%s: Already a swarm node, not gonna re-join as worker", h.Address)
+			log.Infof("%s: already a swarm node", h.Address)
 			continue
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", config.WorkerJoinToken, swarmLeader.SwarmAddress())

@@ -29,7 +29,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 	}
 
 	if bootstrapperVersion == config.Ucp.Metadata.InstalledVersion {
-		log.Infof("Cluster already at version %s, not running upgrade", bootstrapperVersion)
+		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
 		return nil
 	}
 
@@ -37,7 +37,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s upgrade --id %s", config.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
-	err = swarmLeader.Exec(upgradeCmd)
+	err = swarmLeader.ExecCmd(upgradeCmd, "", true)
 	if err != nil {
 		return NewError("Failed to run UCP upgrade")
 	}
