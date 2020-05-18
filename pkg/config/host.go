@@ -201,6 +201,8 @@ func trimOutput(output []byte) string {
 	return ""
 }
 
+// AuthenticateDocker performs a docker login on the host using local REGISTRY_USERNAME
+// and REGISTRY_PASSWORD when set
 func (h *Host) AuthenticateDocker() error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
