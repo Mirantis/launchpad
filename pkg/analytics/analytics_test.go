@@ -1,4 +1,4 @@
-package util
+package analytics
 
 import (
 	"testing"
@@ -31,7 +31,7 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 	defer func() { testClient = nil }()
 	props := make(map[string]interface{}, 1)
 	props["foo"] = "bar"
-	TrackAnalyticsEvent("test", props)
+	TrackEvent("test", props)
 	lastMessage := client.lastMessage.(analytics.Track)
 	require.NotNil(t, client.lastMessage)
 	require.Equal(t, "test", lastMessage.Event)
@@ -49,7 +49,7 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		Email:   "john.doe@example.org",
 		Company: "Acme, Inc.",
 	}
-	IdentifyAnalyticsUser(&userConfig)
+	IdentifyUser(&userConfig)
 	lastMessage := client.lastMessage.(analytics.Identify)
 	require.NotNil(t, client.lastMessage)
 	require.Equal(t, "john.doe@example.org", lastMessage.UserId)

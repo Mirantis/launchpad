@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -18,7 +19,7 @@ type State struct {
 	Name      string `yaml:"name"`
 }
 
-// InitState ...
+// InitState initilizes and saves the "empty" state
 func InitState(clusterName string) (*State, error) {
 	state := &State{
 		Name: clusterName,
@@ -27,7 +28,7 @@ func InitState(clusterName string) (*State, error) {
 	return state, state.Save()
 }
 
-// LoadState ...
+// LoadState loads existing local state from disk
 func LoadState(clusterName string) (*State, error) {
 	state := &State{
 		Name: clusterName,
@@ -51,14 +52,14 @@ func LoadState(clusterName string) (*State, error) {
 	return state, nil
 }
 
-// Save ...
+// Save saves the state on disk
 func (s *State) Save() error {
 	statePath, err := s.getStatePath()
 	if err != nil {
 		return err
 	}
 
-	if err = ensureDir(filepath.Dir(statePath)); err != nil {
+	if err = util.EnsureDir(filepath.Dir(statePath)); err != nil {
 		return err
 	}
 	d, err := yaml.Marshal(&s)
@@ -72,21 +73,11 @@ func (s *State) Save() error {
 	return nil
 }
 
+// gets the full path to the clusters state file
 func (s *State) getStatePath() (string, error) {
 	home, err := homedir.Dir()
 	if err != nil {
 		return "", err
 	}
 	return path.Join(home, constant.StateBaseDir, "cluster", s.Name, "state.yaml"), nil
-}
-
-// FIXME Needs to be not copy-pasta, I'll figure this out later...
-func ensureDir(dirPath string) error {
-	if _, serr := os.Stat(dirPath); os.IsNotExist(serr) {
-		merr := os.MkdirAll(dirPath, os.ModePerm)
-		if merr != nil {
-			return merr
-		}
-	}
-	return nil
 }

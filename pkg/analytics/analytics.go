@@ -1,4 +1,4 @@
-package util
+package analytics
 
 import (
 	"github.com/Mirantis/mcc/pkg/config"
@@ -22,8 +22,8 @@ type Analytics interface {
 // testClient is only meant to be used in unit testing.
 var testClient Analytics
 
-// AnalyticsClient returns a client for uploading analytics data.
-func AnalyticsClient() Analytics {
+// Client returns a client for uploading analytics data.
+func Client() Analytics {
 	if testClient != nil {
 		return testClient
 	}
@@ -32,31 +32,31 @@ func AnalyticsClient() Analytics {
 	return segmentClient
 }
 
-// TrackAnalyticsEvent uploads the given event to segment if analytics tracking
+// TrackEvent uploads the given event to segment if analytics tracking
 // is enabled in the UCP config.
-func TrackAnalyticsEvent(event string, properties map[string]interface{}) error {
-	client := AnalyticsClient()
+func TrackEvent(event string, properties map[string]interface{}) error {
+	client := Client()
 	defer client.Close()
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
 	msg := analytics.Track{
-		AnonymousId: AnalyticsMachineID(),
+		AnonymousId: MachineID(),
 		Event:       event,
 		Properties:  properties,
 	}
-	if userID := AnalyticsUserID(); userID != "" {
+	if userID := UserID(); userID != "" {
 		msg.UserId = userID
 	}
 	return client.Enqueue(msg)
 }
 
-// IdentifyAnalyticsUser identifies user on analytics service
-func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
-	client := AnalyticsClient()
+// IdentifyUser identifies user on analytics service
+func IdentifyUser(userConfig *config.UserConfig) error {
+	client := Client()
 	defer client.Close()
 	msg := analytics.Identify{
-		AnonymousId: AnalyticsMachineID(),
+		AnonymousId: MachineID(),
 		UserId:      userConfig.Email,
 		Traits: analytics.NewTraits().
 			SetName(userConfig.Name).
@@ -66,14 +66,14 @@ func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
 	return client.Enqueue(msg)
 }
 
-// AnalyticsMachineID hashes a machine id as an anonymized identifier for our
+// MachineID hashes a machine id as an anonymized identifier for our
 // analytics events.
-func AnalyticsMachineID() string {
+func MachineID() string {
 	id, _ := machineid.ProtectedID("mcc")
 	return id
 }
 
-// AnalyticsUserID returs user id for our analytics events.
-func AnalyticsUserID() string {
+// UserID returs user id for our analytics events.
+func UserID() string {
 	return "" // TODO Read from config
 }

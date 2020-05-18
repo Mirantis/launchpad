@@ -6,8 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/swarm"
-
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/ucp"
 
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -42,7 +41,7 @@ func (p *GatherFacts) Run(conf *config.ClusterConfig) error {
 	swarmLeader := conf.Managers()[0]
 	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
-		ucpMeta, err := util.CollectUcpFacts(swarmLeader)
+		ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 		}
