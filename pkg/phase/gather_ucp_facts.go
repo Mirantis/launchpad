@@ -20,7 +20,7 @@ func (p *GatherUcpFacts) Title() string {
 
 // Run collects the facts from swarm leader
 func (p *GatherUcpFacts) Run(conf *config.ClusterConfig) error {
-	swarmLeader := conf.Controllers()[0]
+	swarmLeader := conf.Managers()[0]
 	ucpMeta, err := util.CollectUcpFacts(swarmLeader)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())

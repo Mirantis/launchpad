@@ -47,7 +47,7 @@ type Host struct {
 	User             string   `yaml:"user" validate:"omitempty,gt=2" default:"root"`
 	SSHPort          int      `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
 	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
-	Role             string   `yaml:"role" validate:"oneof=controller worker"`
+	Role             string   `yaml:"role" validate:"oneof=manager worker"`
 	ExtraArgs        []string `yaml:"extraArgs"`
 	PrivateInterface string   `yaml:"privateInterface" default:"eth0" validate:"gt=2"`
 	Metadata         *HostMetadata

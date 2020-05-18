@@ -50,7 +50,7 @@ resource "hcloud_server" "master" {
     ssh_keys = "${var.ssh_keys}"
     location = "${var.location}"
     labels = {
-        role = "controller"
+        role = "manager"
     }
 }
 

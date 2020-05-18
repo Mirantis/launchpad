@@ -20,7 +20,7 @@ func (p *InitSwarm) Title() string {
 
 // Run initializes the swarm on the leader or skips if swarm is already initialized
 func (p *InitSwarm) Run(config *config.ClusterConfig) error {
-	swarmLeader := config.Controllers()[0]
+	swarmLeader := config.Managers()[0]
 
 	if !util.IsSwarmNode(swarmLeader) {
 		log.Debugf("%s: initializing swarm", swarmLeader.Address)

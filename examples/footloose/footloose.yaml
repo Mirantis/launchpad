@@ -6,7 +6,7 @@ machines:
   backend: docker
   spec:
     image: quay.io/footloose/ubuntu18.04
-    name: controller%d
+    name: manager%d
     privileged: true
     volumes:
     - type: bind

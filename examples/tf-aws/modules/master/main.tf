@@ -1,6 +1,6 @@
 resource "aws_security_group" "master" {
-  name        = "${var.cluster_name}-controllers"
-  description = "ucp cluster controllers"
+  name        = "${var.cluster_name}-managers"
+  description = "ucp cluster managers"
   vpc_id      = var.vpc_id
 
   ingress {
@@ -35,7 +35,7 @@ resource "aws_instance" "ucp_master" {
 
   tags = map(
     "Name", "${var.cluster_name}-master-${count.index + 1}",
-    "Role", "controller",
+    "Role", "manager",
     "${var.kube_cluster_tag}", "shared"
   )
 
