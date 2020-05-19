@@ -52,6 +52,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// ClusterState ...
 type ClusterState struct {
 	ClusterID string
 }
