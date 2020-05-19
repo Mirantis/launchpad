@@ -220,11 +220,10 @@ func (h *Host) AuthenticateDocker() error {
 		if pass == "" {
 			return fmt.Errorf("REGISTRY_PASSWORD not set")
 		}
-
 		log.Infof("%s: authenticating docker", h.Address)
 		old := log.GetLevel()
 		log.SetLevel(log.ErrorLevel)
-		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin", user), pass, false)
+		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, os.Getenv("REGISTRY_LOGIN_SERVER")), pass, false)
 		log.SetLevel(old)
 
 		if err != nil {
