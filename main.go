@@ -3,16 +3,28 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/Mirantis/mcc/version"
 
 	"github.com/Mirantis/mcc/cmd"
 
+	"github.com/shiena/ansicolor"
 	log "github.com/sirupsen/logrus"
+
 	"github.com/urfave/cli/v2"
 )
 
+func configureLogger() {
+	if runtime.GOOS == "windows" {
+		log.SetFormatter(&log.TextFormatter{ForceColors: true})
+		log.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	}
+}
+
 func main() {
+	configureLogger()
+
 	versionCmd := &cli.Command{
 		Name: "version",
 		Action: func(ctx *cli.Context) error {
