@@ -32,7 +32,7 @@ func NewInstallCommand() *cli.Command {
 				duration := time.Since(start)
 				props := analytics.NewAnalyticsEventProperties()
 				props["duration"] = duration.Seconds()
-				analytics.TrackEvent("Cluster Install Succeeded", props)
+				analytics.TrackEvent("Cluster Install Completed", props)
 			}
 			return err
 		},
