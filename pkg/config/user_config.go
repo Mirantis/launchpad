@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
 )
@@ -53,7 +54,7 @@ func SaveUserConfig(config *UserConfig) error {
 		return err
 	}
 	configDir := filepath.Dir(configFile)
-	if err = ensureDir(configDir); err != nil {
+	if err = util.EnsureDir(configDir); err != nil {
 		return err
 	}
 	d, err := yaml.Marshal(&config)

@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/register"
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/urfave/cli/v2"
 )
 
@@ -29,12 +29,12 @@ func RegisterCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			util.TrackAnalyticsEvent("Registering user started", nil)
+			analytics.TrackEvent("Registering user started", nil)
 			err := register.Register(ctx)
 			if err != nil {
-				util.TrackAnalyticsEvent("Registering user failed", nil)
+				analytics.TrackEvent("Registering user failed", nil)
 			} else {
-				util.TrackAnalyticsEvent("Registering user succeeded", nil)
+				analytics.TrackEvent("Registering user succeeded", nil)
 			}
 
 			return err

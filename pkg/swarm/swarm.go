@@ -1,4 +1,4 @@
-package util
+package swarm
 
 import (
 	"github.com/Mirantis/mcc/pkg/config"
@@ -20,11 +20,11 @@ func IsSwarmNode(host *config.Host) bool {
 	return true
 }
 
-// SwarmClusterID digs the swarm cluster id from swarm leader host
-func SwarmClusterID(leader *config.Host) string {
-	output, err := leader.ExecWithOutput(leader.Configurer.DockerCommandf(`info --format "{{.Swarm.Cluster.ID}}"`))
+// ClusterID digs the swarm cluster id from swarm leader host
+func ClusterID(leader *config.Host) string {
+	output, err := leader.ExecWithOutput(leader.Configurer.DockerCommandf(`info --format "{{ .Swarm.Cluster.ID}}"`))
 	if err != nil {
-		log.Warnf("failed to get hosts swarm status")
+		log.Warnf("failed to get host's swarm status, probably not part of swarm")
 		return ""
 	}
 
