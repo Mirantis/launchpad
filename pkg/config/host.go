@@ -114,7 +114,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 	}
 	defer session.Close()
 
-	if stdin == "" {
+	if stdin == "" && !h.IsWindows() {
 		// FIXME not requesting a pty for commands with stdin input for now,
 		// as it appears the pipe doesn't get closed with stdinpipe.Close()
 		modes := ssh.TerminalModes{}
@@ -194,6 +194,16 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 	return trimOutput(output), nil
 }
 
+// WriteFile writes file to host with given contents
+func (h *Host) WriteFile(path string, data string, permissions string) error {
+	tempFile, _ := h.ExecWithOutput("mktemp")
+	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func trimOutput(output []byte) string {
 	if len(output) > 0 {
 		return strings.TrimSpace(string(output))
@@ -239,4 +249,12 @@ func (h *Host) PullImage(name string) error {
 // SwarmAddress determines the swarm address for the host
 func (h *Host) SwarmAddress() string {
 	return fmt.Sprintf("%s:%d", h.Metadata.InternalAddress, 2377)
+}
+
+// IsWindows returns true if host has been detected running windows
+func (h *Host) IsWindows() bool {
+	if h.Metadata.Os == nil {
+		return false
+	}
+	return strings.HasPrefix(h.Metadata.Os.ID, "windows-")
 }

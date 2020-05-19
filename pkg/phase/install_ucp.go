@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/Mirantis/mcc/pkg/ucp"
+
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,11 +56,11 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 		return NewError("Failed to run UCP installer")
 	}
 
-	ucpMeta, err := util.CollectUcpFacts(swarmLeader)
+	ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
 	config.Ucp.Metadata = ucpMeta
-
+	config.State.ClusterID = swarm.ClusterID(swarmLeader)
 	return nil
 }

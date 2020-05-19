@@ -41,6 +41,50 @@ module "workers" {
   worker_type           = var.worker_type
 }
 
+module "windows_workers" {
+  source                = "./modules/windows_worker"
+  worker_count          = var.windows_worker_count
+  vpc_id                = module.vpc.id
+  cluster_name          = var.cluster_name
+  subnet_ids            = module.vpc.public_subnet_ids
+  security_group_id     = module.common.security_group_id
+  image_id              = module.common.windows_2019_image_id
+  kube_cluster_tag      = module.common.kube_cluster_tag
+  ssh_key               = var.cluster_name
+  instance_profile_name = module.common.instance_profile_name
+  worker_type           = var.worker_type
+}
+
+locals {
+  managers = [
+    for host in module.masters.machines : {
+      address = host.public_ip
+      user    = "ubuntu"
+      role    = host.tags["Role"]
+      privateInterface = "ens5"
+      sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
+    }
+  ]
+  workers = [
+    for host in module.workers.machines : {
+      address = host.public_ip
+      user    = "ubuntu"
+      role    = host.tags["Role"]
+      privateInterface = "ens5"
+      sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
+    }
+  ]
+  windows_workers = [
+    for host in module.windows_workers.machines : {
+      address = host.public_ip
+      user    = "docker"
+      role    = host.tags["Role"]
+      privateInterface = "Ethernet 3"
+      sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
+    }
+  ]
+}
+
 
 output "ucp_cluster" {
   value = {
@@ -48,19 +92,10 @@ output "ucp_cluster" {
       installFlags: [
         "--admin-username=admin",
         "--admin-password=${var.admin_password}",
-        "--cloud-provider=aws",
         "--default-node-orchestrator=kubernetes",
         "--san=${module.masters.lb_dns_name}",
       ]
     }
-    hosts = [
-      for host in concat(module.masters.machines, module.workers.machines) : {
-        address = host.public_ip
-        user    = "ubuntu"
-        role    = host.tags["Role"]
-        privateInterface = "ens5"
-        sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
-      }
-    ]
+    hosts = concat(local.managers, local.workers, local.windows_workers)
   }
 }

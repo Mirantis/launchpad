@@ -3,7 +3,8 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/Mirantis/mcc/pkg/ucp"
 
 	"github.com/Mirantis/mcc/pkg/config"
 
@@ -33,7 +34,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 		return nil
 	}
 
-	swarmClusterID := util.SwarmClusterID(swarmLeader)
+	swarmClusterID := swarm.ClusterID(swarmLeader)
 
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s upgrade --id %s", config.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
@@ -42,7 +43,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 		return NewError("Failed to run UCP upgrade")
 	}
 
-	ucpMeta, err := util.CollectUcpFacts(swarmLeader)
+	ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}

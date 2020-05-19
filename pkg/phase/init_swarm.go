@@ -3,9 +3,8 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/util"
-
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/swarm"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -22,7 +21,7 @@ func (p *InitSwarm) Title() string {
 func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Managers()[0]
 
-	if !util.IsSwarmNode(swarmLeader) {
+	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader.Address)
 		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
 		if err != nil {
@@ -41,7 +40,7 @@ func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 
 	workerToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token worker -q"))
 	if err != nil {
-		return NewError("failed to get swarm manager join-token")
+		return NewError("failed to get swarm worker join-token")
 	}
 	config.WorkerJoinToken = workerToken
 

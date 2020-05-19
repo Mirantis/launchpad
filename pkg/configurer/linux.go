@@ -14,6 +14,9 @@ type LinuxConfigurer struct {
 
 // InstallEngine install Docker EE engine on Linux
 func (c *LinuxConfigurer) InstallEngine(engineConfig *config.EngineConfig) error {
+	if c.Host.Metadata.EngineVersion == engineConfig.Version {
+		return nil
+	}
 	cmd := fmt.Sprintf("curl %s | DOCKER_URL=%s CHANNEL=%s VERSION=%s bash", engineConfig.InstallURL, engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
 	err := c.Host.Exec(cmd)
 	if err != nil {

@@ -35,6 +35,22 @@ data "aws_ami" "ubuntu" {
   owners = ["099720109477"] # Canonical
 }
 
+data "aws_ami" "windows_2019" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["testkit/win_core2019/*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["546848686991"] # Mirantis?
+}
+
 resource "aws_security_group" "common" {
   name        = "${var.cluster_name}-common"
   description = "ucp cluster common rules"

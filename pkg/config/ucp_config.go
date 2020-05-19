@@ -19,6 +19,7 @@ type UcpConfig struct {
 type UcpMetadata struct {
 	Installed        bool
 	InstalledVersion string
+	ClusterID        string
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

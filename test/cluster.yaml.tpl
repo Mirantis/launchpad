@@ -1,3 +1,4 @@
+name: $CLUSTER_NAME
 hosts:
   - address: "127.0.0.1"
     sshPort: 9022

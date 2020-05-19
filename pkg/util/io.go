@@ -1,8 +1,9 @@
-package config
+package util
 
 import "os"
 
-func ensureDir(dirPath string) error {
+// EnsureDir ensures the given directory path exists, if not it will create the full path
+func EnsureDir(dirPath string) error {
 	if _, serr := os.Stat(dirPath); os.IsNotExist(serr) {
 		merr := os.MkdirAll(dirPath, os.ModePerm)
 		if merr != nil {

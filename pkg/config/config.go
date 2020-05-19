@@ -5,6 +5,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/Mirantis/mcc/pkg/state"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/mitchellh/go-homedir"
 )
@@ -19,9 +20,9 @@ const (
 	// EngineChannel is the default engine channel
 	EngineChannel = "test"
 	// EngineRepoURL is the default engine repo
-	EngineRepoURL = "https://repos.mirantis.com/"
+	EngineRepoURL = "https://repos.mirantis.com"
 	// EngineInstallURL is the default engine install script location
-	EngineInstallURL = "https://s3-us-west-2.amazonaws.com/internal-docker-ee-builds/install.sh"
+	EngineInstallURL = "https://get.mirantis.com/"
 )
 
 // ClusterConfig is the struct to read the cluster.yaml config into
@@ -29,9 +30,11 @@ type ClusterConfig struct {
 	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
 	Ucp    UcpConfig    `yaml:"ucp"`
 	Engine EngineConfig `yaml:"engine"`
+	Name   string       `yaml:"name" validate:"required,min=3"`
 
 	ManagerJoinToken string
 	WorkerJoinToken  string
+	State            *state.State
 }
 
 // FromYaml loads the cluster config from given yaml data
@@ -97,6 +100,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	raw := rawConfig{
 		Engine: NewEngineConfig(),
 		Ucp:    NewUcpConfig(),
+		Name:   "mcc-ucp",
 	}
 
 	if err := unmarshal(&raw); err != nil {
