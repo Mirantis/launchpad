@@ -1,7 +1,11 @@
 package util
 
 import (
+	"os"
+	"runtime"
+
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/version"
 	"github.com/denisbrodbeck/machineid"
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -32,14 +36,24 @@ func AnalyticsClient() Analytics {
 	return segmentClient
 }
 
+// IsAnalyticsDisabled detects if analytics is disabled
+func IsAnalyticsDisabled() bool {
+	return os.Getenv("ANALYTICS_DISABLED") == "true"
+}
+
 // TrackAnalyticsEvent uploads the given event to segment if analytics tracking
-// is enabled in the UCP config.
+// is enabled.
 func TrackAnalyticsEvent(event string, properties map[string]interface{}) error {
+	if IsAnalyticsDisabled() {
+		return nil
+	}
 	client := AnalyticsClient()
 	defer client.Close()
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
+	properties["os"] = runtime.GOOS
+	properties["version"] = version.Version
 	msg := analytics.Track{
 		AnonymousId: AnalyticsMachineID(),
 		Event:       event,
@@ -51,8 +65,12 @@ func TrackAnalyticsEvent(event string, properties map[string]interface{}) error 
 	return client.Enqueue(msg)
 }
 
-// IdentifyAnalyticsUser identifies user on analytics service
+// IdentifyAnalyticsUser identifies user on analytics service if analytics
+// is enabled
 func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
+	if IsAnalyticsDisabled() {
+		return nil
+	}
 	client := AnalyticsClient()
 	defer client.Close()
 	msg := analytics.Identify{
@@ -66,6 +84,11 @@ func IdentifyAnalyticsUser(userConfig *config.UserConfig) error {
 	return client.Enqueue(msg)
 }
 
+// NewAnalyticsEventProperties constructs new properties map and returns it
+func NewAnalyticsEventProperties() map[string]interface{} {
+	return make(map[string]interface{}, 10)
+}
+
 // AnalyticsMachineID hashes a machine id as an anonymized identifier for our
 // analytics events.
 func AnalyticsMachineID() string {
@@ -75,5 +98,9 @@ func AnalyticsMachineID() string {
 
 // AnalyticsUserID returs user id for our analytics events.
 func AnalyticsUserID() string {
-	return "" // TODO Read from config
+	userConfig, _ := config.GetUserConfig()
+	if userConfig != nil {
+		return userConfig.Email
+	}
+	return ""
 }

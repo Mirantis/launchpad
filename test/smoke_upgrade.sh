@@ -9,6 +9,7 @@ ssh-keygen -t rsa -f ./id_rsa_mcc -N ""
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.2.6"}
 export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.5"}
+export ANALYTICS_DISABLED="true"
 envsubst < cluster.yaml.tpl > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml
 cat cluster.yaml

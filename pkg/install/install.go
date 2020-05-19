@@ -17,6 +17,9 @@ import (
 
 // Install ...
 func Install(ctx *cli.Context) error {
+	if err := util.RequireRegisteredUser(); err != nil {
+		return err
+	}
 	cfgData, err := resolveClusterFile(ctx)
 	if err != nil {
 		return err
