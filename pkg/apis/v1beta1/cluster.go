@@ -2,7 +2,7 @@ package v1beta1
 
 // ClusterMeta defines cluster metadata
 type ClusterMeta struct {
-	Name string `yaml:"name", validate="required"`
+	Name string `yaml:"name" validate:"required"`
 }
 
 // ClusterSpec defines cluster spec

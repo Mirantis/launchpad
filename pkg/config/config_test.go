@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"testing"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
@@ -11,7 +12,10 @@ import (
 
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
-hosts:
+apiVersion: "mcc.mirantis.com/v1beta1"
+kind: UCP
+spec:
+  hosts:
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -22,8 +26,11 @@ hosts:
 
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 	data := `
-hosts:
-- address: "512.1.2.3"
+apiVersion: mcc.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+    - address: "512.1.2.3"
 `
 	c := loadYaml(t, data)
 
@@ -34,8 +41,11 @@ hosts:
 
 func TestHostAddressValidationWithValidIP(t *testing.T) {
 	data := `
-hosts:
-- address: "10.10.10.10"
+apiVersion: mcc.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+    - address: "10.10.10.10"
 `
 	c := loadYaml(t, data)
 
@@ -45,8 +55,11 @@ hosts:
 
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 	data := `
-hosts:
-- address: "1-2-foo"
+apiVersion: mcc.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+    - address: "1-2-foo"
 `
 	c := loadYaml(t, data)
 
@@ -57,8 +70,11 @@ hosts:
 
 func TestHostAddressValidationWithValidHostname(t *testing.T) {
 	data := `
-hosts:
-- address: "foo.bar.com"
+apiVersion: mcc.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+    - address: "foo.bar.com"
 `
 	c := loadYaml(t, data)
 
@@ -69,9 +85,12 @@ hosts:
 
 func TestHostSshPortValidation(t *testing.T) {
 	data := `
-hosts:
-- address: "1.2.3.4"
-  sshPort: 0
+apiVersion: mcc.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+  - address: "1.2.3.4"
+    sshPort: 0
 `
 	c := loadYaml(t, data)
 
@@ -82,10 +101,13 @@ hosts:
 
 func TestHostSshKeyValidation(t *testing.T) {
 	data := `
-hosts:
-- address: "1.2.3.4"
-  sshPort: 22
-  sshKeyPath: /path/to/nonexisting/key
+apiVersion: mcc.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+  - address: "1.2.3.4"
+    sshPort: 22
+    sshKeyPath: /path/to/nonexisting/key
 `
 	c := loadYaml(t, data)
 
@@ -96,10 +118,13 @@ hosts:
 
 func TestHostRoleValidation(t *testing.T) {
 	data := `
-hosts:
-- address: "1.2.3.4"
-  sshPort: 22
-  role: foobar
+apiVersion: mcc.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+  - address: "1.2.3.4"
+    sshPort: 22
+    role: foobar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -119,7 +144,7 @@ func loadYaml(t *testing.T, data string) *api.ClusterConfig {
 // checks that the validation errors contains error for the expected field
 func validateErrorField(t *testing.T, err error, field string) {
 	fields := getAllErrorFields(err)
-
+	fmt.Println(fields)
 	require.Contains(t, fields, field)
 }
 
