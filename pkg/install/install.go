@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -17,6 +18,9 @@ import (
 
 // Install ...
 func Install(ctx *cli.Context) error {
+	if err := analytics.RequireRegisteredUser(); err != nil {
+		return err
+	}
 	cfgData, err := resolveClusterFile(ctx)
 	if err != nil {
 		return err

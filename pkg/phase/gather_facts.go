@@ -11,6 +11,8 @@ import (
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	// needed to load the build func in package init
+	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
@@ -101,8 +103,10 @@ func investigateHost(h *config.Host, c *config.ClusterConfig) error {
 	h.Metadata.InternalAddress = h.Configurer.ResolveInternalIP()
 	h.Metadata.EngineVersion = resolveEngineVersion(h)
 
-	log.Debugf("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)
+	log.Infof("%s: is running \"%s\"", h.Address, h.Metadata.Os.Name)
+	log.Infof("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)
 
+	log.Infof("%s: gathered all facts", h.Address)
 	return nil
 }
 

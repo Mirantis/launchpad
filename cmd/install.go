@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"time"
+
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/install"
 
 	"github.com/urfave/cli/v2"
@@ -20,7 +23,17 @@ func NewInstallCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			start := time.Now()
+			analytics.TrackEvent("Create cluster started", nil)
 			err := install.Install(ctx)
+			if err != nil {
+				analytics.TrackEvent("Create cluster failed", nil)
+			} else {
+				duration := time.Since(start)
+				props := analytics.NewAnalyticsEventProperties()
+				props["duration"] = duration.Seconds()
+				analytics.TrackEvent("Create cluster succeeded", props)
+			}
 			return err
 		},
 	}

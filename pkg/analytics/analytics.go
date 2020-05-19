@@ -1,7 +1,11 @@
 package analytics
 
 import (
+	"os"
+	"runtime"
+
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/version"
 	"github.com/denisbrodbeck/machineid"
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -32,14 +36,24 @@ func Client() Analytics {
 	return segmentClient
 }
 
+// IsAnalyticsDisabled detects if analytics is disabled
+func IsAnalyticsDisabled() bool {
+	return os.Getenv("ANALYTICS_DISABLED") == "true"
+}
+
 // TrackEvent uploads the given event to segment if analytics tracking
-// is enabled in the UCP config.
+// is enabled.
 func TrackEvent(event string, properties map[string]interface{}) error {
+	if IsAnalyticsDisabled() {
+		return nil
+	}
 	client := Client()
 	defer client.Close()
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
+	properties["os"] = runtime.GOOS
+	properties["version"] = version.Version
 	msg := analytics.Track{
 		AnonymousId: MachineID(),
 		Event:       event,
@@ -51,8 +65,12 @@ func TrackEvent(event string, properties map[string]interface{}) error {
 	return client.Enqueue(msg)
 }
 
-// IdentifyUser identifies user on analytics service
+// IdentifyUser identifies user on analytics service if analytics
+// is enabled
 func IdentifyUser(userConfig *config.UserConfig) error {
+	if IsAnalyticsDisabled() {
+		return nil
+	}
 	client := Client()
 	defer client.Close()
 	msg := analytics.Identify{
@@ -66,6 +84,11 @@ func IdentifyUser(userConfig *config.UserConfig) error {
 	return client.Enqueue(msg)
 }
 
+// NewAnalyticsEventProperties constructs new properties map and returns it
+func NewAnalyticsEventProperties() map[string]interface{} {
+	return make(map[string]interface{}, 10)
+}
+
 // MachineID hashes a machine id as an anonymized identifier for our
 // analytics events.
 func MachineID() string {
@@ -75,5 +98,9 @@ func MachineID() string {
 
 // UserID returs user id for our analytics events.
 func UserID() string {
-	return "" // TODO Read from config
+	userConfig, _ := config.GetUserConfig()
+	if userConfig != nil {
+		return userConfig.Email
+	}
+	return ""
 }
