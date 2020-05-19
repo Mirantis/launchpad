@@ -15,6 +15,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// configureLogger configures log output / formatting
 func configureLogger() {
 	if runtime.GOOS == "windows" {
 		log.SetFormatter(&log.TextFormatter{ForceColors: true})
