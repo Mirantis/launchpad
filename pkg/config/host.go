@@ -218,7 +218,7 @@ func (h *Host) AuthenticateDocker() error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
 		if pass == "" {
-			return fmt.Errorf("REGISTRY_PASSWORD not set")
+			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h.Address)
 		}
 		log.Infof("%s: authenticating docker", h.Address)
 		old := log.GetLevel()
