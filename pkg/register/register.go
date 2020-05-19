@@ -31,7 +31,7 @@ func Register(ctx *cli.Context) error {
 	}
 
 	if validateEmail(userConfig.Email) != nil {
-		err := survey.AskOne(&survey.Input{Message: "Email"}, &userConfig.Email, survey.WithValidator(validateName), survey.WithIcons(icons))
+		err := survey.AskOne(&survey.Input{Message: "Email"}, &userConfig.Email, survey.WithValidator(validateEmail), survey.WithIcons(icons))
 		if err != nil {
 			return err
 		}
