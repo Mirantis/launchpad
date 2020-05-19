@@ -1,7 +1,9 @@
-package config
+package v1beta1
 
 import (
 	"fmt"
+
+	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 // UcpConfig has all the bits needed to configure UCP during installation
@@ -46,8 +48,8 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewUcpConfig creates new config with sane defaults
 func NewUcpConfig() UcpConfig {
 	return UcpConfig{
-		Version:   Version,
-		ImageRepo: ImageRepo,
+		Version:   constant.Version,
+		ImageRepo: constant.ImageRepo,
 	}
 }
 

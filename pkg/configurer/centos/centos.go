@@ -1,7 +1,7 @@
 package centos
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/configurer"
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
 )
@@ -11,7 +11,7 @@ type Configurer struct {
 	enterpriselinux.Configurer
 }
 
-func resolveCentosConfigurer(h *config.Host) config.HostConfigurer {
+func resolveCentosConfigurer(h *api.Host) api.HostConfigurer {
 	if h.Metadata.Os.ID == "centos" {
 		return &Configurer{
 			Configurer: enterpriselinux.Configurer{
@@ -26,5 +26,5 @@ func resolveCentosConfigurer(h *config.Host) config.HostConfigurer {
 }
 
 func init() {
-	config.RegisterHostConfigurer(resolveCentosConfigurer)
+	api.RegisterHostConfigurer(resolveCentosConfigurer)
 }

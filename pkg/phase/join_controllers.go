@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,9 +17,9 @@ func (p *JoinManagers) Title() string {
 }
 
 // Run joins the manager nodes into swarm
-func (p *JoinManagers) Run(config *config.ClusterConfig) error {
-	swarmLeader := config.Managers()[0]
-	for _, h := range config.Managers() {
+func (p *JoinManagers) Run(config *api.ClusterConfig) error {
+	swarmLeader := config.Spec.Managers()[0]
+	for _, h := range config.Spec.Managers() {
 		if swarm.IsSwarmNode(h) {
 			log.Infof("%s: already a swarm node", h.Address)
 			continue

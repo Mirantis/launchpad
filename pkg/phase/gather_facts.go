@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
@@ -29,31 +29,31 @@ func (p *GatherFacts) Title() string {
 }
 
 // Run collect all the facts from hosts in parallel
-func (p *GatherFacts) Run(conf *config.ClusterConfig) error {
-	err := runParallelOnHosts(conf.Hosts, conf, investigateHost)
+func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
+	err := runParallelOnHosts(conf.Spec.Hosts, conf, investigateHost)
 	if err != nil {
 		return err
 	}
 	// Gather UCP related facts
-	conf.Ucp.Metadata = &config.UcpMetadata{
+	conf.Spec.Ucp.Metadata = &api.UcpMetadata{
 		ClusterID:        "",
 		Installed:        false,
 		InstalledVersion: "",
 	}
-	swarmLeader := conf.Managers()[0]
+	swarmLeader := conf.Spec.Managers()[0]
 	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
 		ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 		}
-		conf.Ucp.Metadata = ucpMeta
+		conf.Spec.Ucp.Metadata = ucpMeta
 		if ucpMeta.Installed {
 			log.Infof("%s: UCP has version %s", swarmLeader.Address, ucpMeta.InstalledVersion)
 		} else {
 			log.Infof("%s: UCP is not installed", swarmLeader.Address)
 		}
-		conf.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
+		conf.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
 
 	err = p.validateFacts(conf)
@@ -65,19 +65,19 @@ func (p *GatherFacts) Run(conf *config.ClusterConfig) error {
 
 // Validates the facts check out:
 // - if swarm is already initialized its cluster ID matches with the one in local state
-func (p *GatherFacts) validateFacts(config *config.ClusterConfig) error {
-	if config.Ucp.Metadata != nil && config.Ucp.Metadata.ClusterID != config.State.ClusterID {
-		return fmt.Errorf("cluster ID mismatch between local state (%s) and cluster state (%s). This configuration is probably for another cluster", config.State.ClusterID, config.Ucp.Metadata.ClusterID)
+func (p *GatherFacts) validateFacts(config *api.ClusterConfig) error {
+	if config.Spec.Ucp.Metadata != nil && config.Spec.Ucp.Metadata.ClusterID != config.State.ClusterID {
+		return fmt.Errorf("cluster ID mismatch between local state (%s) and cluster state (%s). This configuration is probably for another cluster", config.State.ClusterID, config.Spec.Ucp.Metadata.ClusterID)
 	}
 
 	log.Infof("Facts check out against local state, safe to confinue")
 	return nil
 }
 
-func investigateHost(h *config.Host, c *config.ClusterConfig) error {
+func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h.Address)
 
-	os := &config.OsRelease{}
+	os := &api.OsRelease{}
 	if isWindows(h) {
 		winOs, err := resolveWindowsOsRelease(h)
 		if err != nil {
@@ -92,7 +92,7 @@ func investigateHost(h *config.Host, c *config.ClusterConfig) error {
 		os = linuxOs
 	}
 
-	h.Metadata = &config.HostMetadata{
+	h.Metadata = &api.HostMetadata{
 		Os: os,
 	}
 	err := resolveHostConfigurer(h)
@@ -110,7 +110,7 @@ func investigateHost(h *config.Host, c *config.ClusterConfig) error {
 	return nil
 }
 
-func isWindows(h *config.Host) bool {
+func isWindows(h *api.Host) bool {
 	// need to use STDIN so that we don't request PTY (which does not work on Windows)
 	err := h.ExecCmd(`powershell`, `Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"`, false, false)
 	if err != nil {
@@ -119,7 +119,7 @@ func isWindows(h *config.Host) bool {
 	return true
 }
 
-func resolveWindowsOsRelease(h *config.Host) (*config.OsRelease, error) {
+func resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
 	osName = strings.TrimSpace(osName)
 	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
@@ -130,7 +130,7 @@ func resolveWindowsOsRelease(h *config.Host) (*config.OsRelease, error) {
 	osBuild = strings.TrimSpace(osBuild)
 
 	version := fmt.Sprintf("%s.%s.%s", osMajor, osMinor, osBuild)
-	osRelease := &config.OsRelease{
+	osRelease := &api.OsRelease{
 		ID:      fmt.Sprintf("windows-%s", version),
 		Name:    osName,
 		Version: version,
@@ -139,7 +139,7 @@ func resolveWindowsOsRelease(h *config.Host) (*config.OsRelease, error) {
 	return osRelease, nil
 }
 
-func resolveLinuxOsRelease(h *config.Host) (*config.OsRelease, error) {
+func resolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
 	output, err := h.ExecWithOutput("cat /etc/os-release")
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func resolveLinuxOsRelease(h *config.Host) (*config.OsRelease, error) {
 	if err != nil {
 		return nil, err
 	}
-	osRelease := &config.OsRelease{
+	osRelease := &api.OsRelease{
 		ID:      info["ID"],
 		IDLike:  info["ID_LIKE"],
 		Name:    info["PRETTY_NAME"],
@@ -161,8 +161,8 @@ func resolveLinuxOsRelease(h *config.Host) (*config.OsRelease, error) {
 	return osRelease, nil
 }
 
-func resolveHostConfigurer(h *config.Host) error {
-	configurers := config.GetHostConfigurers()
+func resolveHostConfigurer(h *api.Host) error {
+	configurers := api.GetHostConfigurers()
 	for _, resolver := range configurers {
 		configurer := resolver(h)
 		if configurer != nil {
@@ -175,7 +175,7 @@ func resolveHostConfigurer(h *config.Host) error {
 	return nil
 }
 
-func resolveEngineVersion(h *config.Host) string {
+func resolveEngineVersion(h *api.Host) string {
 	cmd := h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`)
 	version, err := h.ExecWithOutput(cmd)
 	if err != nil {

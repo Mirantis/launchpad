@@ -28,7 +28,7 @@ func Install(ctx *cli.Context) error {
 		return err
 	}
 
-	if err = clusterConfig.Validate(); err != nil {
+	if err = config.Validate(&clusterConfig); err != nil {
 		return err
 	}
 

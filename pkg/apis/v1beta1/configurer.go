@@ -1,4 +1,4 @@
-package config
+package v1beta1
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
 type HostConfigurer interface {

@@ -1,4 +1,4 @@
-package config
+package v1beta1
 
 import (
 	"bufio"

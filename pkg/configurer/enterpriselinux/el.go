@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/configurer"
 )
 
@@ -23,7 +23,7 @@ func (c *Configurer) InstallBasePackages() error {
 }
 
 // InstallEngine install Docker EE engine on Linux
-func (c *Configurer) InstallEngine(engineConfig *config.EngineConfig) error {
+func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	daemonJSON := make(map[string]interface{})
 	output, err := c.Host.ExecWithOutput("sudo ls /etc/docker/daemon.json && sudo cat /etc/docker/daemon.json")
 	if err == nil {

@@ -13,25 +13,34 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// State defines the locally store cluster state
-type State struct {
+// Metadata state metadata
+type Metadata struct {
 	ClusterID string `yaml:"clusterId"`
 	Name      string `yaml:"name"`
+}
+
+// State defines the locally store cluster state
+type State struct {
+	Metadata *Metadata `yaml:"metadata"`
 }
 
 // InitState initilizes and saves the "empty" state
 func InitState(clusterName string) (*State, error) {
 	state := &State{
-		Name: clusterName,
+		Metadata: &Metadata{
+			Name: clusterName,
+		},
 	}
-
-	return state, state.Save()
+	err := Save(state)
+	return state, err
 }
 
 // LoadState loads existing local state from disk
 func LoadState(clusterName string) (*State, error) {
 	state := &State{
-		Name: clusterName,
+		Metadata: &Metadata{
+			Name: clusterName,
+		},
 	}
 
 	statePath, err := state.getStatePath()
@@ -53,7 +62,7 @@ func LoadState(clusterName string) (*State, error) {
 }
 
 // Save saves the state on disk
-func (s *State) Save() error {
+func Save(s *State) error {
 	statePath, err := s.getStatePath()
 	if err != nil {
 		return err
@@ -79,7 +88,7 @@ func (s *State) GetDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return path.Join(home, constant.StateBaseDir, "cluster", s.Name), nil
+	return path.Join(home, constant.StateBaseDir, "cluster", s.Metadata.Name), nil
 }
 
 // gets the full path to the clusters state file

@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 // WindowsConfigurer is a generic windows host configurer
 type WindowsConfigurer struct {
-	Host *config.Host
+	Host *api.Host
 }
 
 // InstallEngine install Docker EE engine on Windows
-func (c *WindowsConfigurer) InstallEngine(engineConfig *config.EngineConfig) error {
+func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
-	scriptURL := fmt.Sprintf("%sinstall.ps1", config.EngineInstallURL)
+	scriptURL := fmt.Sprintf("%sinstall.ps1", constant.EngineInstallURL)
 	dlCommand := fmt.Sprintf("$ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest %s -UseBasicParsing -OutFile install.ps1", scriptURL)
 	err := c.Host.ExecCmd("powershell", dlCommand, false, false)
 	if err != nil {

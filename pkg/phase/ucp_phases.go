@@ -1,7 +1,7 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
@@ -9,11 +9,11 @@ import (
 // Manager executes phases to construct the cluster
 type Manager struct {
 	phases []Phase
-	config *config.ClusterConfig
+	config *api.ClusterConfig
 }
 
 // NewManager constructs new phase manager
-func NewManager(config *config.ClusterConfig) *Manager {
+func NewManager(config *api.ClusterConfig) *Manager {
 	phaseMgr := &Manager{
 		config: config,
 	}

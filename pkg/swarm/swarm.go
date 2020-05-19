@@ -1,12 +1,12 @@
 package swarm
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	log "github.com/sirupsen/logrus"
 )
 
 // IsSwarmNode check whether the given node is already part of swarm
-func IsSwarmNode(host *config.Host) bool {
+func IsSwarmNode(host *api.Host) bool {
 	output, err := host.ExecWithOutput(host.Configurer.DockerCommandf(`info --format "{{.Swarm.NodeID}}"`))
 	if err != nil {
 		log.Warnf("failed to get hosts swarm status")
@@ -21,7 +21,7 @@ func IsSwarmNode(host *config.Host) bool {
 }
 
 // ClusterID digs the swarm cluster id from swarm leader host
-func ClusterID(leader *config.Host) string {
+func ClusterID(leader *api.Host) string {
 	output, err := leader.ExecWithOutput(leader.Configurer.DockerCommandf(`info --format "{{ .Swarm.Cluster.ID}}"`))
 	if err != nil {
 		log.Warnf("failed to get host's swarm status, probably not part of swarm")

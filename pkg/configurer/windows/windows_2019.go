@@ -1,7 +1,7 @@
 package windows
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/configurer"
 )
 
@@ -15,7 +15,7 @@ func (c *Windows2019Configurer) InstallBasePackages() error {
 	return nil
 }
 
-func resolveWindowsConfigurer(h *config.Host) config.HostConfigurer {
+func resolveWindowsConfigurer(h *api.Host) api.HostConfigurer {
 	if h.Metadata.Os.ID != "windows-10.0.17763" {
 		return nil
 	}
@@ -33,5 +33,5 @@ func resolveWindowsConfigurer(h *config.Host) config.HostConfigurer {
 }
 
 func init() {
-	config.RegisterHostConfigurer(resolveWindowsConfigurer)
+	api.RegisterHostConfigurer(resolveWindowsConfigurer)
 }

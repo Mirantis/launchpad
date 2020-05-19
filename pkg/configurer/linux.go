@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 )
 
 // LinuxConfigurer is a generic linux host configurer
 type LinuxConfigurer struct {
-	Host *config.Host
+	Host *api.Host
 }
 
 // InstallEngine install Docker EE engine on Linux
-func (c *LinuxConfigurer) InstallEngine(engineConfig *config.EngineConfig) error {
+func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}

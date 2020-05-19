@@ -11,13 +11,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
-
-	"github.com/Mirantis/mcc/pkg/config"
 )
 
 // Download downloads a UCP client bundle
@@ -32,21 +32,21 @@ func Download(ctx *cli.Context) error {
 		return err
 	}
 
-	if err = clusterConfig.Validate(); err != nil {
+	if err = config.Validate(&clusterConfig); err != nil {
 		return err
 	}
 
-	m := clusterConfig.Managers()[0]
+	m := clusterConfig.Spec.Managers()[0]
 	if err := m.Connect(); err != nil {
 		return fmt.Errorf("error while connecting to manager node: %w", err)
 	}
 
-	tlsConfig, err := getTLSConfigFrom(m, clusterConfig.Ucp.ImageRepo, clusterConfig.Ucp.Version)
+	tlsConfig, err := getTLSConfigFrom(m, clusterConfig.Spec.Ucp.ImageRepo, clusterConfig.Spec.Ucp.Version)
 	if err != nil {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	url, err := resolveURL(clusterConfig.Hosts[0].Address)
+	url, err := resolveURL(clusterConfig.Spec.Hosts[0].Address)
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
 	}
@@ -75,7 +75,7 @@ func resolveURL(serverURL string) (*url.URL, error) {
 	return url, nil
 }
 
-func getTLSConfigFrom(manager *config.Host, imageRepo, ucpVersion string) (*tls.Config, error) {
+func getTLSConfigFrom(manager *api.Host, imageRepo, ucpVersion string) (*tls.Config, error) {
 	output, err := manager.ExecWithOutput(fmt.Sprintf(`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock %s/ucp:%s dump-certs --ca`, imageRepo, ucpVersion))
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)

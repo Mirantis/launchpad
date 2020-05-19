@@ -3,6 +3,7 @@ package config
 import (
 	"testing"
 
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	validator "github.com/go-playground/validator/v10"
 
 	"github.com/stretchr/testify/require"
@@ -13,7 +14,7 @@ func TestNonExistingHostsFails(t *testing.T) {
 hosts:
 `
 	c := loadYaml(t, data)
-	err := c.Validate()
+	err := Validate(c)
 	require.Error(t, err)
 
 	validateErrorField(t, err, "Hosts")
@@ -26,7 +27,7 @@ hosts:
 `
 	c := loadYaml(t, data)
 
-	err := c.Validate()
+	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "Address")
 }
@@ -38,7 +39,7 @@ hosts:
 `
 	c := loadYaml(t, data)
 
-	err := c.Validate()
+	err := Validate(c)
 	require.NotContains(t, getAllErrorFields(err), "Address")
 }
 
@@ -49,7 +50,7 @@ hosts:
 `
 	c := loadYaml(t, data)
 
-	err := c.Validate()
+	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "Address")
 }
@@ -61,7 +62,7 @@ hosts:
 `
 	c := loadYaml(t, data)
 
-	err := c.Validate()
+	err := Validate(c)
 	require.NotContains(t, getAllErrorFields(err), "Address")
 
 }
@@ -74,7 +75,7 @@ hosts:
 `
 	c := loadYaml(t, data)
 
-	err := c.Validate()
+	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "SSHPort")
 }
@@ -88,7 +89,7 @@ hosts:
 `
 	c := loadYaml(t, data)
 
-	err := c.Validate()
+	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "SSHKeyPath")
 }
@@ -101,13 +102,13 @@ hosts:
   role: foobar
 `
 	c := loadYaml(t, data)
-	err := c.Validate()
+	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "Role")
 }
 
 // Just a small helper to load the config struct from yaml to get defaults etc. in place
-func loadYaml(t *testing.T, data string) *ClusterConfig {
+func loadYaml(t *testing.T, data string) *api.ClusterConfig {
 	c, err := FromYaml([]byte(data))
 	if err != nil {
 		t.Error(err)
