@@ -217,7 +217,7 @@ func (h *Host) AuthenticateDocker() error {
 			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
 		}
 	} else {
-		log.Debugf("REGISTRY_USERNAME not set, not authenticating")
+		log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
 	}
 	return nil
 }
