@@ -144,6 +144,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 	}
 
 	if stdin != "" {
+		log.Debugf("writing data to command stdin: %s", stdin)
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)
@@ -211,7 +212,10 @@ func (h *Host) AuthenticateDocker() error {
 		}
 
 		log.Infof("%s: authenticating docker", h.Address)
+		old := log.GetLevel()
+		log.SetLevel(log.ErrorLevel)
 		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin", user), pass, false)
+		log.SetLevel(old)
 
 		if err != nil {
 			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
