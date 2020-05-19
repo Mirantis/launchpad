@@ -1,9 +1,13 @@
 output "security_group_id" {
-  value = "${aws_security_group.common.id}"
+  value = aws_security_group.common.id
 }
 
 output "image_id" {
-  value = "${data.aws_ami.ubuntu.id}"
+  value = data.aws_ami.ubuntu.id
+}
+
+output "windows_2019_image_id" {
+  value = data.aws_ami.windows_2019.id
 }
 
 output "availability_zones" {
