@@ -33,14 +33,14 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 	t.Run("Analytics disabled", func(t *testing.T) {
 		os.Setenv("ANALYTICS_DISABLED", "true")
 		defer func() { os.Unsetenv("ANALYTICS_DISABLED") }()
-		TrackAnalyticsEvent("test", nil)
+		TrackEvent("test", nil)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)
 	})
 	t.Run("Analytics enabled", func(t *testing.T) {
 		props := make(map[string]interface{}, 1)
 		props["foo"] = "bar"
-		TrackAnalyticsEvent("test", props)
+		TrackEvent("test", props)
 		lastMessage := client.lastMessage.(analytics.Track)
 		require.NotNil(t, client.lastMessage)
 		require.Equal(t, "test", lastMessage.Event)
@@ -62,12 +62,12 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 	t.Run("Analytics disabled", func(t *testing.T) {
 		os.Setenv("ANALYTICS_DISABLED", "true")
 		defer func() { os.Unsetenv("ANALYTICS_DISABLED") }()
-		IdentifyAnalyticsUser(&userConfig)
+		IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)
 	})
 	t.Run("Analytics enabled", func(t *testing.T) {
-		IdentifyAnalyticsUser(&userConfig)
+		IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage.(analytics.Identify)
 		require.NotNil(t, client.lastMessage)
 		require.Equal(t, "john.doe@example.org", lastMessage.UserId)
