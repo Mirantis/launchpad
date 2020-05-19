@@ -30,7 +30,7 @@ type ClusterConfig struct {
 	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
 	Ucp    UcpConfig    `yaml:"ucp"`
 	Engine EngineConfig `yaml:"engine"`
-	Name   string       `yaml:"name" valdate:"required,min=3"`
+	Name   string       `yaml:"name" validate:"required,min=3"`
 
 	ManagerJoinToken string
 	WorkerJoinToken  string
