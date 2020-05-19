@@ -65,7 +65,7 @@ func (p *GatherFacts) Run(conf *config.ClusterConfig) error {
 // - if swarm is already initialized its cluster ID matches with the one in local state
 func (p *GatherFacts) validateFacts(config *config.ClusterConfig) error {
 	if config.Ucp.Metadata != nil && config.Ucp.Metadata.ClusterID != config.State.ClusterID {
-		return fmt.Errorf("cluster ID local state differes (%s) from cluster state (%s). You might be attempting to re-configure wrong cluster", config.State.ClusterID, config.Ucp.Metadata.ClusterID)
+		return fmt.Errorf("cluster ID mismatch between local state (%s) and cluster state (%s). This configuration is probably for another cluster.", config.State.ClusterID, config.Ucp.Metadata.ClusterID)
 	}
 
 	log.Infof("Facts check out against local state, safe to confinue")
