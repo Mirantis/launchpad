@@ -23,6 +23,10 @@ variable "worker_count" {
   default = 3
 }
 
+variable "windows_worker_count" {
+  default = 0
+}
+
 variable "master_type" {
   default = "m5.large"
 }
