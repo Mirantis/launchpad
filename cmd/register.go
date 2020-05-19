@@ -29,12 +29,12 @@ func RegisterCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			analytics.TrackEvent("Registering user started", nil)
+			analytics.TrackEvent("User Register Started", nil)
 			err := register.Register(ctx)
 			if err != nil {
-				analytics.TrackEvent("Registering user failed", nil)
+				analytics.TrackEvent("User Register Failed", nil)
 			} else {
-				analytics.TrackEvent("Registering user succeeded", nil)
+				analytics.TrackEvent("User Register Completed", nil)
 			}
 
 			return err

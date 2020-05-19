@@ -24,15 +24,15 @@ func NewInstallCommand() *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
-			analytics.TrackEvent("Create cluster started", nil)
+			analytics.TrackEvent("Cluster Install Started", nil)
 			err := install.Install(ctx)
 			if err != nil {
-				analytics.TrackEvent("Create cluster failed", nil)
+				analytics.TrackEvent("Cluster Install Failed", nil)
 			} else {
 				duration := time.Since(start)
 				props := analytics.NewAnalyticsEventProperties()
 				props["duration"] = duration.Seconds()
-				analytics.TrackEvent("Create cluster succeeded", props)
+				analytics.TrackEvent("Cluster Install Succeeded", props)
 			}
 			return err
 		},
