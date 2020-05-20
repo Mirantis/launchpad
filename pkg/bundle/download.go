@@ -112,7 +112,7 @@ func writeBundle(bundleRoot, systemName, username string, bundle *zip.Reader) er
 	}
 	err = os.MkdirAll(bundleDir, 0700)
 	if err != nil {
-		return fmt.Errorf("Failed to create bundle dir: %s", err)
+		return fmt.Errorf("failed to create bundle dir: %s", err)
 	}
 	log.Debugf("Writing out bundle to %s", bundleDir)
 	for _, zf := range bundle.File {
