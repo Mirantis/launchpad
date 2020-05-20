@@ -48,7 +48,7 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewUcpConfig creates new config with sane defaults
 func NewUcpConfig() UcpConfig {
 	return UcpConfig{
-		Version:   constant.Version,
+		Version:   constant.UCPVersion,
 		ImageRepo: constant.ImageRepo,
 	}
 }

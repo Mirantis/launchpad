@@ -68,12 +68,16 @@ resource "hcloud_server" "worker" {
 
 output "ucp_cluster" {
     value = {
-        hosts = [
-            for host in concat(hcloud_server.master, hcloud_server.worker)  : {
-                address      = host.ipv4_address
-                user    = "root"
-                role    = host.labels.role
-            }
-        ]
+        apiVersion = "mcc.mirantis.com/v1beta1"
+        kind = "UCP"
+        spec = {
+            hosts = [
+                for host in concat(hcloud_server.master, hcloud_server.worker) : {
+                    address      = host.ipv4_address
+                    user    = "root"
+                    role    = host.labels.role
+                }
+            ]
+        }
     }
 }
