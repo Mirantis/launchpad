@@ -35,8 +35,8 @@ func Install(ctx *cli.Context) error {
 	}
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		os.Stderr.WriteString(util.Logo)
-		os.Stderr.WriteString("   Mirantis Cluster Control\n\n")
+		log.StandardLogger().Out.Write([]byte(util.Logo))
+		log.StandardLogger().Out.Write([]byte("   Mirantis Cluster Control\n\n"))
 	}
 
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
