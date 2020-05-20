@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
@@ -35,8 +36,12 @@ func Install(ctx *cli.Context) error {
 	}
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
-		log.StandardLogger().Out.Write([]byte(util.Logo))
-		log.StandardLogger().Out.Write([]byte("   Mirantis Cluster Control\n\n"))
+		if runtime.GOOS == "windows" {
+			os.Stdout.WriteString(util.LogoBW)
+		} else {
+			os.Stdout.WriteString(util.Logo)
+		}
+		os.Stdout.WriteString("   Mirantis Cluster Control\n\n")
 	}
 
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
