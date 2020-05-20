@@ -214,7 +214,7 @@ func trimOutput(output []byte) string {
 
 // AuthenticateDocker performs a docker login on the host using local REGISTRY_USERNAME
 // and REGISTRY_PASSWORD when set
-func (h *Host) AuthenticateDocker() error {
+func (h *Host) AuthenticateDocker(server string) error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
 		if pass == "" {
@@ -223,7 +223,7 @@ func (h *Host) AuthenticateDocker() error {
 		log.Infof("%s: authenticating docker", h.Address)
 		old := log.GetLevel()
 		log.SetLevel(log.ErrorLevel)
-		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, os.Getenv("REGISTRY_LOGIN_SERVER")), pass, false)
+		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), pass, false)
 		log.SetLevel(old)
 
 		if err != nil {
