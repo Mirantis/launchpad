@@ -107,7 +107,7 @@ func (h *Host) Connect() error {
 }
 
 // ExecCmd a command on the host piping stdin and streams the logs
-func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
+func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
 	session, err := h.sshClient.NewSession()
 	if err != nil {
 		return err
@@ -138,7 +138,10 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 		return err
 	}
 
-	log.Debugf("executing command: %s", cmd)
+	if !sensitiveCommand {
+		log.Debugf("executing command: %s", cmd)
+	}
+
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
@@ -170,7 +173,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 
 // Exec a command on the host and streams the logs
 func (h *Host) Exec(cmd string) error {
-	return h.ExecCmd(cmd, "", false)
+	return h.ExecCmd(cmd, "", false, false)
 }
 
 // Execf a printf-formatted command on the host and streams the logs
@@ -197,7 +200,7 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 // WriteFile writes file to host with given contents
 func (h *Host) WriteFile(path string, data string, permissions string) error {
 	tempFile, _ := h.ExecWithOutput("mktemp")
-	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false)
+	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
 	if err != nil {
 		return err
 	}

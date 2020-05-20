@@ -23,9 +23,9 @@ func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 
 	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader.Address)
-		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
+		output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
 		if err != nil {
-			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", err.Error()))
+			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", output))
 		}
 		log.Infof("%s: swarm initialized succesfully", swarmLeader.Address)
 	} else {

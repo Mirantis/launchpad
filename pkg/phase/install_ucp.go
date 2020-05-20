@@ -43,7 +43,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 		installFlags = append(installFlags, "--existing-config")
 		log.Info("Creating UCP configuration")
 		configCmd := swarmLeader.Configurer.DockerCommandf("config create %s -", configName)
-		err := swarmLeader.ExecCmd(configCmd, config.Ucp.ConfigData, false)
+		err := swarmLeader.ExecCmd(configCmd, config.Ucp.ConfigData, false, false)
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 
 	flags := strings.Join(installFlags, " ")
 	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
-	err := swarmLeader.ExecCmd(installCmd, "", true)
+	err := swarmLeader.ExecCmd(installCmd, "", true, true)
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}

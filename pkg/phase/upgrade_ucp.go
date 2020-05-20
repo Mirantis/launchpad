@@ -38,7 +38,7 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s upgrade --id %s", config.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
-	err = swarmLeader.ExecCmd(upgradeCmd, "", true)
+	err = swarmLeader.ExecCmd(upgradeCmd, "", true, false)
 	if err != nil {
 		return NewError("Failed to run UCP upgrade")
 	}
