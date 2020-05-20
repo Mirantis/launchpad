@@ -21,11 +21,7 @@ func (p *SaveState) Run(config *api.ClusterConfig) error {
 		return fmt.Errorf("internal state was nil, this should not happen")
 	}
 
-	s, err := state.LoadState(config.Metadata.Name)
-	if err != nil {
-		return err
-	}
-	s.Metadata.ClusterID = config.State.ClusterID
+	config.State.ClusterID = config.Spec.Ucp.Metadata.ClusterID
 
-	return state.Save(s)
+	return state.Save(config.State)
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/util"
 )
 
 // UcpConfig has all the bits needed to configure UCP during installation
@@ -34,7 +35,7 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.ConfigFile != "" {
-		configData, err := loadExternalFile(raw.ConfigFile)
+		configData, err := util.LoadExternalFile(raw.ConfigFile)
 		if err != nil {
 			return err
 		}

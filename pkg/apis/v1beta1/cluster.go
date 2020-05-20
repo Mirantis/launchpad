@@ -1,13 +1,12 @@
 package v1beta1
 
+import (
+	"github.com/Mirantis/mcc/pkg/state"
+)
+
 // ClusterMeta defines cluster metadata
 type ClusterMeta struct {
 	Name string `yaml:"name" validate:"required"`
-}
-
-// ClusterState ...
-type ClusterState struct {
-	ClusterID string
 }
 
 // ClusterConfig describes cluster.yaml configuration
@@ -16,7 +15,7 @@ type ClusterConfig struct {
 	Kind             string       `yaml:"kind" validate:"eq=UCP"`
 	Metadata         *ClusterMeta `yaml:"metadata"`
 	Spec             *ClusterSpec `yaml:"spec"`
-	State            *ClusterState
+	State            *state.State
 	ManagerJoinToken string
 	WorkerJoinToken  string
 }
@@ -28,8 +27,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		Metadata: &ClusterMeta{
 			Name: "mcc-ucp",
 		},
-		Spec:  &ClusterSpec{},
-		State: &ClusterState{},
+		Spec: &ClusterSpec{},
 	}
 	if err := unmarshal(&raw); err != nil {
 		return err

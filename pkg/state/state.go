@@ -13,23 +13,16 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Metadata state metadata
-type Metadata struct {
-	ClusterID string `yaml:"clusterId"`
-	Name      string `yaml:"name"`
-}
-
 // State defines the locally store cluster state
 type State struct {
-	Metadata *Metadata `yaml:"metadata"`
+	ClusterID string `yaml:"clusterId"`
+	Name      string `yaml:"name"`
 }
 
 // InitState initilizes and saves the "empty" state
 func InitState(clusterName string) (*State, error) {
 	state := &State{
-		Metadata: &Metadata{
-			Name: clusterName,
-		},
+		Name: clusterName,
 	}
 	err := Save(state)
 	return state, err
@@ -38,9 +31,7 @@ func InitState(clusterName string) (*State, error) {
 // LoadState loads existing local state from disk
 func LoadState(clusterName string) (*State, error) {
 	state := &State{
-		Metadata: &Metadata{
-			Name: clusterName,
-		},
+		Name: clusterName,
 	}
 
 	statePath, err := state.getStatePath()

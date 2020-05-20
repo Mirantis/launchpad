@@ -34,8 +34,7 @@ func (p *InitState) Run(config *api.ClusterConfig) error {
 		}
 	}
 
-	//config.State = localState
-	config.State.ClusterID = localState.Metadata.ClusterID
+	config.State = localState
 	log.Debugf("Initialized local state")
 	stateDir, err := localState.GetDir()
 	if err != nil {
