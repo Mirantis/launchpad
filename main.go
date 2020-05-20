@@ -20,6 +20,8 @@ func init() {
 	if runtime.GOOS == "windows" {
 		log.SetFormatter(&log.TextFormatter{ForceColors: true})
 		log.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	} else {
+		log.SetOutput(os.Stdout)
 	}
 }
 
