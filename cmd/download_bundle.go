@@ -36,7 +36,7 @@ func NewDownloadBundleCommand() *cli.Command {
 			if err != nil {
 				analytics.TrackEvent("Bundle Download Failed", nil)
 			} else {
-				analytics.TrackEvent("Downloading bundle succeeded", nil)
+				analytics.TrackEvent("Bundle Download Completed", nil)
 			}
 
 			return err
