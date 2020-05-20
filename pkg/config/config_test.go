@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"testing"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
@@ -144,7 +143,6 @@ func loadYaml(t *testing.T, data string) *api.ClusterConfig {
 // checks that the validation errors contains error for the expected field
 func validateErrorField(t *testing.T, err error, field string) {
 	fields := getAllErrorFields(err)
-	fmt.Println(fields)
 	require.Contains(t, fields, field)
 }
 

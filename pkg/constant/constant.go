@@ -3,7 +3,7 @@ package constant
 const (
 	// ImageRepo is the default image repo to use
 	ImageRepo = "docker.io/docker"
-	// Version is the default UCP version to use
+	// UCPVersion is the default UCP version to use
 	UCPVersion = "3.3.0-rc1"
 	// EngineVersion is the default engine version
 	EngineVersion = "19.03.8-rc1"
