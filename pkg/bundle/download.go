@@ -79,7 +79,7 @@ func resolveURL(serverURL string) (*url.URL, error) {
 }
 
 func getTLSConfigFrom(manager *config.Host, ucpVersion string) (*tls.Config, error) {
-	cmd := fmt.Sprintf(`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock docker/ucp:%s dump-certs --ca`, ucpVersion)
+	cmd := manager.Configurer.DockerCommandf(`run --rm -v /var/run/docker.sock:/var/run/docker.sock docker/ucp:%s dump-certs --ca`, ucpVersion)
 	output, err := manager.ExecWithOutput(cmd)
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
