@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 )
 
@@ -20,5 +21,9 @@ func (p *SaveState) Run(config *config.ClusterConfig) error {
 		return fmt.Errorf("internal state was nil, this should not happen")
 	}
 
-	return config.State.Save()
+	err := config.State.Save()
+	if err == nil {
+		analytics.TrackEvent("Local State Saved", nil)
+	}
+	return err
 }

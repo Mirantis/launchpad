@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
@@ -28,8 +29,8 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 	if err != nil {
 		return NewError("Failed to check bootstrapper image version")
 	}
-
-	if bootstrapperVersion == config.Ucp.Metadata.InstalledVersion {
+	installedVersion := config.Ucp.Metadata.InstalledVersion
+	if bootstrapperVersion == installedVersion {
 		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
 		return nil
 	}
@@ -48,6 +49,9 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
 	config.Ucp.Metadata = ucpMeta
-
+	props := analytics.NewAnalyticsEventProperties()
+	props["installed_version"] = installedVersion
+	props["upgraded_version"] = bootstrapperVersion
+	analytics.TrackEvent("UCP Upgraded", props)
 	return nil
 }

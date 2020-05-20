@@ -1,6 +1,9 @@
 package phase
 
 import (
+	"time"
+
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
@@ -16,7 +19,15 @@ func (p *Connect) Title() string {
 
 // Run connects to all the hosts in parallel
 func (p *Connect) Run(config *config.ClusterConfig) error {
-	return runParallelOnHosts(config.Hosts, config, p.connectHost)
+	start := time.Now()
+	err := runParallelOnHosts(config.Hosts, config, p.connectHost)
+	if err == nil {
+		duration := time.Since(start)
+		props := analytics.NewAnalyticsEventProperties()
+		props["duration"] = duration.Seconds()
+		analytics.TrackEvent("Hosts Connected", props)
+	}
+	return err
 }
 
 func (p *Connect) connectHost(host *config.Host, c *config.ClusterConfig) error {

@@ -1,6 +1,7 @@
 package install
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -61,7 +62,16 @@ func Install(ctx *cli.Context) error {
 	if phaseErr != nil {
 		return phaseErr
 	}
-
+	props := analytics.NewAnalyticsEventProperties()
+	props["hosts"] = len(clusterConfig.Hosts)
+	props["managers"] = len(clusterConfig.Managers())
+	props["workers"] = len(clusterConfig.Workers())
+	clusterID := clusterConfig.State.ClusterID
+	props["cluster_id"] = clusterID
+	// send ucp analytics user id as ucp_instance_id property
+	ucpInstanceID := fmt.Sprintf("%x", sha1.Sum([]byte(clusterID)))
+	props["ucp_instance_id"] = ucpInstanceID
+	analytics.TrackEvent("Cluster Installed", props)
 	return nil
 
 }

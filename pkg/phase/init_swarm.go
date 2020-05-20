@@ -2,7 +2,9 @@ package phase
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/swarm"
 
@@ -19,6 +21,7 @@ func (p *InitSwarm) Title() string {
 
 // Run initializes the swarm on the leader or skips if swarm is already initialized
 func (p *InitSwarm) Run(config *config.ClusterConfig) error {
+	start := time.Now()
 	swarmLeader := config.Managers()[0]
 
 	if !swarm.IsSwarmNode(swarmLeader) {
@@ -43,6 +46,9 @@ func (p *InitSwarm) Run(config *config.ClusterConfig) error {
 		return NewError("failed to get swarm worker join-token")
 	}
 	config.WorkerJoinToken = workerToken
-
+	duration := time.Since(start)
+	props := analytics.NewAnalyticsEventProperties()
+	props["duration"] = duration.Seconds()
+	analytics.TrackEvent("Swarm Initialized", props)
 	return nil
 }

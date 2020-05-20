@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"time"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
@@ -21,6 +23,7 @@ func (p *InstallEngine) Title() string {
 
 // Run installs the engine on each host
 func (p *InstallEngine) Run(c *config.ClusterConfig) error {
+	start := time.Now()
 	err := p.upgradeEngines(c)
 	if err != nil {
 		return err
@@ -31,7 +34,15 @@ func (p *InstallEngine) Run(c *config.ClusterConfig) error {
 			newHosts = append(newHosts, h)
 		}
 	}
-	return runParallelOnHosts(newHosts, c, p.installEngine)
+	err = runParallelOnHosts(newHosts, c, p.installEngine)
+	if err == nil {
+		duration := time.Since(start)
+		props := analytics.NewAnalyticsEventProperties()
+		props["duration"] = duration.Seconds()
+		props["engine_version"] = c.Engine.Version
+		analytics.TrackEvent("Engine Installed", props)
+	}
+	return err
 }
 
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers

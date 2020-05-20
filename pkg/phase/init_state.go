@@ -2,7 +2,9 @@ package phase
 
 import (
 	"os"
+	"time"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/state"
 	log "github.com/sirupsen/logrus"
@@ -18,6 +20,7 @@ func (p *InitState) Title() string {
 
 // Run runs the state management logic
 func (p *InitState) Run(config *config.ClusterConfig) error {
+	start := time.Now()
 	localState, err := state.LoadState(config.Name)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -32,6 +35,10 @@ func (p *InitState) Run(config *config.ClusterConfig) error {
 	}
 
 	config.State = localState
+	duration := time.Since(start)
+	props := analytics.NewAnalyticsEventProperties()
+	props["duration"] = duration.Seconds()
+	analytics.TrackEvent("Local State Initialized", props)
 	log.Debugf("Initialized local state: %+v", config.State)
 
 	return nil

@@ -3,7 +3,9 @@ package phase
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
@@ -20,15 +22,23 @@ func (p *PullImages) Title() string {
 // Run pulls all the needed images on managers in parallel.
 // Parallel on each host and pulls 5 images at a time on each host.
 func (p *PullImages) Run(c *config.ClusterConfig) error {
+	start := time.Now()
 	images, err := p.listImages(c)
 	if err != nil {
 		return NewError(err.Error())
 	}
 	log.Debugf("loaded images list: %v", images)
 
-	return runParallelOnHosts(c.Managers(), c, func(h *config.Host, c *config.ClusterConfig) error {
+	err = runParallelOnHosts(c.Managers(), c, func(h *config.Host, c *config.ClusterConfig) error {
 		return p.pullImages(h, images)
 	})
+	if err == nil {
+		duration := time.Since(start)
+		props := analytics.NewAnalyticsEventProperties()
+		props["duration"] = duration.Seconds()
+		analytics.TrackEvent("Images Pulled", props)
+	}
+	return err
 }
 
 func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) {

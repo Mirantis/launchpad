@@ -3,7 +3,9 @@ package phase
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
@@ -23,6 +25,7 @@ func (p *InstallUCP) Title() string {
 
 // Run the installer container
 func (p *InstallUCP) Run(config *config.ClusterConfig) error {
+	start := time.Now()
 	swarmLeader := config.Managers()[0]
 
 	if config.Ucp.Metadata.Installed {
@@ -62,5 +65,10 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	}
 	config.Ucp.Metadata = ucpMeta
 	config.State.ClusterID = swarm.ClusterID(swarmLeader)
+	duration := time.Since(start)
+	props := analytics.NewAnalyticsEventProperties()
+	props["duration"] = duration.Seconds()
+	props["ucp_version"] = config.Ucp.Version
+	analytics.TrackEvent("UCP Installed", props)
 	return nil
 }
