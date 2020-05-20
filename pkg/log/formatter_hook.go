@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
 	"time"
 
+	"github.com/shiena/ansicolor"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,6 +47,10 @@ func NewStdoutHook(debugEnabled bool) *FormatterWriterHook {
 			log.ErrorLevel,
 			log.WarnLevel,
 		},
+	}
+
+	if runtime.GOOS == "windows" {
+		stdoutHook.Writer = ansicolor.NewAnsiColorWriter(os.Stdout)
 	}
 
 	// Add debug level to stdout hook if set by user
