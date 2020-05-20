@@ -3,26 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/Mirantis/mcc/version"
 
 	"github.com/Mirantis/mcc/cmd"
 
-	"github.com/shiena/ansicolor"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/urfave/cli/v2"
 )
 
-// configureLogger configures log output / formatting
 func init() {
-	if runtime.GOOS == "windows" {
-		log.SetFormatter(&log.TextFormatter{ForceColors: true})
-		log.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
-	} else {
-		log.SetOutput(os.Stdout)
-	}
+	log.SetOutput(os.Stdout)
 }
 
 func main() {
