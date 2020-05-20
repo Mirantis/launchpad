@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
@@ -38,7 +39,7 @@ func Download(ctx *cli.Context) error {
 		return fmt.Errorf("error while connecting to manager node: %w", err)
 	}
 
-	tlsConfig, err := getTLSConfigFrom(m)
+	tlsConfig, err := getTLSConfigFrom(m, clusterConfig.Ucp.Version)
 	if err != nil {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
@@ -56,7 +57,7 @@ func Download(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("error while getting user home dir: %w", err)
 	}
-	err = writeBundle(homeDir, ".mirantis", "mcc", bundle)
+	err = writeBundle(homeDir, constant.StateBaseDir, "bundle", bundle)
 	if err != nil {
 		return fmt.Errorf("failed to write admin bundle: %s", err)
 	}
@@ -75,8 +76,9 @@ func resolveURL(serverURL string) (*url.URL, error) {
 	return url, nil
 }
 
-func getTLSConfigFrom(manager *config.Host) (*tls.Config, error) {
-	output, err := manager.ExecWithOutput(`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock docker/ucp:3.3.0-rc1 dump-certs --ca`)
+func getTLSConfigFrom(manager *config.Host, ucpVersion string) (*tls.Config, error) {
+	cmd := fmt.Sprintf(`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock docker/ucp:%s dump-certs --ca`, ucpVersion)
+	output, err := manager.ExecWithOutput(cmd)
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
 	}
