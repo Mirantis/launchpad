@@ -12,7 +12,6 @@ import (
 	validator "github.com/go-playground/validator/v10"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
-	cli "github.com/urfave/cli/v2"
 )
 
 const (
@@ -88,8 +87,7 @@ func (c *ClusterConfig) Managers() []*Host {
 // ResolveClusterFile looks for the cluster.yaml file, based on the value, passed in ctx.
 // It returns the contents of this file as []byte if found,
 // or error if it didn't.
-func ResolveClusterFile(ctx *cli.Context) ([]byte, error) {
-	clusterFile := ctx.String("config")
+func ResolveClusterFile(clusterFile string) ([]byte, error) {
 	fp, err := filepath.Abs(clusterFile)
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to lookup current directory name: %v", err)

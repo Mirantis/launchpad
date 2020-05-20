@@ -13,6 +13,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/ucp"
+	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 	cli "github.com/urfave/cli/v2"
 
@@ -21,7 +22,8 @@ import (
 
 // Download downloads a UCP client bundle
 func Download(ctx *cli.Context) error {
-	cfgData, err := config.ResolveClusterFile(ctx)
+	clusterFile := ctx.String("config")
+	cfgData, err := config.ResolveClusterFile(clusterFile)
 	if err != nil {
 		return err
 	}
@@ -100,19 +102,8 @@ func getTLSConfigFrom(manager *config.Host, ucpVersion string) (*tls.Config, err
 
 func writeBundle(bundleRoot, systemName, username string, bundle *zip.Reader) error {
 	bundleDir := filepath.Join(bundleRoot, systemName, username)
-	_, err := os.Stat(bundleDir)
-	if err == nil {
-		log.Debugf("Detected existing bundle at %s, removing", bundleDir)
-		err := os.RemoveAll(bundleDir)
-		if err != nil {
-			return err
-		}
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("unexpected error looking for bundle dir: %s", err)
-	}
-	err = os.MkdirAll(bundleDir, 0700)
-	if err != nil {
-		return fmt.Errorf("failed to create bundle dir: %s", err)
+	if err := util.EnsureDir(bundleDir); err != nil {
+		return fmt.Errorf("error while creating directory: %w", err)
 	}
 	log.Debugf("Writing out bundle to %s", bundleDir)
 	for _, zf := range bundle.File {

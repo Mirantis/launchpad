@@ -18,7 +18,8 @@ func Install(ctx *cli.Context) error {
 	if err := analytics.RequireRegisteredUser(); err != nil {
 		return err
 	}
-	cfgData, err := config.ResolveClusterFile(ctx)
+	configFile := ctx.String("config")
+	cfgData, err := config.ResolveClusterFile(configFile)
 	if err != nil {
 		return err
 	}
