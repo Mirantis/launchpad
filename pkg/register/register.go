@@ -15,8 +15,8 @@ import (
 func Register(ctx *cli.Context) error {
 	userConfig := config.UserConfig{
 		Name:    ctx.String("name"),
-		Company: ctx.String("email"),
-		Email:   ctx.String("company"),
+		Company: ctx.String("company"),
+		Email:   ctx.String("email"),
 	}
 
 	icons := func(icons *survey.IconSet) {
@@ -47,7 +47,7 @@ func Register(ctx *cli.Context) error {
 	err := config.SaveUserConfig(&userConfig)
 	if err == nil {
 		analytics.IdentifyUser(&userConfig)
-		log.Info("Registration succeeded!")
+		log.Info("Registration completed!")
 	} else {
 		log.Error("Registration failed!")
 	}
