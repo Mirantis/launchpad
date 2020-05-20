@@ -16,7 +16,7 @@ import (
 )
 
 // configureLogger configures log output / formatting
-func configureLogger() {
+func init() {
 	if runtime.GOOS == "windows" {
 		log.SetFormatter(&log.TextFormatter{ForceColors: true})
 		log.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
@@ -24,8 +24,6 @@ func configureLogger() {
 }
 
 func main() {
-	configureLogger()
-
 	versionCmd := &cli.Command{
 		Name: "version",
 		Action: func(ctx *cli.Context) error {
