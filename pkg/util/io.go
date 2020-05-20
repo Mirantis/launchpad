@@ -18,7 +18,7 @@ func EnsureDir(dirPath string) error {
 	return nil
 }
 
-// Helper for reading data from references to external files
+// LoadExternalFile helper for reading data from references to external files
 var LoadExternalFile = func(path string) ([]byte, error) {
 	realpath, err := homedir.Expand(path)
 	if err != nil {
