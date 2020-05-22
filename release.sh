@@ -12,15 +12,16 @@ declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-l
 description="### Checksums\n\nFilename | Sha256\n---------|-------\n"
 
 mkdir -p tmp.sha256
+pushd bin
 
 for bin in "${binaries[@]}"
 do
-  cd bin
   sha256sum -b "${bin}" > "../tmp.sha256/${bin}.sha256"
   filesum=$(head -1 "../tmp.sha256/${bin}.sha256" | cut -d" " -f1)
   description=${description}"${bin} | ${filesum}\n"
-  cd ..
 done
+
+popd
 
 echo -e "${description}"
 
