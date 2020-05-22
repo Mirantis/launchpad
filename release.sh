@@ -27,7 +27,7 @@ else
     --name "${TAG_NAME}"
 fi
 
-declare -a binaries=("mcc-darwin-x64" "mcc-win-x64.exe" "mcc-linux-x64")
+declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-linux-x64")
 
 for bin in "${binaries[@]}"
 do
