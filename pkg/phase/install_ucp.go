@@ -3,7 +3,6 @@ package phase
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/swarm"
@@ -16,7 +15,9 @@ import (
 const configName string = "com.docker.ucp.config"
 
 // InstallUCP is the phase implementation for running the actual UCP installer container
-type InstallUCP struct{}
+type InstallUCP struct {
+	Analytics
+}
 
 // Title prints the phase title
 func (p *InstallUCP) Title() string {
@@ -25,9 +26,9 @@ func (p *InstallUCP) Title() string {
 
 // Run the installer container
 func (p *InstallUCP) Run(config *config.ClusterConfig) error {
-	start := time.Now()
 	swarmLeader := config.Managers()[0]
-
+	props := analytics.NewAnalyticsEventProperties()
+	props["ucp_version"] = config.Ucp.Version
 	if config.Ucp.Metadata.Installed {
 		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Ucp.Metadata.InstalledVersion)
 		return nil
@@ -65,10 +66,5 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	}
 	config.Ucp.Metadata = ucpMeta
 	config.State.ClusterID = swarm.ClusterID(swarmLeader)
-	duration := time.Since(start)
-	props := analytics.NewAnalyticsEventProperties()
-	props["duration"] = duration.Seconds()
-	props["ucp_version"] = config.Ucp.Version
-	analytics.TrackEvent("UCP Installed", props)
 	return nil
 }

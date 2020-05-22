@@ -13,7 +13,9 @@ import (
 )
 
 // UpgradeUcp is the phase implementation for running the actual UCP upgrade container
-type UpgradeUcp struct{}
+type UpgradeUcp struct {
+	Analytics
+}
 
 // Title prints the phase title
 func (p *UpgradeUcp) Title() string {
@@ -23,7 +25,6 @@ func (p *UpgradeUcp) Title() string {
 // Run the installer container
 func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 	swarmLeader := config.Managers()[0]
-
 	// Check specified bootstrapper images version
 	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Ucp.GetBootstrapperImage()))
 	if err != nil {
@@ -52,6 +53,6 @@ func (p *UpgradeUcp) Run(config *config.ClusterConfig) error {
 	props := analytics.NewAnalyticsEventProperties()
 	props["installed_version"] = installedVersion
 	props["upgraded_version"] = bootstrapperVersion
-	analytics.TrackEvent("UCP Upgraded", props)
+	p.EventProperties = props
 	return nil
 }

@@ -44,19 +44,19 @@ func Install(ctx *cli.Context) error {
 
 	phaseManager := phase.NewManager(&clusterConfig)
 
-	phaseManager.AddPhase(&phase.InitState{})
-	phaseManager.AddPhase(&phase.Connect{})
-	phaseManager.AddPhase(&phase.GatherFacts{})
-	phaseManager.AddPhase(&phase.PrepareHost{})
-	phaseManager.AddPhase(&phase.InstallEngine{})
-	phaseManager.AddPhase(&phase.PullImages{})
-	phaseManager.AddPhase(&phase.InitSwarm{})
-	phaseManager.AddPhase(&phase.InstallUCP{})
-	phaseManager.AddPhase(&phase.UpgradeUcp{})
-	phaseManager.AddPhase(&phase.JoinManagers{})
-	phaseManager.AddPhase(&phase.JoinWorkers{})
-	phaseManager.AddPhase(&phase.SaveState{})
-	phaseManager.AddPhase(&phase.Disconnect{})
+	phaseManager.AddPhase(&phase.InitState{phase.Analytics{"Local State Loaded", nil}})
+	phaseManager.AddPhase(&phase.Connect{phase.Analytics{"SSH Connection Opened", nil}})
+	phaseManager.AddPhase(&phase.GatherFacts{phase.Analytics{"Facts Gathered", nil}})
+	phaseManager.AddPhase(&phase.PrepareHost{phase.Analytics{"Hosts Prepared", nil}})
+	phaseManager.AddPhase(&phase.InstallEngine{phase.Analytics{"Engine Installed", nil}})
+	phaseManager.AddPhase(&phase.PullImages{phase.Analytics{"Images Pulled", nil}})
+	phaseManager.AddPhase(&phase.InitSwarm{phase.Analytics{"Swarm Initialized", nil}})
+	phaseManager.AddPhase(&phase.InstallUCP{phase.Analytics{"UPC Installed", nil}})
+	phaseManager.AddPhase(&phase.UpgradeUcp{phase.Analytics{"UCP Upgraded", nil}})
+	phaseManager.AddPhase(&phase.JoinManagers{phase.Analytics{"Managers Joined", nil}})
+	phaseManager.AddPhase(&phase.JoinWorkers{phase.Analytics{"Workers Joined", nil}})
+	phaseManager.AddPhase(&phase.SaveState{phase.Analytics{"Local State Saved", nil}})
+	phaseManager.AddPhase(&phase.Disconnect{phase.Analytics{"SSH Connections Disconnected", nil}})
 
 	phaseErr := phaseManager.Run()
 	if phaseErr != nil {
@@ -66,6 +66,7 @@ func Install(ctx *cli.Context) error {
 	props["hosts"] = len(clusterConfig.Hosts)
 	props["managers"] = len(clusterConfig.Managers())
 	props["workers"] = len(clusterConfig.Workers())
+	props["engine_version"] = clusterConfig.Engine.Version
 	clusterID := clusterConfig.State.ClusterID
 	props["cluster_id"] = clusterID
 	// send ucp analytics user id as ucp_instance_id property

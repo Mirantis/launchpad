@@ -3,9 +3,7 @@ package phase
 import (
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
@@ -23,7 +21,9 @@ import (
 )
 
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts
-type GatherFacts struct{}
+type GatherFacts struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *GatherFacts) Title() string {
@@ -32,7 +32,6 @@ func (p *GatherFacts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *GatherFacts) Run(conf *config.ClusterConfig) error {
-	start := time.Now()
 	err := runParallelOnHosts(conf.Hosts, conf, investigateHost)
 	if err != nil {
 		return err
@@ -63,10 +62,6 @@ func (p *GatherFacts) Run(conf *config.ClusterConfig) error {
 	if err != nil {
 		return err
 	}
-	duration := time.Since(start)
-	props := analytics.NewAnalyticsEventProperties()
-	props["duration"] = duration.Seconds()
-	analytics.TrackEvent("Facts Gathered", props)
 	return nil
 }
 

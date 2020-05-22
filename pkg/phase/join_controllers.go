@@ -2,16 +2,16 @@ package phase
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
 
 // JoinManagers phase implementation
-type JoinManagers struct{}
+type JoinManagers struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *JoinManagers) Title() string {
@@ -20,7 +20,6 @@ func (p *JoinManagers) Title() string {
 
 // Run joins the manager nodes into swarm
 func (p *JoinManagers) Run(config *config.ClusterConfig) error {
-	start := time.Now()
 	swarmLeader := config.Managers()[0]
 	for _, h := range config.Managers() {
 		if swarm.IsSwarmNode(h) {
@@ -35,9 +34,5 @@ func (p *JoinManagers) Run(config *config.ClusterConfig) error {
 		}
 		log.Infof("%s: joined succesfully", h.Address)
 	}
-	duration := time.Since(start)
-	props := analytics.NewAnalyticsEventProperties()
-	props["duration"] = duration.Seconds()
-	analytics.TrackEvent("Managers Joined", props)
 	return nil
 }

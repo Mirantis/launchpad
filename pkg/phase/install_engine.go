@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 	"sync"
-	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
@@ -14,7 +13,9 @@ import (
 )
 
 // InstallEngine phase implementation
-type InstallEngine struct{}
+type InstallEngine struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *InstallEngine) Title() string {
@@ -23,7 +24,9 @@ func (p *InstallEngine) Title() string {
 
 // Run installs the engine on each host
 func (p *InstallEngine) Run(c *config.ClusterConfig) error {
-	start := time.Now()
+	props := analytics.NewAnalyticsEventProperties()
+	props["engine_version"] = c.Engine.Version
+	p.EventProperties = props
 	err := p.upgradeEngines(c)
 	if err != nil {
 		return err
@@ -35,13 +38,6 @@ func (p *InstallEngine) Run(c *config.ClusterConfig) error {
 		}
 	}
 	err = runParallelOnHosts(newHosts, c, p.installEngine)
-	if err == nil {
-		duration := time.Since(start)
-		props := analytics.NewAnalyticsEventProperties()
-		props["duration"] = duration.Seconds()
-		props["engine_version"] = c.Engine.Version
-		analytics.TrackEvent("Engine Installed", props)
-	}
 	return err
 }
 

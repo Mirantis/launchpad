@@ -1,16 +1,15 @@
 package phase
 
 import (
-	"time"
-
-	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	retry "github.com/avast/retry-go"
 	"github.com/sirupsen/logrus"
 )
 
 // PrepareHost phase implementation does all the prep work we need for the hosts
-type PrepareHost struct{}
+type PrepareHost struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *PrepareHost) Title() string {
@@ -19,15 +18,7 @@ func (p *PrepareHost) Title() string {
 
 // Run does all the prep work on the hosts in parallel
 func (p *PrepareHost) Run(config *config.ClusterConfig) error {
-	start := time.Now()
-	err := runParallelOnHosts(config.Hosts, config, p.prepareHost)
-	if err == nil {
-		duration := time.Since(start)
-		props := analytics.NewAnalyticsEventProperties()
-		props["duration"] = duration.Seconds()
-		analytics.TrackEvent("Hosts Prepared", props)
-	}
-	return err
+	return runParallelOnHosts(config.Hosts, config, p.prepareHost)
 }
 
 func (p *PrepareHost) prepareHost(host *config.Host, c *config.ClusterConfig) error {
