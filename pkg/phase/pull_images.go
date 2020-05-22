@@ -39,7 +39,6 @@ func (p *PullImages) Run(c *api.ClusterConfig) error {
 	return runParallelOnHosts(c.Spec.Managers(), c, func(h *api.Host, c *api.ClusterConfig) error {
 		return p.pullImages(h, images)
 	})
-	return err
 }
 
 func (p *PullImages) listImages(config *api.ClusterConfig) ([]string, error) {
