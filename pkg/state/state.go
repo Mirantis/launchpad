@@ -79,7 +79,7 @@ func (s *State) GetDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return path.Join(home, constant.StateBaseDir, "cluster", s.Metadata.Name), nil
+	return path.Join(home, constant.StateBaseDir, "cluster", s.Name), nil
 }
 
 // gets the full path to the clusters state file
