@@ -1,7 +1,7 @@
 package ubuntu
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/configurer"
 )
 
@@ -20,7 +20,7 @@ func (c *Configurer) InstallBasePackages() error {
 	return c.Host.Exec("sudo apt-get update && sudo apt-get install -y curl apt-utils")
 }
 
-func resolveUbuntuConfigurer(h *config.Host) config.HostConfigurer {
+func resolveUbuntuConfigurer(h *api.Host) api.HostConfigurer {
 	if h.Metadata.Os.ID != "ubuntu" {
 		return nil
 	}
@@ -40,5 +40,5 @@ func resolveUbuntuConfigurer(h *config.Host) config.HostConfigurer {
 }
 
 func init() {
-	config.RegisterHostConfigurer(resolveUbuntuConfigurer)
+	api.RegisterHostConfigurer(resolveUbuntuConfigurer)
 }

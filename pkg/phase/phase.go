@@ -5,13 +5,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	log "github.com/sirupsen/logrus"
 )
 
 // Phase interface
 type Phase interface {
-	Run(config *config.ClusterConfig) error
+	Run(config *api.ClusterConfig) error
 	Title() string
 	GetEventTitle() string
 	GetEventProperties() map[string]interface{}
@@ -65,12 +65,12 @@ func NewError(err string) *Error {
 	}
 }
 
-func runParallelOnHosts(hosts []*config.Host, c *config.ClusterConfig, action func(host *config.Host, config *config.ClusterConfig) error) error {
+func runParallelOnHosts(hosts []*api.Host, c *api.ClusterConfig, action func(host *api.Host, config *api.ClusterConfig) error) error {
 	var wg sync.WaitGroup
 	phaseError := &Error{}
 	for _, host := range hosts {
 		wg.Add(1)
-		go func(h *config.Host) {
+		go func(h *api.Host) {
 			defer wg.Done()
 			err := action(h, c)
 			if err != nil {

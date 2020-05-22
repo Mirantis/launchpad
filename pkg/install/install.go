@@ -3,9 +3,7 @@ package install
 import (
 	"crypto/sha1"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
@@ -22,7 +20,8 @@ func Install(ctx *cli.Context) error {
 	if err := analytics.RequireRegisteredUser(); err != nil {
 		return err
 	}
-	cfgData, err := resolveClusterFile(ctx)
+	configFile := ctx.String("config")
+	cfgData, err := config.ResolveClusterFile(configFile)
 	if err != nil {
 		return err
 	}
@@ -31,13 +30,13 @@ func Install(ctx *cli.Context) error {
 		return err
 	}
 
-	if err = clusterConfig.Validate(); err != nil {
+	if err = config.Validate(&clusterConfig); err != nil {
 		return err
 	}
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		os.Stdout.WriteString(util.Logo)
-		os.Stdout.WriteString("   Mirantis Cluster Control\n\n")
+		os.Stdout.WriteString("   Mirantis Launchpad\n\n")
 	}
 
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
@@ -74,26 +73,4 @@ func Install(ctx *cli.Context) error {
 	props["ucp_instance_id"] = ucpInstanceID
 	analytics.TrackEvent("Cluster Installed", props)
 	return nil
-
-}
-
-func resolveClusterFile(ctx *cli.Context) ([]byte, error) {
-	clusterFile := ctx.String("config")
-	fp, err := filepath.Abs(clusterFile)
-	if err != nil {
-		return []byte{}, fmt.Errorf("failed to lookup current directory name: %v", err)
-	}
-	file, err := os.Open(fp)
-	if err != nil {
-		return []byte{}, fmt.Errorf("can not find cluster configuration file: %v", err)
-	}
-	log.Debugf("opened config file from %s", fp)
-
-	defer file.Close()
-
-	buf, err := ioutil.ReadAll(file)
-	if err != nil {
-		return []byte{}, fmt.Errorf("failed to read file: %v", err)
-	}
-	return buf, nil
 }

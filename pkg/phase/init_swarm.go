@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/swarm"
 
 	log "github.com/sirupsen/logrus"
@@ -20,14 +20,14 @@ func (p *InitSwarm) Title() string {
 }
 
 // Run initializes the swarm on the leader or skips if swarm is already initialized
-func (p *InitSwarm) Run(config *config.ClusterConfig) error {
-	swarmLeader := config.Managers()[0]
+func (p *InitSwarm) Run(config *api.ClusterConfig) error {
+	swarmLeader := config.Spec.Managers()[0]
 
 	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader.Address)
-		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
+		output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
 		if err != nil {
-			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", err.Error()))
+			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", output))
 		}
 		log.Infof("%s: swarm initialized succesfully", swarmLeader.Address)
 	} else {

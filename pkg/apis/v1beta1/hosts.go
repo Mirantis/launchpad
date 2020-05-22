@@ -1,4 +1,4 @@
-package config
+package v1beta1
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
 	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh"
@@ -71,7 +72,7 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Connect to the host
 func (h *Host) Connect() error {
-	key, err := loadExternalFile(h.SSHKeyPath)
+	key, err := util.LoadExternalFile(h.SSHKeyPath)
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func (h *Host) Connect() error {
 }
 
 // ExecCmd a command on the host piping stdin and streams the logs
-func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
+func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
 	session, err := h.sshClient.NewSession()
 	if err != nil {
 		return err
@@ -138,7 +139,10 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 		return err
 	}
 
-	log.Debugf("executing command: %s", cmd)
+	if !sensitiveCommand {
+		log.Debugf("executing command: %s", cmd)
+	}
+
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
@@ -170,7 +174,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool) error {
 
 // Exec a command on the host and streams the logs
 func (h *Host) Exec(cmd string) error {
-	return h.ExecCmd(cmd, "", false)
+	return h.ExecCmd(cmd, "", false, false)
 }
 
 // Execf a printf-formatted command on the host and streams the logs
@@ -197,7 +201,7 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 // WriteFile writes file to host with given contents
 func (h *Host) WriteFile(path string, data string, permissions string) error {
 	tempFile, _ := h.ExecWithOutput("mktemp")
-	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false)
+	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
 	if err != nil {
 		return err
 	}
@@ -210,6 +214,29 @@ func trimOutput(output []byte) string {
 	}
 
 	return ""
+}
+
+// AuthenticateDocker performs a docker login on the host using local REGISTRY_USERNAME
+// and REGISTRY_PASSWORD when set
+func (h *Host) AuthenticateDocker(server string) error {
+	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
+		pass := os.Getenv("REGISTRY_PASSWORD")
+		if pass == "" {
+			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h.Address)
+		}
+		log.Infof("%s: authenticating docker", h.Address)
+		old := log.GetLevel()
+		log.SetLevel(log.ErrorLevel)
+		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), pass, false, true)
+		log.SetLevel(old)
+
+		if err != nil {
+			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
+		}
+	} else {
+		log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
+	}
+	return nil
 }
 
 // PullImage pulls the named docker image on the host

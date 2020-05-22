@@ -10,8 +10,8 @@ export CLUSTER_NAME=$BUILD_TAG
 export ANALYTICS_DISABLED="true"
 
 cd test
-rm -f ./id_rsa_mcc
-ssh-keygen -t rsa -f ./id_rsa_mcc -N ""
+rm -f ./id_rsa_launchpad
+ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 
 envsubst < cluster.yaml.tpl > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml
@@ -21,12 +21,12 @@ chmod +x ./footloose
 ./footloose create
 
 set +e
-../bin/mcc --debug install
+../bin/launchpad --debug install
 result=$?
 
 ./footloose delete
 docker volume prune -f
 ## Clean the local state
-rm -rf ~/.mirantis-mcc/cluster/$CUSTER_NAME
+rm -rf ~/.mirantis-launchpad/cluster/$CUSTER_NAME
 
 exit $result

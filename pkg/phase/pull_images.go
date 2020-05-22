@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,22 +21,30 @@ func (p *PullImages) Title() string {
 
 // Run pulls all the needed images on managers in parallel.
 // Parallel on each host and pulls 5 images at a time on each host.
-func (p *PullImages) Run(c *config.ClusterConfig) error {
+func (p *PullImages) Run(c *api.ClusterConfig) error {
 	images, err := p.listImages(c)
 	if err != nil {
 		return NewError(err.Error())
 	}
 	log.Debugf("loaded images list: %v", images)
 
-	err = runParallelOnHosts(c.Managers(), c, func(h *config.Host, c *config.ClusterConfig) error {
+	err = runParallelOnHosts(c.Spec.Hosts, c, func(h *api.Host, c *api.ClusterConfig) error {
+		return h.AuthenticateDocker(c.Spec.Ucp.ImageRepo)
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return runParallelOnHosts(c.Spec.Managers(), c, func(h *api.Host, c *api.ClusterConfig) error {
 		return p.pullImages(h, images)
 	})
 	return err
 }
 
-func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) {
-	manager := config.Managers()[0]
-	image := fmt.Sprintf("%s/ucp:%s", config.Ucp.ImageRepo, config.Ucp.Version)
+func (p *PullImages) listImages(config *api.ClusterConfig) ([]string, error) {
+	manager := config.Spec.Managers()[0]
+	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
 	err := manager.PullImage(image)
 	if err != nil {
 		return []string{}, err
@@ -50,7 +58,7 @@ func (p *PullImages) listImages(config *config.ClusterConfig) ([]string, error) 
 }
 
 // Pulls images on a host in parallel using a workerpool with 5 workers. Essentially we pull 5 images in parallel.
-func (p *PullImages) pullImages(host *config.Host, images []string) error {
+func (p *PullImages) pullImages(host *api.Host, images []string) error {
 	wp := workerpool.New(5)
 	defer wp.StopWait()
 

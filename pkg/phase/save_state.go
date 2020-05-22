@@ -3,7 +3,8 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	"github.com/Mirantis/mcc/pkg/state"
 )
 
 // SaveState saves the local state after succesfull run
@@ -17,10 +18,12 @@ func (p *SaveState) Title() string {
 }
 
 // Run does the actual saving of the local state file
-func (p *SaveState) Run(config *config.ClusterConfig) error {
+func (p *SaveState) Run(config *api.ClusterConfig) error {
 	if config.State == nil {
 		return fmt.Errorf("internal state was nil, this should not happen")
 	}
 
-	return config.State.Save()
+	config.State.ClusterID = config.Spec.Ucp.Metadata.ClusterID
+
+	return state.Save(config.State)
 }

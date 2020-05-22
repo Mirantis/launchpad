@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +23,7 @@ func (p *InstallEngine) Title() string {
 }
 
 // Run installs the engine on each host
-func (p *InstallEngine) Run(c *config.ClusterConfig) error {
+func (p *InstallEngine) Run(c *api.ClusterConfig) error {
 	props := analytics.NewAnalyticsEventProperties()
 	props["engine_version"] = c.Engine.Version
 	p.EventProperties = props
@@ -31,8 +31,8 @@ func (p *InstallEngine) Run(c *config.ClusterConfig) error {
 	if err != nil {
 		return err
 	}
-	newHosts := []*config.Host{}
-	for _, h := range c.Hosts {
+	newHosts := []*api.Host{}
+	for _, h := range c.Spec.Hosts {
 		if h.Metadata.EngineVersion == "" {
 			newHosts = append(newHosts, h)
 		}
@@ -43,9 +43,9 @@ func (p *InstallEngine) Run(c *config.ClusterConfig) error {
 
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
 // TODO: should we drain?
-func (p *InstallEngine) upgradeEngines(c *config.ClusterConfig) error {
-	for _, h := range c.Managers() {
-		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Engine.Version {
+func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
+	for _, h := range c.Spec.Managers() {
+		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Spec.Engine.Version {
 			err := p.installEngine(h, c)
 			if err != nil {
 				return err
@@ -62,9 +62,9 @@ func (p *InstallEngine) upgradeEngines(c *config.ClusterConfig) error {
 		}
 	}
 
-	workers := []*config.Host{}
-	for _, h := range c.Workers() {
-		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Engine.Version {
+	workers := []*api.Host{}
+	for _, h := range c.Spec.Workers() {
+		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Spec.Engine.Version {
 			workers = append(workers, h)
 		}
 	}
@@ -97,17 +97,17 @@ func (p *InstallEngine) upgradeEngines(c *config.ClusterConfig) error {
 	return nil
 }
 
-func (p *InstallEngine) installEngine(host *config.Host, c *config.ClusterConfig) error {
+func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) error {
 	newInstall := host.Metadata.EngineVersion == ""
 	prevVersion := resolveEngineVersion(host)
 	err := retry.Do(
 		func() error {
 			if newInstall {
-				log.Infof("%s: installing engine (%s)", host.Address, c.Engine.Version)
+				log.Infof("%s: installing engine (%s)", host.Address, c.Spec.Engine.Version)
 			} else {
-				log.Infof("%s: updating engine (%s -> %s)", host.Address, prevVersion, c.Engine.Version)
+				log.Infof("%s: updating engine (%s -> %s)", host.Address, prevVersion, c.Spec.Engine.Version)
 			}
-			return host.Configurer.InstallEngine(&c.Engine)
+			return host.Configurer.InstallEngine(&c.Spec.Engine)
 		},
 	)
 	if err != nil {
@@ -128,6 +128,6 @@ func (p *InstallEngine) installEngine(host *config.Host, c *config.ClusterConfig
 		}
 	}
 
-	log.Printf("%s: engine version %s installed", host.Address, c.Engine.Version)
+	log.Printf("%s: engine version %s installed", host.Address, c.Spec.Engine.Version)
 	return nil
 }

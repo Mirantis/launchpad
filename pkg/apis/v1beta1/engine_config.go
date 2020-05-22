@@ -1,4 +1,8 @@
-package config
+package v1beta1
+
+import (
+	"github.com/Mirantis/mcc/pkg/constant"
+)
 
 // EngineConfig holds the engine installation specific options
 type EngineConfig struct {
@@ -24,9 +28,9 @@ func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewEngineConfig creates new default engine config struct
 func NewEngineConfig() EngineConfig {
 	return EngineConfig{
-		Version:    EngineVersion,
-		Channel:    EngineChannel,
-		RepoURL:    EngineRepoURL,
-		InstallURL: EngineInstallURL,
+		Version:    constant.EngineVersion,
+		Channel:    constant.EngineChannel,
+		RepoURL:    constant.EngineRepoURL,
+		InstallURL: constant.EngineInstallURL,
 	}
 }

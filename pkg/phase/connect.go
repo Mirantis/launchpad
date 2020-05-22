@@ -1,7 +1,7 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,11 +17,11 @@ func (p *Connect) Title() string {
 }
 
 // Run connects to all the hosts in parallel
-func (p *Connect) Run(config *config.ClusterConfig) error {
-	return runParallelOnHosts(config.Hosts, config, p.connectHost)
+func (p *Connect) Run(config *api.ClusterConfig) error {
+	return runParallelOnHosts(config.Spec.Hosts, config, p.connectHost)
 }
 
-func (p *Connect) connectHost(host *config.Host, c *config.ClusterConfig) error {
+func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: opening SSH connection", host.Address)

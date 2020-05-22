@@ -1,7 +1,7 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	retry "github.com/avast/retry-go"
 	"github.com/sirupsen/logrus"
 )
@@ -17,11 +17,11 @@ func (p *PrepareHost) Title() string {
 }
 
 // Run does all the prep work on the hosts in parallel
-func (p *PrepareHost) Run(config *config.ClusterConfig) error {
-	return runParallelOnHosts(config.Hosts, config, p.prepareHost)
+func (p *PrepareHost) Run(config *api.ClusterConfig) error {
+	return runParallelOnHosts(config.Spec.Hosts, config, p.prepareHost)
 }
 
-func (p *PrepareHost) prepareHost(host *config.Host, c *config.ClusterConfig) error {
+func (p *PrepareHost) prepareHost(host *api.Host, c *api.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
 			logrus.Infof("%s: installing base packages", host.Address)

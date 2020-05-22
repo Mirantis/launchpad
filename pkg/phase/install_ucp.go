@@ -8,7 +8,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,18 +25,19 @@ func (p *InstallUCP) Title() string {
 }
 
 // Run the installer container
-func (p *InstallUCP) Run(config *config.ClusterConfig) error {
-	swarmLeader := config.Managers()[0]
+func (p *InstallUCP) Run(config *api.ClusterConfig) error {
+	swarmLeader := config.Spec.Managers()[0]
 	props := analytics.NewAnalyticsEventProperties()
 	props["ucp_version"] = config.Ucp.Version
-	if config.Ucp.Metadata.Installed {
-		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Ucp.Metadata.InstalledVersion)
+	p.EventProperties = props
+	if config.Spec.Ucp.Metadata.Installed {
+		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Spec.Ucp.Metadata.InstalledVersion)
 		return nil
 	}
 
-	image := fmt.Sprintf("%s/ucp:%s", config.Ucp.ImageRepo, config.Ucp.Version)
-	installFlags := config.Ucp.InstallFlags
-	if config.Ucp.ConfigData != "" {
+	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
+	installFlags := config.Spec.Ucp.InstallFlags
+	if config.Spec.Ucp.ConfigData != "" {
 		defer func() {
 			err := swarmLeader.Execf("sudo docker config rm %s", configName)
 			if err != nil {
@@ -47,7 +48,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 		installFlags = append(installFlags, "--existing-config")
 		log.Info("Creating UCP configuration")
 		configCmd := swarmLeader.Configurer.DockerCommandf("config create %s -", configName)
-		err := swarmLeader.ExecCmd(configCmd, config.Ucp.ConfigData, false)
+		err := swarmLeader.ExecCmd(configCmd, config.Spec.Ucp.ConfigData, false, false)
 		if err != nil {
 			return err
 		}
@@ -55,7 +56,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 
 	flags := strings.Join(installFlags, " ")
 	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
-	err := swarmLeader.ExecCmd(installCmd, "", true)
+	err := swarmLeader.ExecCmd(installCmd, "", true, true)
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}
@@ -64,7 +65,7 @@ func (p *InstallUCP) Run(config *config.ClusterConfig) error {
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
-	config.Ucp.Metadata = ucpMeta
+	config.Spec.Ucp.Metadata = ucpMeta
 	config.State.ClusterID = swarm.ClusterID(swarmLeader)
 	return nil
 }

@@ -1,7 +1,10 @@
-package config
+package v1beta1
 
 import (
 	"fmt"
+
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/util"
 )
 
 // UcpConfig has all the bits needed to configure UCP during installation
@@ -32,7 +35,7 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.ConfigFile != "" {
-		configData, err := loadExternalFile(raw.ConfigFile)
+		configData, err := util.LoadExternalFile(raw.ConfigFile)
 		if err != nil {
 			return err
 		}
@@ -46,8 +49,8 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewUcpConfig creates new config with sane defaults
 func NewUcpConfig() UcpConfig {
 	return UcpConfig{
-		Version:   Version,
-		ImageRepo: ImageRepo,
+		Version:   constant.UCPVersion,
+		ImageRepo: constant.ImageRepo,
 	}
 }
 
