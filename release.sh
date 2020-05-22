@@ -11,11 +11,15 @@ declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-l
 
 description="### Checksums\n\nFilename | Sha256\n---------|-------\n"
 
+mkdir -p tmp.sha256
+
 for bin in "${binaries[@]}"
 do
-  filesum=$(sha256sum -b "./bin/${bin}" | cut -d" " -f1)
+  cd bin
+  sha256sum -b "${bin}" > "../tmp.sha256/${bin}.sha256"
+  filesum=$(head -1 "../tmp.sha256/${bin}.sha256" | cut -d" " -f1)
   description=${description}"${bin} | ${filesum}\n"
-  echo "${filesum} *${bin}" > "./bin/${bin}.sha256"
+  cd ..
 done
 
 echo -e "${description}"
@@ -52,7 +56,8 @@ do
     --repo mcc \
     --tag "${TAG_NAME}" \
     --name "${bin}.sha256" \
-    --file "./bin/${bin}.sha256"
+    --file "./tmp/${bin}.sha256"
 done
 
 rm ./github-release
+rm -rf tmp.sha256
