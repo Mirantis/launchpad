@@ -62,10 +62,11 @@ func Install(ctx *cli.Context) error {
 		return phaseErr
 	}
 	props := analytics.NewAnalyticsEventProperties()
-	props["hosts"] = len(clusterConfig.Hosts)
-	props["managers"] = len(clusterConfig.Managers())
-	props["workers"] = len(clusterConfig.Workers())
-	props["engine_version"] = clusterConfig.Engine.Version
+
+	props["hosts"] = len(clusterConfig.Spec.Hosts)
+	props["managers"] = len(clusterConfig.Spec.Managers())
+	props["workers"] = len(clusterConfig.Spec.Workers())
+	props["engine_version"] = clusterConfig.Spec.Engine.Version
 	clusterID := clusterConfig.State.ClusterID
 	props["cluster_id"] = clusterID
 	// send ucp analytics user id as ucp_instance_id property
