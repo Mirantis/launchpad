@@ -11,7 +11,7 @@ import (
 
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
-apiVersion: "mcc.mirantis.com/v1beta1"
+apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: UCP
 spec:
   hosts:
@@ -25,7 +25,7 @@ spec:
 
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 	data := `
-apiVersion: mcc.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   hosts:
@@ -40,7 +40,7 @@ spec:
 
 func TestHostAddressValidationWithValidIP(t *testing.T) {
 	data := `
-apiVersion: mcc.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   hosts:
@@ -54,7 +54,7 @@ spec:
 
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 	data := `
-apiVersion: mcc.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   hosts:
@@ -69,7 +69,7 @@ spec:
 
 func TestHostAddressValidationWithValidHostname(t *testing.T) {
 	data := `
-apiVersion: mcc.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   hosts:
@@ -84,7 +84,7 @@ spec:
 
 func TestHostSshPortValidation(t *testing.T) {
 	data := `
-apiVersion: mcc.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   hosts:
@@ -100,7 +100,7 @@ spec:
 
 func TestHostSshKeyValidation(t *testing.T) {
 	data := `
-apiVersion: mcc.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   hosts:
@@ -117,7 +117,7 @@ spec:
 
 func TestHostRoleValidation(t *testing.T) {
 	data := `
-apiVersion: mcc.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   hosts:
