@@ -226,7 +226,7 @@ func (h *Host) AuthenticateDocker(server string) error {
 		log.Infof("%s: authenticating docker", h.Address)
 		old := log.GetLevel()
 		log.SetLevel(log.ErrorLevel)
-		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), pass, false)
+		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), pass, false, true)
 		log.SetLevel(old)
 
 		if err != nil {
