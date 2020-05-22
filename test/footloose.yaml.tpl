@@ -1,6 +1,6 @@
 cluster:
   name: ucp
-  privateKey: ./id_rsa_mcc
+  privateKey: ./id_rsa_launchpad
 machines:
 - count: 1
   backend: docker

@@ -100,7 +100,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	raw := rawConfig{
 		Engine: NewEngineConfig(),
 		Ucp:    NewUcpConfig(),
-		Name:   "mcc-ucp",
+		Name:   "launchpad-ucp",
 	}
 
 	if err := unmarshal(&raw); err != nil {

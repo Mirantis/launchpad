@@ -13,7 +13,7 @@ func RequireRegisteredUser() error {
 	}
 	if _, err := config.GetUserConfig(); err != nil {
 		TrackEvent("User Not Registered", nil)
-		return errors.New("Registration is required. Please use `mcc register` command to register")
+		return errors.New("Registration is required. Please use `launchpad register` command to register")
 	}
 	return nil
 

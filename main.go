@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
-	"github.com/Mirantis/mcc/version"
-
 	"github.com/Mirantis/mcc/cmd"
-
+	mcclog "github.com/Mirantis/mcc/pkg/log"
+	"github.com/Mirantis/mcc/version"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/urfave/cli/v2"
@@ -39,9 +39,7 @@ func main() {
 			},
 		},
 		Before: func(ctx *cli.Context) error {
-			if ctx.Bool("debug") {
-				log.SetLevel(log.DebugLevel)
-			}
+			initLogger(ctx)
 			return nil
 		},
 		Commands: []*cli.Command{
@@ -56,4 +54,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+}
+
+func initLogger(ctx *cli.Context) {
+	// Enable debug logging always, we'll setup hooks later to direct logs based on level
+	log.SetLevel(log.DebugLevel)
+	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+
+	// Send logs with level >= INFO to stdout
+
+	// stdout hook on by default of course
+	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug")))
 }
