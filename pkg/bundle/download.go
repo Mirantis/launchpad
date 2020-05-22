@@ -13,7 +13,7 @@ import (
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/state"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
@@ -55,11 +55,16 @@ func Download(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to download admin bundle: %s", err)
 	}
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("error while getting user home dir: %w", err)
+	// Need to initilize state directly, clusterConfig does not have it initilized outside of the phases which we do not use here.
+	state := &state.State{
+		Name: clusterConfig.Metadata.Name,
 	}
-	err = writeBundle(homeDir, constant.StateBaseDir, "bundle", bundle)
+	stateDir, err := state.GetDir()
+	if err != nil {
+		return fmt.Errorf("failed to get state directory for cluster %s: %w", clusterConfig.Metadata.Name, err)
+	}
+
+	err = writeBundle(filepath.Join(stateDir, "bundle", username), bundle)
 	if err != nil {
 		return fmt.Errorf("failed to write admin bundle: %s", err)
 	}
@@ -96,8 +101,7 @@ func getTLSConfigFrom(manager *api.Host, imageRepo, ucpVersion string) (*tls.Con
 	}, nil
 }
 
-func writeBundle(bundleRoot, systemName, username string, bundle *zip.Reader) error {
-	bundleDir := filepath.Join(bundleRoot, systemName, username)
+func writeBundle(bundleDir string, bundle *zip.Reader) error {
 	if err := util.EnsureDir(bundleDir); err != nil {
 		return fmt.Errorf("error while creating directory: %w", err)
 	}
@@ -131,5 +135,6 @@ func writeBundle(bundleRoot, systemName, username string, bundle *zip.Reader) er
 			return err
 		}
 	}
+	log.Infof("Succesfully wrote client bundle to %s", bundleDir)
 	return nil
 }
