@@ -41,7 +41,7 @@ func Download(ctx *cli.Context) error {
 		return fmt.Errorf("error while connecting to manager node: %w", err)
 	}
 
-	tlsConfig, err := getTLSConfigFrom(m, clusterConfig.Ucp.Version)
+	tlsConfig, err := getTLSConfigFrom(m, clusterConfig.Ucp.ImageRepo, clusterConfig.Ucp.Version)
 	if err != nil {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
@@ -68,19 +68,15 @@ func Download(ctx *cli.Context) error {
 }
 
 func resolveURL(serverURL string) (*url.URL, error) {
-	if serverURL == "127.0.0.1" || serverURL == "localhost" {
-		serverURL = "https://" + serverURL
-	}
-	url, err := url.Parse(serverURL)
+	url, err := url.Parse(fmt.Sprintf("https://%s", serverURL))
 	if err != nil {
 		return nil, err
 	}
 	return url, nil
 }
 
-func getTLSConfigFrom(manager *config.Host, ucpVersion string) (*tls.Config, error) {
-	cmd := manager.Configurer.DockerCommandf(`run --rm -v /var/run/docker.sock:/var/run/docker.sock docker/ucp:%s dump-certs --ca`, ucpVersion)
-	output, err := manager.ExecWithOutput(cmd)
+func getTLSConfigFrom(manager *config.Host, imageRepo, ucpVersion string) (*tls.Config, error) {
+	output, err := manager.ExecWithOutput(fmt.Sprintf(`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock %s/ucp:%s dump-certs --ca`, imageRepo, ucpVersion))
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
 	}
