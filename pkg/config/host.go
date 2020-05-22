@@ -215,6 +215,29 @@ func trimOutput(output []byte) string {
 	return ""
 }
 
+// AuthenticateDocker performs a docker login on the host using local REGISTRY_USERNAME
+// and REGISTRY_PASSWORD when set
+func (h *Host) AuthenticateDocker(server string) error {
+	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
+		pass := os.Getenv("REGISTRY_PASSWORD")
+		if pass == "" {
+			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h.Address)
+		}
+		log.Infof("%s: authenticating docker", h.Address)
+		old := log.GetLevel()
+		log.SetLevel(log.ErrorLevel)
+		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), pass, false)
+		log.SetLevel(old)
+
+		if err != nil {
+			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
+		}
+	} else {
+		log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
+	}
+	return nil
+}
+
 // PullImage pulls the named docker image on the host
 func (h *Host) PullImage(name string) error {
 	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf("pull %s", name))
