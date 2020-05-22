@@ -7,27 +7,36 @@ if [ -z "${TAG_NAME}" ]; then
   exit 1
 fi
 
+declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-linux-x64")
+
+description="### Checksums\n\nFilename | Sha256\n---------|-------\n"
+
+for bin in "${binaries[@]}"
+do
+  filesum=$(sha256sum -b "./bin/${bin}" | cut -d" " -f1)
+  description=${description}"${bin} | ${filesum}\n"
+  echo "${filesum} *${bin}" > "./bin/${bin}.sha256"
+done
+
+echo -e "${description}"
+
 curl -L https://github.com/github-release/github-release/releases/download/v0.8.1/linux-amd64-github-release.bz2 > ./github-release.bz2
 bunzip2 ./github-release.bz2
 chmod +x ./github-release
 
-if echo "${TAG_NAME}" | grep "-" ; then
-  ./github-release release \
-    --pre-release \
-    --user Mirantis \
-    --repo mcc \
-    --tag "${TAG_NAME}" \
-    --name "${TAG_NAME}"
+if [[ "${TAG_NAME}" == *-* ]] ; then
+  releaseopt="--pre-release"
 else
-  ./github-release release \
-    --draft \
-    --user Mirantis \
-    --repo mcc \
-    --tag "${TAG_NAME}" \
-    --name "${TAG_NAME}"
+  releaseopt="--draft"
 fi
 
-declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-linux-x64")
+echo -e "${description}" | ./github-release release \
+  $releaseopt \
+  --user Mirantis \
+  --repo mcc \
+  --tag "${TAG_NAME}" \
+  --name "${TAG_NAME}" \
+  --description -
 
 for bin in "${binaries[@]}"
 do
@@ -37,6 +46,13 @@ do
     --tag "${TAG_NAME}" \
     --name "${bin}" \
     --file "./bin/${bin}"
+
+   ./github-release upload \
+    --user Mirantis \
+    --repo mcc \
+    --tag "${TAG_NAME}" \
+    --name "${bin}.sha256" \
+    --file "./bin/${bin}.sha256"
 done
 
 rm ./github-release

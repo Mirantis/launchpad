@@ -3,7 +3,7 @@ LAUNCHPAD_VERSION ?= $(or ${TAG_NAME},dev)
 LD_FLAGS = "-w -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(LAUNCHPAD_VERSION)
 BUILD_FLAGS = -a -tags "netgo static_build" -installsuffix netgo -ldflags $(LD_FLAGS) -extldflags '-static'"
 
-BUILDER_IMAGE = mcc-builder
+BUILDER_IMAGE = launchpad-builder
 GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	-w "/go/src/github.com/Mirantis/mcc" \
 	-e GOPATH\
