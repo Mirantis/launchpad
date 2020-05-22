@@ -37,8 +37,7 @@ func (p *InstallEngine) Run(c *api.ClusterConfig) error {
 			newHosts = append(newHosts, h)
 		}
 	}
-	err = runParallelOnHosts(newHosts, c, p.installEngine)
-	return err
+	return runParallelOnHosts(newHosts, c, p.installEngine)
 }
 
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers

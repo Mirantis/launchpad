@@ -36,8 +36,8 @@ func (m *Manager) Run() error {
 		log.Infof(text, phase.Title())
 		start := time.Now()
 		props := analytics.NewAnalyticsEventProperties()
-		duration := time.Since(start)
 		err := phase.Run(m.config)
+		duration := time.Since(start)
 		props["duration"] = duration.Seconds()
 		for k, v := range phase.GetEventProperties() {
 			props[k] = v
@@ -49,7 +49,6 @@ func (m *Manager) Run() error {
 		}
 		props["success"] = true
 		analytics.TrackEvent(phase.GetEventTitle(), props)
-
 	}
 
 	return nil
