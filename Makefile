@@ -19,7 +19,7 @@ unit-test: builder
 	$(GO) go test -v ./...
 
 build: builder
-	$(GO) go build $(BUILD_FLAGS) -o bin/mcc main.go
+	$(GO) go build $(BUILD_FLAGS) -o bin/launchpad main.go
 
 build-all: builder
 	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 main.go
