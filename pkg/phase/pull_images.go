@@ -26,6 +26,14 @@ func (p *PullImages) Run(c *config.ClusterConfig) error {
 	}
 	log.Debugf("loaded images list: %v", images)
 
+	err = runParallelOnHosts(c.Hosts, c, func(h *config.Host, c *config.ClusterConfig) error {
+		return h.AuthenticateDocker(c.Ucp.ImageRepo)
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return runParallelOnHosts(c.Managers(), c, func(h *config.Host, c *config.ClusterConfig) error {
 		return p.pullImages(h, images)
 	})

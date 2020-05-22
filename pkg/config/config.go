@@ -1,13 +1,17 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/state"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -78,6 +82,29 @@ func (c *ClusterConfig) Managers() []*Host {
 	}
 
 	return managers
+}
+
+// ResolveClusterFile looks for the cluster.yaml file, based on the value, passed in ctx.
+// It returns the contents of this file as []byte if found,
+// or error if it didn't.
+func ResolveClusterFile(clusterFile string) ([]byte, error) {
+	fp, err := filepath.Abs(clusterFile)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to lookup current directory name: %v", err)
+	}
+	file, err := os.Open(fp)
+	if err != nil {
+		return []byte{}, fmt.Errorf("can not find cluster configuration file: %v", err)
+	}
+	log.Debugf("opened config file from %s", fp)
+
+	defer file.Close()
+
+	buf, err := ioutil.ReadAll(file)
+	if err != nil {
+		return []byte{}, fmt.Errorf("failed to read file: %v", err)
+	}
+	return buf, nil
 }
 
 // Helper for reading data from references to external files
