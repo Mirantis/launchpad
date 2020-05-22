@@ -14,7 +14,7 @@ type UcpConfig struct {
 	InstallFlags    []string `yaml:"installFlags,flow"`
 	ConfigFile      string   `yaml:"configFile" validate:"omitempty,file"`
 	ConfigData      string   `yaml:"configData"`
-	LicenseFilePath string   `yaml:"licenseFilePath"`
+	LicenseFilePath string   `yaml:"licenseFilePath" validate:"omitempty,file"`
 
 	Metadata *UcpMetadata
 }
