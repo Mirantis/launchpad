@@ -56,7 +56,7 @@ do
     --repo mcc \
     --tag "${TAG_NAME}" \
     --name "${bin}.sha256" \
-    --file "./tmp/${bin}.sha256"
+    --file "./tmp.sha256/${bin}.sha256"
 done
 
 rm ./github-release
