@@ -2,12 +2,12 @@ name: $CLUSTER_NAME
 hosts:
   - address: "127.0.0.1"
     sshPort: 9022
-    sshKeyPath: "./id_rsa_mcc"
+    sshKeyPath: "./id_rsa_launchpad"
     user: "root"
     role: "manager"
   - address: "127.0.0.1"
     sshPort: 9023
-    sshKeyPath: "./id_rsa_mcc"
+    sshKeyPath: "./id_rsa_launchpad"
     user: "root"
     role: "worker"
 ucp:

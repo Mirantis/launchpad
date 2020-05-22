@@ -92,7 +92,7 @@ func NewAnalyticsEventProperties() map[string]interface{} {
 // MachineID hashes a machine id as an anonymized identifier for our
 // analytics events.
 func MachineID() string {
-	id, _ := machineid.ProtectedID("mcc")
+	id, _ := machineid.ProtectedID("launchpad")
 	return id
 }
 
