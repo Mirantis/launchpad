@@ -1,7 +1,7 @@
 package enterpriselinux
 
 import (
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/configurer"
 )
 
@@ -10,7 +10,7 @@ type Rhel struct {
 	Configurer
 }
 
-func resolveRedhatConfigurer(h *config.Host) config.HostConfigurer {
+func resolveRedhatConfigurer(h *api.Host) api.HostConfigurer {
 	if h.Metadata.Os.ID == "rhel" {
 		return &Rhel{
 			Configurer: Configurer{
@@ -25,5 +25,5 @@ func resolveRedhatConfigurer(h *config.Host) config.HostConfigurer {
 }
 
 func init() {
-	config.RegisterHostConfigurer(resolveRedhatConfigurer)
+	api.RegisterHostConfigurer(resolveRedhatConfigurer)
 }

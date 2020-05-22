@@ -1,4 +1,4 @@
-package config
+package v1beta1
 
 import (
 	"bufio"
@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
 	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh"
@@ -71,7 +72,7 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // Connect to the host
 func (h *Host) Connect() error {
-	key, err := loadExternalFile(h.SSHKeyPath)
+	key, err := util.LoadExternalFile(h.SSHKeyPath)
 	if err != nil {
 		return err
 	}

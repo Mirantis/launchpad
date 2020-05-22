@@ -88,14 +88,18 @@ locals {
 
 output "ucp_cluster" {
   value = {
-    ucp = {
-      installFlags: [
-        "--admin-username=admin",
-        "--admin-password=${var.admin_password}",
-        "--default-node-orchestrator=kubernetes",
-        "--san=${module.masters.lb_dns_name}",
-      ]
+    apiVersion = "launchpad.mirantis.com/v1beta1"
+    kind = "UCP"
+    spec = {
+      ucp = {
+        installFlags: [
+          "--admin-username=admin",
+          "--admin-password=${var.admin_password}",
+          "--default-node-orchestrator=kubernetes",
+          "--san=${module.masters.lb_dns_name}",
+        ]
+      }
+      hosts = concat(local.managers, local.workers, local.windows_workers)
     }
-    hosts = concat(local.managers, local.workers, local.windows_workers)
   }
 }

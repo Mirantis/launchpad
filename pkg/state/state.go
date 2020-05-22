@@ -24,8 +24,8 @@ func InitState(clusterName string) (*State, error) {
 	state := &State{
 		Name: clusterName,
 	}
-
-	return state, state.Save()
+	err := Save(state)
+	return state, err
 }
 
 // LoadState loads existing local state from disk
@@ -53,7 +53,7 @@ func LoadState(clusterName string) (*State, error) {
 }
 
 // Save saves the state on disk
-func (s *State) Save() error {
+func Save(s *State) error {
 	statePath, err := s.getStatePath()
 	if err != nil {
 		return err

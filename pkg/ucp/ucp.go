@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,16 +31,16 @@ type Credentials struct {
 // CollectUcpFacts gathers the current status of installed UCP setup
 // Currently we only need to know the existing version and whether UCP is installed or not.
 // In future we probably need more.
-func CollectUcpFacts(swarmLeader *config.Host) (*config.UcpMetadata, error) {
+func CollectUcpFacts(swarmLeader *api.Host) (*api.UcpMetadata, error) {
 	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{ index .Config.Labels "com.docker.ucp.version"}}' ucp-proxy`))
 	if err != nil {
 		// We need to check the output to check if the container does not exist
 		if strings.Contains(output, "No such object") {
-			return &config.UcpMetadata{Installed: false}, nil
+			return &api.UcpMetadata{Installed: false}, nil
 		}
 		return nil, err
 	}
-	ucpMeta := &config.UcpMetadata{
+	ucpMeta := &api.UcpMetadata{
 		Installed:        true,
 		InstalledVersion: output,
 	}

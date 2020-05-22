@@ -1,8 +1,9 @@
-package config
+package v1beta1
 
 import (
 	"testing"
 
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )
@@ -16,7 +17,7 @@ func TestUcpConfig_YAML_ConfigData(t *testing.T) {
 
 func TestUcpConfig_YAML_ConfigFile(t *testing.T) {
 	cfg := UcpConfig{}
-	loadExternalFile = func(path string) ([]byte, error) {
+	util.LoadExternalFile = func(path string) ([]byte, error) {
 		return []byte("abcd"), nil
 	}
 	err := yaml.Unmarshal([]byte("configFile: test_path.toml"), &cfg)

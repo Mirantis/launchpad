@@ -28,13 +28,13 @@ func Install(ctx *cli.Context) error {
 		return err
 	}
 
-	if err = clusterConfig.Validate(); err != nil {
+	if err = config.Validate(&clusterConfig); err != nil {
 		return err
 	}
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		os.Stdout.WriteString(util.Logo)
-		os.Stdout.WriteString("   Mirantis Cluster Control\n\n")
+		os.Stdout.WriteString("   Mirantis Launchpad\n\n")
 	}
 
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
