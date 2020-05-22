@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	configFile = "~/.mirantis-mcc/user.yaml"
+	configFile = "~/.mirantis-launchpad/user.yaml"
 )
 
-// UserConfig struct for MCC config
+// UserConfig struct for launchpad config
 type UserConfig struct {
 	Name    string `yaml:"name"`
 	Company string `yaml:"company"`
