@@ -15,6 +15,7 @@ for bin in "${binaries[@]}"
 do
   filesum=$(sha256sum -b "./bin/${bin}" | cut -d" " -f1)
   description=${description}"${bin} | ${filesum}\n"
+  echo "${filesum} *${bin}" > "./bin/${bin}.sha256"
 done
 
 echo -e "${description}"
@@ -45,6 +46,13 @@ do
     --tag "${TAG_NAME}" \
     --name "${bin}" \
     --file "./bin/${bin}"
+
+   ./github-release upload \
+    --user Mirantis \
+    --repo mcc \
+    --tag "${TAG_NAME}" \
+    --name "${bin}.sha256" \
+    --file "./bin/${bin}.sha256"
 done
 
 rm ./github-release
