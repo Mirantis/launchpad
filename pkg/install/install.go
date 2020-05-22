@@ -44,7 +44,7 @@ func Install(ctx *cli.Context) error {
 	phaseManager := phase.NewManager(&clusterConfig)
 
 	phaseManager.AddPhase(&phase.InitState{phase.Analytics{"Local State Loaded", nil}})
-	phaseManager.AddPhase(&phase.Connect{phase.Analytics{"SSH Connection Opened", nil}})
+	phaseManager.AddPhase(&phase.Connect{phase.Analytics{"SSH Connections Opened", nil}})
 	phaseManager.AddPhase(&phase.GatherFacts{phase.Analytics{"Facts Gathered", nil}})
 	phaseManager.AddPhase(&phase.PrepareHost{phase.Analytics{"Hosts Prepared", nil}})
 	phaseManager.AddPhase(&phase.InstallEngine{phase.Analytics{"Engine Installed", nil}})
@@ -62,7 +62,8 @@ func Install(ctx *cli.Context) error {
 		return phaseErr
 	}
 	props := analytics.NewAnalyticsEventProperties()
-
+	props["kind"] = clusterConfig.Kind
+	props["api_version"] = clusterConfig.APIVersion
 	props["hosts"] = len(clusterConfig.Spec.Hosts)
 	props["managers"] = len(clusterConfig.Spec.Managers())
 	props["workers"] = len(clusterConfig.Spec.Workers())
