@@ -9,21 +9,15 @@ fi
 
 declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-linux-x64")
 
-description="### Checksums\n\nFilename | Sha256\n---------|-------\n"
-
 mkdir -p tmp.sha256
 pushd bin
 
 for bin in "${binaries[@]}"
 do
   sha256sum -b "${bin}" > "../tmp.sha256/${bin}.sha256"
-  filesum=$(head -1 "../tmp.sha256/${bin}.sha256" | cut -d" " -f1)
-  description=${description}"${bin} | ${filesum}\n"
 done
 
 popd
-
-echo -e "${description}"
 
 curl -L https://github.com/github-release/github-release/releases/download/v0.8.1/linux-amd64-github-release.bz2 > ./github-release.bz2
 bunzip2 ./github-release.bz2
@@ -35,13 +29,12 @@ else
   releaseopt="--draft"
 fi
 
-echo -e "${description}" | ./github-release release \
+./github-release release \
   $releaseopt \
   --user Mirantis \
   --repo mcc \
   --tag "${TAG_NAME}" \
-  --name "${TAG_NAME}" \
-  --description -
+  --name "${TAG_NAME}"
 
 for bin in "${binaries[@]}"
 do
