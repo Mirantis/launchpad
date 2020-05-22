@@ -45,6 +45,7 @@ func main() {
 		Commands: []*cli.Command{
 			cmd.NewInstallCommand(),
 			cmd.RegisterCommand(),
+			cmd.NewDownloadBundleCommand(),
 			versionCmd,
 		},
 	}
