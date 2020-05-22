@@ -112,7 +112,7 @@ func investigateHost(h *config.Host, c *config.ClusterConfig) error {
 
 func isWindows(h *config.Host) bool {
 	// need to use STDIN so that we don't request PTY (which does not work on Windows)
-	err := h.ExecCmd(`powershell`, `Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"`, false)
+	err := h.ExecCmd(`powershell`, `Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"`, false, false)
 	if err != nil {
 		return false
 	}

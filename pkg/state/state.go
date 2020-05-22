@@ -73,11 +73,20 @@ func (s *State) Save() error {
 	return nil
 }
 
-// gets the full path to the clusters state file
-func (s *State) getStatePath() (string, error) {
+// GetDir returns the clusters state directory
+func (s *State) GetDir() (string, error) {
 	home, err := homedir.Dir()
 	if err != nil {
 		return "", err
 	}
-	return path.Join(home, constant.StateBaseDir, "cluster", s.Name, "state.yaml"), nil
+	return path.Join(home, constant.StateBaseDir, "cluster", s.Name), nil
+}
+
+// gets the full path to the clusters state file
+func (s *State) getStatePath() (string, error) {
+	stateDir, err := s.GetDir()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(stateDir, "state.yaml"), nil
 }
