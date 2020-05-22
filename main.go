@@ -28,8 +28,8 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:  "mcc",
-		Usage: "Mirantis Cluster Control",
+		Name:  "launchpad",
+		Usage: "Mirantis Launchpad",
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",
