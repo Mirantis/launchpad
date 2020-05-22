@@ -1,8 +1,8 @@
-# Mirantis Cluster Control ("mcc") CLI Tool
+# Mirantis Launchpad CLI Tool
 
 > The Next Generation UCP Installer & Lifecycle Management Tool
 
-The purpose of `mcc` is to provide amazing new user experience for anyone interested in getting started with UCP product. It will simplify the complex installation process and provides "from zero to hero" experience in less than 5mins for IT admin / DevOps people who are experienced with various command line tools and cloud technologies. In addition, it'll provide functionality to upgrade existing UCP clusters to new versions with no downtime or service interruptions (high availability clusters). In the future, more functionality may be added.
+The purpose of `launchpad` is to provide amazing new user experience for anyone interested in getting started with UCP product. It will simplify the complex installation process and provides "from zero to hero" experience in less than 5mins for IT admin / DevOps people who are experienced with various command line tools and cloud technologies. In addition, it'll provide functionality to upgrade existing UCP clusters to new versions with no downtime or service interruptions (high availability clusters). In the future, more functionality may be added.
 
 See the [getting started](https://github.com/Mirantis/mcc/wiki/Getting-Started-with-UCP) flow.
 
@@ -41,15 +41,15 @@ The implementation will be made using Segment + Snowflake + Looker (similar to m
 
 ## Test Plan
 
-* **PR Tests** - There are CI tests that are run on Jenkins for each pull request. Today, the tests will cover basic testing such as linter, unit tests and elementary smoke tests (simple integration tests). The coverage for unit tests is still rather limited due to massive pressure related to initial release schedule + stage of the product. **The Plan:** More unit tests will be made once the product is getting more mature and new features are added. 
+* **PR Tests** - There are CI tests that are run on Jenkins for each pull request. Today, the tests will cover basic testing such as linter, unit tests and elementary smoke tests (simple integration tests). The coverage for unit tests is still rather limited due to massive pressure related to initial release schedule + stage of the product. **The Plan:** More unit tests will be made once the product is getting more mature and new features are added.
 * **Integration Tests** - At this stage only elementary smoke tests are included to test the product on various host OS environments such as CentOS7/8 and Ubuntu 18.04.  **The Plan:** Add more smoke tests to cover more host OS options, and add k8s/conformance + k8s/sig-windows suites part of the smoke tests. In the future, automate tests utilizing built-in terraform integration on AWS/Azure/GCP/OpenStack/VMWare.
-* **Manual Tests** - We hope QA team would run some of their existing test plans manually on clusters created with `mcc`. 
+* **Manual Tests** - We hope QA team would run some of their existing test plans manually on clusters created with `launchpad`.
 
 ## Release Process and Plan
 
 No releases have been made yet. The first public release is targeted for May 28, 2020. For official release process, a dedicated Jenkins job will be created:
 
-* Build the `mcc` binaries for various host operating systems: Win/MacOS/Linux (already done)
+* Build the `launchpad` binaries for various host operating systems: Win/MacOS/Linux (already done)
 * Calculate SHA sums for verification purposes
 * Upload built binaries to selected CDN
 
