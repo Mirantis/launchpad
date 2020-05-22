@@ -23,6 +23,7 @@ func (p *InitState) Title() string {
 
 // Run runs the state management logic
 func (p *InitState) Run(config *api.ClusterConfig) error {
+	p.EventTitle = "Local State Loaded"
 	localState, err := state.LoadState(config.Metadata.Name)
 	if err != nil {
 		if os.IsNotExist(err) {

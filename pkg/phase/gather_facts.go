@@ -32,6 +32,7 @@ func (p *GatherFacts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
+	p.EventTitle = "Facts Gathered"
 	err := runParallelOnHosts(conf.Spec.Hosts, conf, investigateHost)
 	if err != nil {
 		return err

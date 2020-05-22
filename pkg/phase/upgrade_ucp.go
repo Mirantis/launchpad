@@ -24,6 +24,7 @@ func (p *UpgradeUcp) Title() string {
 
 // Run the installer container
 func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
+	p.EventTitle = "UCP Upgraded"
 	swarmLeader := config.Spec.Managers()[0]
 
 	// Check specified bootstrapper images version

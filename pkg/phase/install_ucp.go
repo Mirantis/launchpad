@@ -26,6 +26,7 @@ func (p *InstallUCP) Title() string {
 
 // Run the installer container
 func (p *InstallUCP) Run(config *api.ClusterConfig) error {
+	p.EventTitle = "UCP Installed"
 	swarmLeader := config.Spec.Managers()[0]
 	props := analytics.NewAnalyticsEventProperties()
 	props["ucp_version"] = config.Spec.Ucp.Version

@@ -18,6 +18,7 @@ func (p *PrepareHost) Title() string {
 
 // Run does all the prep work on the hosts in parallel
 func (p *PrepareHost) Run(config *api.ClusterConfig) error {
+	p.EventTitle = "Hosts Prepared"
 	return runParallelOnHosts(config.Spec.Hosts, config, p.prepareHost)
 }
 
