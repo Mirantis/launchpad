@@ -31,7 +31,6 @@ func Client() Analytics {
 	if testClient != nil {
 		return testClient
 	}
-	var segmentToken string
 	segmentToken := DevSegmentToken
 	if version.IsProduction() {
 		segmentToken = ProdSegmentToken
