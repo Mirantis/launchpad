@@ -5,4 +5,11 @@ var (
 	Version = "0.0.0"
 	// GitCommit is set during the build
 	GitCommit = "HEAD"
+	// Environment of the product, is set during the build
+	Environment = "development"
 )
+
+// IsProduction tells if running prodcution build
+func IsProduction() bool {
+	return Environment == "production"
+}

@@ -12,7 +12,7 @@ import (
 
 const (
 	// ProdSegmentToken is the API token we use for Segment in production.
-	ProdSegmentToken = "xxx"
+	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z"
 	// DevSegmentToken is the API token we use for Segment in development.
 	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
 )
@@ -31,7 +31,11 @@ func Client() Analytics {
 	if testClient != nil {
 		return testClient
 	}
-	segmentToken := DevSegmentToken // TODO use also ProdSegmentToken
+	var segmentToken string
+	segmentToken := DevSegmentToken
+	if version.IsProduction() {
+		segmentToken = ProdSegmentToken
+	}
 	segmentClient := analytics.New(segmentToken)
 	return segmentClient
 }
