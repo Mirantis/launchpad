@@ -9,7 +9,7 @@ var (
 	Environment = "development"
 )
 
-// IsProduction tells if running prodcution build
+// IsProduction tells if running production build
 func IsProduction() bool {
 	return Environment == "production"
 }
