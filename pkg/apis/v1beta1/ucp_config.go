@@ -9,11 +9,12 @@ import (
 
 // UcpConfig has all the bits needed to configure UCP during installation
 type UcpConfig struct {
-	Version      string   `yaml:"version"`
-	ImageRepo    string   `yaml:"imageRepo"`
-	InstallFlags []string `yaml:"installFlags,flow"`
-	ConfigFile   string   `yaml:"configFile" validate:"omitempty,file"`
-	ConfigData   string   `yaml:"configData"`
+	Version         string   `yaml:"version"`
+	ImageRepo       string   `yaml:"imageRepo"`
+	InstallFlags    []string `yaml:"installFlags,flow"`
+	ConfigFile      string   `yaml:"configFile" validate:"omitempty,file"`
+	ConfigData      string   `yaml:"configData"`
+	LicenseFilePath string   `yaml:"licenseFilePath" validate:"omitempty,file"`
 
 	Metadata *UcpMetadata
 }
