@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"testing"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
@@ -129,6 +130,30 @@ spec:
 	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "Role")
+}
+
+func TestHostWithComplexEngineConfig(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+  - address: "1.2.3.4"
+    sshPort: 22
+    role: worker
+    engineConfig:
+      debug: true
+      log-opts:
+        max-size: 10m
+        max-files: 5
+
+`
+	c := loadYaml(t, data)
+
+	t.Logf("daemon config: %#v", c.Spec.Hosts[0].DaemonConfig)
+
+	_, err := json.Marshal(c.Spec.Hosts[0].DaemonConfig)
+	require.NoError(t, err)
 }
 
 // Just a small helper to load the config struct from yaml to get defaults etc. in place

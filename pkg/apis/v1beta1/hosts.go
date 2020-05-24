@@ -50,10 +50,11 @@ type Host struct {
 	SSHKeyPath       string `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
 	Role             string `yaml:"role" validate:"oneof=manager worker"`
 	PrivateInterface string `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+	DaemonConfig     GenericHash `yaml:"engineConfig,flow" default:"{}"`
 
 	Metadata   *HostMetadata  `yaml:"-"`
 	Configurer HostConfigurer `yaml:"-"`
-
+	
 	sshClient *ssh.Client
 }
 
@@ -153,7 +154,13 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 	}
 
 	if stdin != "" {
+<<<<<<< HEAD
 		log.Debugf("%s: writing data to command stdin: %s", h.Address, stdin)
+=======
+		if !sensitiveCommand {
+			log.Debugf("writing data to command stdin: %s", stdin)
+		}
+>>>>>>> 479b027... Engine config under host configs
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)
@@ -206,7 +213,7 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 // WriteFile writes file to host with given contents
 func (h *Host) WriteFile(path string, data string, permissions string) error {
 	tempFile, _ := h.ExecWithOutput("mktemp")
-	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
 	if err != nil {
 		return err
 	}

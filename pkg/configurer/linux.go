@@ -1,6 +1,7 @@
 package configurer
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -17,6 +18,19 @@ type LinuxConfigurer struct {
 
 // InstallEngine install Docker EE engine on Linux
 func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
+	log.Debugf("engine config: %+v", c.Host.DaemonConfig)
+	if len(c.Host.DaemonConfig) > 0 {
+		daemonJSONData, err := json.Marshal(c.Host.DaemonConfig)
+		if err != nil {
+			return fmt.Errorf("failed to marshal daemon json config: %w", err)
+		}
+		log.Debugf("writing /etc/docker/daemon.json...")
+		err = c.Host.WriteFile("/etc/docker/daemon.json", string(daemonJSONData), "0700")
+		if err != nil {
+			return err
+		}
+	}
+
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}

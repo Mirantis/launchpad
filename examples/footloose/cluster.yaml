@@ -6,10 +6,16 @@ spec:
       sshPort: 9022
       user: "root"
       role: "manager"
+      engineConfig: &linuxEngineConfig
+        debug: true
+        log-opts:
+          max-size: 10m
+          max-file: "3"
     - address: "127.0.0.1"
       sshPort: 9023
       user: "root"
       role: "worker"
+      engineConfig: *linuxEngineConfig
   ucp:
     installFlags:
       - --admin-username=admin

@@ -15,6 +15,7 @@ type WindowsConfigurer struct {
 
 // InstallEngine install Docker EE engine on Windows
 func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
+	// FIXME Need to write the daemon.json config to C:\ProgramData\docker\config\daemon.json
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
