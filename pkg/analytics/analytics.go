@@ -1,6 +1,8 @@
 package analytics
 
 import (
+	"io/ioutil"
+	"log"
 	"os"
 	"runtime"
 
@@ -30,12 +32,20 @@ var testClient Analytics
 func Client() Analytics {
 	if testClient != nil {
 		return testClient
-	}
-	segmentToken := DevSegmentToken
+	}	
+  segmentToken := DevSegmentToken
 	if version.IsProduction() {
 		segmentToken = ProdSegmentToken
 	}
-	segmentClient := analytics.New(segmentToken)
+
+	segmentLogger := analytics.StdLogger(log.New(ioutil.Discard, "segment ", log.LstdFlags))
+	segmentConfig := analytics.Config{
+		Logger: segmentLogger,
+	}
+	segmentClient, err := analytics.NewWithConfig(segmentToken, segmentConfig)
+	if err != nil {
+		os.Setenv("ANALYTICS_DISABLED", "true")
+	}
 	return segmentClient
 }
 
