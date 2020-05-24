@@ -10,8 +10,14 @@ spec:
       sshPort: 9023
       user: "root"
       role: "worker"
+      engineConfig: linuxworker
   ucp:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
       - --default-node-orchestrator=kubernetes
+  engine:
+    config:
+      - name: linuxworker
+        config:
+          debug: true

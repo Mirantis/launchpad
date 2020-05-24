@@ -29,7 +29,22 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func Validate(c *api.ClusterConfig) error {
 	validator := validator.New()
-	return validator.Struct(c)
+	err := validator.Struct(c)
+	if err != nil {
+		return err
+	}
+
+	engineConfigs := make(map[string]bool, len(c.Spec.Engine.Configurations))
+	for _, ec := range c.Spec.Engine.Configurations {
+		engineConfigs[ec.Name] = true
+	}
+	// Validate the host.engineConfig references actually exist
+	for _, h := range c.Spec.Hosts {
+		if h.EngineConfigRef != "" && !engineConfigs[h.EngineConfigRef] {
+			return fmt.Errorf("host %s references engine config %s which does not exist", h.Address, h.EngineConfigRef)
+		}
+	}
+	return nil
 }
 
 // ResolveClusterFile looks for the cluster.yaml file, based on the value.

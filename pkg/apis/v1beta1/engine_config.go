@@ -1,15 +1,18 @@
 package v1beta1
 
 import (
+	"encoding/json"
+
 	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 // EngineConfig holds the engine installation specific options
 type EngineConfig struct {
-	Version    string `yaml:"version"`
-	RepoURL    string `yaml:"repoUrl"`
-	InstallURL string `yaml:"installURL"`
-	Channel    string `yaml:"channel"`
+	Version        string             `yaml:"version"`
+	RepoURL        string             `yaml:"repoUrl"`
+	InstallURL     string             `yaml:"installURL"`
+	Channel        string             `yaml:"channel"`
+	Configurations []EngineHostConfig `yaml:"config"`
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml
@@ -33,4 +36,27 @@ func NewEngineConfig() EngineConfig {
 		RepoURL:    constant.EngineRepoURL,
 		InstallURL: constant.EngineInstallURL,
 	}
+}
+
+// GetDaemonConfig gets the named daemon config
+func (c *EngineConfig) GetDaemonConfig(name string) *EngineHostConfig {
+	for _, ehc := range c.Configurations {
+		if name == ehc.Name {
+			return &ehc
+		}
+	}
+
+	return nil
+}
+
+// EngineHostConfig defines the named host level engine config options, essentially the daemon.json equivalent which will
+// be injected into hosts when installing engine.
+type EngineHostConfig struct {
+	Name   string
+	Config map[string]interface{}
+}
+
+// ToDaemonJSON converts the engine config into daemon.json data
+func (ec *EngineHostConfig) ToDaemonJSON() ([]byte, error) {
+	return json.Marshal(ec.Config)
 }

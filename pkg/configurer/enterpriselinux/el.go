@@ -1,7 +1,7 @@
 package enterpriselinux
 
 import (
-	"encoding/json"
+	"fmt"
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
@@ -24,20 +24,17 @@ func (c *Configurer) InstallBasePackages() error {
 
 // InstallEngine install Docker EE engine on Linux
 func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
-	daemonJSON := make(map[string]interface{})
-	output, err := c.Host.ExecWithOutput("sudo ls /etc/docker/daemon.json && sudo cat /etc/docker/daemon.json")
-	if err == nil {
-		json.Unmarshal([]byte(output), &daemonJSON)
+	if c.Host.EngineConfigRef != "" {
+		engineHostconfig := engineConfig.GetDaemonConfig(c.Host.EngineConfigRef)
+		if engineHostconfig == nil {
+			return fmt.Errorf("could not find engine config with name %s", c.Host.EngineConfigRef)
+		}
+		if c.SELinuxEnabled() {
+			engineHostconfig.Config["selinux-enabled"] = true
+		}
 	}
-	if c.SELinuxEnabled() {
-		daemonJSON["selinux-enabled"] = true
-	}
+	// FIXME How to inject "selinux-enabled":true if there's no config reference!?!?!
 
-	json, err := json.Marshal(daemonJSON)
-	if err != nil {
-		return err
-	}
-	c.Host.WriteFile("/etc/docker/daemon.json", string(json), "0700")
 	return c.LinuxConfigurer.InstallEngine(engineConfig)
 }
 

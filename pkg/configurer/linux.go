@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // LinuxConfigurer is a generic linux host configurer
@@ -17,6 +19,23 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
+
+	if c.Host.EngineConfigRef != "" {
+		engineHostconfig := engineConfig.GetDaemonConfig(c.Host.EngineConfigRef)
+		if engineHostconfig == nil {
+			return fmt.Errorf("could not find engine config with name %s", c.Host.EngineConfigRef)
+		}
+		daemonJSONData, err := engineHostconfig.ToDaemonJSON()
+		if err != nil {
+			return fmt.Errorf("failed to marshal daemon json config: %w", err)
+		}
+		log.Debugf("writing /etc/docker/daemon.json...")
+		err = c.Host.WriteFile("/etc/docker/daemon.json", string(daemonJSONData), "0700")
+		if err != nil {
+			return err
+		}
+	}
+
 	cmd := fmt.Sprintf("curl %s | DOCKER_URL=%s CHANNEL=%s VERSION=%s bash", engineConfig.InstallURL, engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
 	err := c.Host.Exec(cmd)
 	if err != nil {

@@ -131,6 +131,52 @@ spec:
 	validateErrorField(t, err, "Role")
 }
 
+func TestEngineConfig(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+  - address: "1.2.3.4"
+    sshPort: 22
+    role: foobar
+  engine:
+    config:
+    - name: linux
+      config:
+        foo: bar
+        baz:
+          other: value
+`
+	c := loadYaml(t, data)
+	require.Equal(t, "linux", c.Spec.Engine.Configurations[0].Name)
+	require.Equal(t, "bar", c.Spec.Engine.Configurations[0].Config["foo"])
+}
+
+func TestEngineConfigWithInvalidEngineConfigReference(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/v1beta1
+kind: UCP
+spec:
+  hosts:
+  - address: "1.2.3.4"
+    sshPort: 22
+    role: worker
+    engineConfig: nope
+  engine:
+    config:
+    - name: linux
+      config:
+        foo: bar
+        baz:
+          other: value
+`
+	c := loadYaml(t, data)
+	err := Validate(c)
+	require.Error(t, err)
+	require.EqualError(t, err, "host 1.2.3.4 references engine config nope which does not exist")
+}
+
 // Just a small helper to load the config struct from yaml to get defaults etc. in place
 func loadYaml(t *testing.T, data string) *api.ClusterConfig {
 	c, err := FromYaml([]byte(data))

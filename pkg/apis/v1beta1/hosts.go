@@ -51,6 +51,7 @@ type Host struct {
 	Role             string   `yaml:"role" validate:"oneof=manager worker"`
 	ExtraArgs        []string `yaml:"extraArgs"`
 	PrivateInterface string   `yaml:"privateInterface" default:"eth0" validate:"gt=2"`
+	EngineConfigRef  string   `yaml:"engineConfig"`
 	Metadata         *HostMetadata
 	Configurer       HostConfigurer
 
@@ -151,7 +152,9 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 	}
 
 	if stdin != "" {
-		log.Debugf("writing data to command stdin: %s", stdin)
+		if !sensitiveCommand {
+			log.Debugf("writing data to command stdin: %s", stdin)
+		}
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)
@@ -204,7 +207,7 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 // WriteFile writes file to host with given contents
 func (h *Host) WriteFile(path string, data string, permissions string) error {
 	tempFile, _ := h.ExecWithOutput("mktemp")
-	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
 	if err != nil {
 		return err
 	}
