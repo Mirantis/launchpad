@@ -17,12 +17,10 @@ import (
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
-	cli "github.com/urfave/cli/v2"
 )
 
 // Download downloads a UCP client bundle
-func Download(ctx *cli.Context) error {
-	clusterFile := ctx.String("config")
+func Download(clusterFile string, username string, password string) error {
 	cfgData, err := config.ResolveClusterFile(clusterFile)
 	if err != nil {
 		return err
@@ -50,7 +48,6 @@ func Download(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
 	}
-	username, password := ctx.String("username"), ctx.String("password")
 	bundle, err := ucp.GetClientBundle(url, tlsConfig, username, password)
 	if err != nil {
 		return fmt.Errorf("failed to download admin bundle: %s", err)

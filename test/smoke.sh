@@ -21,7 +21,7 @@ chmod +x ./footloose
 ./footloose create
 
 set +e
-../bin/launchpad --debug install
+../bin/launchpad --debug apply
 result=$?
 
 ./footloose delete

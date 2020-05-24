@@ -4,16 +4,16 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/install"
+	"github.com/Mirantis/mcc/pkg/cmd/apply"
 
 	"github.com/urfave/cli/v2"
 )
 
-// NewInstallCommand creates new install command to be called from cli
-func NewInstallCommand() *cli.Command {
+// NewApplyCommand creates new install command to be called from cli
+func NewApplyCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "install",
-		Usage: "Install a new cluster",
+		Name:  "apply",
+		Usage: "Apply a cluster configuration",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "config",
@@ -24,15 +24,15 @@ func NewInstallCommand() *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
-			analytics.TrackEvent("Cluster Install Started", nil)
-			err := install.Install(ctx)
+			analytics.TrackEvent("Cluster Apply Started", nil)
+			err := apply.Apply(ctx.String("config"))
 			if err != nil {
-				analytics.TrackEvent("Cluster Install Failed", nil)
+				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {
 				duration := time.Since(start)
 				props := analytics.NewAnalyticsEventProperties()
 				props["duration"] = duration.Seconds()
-				analytics.TrackEvent("Cluster Install Completed", props)
+				analytics.TrackEvent("Cluster Apply Completed", props)
 			}
 			return err
 		},

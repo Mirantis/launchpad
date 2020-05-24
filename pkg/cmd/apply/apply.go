@@ -1,4 +1,4 @@
-package install
+package apply
 
 import (
 	"os"
@@ -8,17 +8,15 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/mattn/go-isatty"
-	"github.com/urfave/cli/v2"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// Install ...
-func Install(ctx *cli.Context) error {
+// Apply ...
+func Apply(configFile string) error {
 	if err := analytics.RequireRegisteredUser(); err != nil {
 		return err
 	}
-	configFile := ctx.String("config")
 	cfgData, err := config.ResolveClusterFile(configFile)
 	if err != nil {
 		return err

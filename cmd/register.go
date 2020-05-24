@@ -3,7 +3,8 @@ package cmd
 import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/register"
+	"github.com/Mirantis/mcc/pkg/cmd/register"
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -31,7 +32,12 @@ func RegisterCommand() *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			analytics.TrackEvent("User Register Started", nil)
-			err := register.Register(ctx)
+			userConfig := &config.UserConfig{
+				Name:    ctx.String("name"),
+				Company: ctx.String("company"),
+				Email:   ctx.String("email"),
+			}
+			err := register.Register(userConfig)
 			if err == terminal.InterruptErr {
 				analytics.TrackEvent("User Register Cancelled", nil)
 				return nil
