@@ -1,6 +1,10 @@
 GIT_COMMIT = $(shell git rev-parse --short=7 HEAD)
+ifdef TAG_NAME
+	ENVIRONMENT = "production"
+endif
+ENVIRONMENT ?= "development"
 LAUNCHPAD_VERSION ?= $(or ${TAG_NAME},dev)
-LD_FLAGS = "-w -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(LAUNCHPAD_VERSION)
+LD_FLAGS = "-w -X github.com/Mirantis/mcc/version.Environment=$(ENVIRONMENT) -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(LAUNCHPAD_VERSION)
 BUILD_FLAGS = -a -tags "netgo static_build" -installsuffix netgo -ldflags $(LD_FLAGS) -extldflags '-static'"
 
 BUILDER_IMAGE = launchpad-builder
