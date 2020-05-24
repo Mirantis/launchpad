@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/bundle"
+	"github.com/Mirantis/mcc/pkg/cmd/bundle"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,7 +32,7 @@ func NewDownloadBundleCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			err := bundle.Download(ctx)
+			err := bundle.Download(ctx.String("config"), ctx.String("username"), ctx.String("password"))
 			if err != nil {
 				analytics.TrackEvent("Bundle Download Failed", nil)
 			} else {

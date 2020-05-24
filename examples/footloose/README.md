@@ -5,5 +5,5 @@
 ## Steps
 
 1. `footloose create`
-2. `go run ../../main.go install`
+2. `launchpad apply`
 3. Profit :)

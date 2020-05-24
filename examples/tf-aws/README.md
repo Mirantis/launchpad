@@ -8,6 +8,6 @@ This directory provides an example flow with mcc tool together with Terraform.
 2. `terraform init`
 3. `terraform apply`
 4. `terraform output -json | yq r --prettyPrint - ucp_cluster.value > cluster.yaml`
-5. `go run ../../main.go install`
+5. `launchpad apply`
 6. Profit! :)
 

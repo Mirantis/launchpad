@@ -43,7 +43,7 @@ func main() {
 			return nil
 		},
 		Commands: []*cli.Command{
-			cmd.NewInstallCommand(),
+			cmd.NewApplyCommand(),
 			cmd.RegisterCommand(),
 			cmd.NewDownloadBundleCommand(),
 			versionCmd,

@@ -28,7 +28,7 @@ chmod +x ./footloose
 ./footloose create
 
 set +e
-if ! ../bin/launchpad --debug install ; then
+if ! ../bin/launchpad --debug apply ; then
   cleanup
   exit 1
 fi
@@ -39,7 +39,7 @@ envsubst < cluster.yaml.tpl > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml
 cat cluster.yaml
 
-../bin/launchpad --debug install
+../bin/launchpad --debug apply
 result=$?
 
 cleanup
