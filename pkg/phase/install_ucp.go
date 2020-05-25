@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
@@ -55,6 +56,14 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 		}
 	}
 
+	if licenseFilePath := config.Spec.Ucp.LicenseFilePath; licenseFilePath != "" {
+		log.Debugf("Installing with LicenseFilePath: %s", licenseFilePath)
+		license, err := ioutil.ReadFile(licenseFilePath)
+		if err != nil {
+			return fmt.Errorf("error while reading license file %s: %v", licenseFilePath, err)
+		}
+		installFlags = append(installFlags, fmt.Sprintf("--license '%s'", string(license)))
+	}
 	flags := strings.Join(installFlags, " ")
 	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
 	err := swarmLeader.ExecCmd(installCmd, "", true, true)

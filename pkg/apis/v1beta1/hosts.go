@@ -83,19 +83,22 @@ func (h *Host) Connect() error {
 	}
 	address := fmt.Sprintf("%s:%d", h.Address, h.SSHPort)
 
-	if sshAgentSock := os.Getenv("SSH_AUTH_SOCK"); sshAgentSock != "" {
+	sshAgentSock := os.Getenv("SSH_AUTH_SOCK")
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil && sshAgentSock == "" {
+		return err
+	}
+	if err == nil {
+		config.Auth = append(config.Auth, ssh.PublicKeys(signer))
+	}
+
+	if sshAgentSock != "" {
 		sshAgent, err := net.Dial("unix", sshAgentSock)
 		if err != nil {
 			return fmt.Errorf("cannot connect to SSH agent auth socket %s: %s", sshAgentSock, err)
 		}
 		log.Debugf("using SSH auth sock %s", sshAgentSock)
 		config.Auth = append(config.Auth, ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers))
-	} else {
-		signer, err := ssh.ParsePrivateKey(key)
-		if err != nil {
-			return err
-		}
-		config.Auth = append(config.Auth, ssh.PublicKeys(signer))
 	}
 
 	client, err := ssh.Dial("tcp", address, config)

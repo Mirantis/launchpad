@@ -1,6 +1,8 @@
 package analytics
 
 import (
+	"io/ioutil"
+	"log"
 	"os"
 	"runtime"
 
@@ -12,7 +14,7 @@ import (
 
 const (
 	// ProdSegmentToken is the API token we use for Segment in production.
-	ProdSegmentToken = "xxx"
+	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z"
 	// DevSegmentToken is the API token we use for Segment in development.
 	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
 )
@@ -30,9 +32,20 @@ var testClient Analytics
 func Client() Analytics {
 	if testClient != nil {
 		return testClient
+	}	
+  segmentToken := DevSegmentToken
+	if version.IsProduction() {
+		segmentToken = ProdSegmentToken
 	}
-	segmentToken := DevSegmentToken // TODO use also ProdSegmentToken
-	segmentClient := analytics.New(segmentToken)
+
+	segmentLogger := analytics.StdLogger(log.New(ioutil.Discard, "segment ", log.LstdFlags))
+	segmentConfig := analytics.Config{
+		Logger: segmentLogger,
+	}
+	segmentClient, err := analytics.NewWithConfig(segmentToken, segmentConfig)
+	if err != nil {
+		os.Setenv("ANALYTICS_DISABLED", "true")
+	}
 	return segmentClient
 }
 
