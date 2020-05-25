@@ -40,7 +40,7 @@ func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
 		Installed:        false,
 		InstalledVersion: "",
 	}
-	swarmLeader := conf.Spec.Managers()[0]
+	swarmLeader := conf.Spec.SwarmLeader()
 	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
 		ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
