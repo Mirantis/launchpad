@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -24,6 +25,24 @@ type UcpMetadata struct {
 	Installed        bool
 	InstalledVersion string
 	ClusterID        string
+}
+
+func (c *UcpConfig) getInstallFlagValue(name string) string {
+	for _, flag := range c.InstallFlags {
+		if strings.HasPrefix(flag, fmt.Sprintf("%s=", name)) {
+			values := strings.SplitN(flag, "=", 2)
+			if values[1] != "" {
+				return values[1]
+			}
+		}
+		if strings.HasPrefix(flag, fmt.Sprintf("%s ", name)) {
+			values := strings.SplitN(flag, " ", 2)
+			if values[1] != "" {
+				return values[1]
+			}
+		}
+	}
+	return ""
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

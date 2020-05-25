@@ -1,6 +1,8 @@
 package v1beta1
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -44,6 +46,17 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 	}
 	log.Debugf("did not find real swarm manager, fallback to first manager host")
 	return c.Managers()[0]
+}
+
+// WebURL returns an URL to web UI
+func (c *ClusterSpec) WebURL() string {
+	address := c.Managers()[0].Address
+	san := c.Ucp.getInstallFlagValue("--san")
+	if san != "" {
+		address = san
+	}
+
+	return fmt.Sprintf("https://%s", address)
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
