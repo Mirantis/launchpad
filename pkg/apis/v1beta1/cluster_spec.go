@@ -1,5 +1,11 @@
 package v1beta1
 
+import (
+	"fmt"
+
+	log "github.com/sirupsen/logrus"
+)
+
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
 	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
@@ -31,6 +37,28 @@ func (c *ClusterSpec) Managers() []*Host {
 	return managers
 }
 
+// SwarmLeader resolves the current swarm leader host
+func (c *ClusterSpec) SwarmLeader() *Host {
+	for _, h := range c.Managers() {
+		if isSwarmLeader(h) {
+			return h
+		}
+	}
+	log.Debugf("did not find real swarm manager, fallback to first manager host")
+	return c.Managers()[0]
+}
+
+// WebURL returns an URL to web UI
+func (c *ClusterSpec) WebURL() string {
+	address := c.Managers()[0].Address
+	san := c.Ucp.getInstallFlagValue("--san")
+	if san != "" {
+		address = san
+	}
+
+	return fmt.Sprintf("https://%s", address)
+}
+
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawConfig ClusterSpec
@@ -45,4 +73,14 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	*c = ClusterSpec(raw)
 	return nil
+}
+
+func isSwarmLeader(host *Host) bool {
+	// We can by-pass the Configurer interface as managers are always linux boxes
+	output, err := host.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
+	if err != nil {
+		log.Warnf("failed to get host's swarm leader status, probably not part of swarm")
+		return false
+	}
+	return output == "true"
 }

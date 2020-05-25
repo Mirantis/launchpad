@@ -5,8 +5,11 @@ import (
 	"io/ioutil"
 	"strings"
 
+<<<<<<< HEAD
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/swarm"
+=======
+>>>>>>> master
 	"github.com/Mirantis/mcc/pkg/ucp"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
@@ -28,10 +31,11 @@ func (p *InstallUCP) Title() string {
 // Run the installer container
 func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	p.EventTitle = "UCP Installed"
-	swarmLeader := config.Spec.Managers()[0]
 	props := analytics.NewAnalyticsEventProperties()
 	props["ucp_version"] = config.Spec.Ucp.Version
 	p.EventProperties = props
+	swarmLeader := config.Spec.SwarmLeader()
+
 	if config.Spec.Ucp.Metadata.Installed {
 		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Spec.Ucp.Metadata.InstalledVersion)
 		return nil
@@ -76,6 +80,6 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
 	config.Spec.Ucp.Metadata = ucpMeta
-	config.State.ClusterID = swarm.ClusterID(swarmLeader)
+
 	return nil
 }

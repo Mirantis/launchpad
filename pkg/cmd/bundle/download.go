@@ -8,14 +8,16 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/state"
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,7 +36,7 @@ func Download(clusterFile string, username string, password string) error {
 		return err
 	}
 
-	m := clusterConfig.Spec.Managers()[0]
+	m := clusterConfig.Spec.Managers()[0] // Does not have to be real swarm leader
 	if err := m.Connect(); err != nil {
 		return fmt.Errorf("error while connecting to manager node: %w", err)
 	}
@@ -44,7 +46,7 @@ func Download(clusterFile string, username string, password string) error {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	url, err := resolveURL(clusterConfig.Spec.Hosts[0].Address)
+	url, err := resolveURL(m.Address)
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
 	}
@@ -52,21 +54,25 @@ func Download(clusterFile string, username string, password string) error {
 	if err != nil {
 		return fmt.Errorf("failed to download admin bundle: %s", err)
 	}
-	// Need to initilize state directly, clusterConfig does not have it initilized outside of the phases which we do not use here.
-	state := &state.State{
-		Name: clusterConfig.Metadata.Name,
-	}
-	stateDir, err := state.GetDir()
-	if err != nil {
-		return fmt.Errorf("failed to get state directory for cluster %s: %w", clusterConfig.Metadata.Name, err)
-	}
 
-	err = writeBundle(filepath.Join(stateDir, "bundle", username), bundle)
+	bundleDir, err := getBundleDir(clusterConfig.Metadata.Name, username)
+	if err != nil {
+		return err
+	}
+	err = writeBundle(bundleDir, bundle)
 	if err != nil {
 		return fmt.Errorf("failed to write admin bundle: %s", err)
 	}
 
 	return nil
+}
+
+func getBundleDir(clusterName, username string) (string, error) {
+	home, err := homedir.Dir()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(home, constant.StateBaseDir, "cluster", clusterName, "bundle", username), nil
 }
 
 func resolveURL(serverURL string) (*url.URL, error) {

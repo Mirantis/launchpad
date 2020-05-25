@@ -43,7 +43,7 @@ func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
 		Installed:        false,
 		InstalledVersion: "",
 	}
-	swarmLeader := conf.Spec.Managers()[0]
+	swarmLeader := conf.Spec.SwarmLeader()
 	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
 		ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
@@ -59,21 +59,6 @@ func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
 		conf.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
 
-	err = p.validateFacts(conf)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// Validates the facts check out:
-// - if swarm is already initialized its cluster ID matches with the one in local state
-func (p *GatherFacts) validateFacts(config *api.ClusterConfig) error {
-	if config.Spec.Ucp.Metadata != nil && config.State.ClusterID != "" && config.Spec.Ucp.Metadata.ClusterID != config.State.ClusterID {
-		return fmt.Errorf("cluster ID mismatch between local state (%s) and cluster state (%s). This configuration is probably for another cluster", config.State.ClusterID, config.Spec.Ucp.Metadata.ClusterID)
-	}
-
-	log.Infof("Facts check out against local state, safe to confinue")
 	return nil
 }
 

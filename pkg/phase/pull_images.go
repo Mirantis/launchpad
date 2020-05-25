@@ -43,7 +43,8 @@ func (p *PullImages) Run(c *api.ClusterConfig) error {
 }
 
 func (p *PullImages) listImages(config *api.ClusterConfig) ([]string, error) {
-	manager := config.Spec.Managers()[0]
+	manager := config.Spec.SwarmLeader()
+
 	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
 	err := manager.PullImage(image)
 	if err != nil {
