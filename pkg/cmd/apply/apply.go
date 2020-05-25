@@ -39,7 +39,6 @@ func Apply(configFile string) error {
 
 	phaseManager := phase.NewManager(&clusterConfig)
 
-	phaseManager.AddPhase(&phase.InitState{})
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{})
 	phaseManager.AddPhase(&phase.PrepareHost{})
@@ -50,7 +49,6 @@ func Apply(configFile string) error {
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
 	phaseManager.AddPhase(&phase.JoinWorkers{})
-	phaseManager.AddPhase(&phase.SaveState{})
 	phaseManager.AddPhase(&phase.Disconnect{})
 
 	phaseErr := phaseManager.Run()

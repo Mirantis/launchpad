@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
@@ -70,6 +69,6 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
 	config.Spec.Ucp.Metadata = ucpMeta
-	config.State.ClusterID = swarm.ClusterID(swarmLeader)
+
 	return nil
 }

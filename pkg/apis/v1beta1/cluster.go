@@ -1,9 +1,5 @@
 package v1beta1
 
-import (
-	"github.com/Mirantis/mcc/pkg/state"
-)
-
 // ClusterMeta defines cluster metadata
 type ClusterMeta struct {
 	Name string `yaml:"name" validate:"required"`
@@ -15,7 +11,6 @@ type ClusterConfig struct {
 	Kind             string       `yaml:"kind" validate:"eq=UCP"`
 	Metadata         *ClusterMeta `yaml:"metadata"`
 	Spec             *ClusterSpec `yaml:"spec"`
-	State            *state.State
 	ManagerJoinToken string
 	WorkerJoinToken  string
 }
