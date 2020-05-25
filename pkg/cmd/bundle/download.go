@@ -34,7 +34,7 @@ func Download(clusterFile string, username string, password string) error {
 		return err
 	}
 
-	m := clusterConfig.Spec.Managers()[0]
+	m := clusterConfig.Spec.SwarmLeader()
 	if err := m.Connect(); err != nil {
 		return fmt.Errorf("error while connecting to manager node: %w", err)
 	}
@@ -44,7 +44,7 @@ func Download(clusterFile string, username string, password string) error {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	url, err := resolveURL(clusterConfig.Spec.Hosts[0].Address)
+	url, err := resolveURL(m.Address)
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
 	}

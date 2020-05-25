@@ -21,7 +21,7 @@ func (p *UpgradeUcp) Title() string {
 
 // Run the installer container
 func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.Managers()[0]
+	swarmLeader := config.Spec.SwarmLeader()
 
 	// Check specified bootstrapper images version
 	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Spec.Ucp.GetBootstrapperImage()))

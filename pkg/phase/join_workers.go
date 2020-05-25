@@ -18,7 +18,8 @@ func (p *JoinWorkers) Title() string {
 
 // Run joins all the workers nodes to swarm if not already part of it.
 func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.Managers()[0]
+	swarmLeader := config.Spec.SwarmLeader()
+
 	for _, h := range config.Spec.Workers() {
 		if swarm.IsSwarmNode(h) {
 			log.Infof("%s: already a swarm node", h.Address)
