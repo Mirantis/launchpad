@@ -35,6 +35,12 @@ func (c *UcpConfig) getInstallFlagValue(name string) string {
 				return values[1]
 			}
 		}
+		if strings.HasPrefix(flag, fmt.Sprintf("%s ", name)) {
+			values := strings.SplitN(flag, " ", 2)
+			if values[1] != "" {
+				return values[1]
+			}
+		}
 	}
 	return ""
 }

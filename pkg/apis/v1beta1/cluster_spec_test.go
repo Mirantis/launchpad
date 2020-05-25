@@ -27,3 +27,27 @@ func TestClusterSpecWebURLWithSan(t *testing.T) {
 	}
 	require.Equal(t, "https://ucp.acme.com", spec.WebURL())
 }
+
+func TestClusterSpecWebURLWithSanSpace(t *testing.T) {
+	spec := ClusterSpec{
+		Hosts: []*Host{
+			&Host{Address: "192.168.1.2", Role: "manager"},
+		},
+		Ucp: UcpConfig{
+			InstallFlags: []string{"--san ucp.acme.com"},
+		},
+	}
+	require.Equal(t, "https://ucp.acme.com", spec.WebURL())
+}
+
+func TestClusterSpecWebURLWithMultiSan(t *testing.T) {
+	spec := ClusterSpec{
+		Hosts: []*Host{
+			&Host{Address: "192.168.1.2", Role: "manager"},
+		},
+		Ucp: UcpConfig{
+			InstallFlags: []string{"--san=ucp.acme.com", "--san=admin.acme.com"},
+		},
+	}
+	require.Equal(t, "https://ucp.acme.com", spec.WebURL())
+}
