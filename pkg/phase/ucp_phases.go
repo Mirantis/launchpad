@@ -34,23 +34,31 @@ func (m *Manager) Run() error {
 	for _, phase := range m.phases {
 		text := aurora.Green("==> Running phase: %s").String()
 		log.Infof(text, phase.Title())
-		start := time.Now()
-		props := analytics.NewAnalyticsEventProperties()
-		props["kind"] = m.config.Kind
-		props["api_version"] = m.config.APIVersion
-		err := phase.Run(m.config)
-		duration := time.Since(start)
-		props["duration"] = duration.Seconds()
-		for k, v := range phase.GetEventProperties() {
-			props[k] = v
+		if p, ok := interface{}(phase).(Eventable); ok {
+			start := time.Now()
+			props := analytics.NewAnalyticsEventProperties()
+			props["kind"] = m.config.Kind
+			props["api_version"] = m.config.APIVersion
+			err := phase.Run(m.config)
+			duration := time.Since(start)
+			props["duration"] = duration.Seconds()
+			for k, v := range p.GetEventProperties() {
+				props[k] = v
+			}
+			if err != nil {
+				props["success"] = false
+				analytics.TrackEvent(p.GetEventTitle(), props)
+				return err
+			}
+			props["success"] = true
+			analytics.TrackEvent(p.GetEventTitle(), props)
+
+		} else {
+			err := phase.Run(m.config)
+			if err != nil {
+				return err
+			}
 		}
-		if err != nil {
-			props["success"] = false
-			analytics.TrackEvent(phase.GetEventTitle(), props)
-			return err
-		}
-		props["success"] = true
-		analytics.TrackEvent(phase.GetEventTitle(), props)
 	}
 
 	return nil

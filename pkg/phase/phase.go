@@ -13,6 +13,10 @@ import (
 type Phase interface {
 	Run(config *api.ClusterConfig) error
 	Title() string
+}
+
+// Eventable interface
+type Eventable interface {
 	GetEventTitle() string
 	GetEventProperties() map[string]interface{}
 }

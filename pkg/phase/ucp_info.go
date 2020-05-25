@@ -6,9 +6,7 @@ import (
 )
 
 // UcpInfo shows information about the UCP cluster
-type UcpInfo struct {
-	Analytics
-}
+type UcpInfo struct{}
 
 // Title for the phase
 func (p *UcpInfo) Title() string {
@@ -17,7 +15,6 @@ func (p *UcpInfo) Title() string {
 
 // Run does the actual saving of the local state file
 func (p *UcpInfo) Run(config *api.ClusterConfig) error {
-	p.EventTitle = "UCP Cluster Info Displayed"
 	url := config.Spec.WebURL()
 	log.Infof("Cluster is now configured. You can access your cluster admin UI at: %s", url)
 	log.Infof("You can also download the admin client bundle with the following command: launchpad download-bundle --username <username> --password <password>")
