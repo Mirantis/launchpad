@@ -19,8 +19,8 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 		return nil
 	}
 	scriptURL := fmt.Sprintf("%sinstall.ps1", constant.EngineInstallURL)
-	dlCommand := fmt.Sprintf("$ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest %s -UseBasicParsing -OutFile install.ps1", scriptURL)
-	err := c.Host.ExecCmd("powershell", dlCommand, false, false)
+	dlCommand := fmt.Sprintf(`powershell "$ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest %s -UseBasicParsing -OutFile install.ps1"`, scriptURL)
+	err := c.Host.Exec(dlCommand)
 	if err != nil {
 		return err
 	}

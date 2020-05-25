@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
@@ -27,7 +28,7 @@ func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", config.WorkerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as worker", h.Address)
-		err := h.ExecCmd(joinCmd, "", true, true)
+		err := h.Exec(joinCmd, exec.StreamOutput(), exec.Redact(config.WorkerJoinToken))
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
 		}

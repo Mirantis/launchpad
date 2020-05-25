@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
@@ -34,7 +35,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	installFlags := config.Spec.Ucp.InstallFlags
 	if config.Spec.Ucp.ConfigData != "" {
 		defer func() {
-			err := swarmLeader.Execf("sudo docker config rm %s", configName)
+			err := swarmLeader.Exec(fmt.Sprintf("sudo docker config rm %s", configName))
 			if err != nil {
 				log.Warnf("Failed to remove the temporary UCP installer configuration %s : %s", configName, err)
 			}
@@ -43,7 +44,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 		installFlags = append(installFlags, "--existing-config")
 		log.Info("Creating UCP configuration")
 		configCmd := swarmLeader.Configurer.DockerCommandf("config create %s -", configName)
-		err := swarmLeader.ExecCmd(configCmd, config.Spec.Ucp.ConfigData, false, false)
+		err := swarmLeader.Exec(configCmd, exec.Stdin(config.Spec.Ucp.ConfigData))
 		if err != nil {
 			return err
 		}
@@ -59,7 +60,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	}
 	flags := strings.Join(installFlags, " ")
 	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
-	err := swarmLeader.ExecCmd(installCmd, "", true, true)
+	err := swarmLeader.Exec(installCmd, exec.StreamOutput())
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}

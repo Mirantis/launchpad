@@ -1,13 +1,12 @@
 package v1beta1
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
 	"github.com/mitchellh/go-homedir"
@@ -55,6 +54,15 @@ type Host struct {
 	Configurer       HostConfigurer
 
 	sshClient *ssh.Client
+}
+
+func (h *Host) SshSession() (*ssh.Session, error) {
+	session, err := h.sshClient.NewSession()
+	return session, err
+}
+
+func (h *Host) Name() string {
+	return h.Address
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
@@ -110,101 +118,20 @@ func (h *Host) Connect() error {
 	return nil
 }
 
-// ExecCmd a command on the host piping stdin and streams the logs
-func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
-	session, err := h.sshClient.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	if stdin == "" && !h.IsWindows() {
-		// FIXME not requesting a pty for commands with stdin input for now,
-		// as it appears the pipe doesn't get closed with stdinpipe.Close()
-		modes := ssh.TerminalModes{}
-		err = session.RequestPty("xterm", 80, 40, modes)
-		if err != nil {
-			return err
-		}
-	}
-
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := session.StderrPipe()
-	if err != nil {
-		return err
-	}
-
-	stdinPipe, err := session.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	if !sensitiveCommand {
-		log.Debugf("executing command: %s", cmd)
-	}
-
-	if err := session.Start(cmd); err != nil {
-		return err
-	}
-
-	if stdin != "" {
-		log.Debugf("writing data to command stdin: %s", stdin)
-		go func() {
-			defer stdinPipe.Close()
-			io.WriteString(stdinPipe, stdin)
-		}()
-	}
-
-	multiReader := io.MultiReader(stdout, stderr)
-	outputScanner := bufio.NewScanner(multiReader)
-
-	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s:  %s", h.Address, outputScanner.Text())
-		} else {
-			log.Debugf("%s:  %s", h.Address, outputScanner.Text())
-		}
-	}
-	if err := outputScanner.Err(); err != nil {
-		log.Errorf("%s:  %s", h.Address, err.Error())
-	}
-
-	return session.Wait()
+// Exec runs a command on the host
+func (h *Host) Exec(cmd string, opts ...exec.Option) error {
+	return exec.Cmd(h, cmd, opts...)
 }
 
-// Exec a command on the host and streams the logs
-func (h *Host) Exec(cmd string) error {
-	return h.ExecCmd(cmd, "", false, false)
+// ExecWithOutput runs a command on the host and returns the output as a string
+func (h *Host) ExecWithOutput(cmd string, opts ...exec.Option) (string, error) {
+	return exec.CmdWithOutput(h, cmd, opts...)
 }
 
-// Execf a printf-formatted command on the host and streams the logs
-func (h *Host) Execf(cmd string, args ...interface{}) error {
-	return h.Exec(fmt.Sprintf(cmd, args...))
-}
-
-// ExecWithOutput execs a command on the host and return output
-func (h *Host) ExecWithOutput(cmd string) (string, error) {
-	session, err := h.sshClient.NewSession()
-	if err != nil {
-		return "", err
-	}
-	defer session.Close()
-
-	output, err := session.CombinedOutput(cmd)
-	if err != nil {
-		return trimOutput(output), err
-	}
-
-	return trimOutput(output), nil
-}
-
-// WriteFile writes file to host with given contents
+// WriteFile writes a file to the host with given contents
 func (h *Host) WriteFile(path string, data string, permissions string) error {
 	tempFile, _ := h.ExecWithOutput("mktemp")
-	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	err := h.Exec(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), exec.Stdin(data))
 	if err != nil {
 		return err
 	}
@@ -228,10 +155,7 @@ func (h *Host) AuthenticateDocker(server string) error {
 			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h.Address)
 		}
 		log.Infof("%s: authenticating docker", h.Address)
-		old := log.GetLevel()
-		log.SetLevel(log.ErrorLevel)
-		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), pass, false, true)
-		log.SetLevel(old)
+		err := h.Exec(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), exec.Stdin(pass), exec.Redact(pass))
 
 		if err != nil {
 			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
@@ -259,7 +183,7 @@ func (h *Host) SwarmAddress() string {
 
 // IsWindows returns true if host has been detected running windows
 func (h *Host) IsWindows() bool {
-	if h.Metadata.Os == nil {
+	if h.Metadata == nil || h.Metadata.Os == nil {
 		return false
 	}
 	return strings.HasPrefix(h.Metadata.Os.ID, "windows-")

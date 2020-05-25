@@ -96,8 +96,7 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 }
 
 func isWindows(h *api.Host) bool {
-	// need to use STDIN so that we don't request PTY (which does not work on Windows)
-	err := h.ExecCmd(`powershell`, `Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"`, false, false)
+	err := h.Exec(`powershell Get-ItemProperty HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion`)
 	if err != nil {
 		return false
 	}
@@ -129,6 +128,7 @@ func resolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	info, err := osrelease.ReadString(output)
 	if err != nil {
 		return nil, err
