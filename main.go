@@ -42,6 +42,10 @@ func main() {
 			initLogger(ctx)
 			return nil
 		},
+		After: func(c *cli.Context) error {
+			version.CheckForUpgrade()
+			return nil
+		},
 		Commands: []*cli.Command{
 			cmd.NewApplyCommand(),
 			cmd.RegisterCommand(),
