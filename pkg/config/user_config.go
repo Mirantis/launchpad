@@ -19,6 +19,7 @@ type UserConfig struct {
 	Name    string `yaml:"name"`
 	Company string `yaml:"company"`
 	Email   string `yaml:"email"`
+	Eula    bool   `yaml:"eula"`
 }
 
 // GetUserConfig returns a new decoded Config struct

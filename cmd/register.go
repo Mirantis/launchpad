@@ -29,6 +29,11 @@ func RegisterCommand() *cli.Command {
 				Usage:   "Email",
 				Aliases: []string{"e"},
 			},
+			&cli.BoolFlag{
+				Name:    "accept-eula",
+				Usage:   "Accept EULA",
+				Aliases: []string{"a"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			analytics.TrackEvent("User Register Started", nil)
@@ -36,6 +41,7 @@ func RegisterCommand() *cli.Command {
 				Name:    ctx.String("name"),
 				Company: ctx.String("company"),
 				Email:   ctx.String("email"),
+				Eula:    ctx.Bool("accept-eula"),
 			}
 			err := register.Register(userConfig)
 			if err == terminal.InterruptErr {
