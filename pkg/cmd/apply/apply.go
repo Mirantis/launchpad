@@ -64,7 +64,7 @@ func Apply(configFile string) error {
 	props["managers"] = len(clusterConfig.Spec.Managers())
 	props["workers"] = len(clusterConfig.Spec.Workers())
 	props["engine_version"] = clusterConfig.Spec.Engine.Version
-	clusterID := clusterConfig.State.ClusterID
+	clusterID := clusterConfig.Spec.Ucp.Metadata.ClusterID
 	props["cluster_id"] = clusterID
 	// send ucp analytics user id as ucp_instance_id property
 	ucpInstanceID := fmt.Sprintf("%x", sha1.Sum([]byte(clusterID)))
