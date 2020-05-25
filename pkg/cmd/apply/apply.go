@@ -52,6 +52,7 @@ func Apply(configFile string) error {
 	phaseManager.AddPhase(&phase.JoinWorkers{})
 	phaseManager.AddPhase(&phase.SaveState{})
 	phaseManager.AddPhase(&phase.Disconnect{})
+	phaseManager.AddPhase(&phase.UcpInfo{})
 
 	phaseErr := phaseManager.Run()
 	if phaseErr != nil {
