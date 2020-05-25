@@ -36,9 +36,9 @@ type release struct {
 
 // CheckForUpgrade detects if newer version is available
 func CheckForUpgrade() {
-	//if !IsProduction() {
-	//	return
-	//}
+	if !IsProduction() {
+		return // do not check on dev builds
+	}
 	client := &http.Client{
 		Timeout: time.Second * 2,
 	}
