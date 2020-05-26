@@ -16,12 +16,11 @@ ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 envsubst < cluster.yaml.tpl > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml
 
-os = $(uname | tr '[:upper:]' '[:lower:]')
-curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-${os}-x86_64 > ./footloose
+curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
 chmod +x ./footloose
 ./footloose create
 
-curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/${os}/amd64/kubectl > ./kubectl
+curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
 chmod +x ./kubectl
 
 set +e
