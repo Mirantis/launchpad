@@ -37,12 +37,14 @@ fi
 # to source the env file succesfully we must be in the same directory
 cd ~/.mirantis-launchpad/cluster/$CLUSTER_NAME/bundle/admin/
 source env.sh
+
 docker ps
 result=$?
 if [ $result -ne 0 ]; then
     echo "'docker ps' returned non-zero exit code " $result
     exit $result
 fi
+
 ./kubectl get pods
 result=$?
 if [ $result -ne 0 ]; then
@@ -58,4 +60,4 @@ unset DOCKER_TLS_VERIFY
 ./footloose delete
 docker volume prune -f
 ## Clean the local state
-rm -rf ~/.mirantis-launchpad/cluster/$CUSTER_NAME
+rm -rf ~/.mirantis-launchpad/cluster/$CLUSTER_NAME
