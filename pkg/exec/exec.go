@@ -135,7 +135,7 @@ func Cmd(h host, cmd string, opts ...Option) error {
 	}
 
 	if options.LogCommand {
-		log.Debugf("executing command: %s", redact(cmd))
+		log.Debugf("%s: executing command: %s", h.Name(), redact(cmd))
 	}
 
 	if err := session.Start(cmd); err != nil {
@@ -144,7 +144,7 @@ func Cmd(h host, cmd string, opts ...Option) error {
 
 	if options.Stdin != "" {
 		if options.LogCommand {
-			log.Debugf("writing data to command stdin: %s", redact(options.Stdin))
+			log.Debugf("%s: writing data to command stdin: %s", h.Name(), redact(options.Stdin))
 		}
 
 		go func() {
