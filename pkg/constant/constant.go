@@ -6,7 +6,7 @@ const (
 	// UCPVersion is the default UCP version to use
 	UCPVersion = "3.3.0-rc1"
 	// EngineVersion is the default engine version
-	EngineVersion = "19.03.8-rc1"
+	EngineVersion = "19.03.8-rc3"
 	// EngineChannel is the default engine channel
 	EngineChannel = "test"
 	// EngineRepoURL is the default engine repo
