@@ -26,8 +26,8 @@ func (p *UpgradeUcp) Title() string {
 func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	swarmLeader := config.Spec.SwarmLeader()
 
-	props := analytics.NewAnalyticsEventProperties()
-	props["upgraded"] = false
+	p.EventProperties = analytics.NewAnalyticsEventProperties()
+	p.EventProperties["upgraded"] = false
 	// Check specified bootstrapper images version
 	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Spec.Ucp.GetBootstrapperImage()))
 	if err != nil {
@@ -35,7 +35,6 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	}
 	installedVersion := config.Spec.Ucp.Metadata.InstalledVersion
 	if bootstrapperVersion == installedVersion {
-		p.EventProperties = props
 		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
 		return nil
 	}
@@ -46,7 +45,6 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
 	err = swarmLeader.ExecCmd(upgradeCmd, "", true, false)
 	if err != nil {
-		p.EventProperties = props
 		return NewError("Failed to run UCP upgrade")
 	}
 
@@ -54,10 +52,9 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
-	props["upgraded"] = true
-	props["installed_version"] = installedVersion
-	props["upgraded_version"] = bootstrapperVersion
-	p.EventProperties = props
+	p.EventProperties["upgraded"] = true
+	p.EventProperties["installed_version"] = installedVersion
+	p.EventProperties["upgraded_version"] = bootstrapperVersion
 	config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil
