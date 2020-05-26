@@ -39,7 +39,7 @@ func Register(userConfig *config.UserConfig) error {
 
 	if !userConfig.Eula {
 		prompt := &survey.Confirm{
-			Message: "Do you accept EULA (https://github.com/launchpad)?",
+			Message: "I agree to Mirantis Launchpad End-User License Agreement (EULA) https://github.com/Mirantis/launchpad/blob/master/EULA.md",
 			Default: true,
 		}
 		err := survey.AskOne(prompt, &userConfig.Eula, survey.WithIcons(icons))
@@ -49,7 +49,7 @@ func Register(userConfig *config.UserConfig) error {
 	}
 
 	if !userConfig.Eula {
-		return errors.New("You must accept EULA before you can use the tool")
+		return errors.New("You must agree to Mirantis Launchpad End-User License Agreement (EULA) before you can use the tool")
 	}
 
 	err := config.SaveUserConfig(userConfig)
