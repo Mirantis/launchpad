@@ -9,6 +9,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
 
 	log "github.com/sirupsen/logrus"
@@ -34,7 +35,7 @@ func Apply(configFile string) error {
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {
 		os.Stdout.WriteString(util.Logo)
-		os.Stdout.WriteString("   Mirantis Launchpad\n\n")
+		os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
 	}
 
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)

@@ -11,6 +11,7 @@ require (
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/go-playground/validator/v10 v10.2.0
+	github.com/hashicorp/go-version v1.2.0
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/mattn/go-isatty v0.0.12
