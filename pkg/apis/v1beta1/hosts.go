@@ -143,7 +143,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 	}
 
 	if !sensitiveCommand {
-		log.Debugf("executing command: %s", cmd)
+		log.Debugf("%s: executing command: %s", h.Address, cmd)
 	}
 
 	if err := session.Start(cmd); err != nil {
@@ -151,7 +151,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 	}
 
 	if stdin != "" {
-		log.Debugf("writing data to command stdin: %s", stdin)
+		log.Debugf("%s: writing data to command stdin: %s", h.Address, stdin)
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)
@@ -221,16 +221,17 @@ func trimOutput(output []byte) string {
 
 // AuthenticateDocker performs a docker login on the host using local REGISTRY_USERNAME
 // and REGISTRY_PASSWORD when set
-func (h *Host) AuthenticateDocker(server string) error {
+func (h *Host) AuthenticateDocker(imageRepo string) error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
 		if pass == "" {
 			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h.Address)
 		}
-		log.Infof("%s: authenticating docker", h.Address)
+
+		log.Infof("%s: authenticating docker for image repo %s", h.Address, imageRepo)
 		old := log.GetLevel()
 		log.SetLevel(log.ErrorLevel)
-		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, server), pass, false, true)
+		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), pass, false, true)
 		log.SetLevel(old)
 
 		if err != nil {

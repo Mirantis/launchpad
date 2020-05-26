@@ -78,3 +78,8 @@ func NewUcpConfig() UcpConfig {
 func (c *UcpConfig) GetBootstrapperImage() string {
 	return fmt.Sprintf("%s/ucp:%s", c.ImageRepo, c.Version)
 }
+
+// IsCustomImageRepo checks if the config is using a custom image repo
+func (c *UcpConfig) IsCustomImageRepo() bool {
+	return c.ImageRepo != constant.ImageRepo
+}

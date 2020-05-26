@@ -77,9 +77,9 @@ locals {
   windows_workers = [
     for host in module.windows_workers.machines : {
       address = host.public_ip
-      user    = "docker"
+      user    = "administrator"
       role    = host.tags["Role"]
-      privateInterface = "Ethernet 3"
+      privateInterface = "Ethernet 2"
       sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
     }
   ]

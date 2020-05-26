@@ -17,24 +17,39 @@ func Register(userConfig *config.UserConfig) error {
 	}
 
 	if validateName(userConfig.Name) != nil {
-		err := survey.AskOne(&survey.Input{Message: "Name"}, userConfig.Name, survey.WithValidator(validateName), survey.WithIcons(icons))
+		err := survey.AskOne(&survey.Input{Message: "Name"}, &userConfig.Name, survey.WithValidator(validateName), survey.WithIcons(icons))
 		if err != nil {
 			return err
 		}
 	}
 
 	if validateEmail(userConfig.Email) != nil {
-		err := survey.AskOne(&survey.Input{Message: "Email"}, userConfig.Email, survey.WithValidator(validateEmail), survey.WithIcons(icons))
+		err := survey.AskOne(&survey.Input{Message: "Email"}, &userConfig.Email, survey.WithValidator(validateEmail), survey.WithIcons(icons))
 		if err != nil {
 			return err
 		}
 	}
 
 	if userConfig.Company == "" {
-		err := survey.AskOne(&survey.Input{Message: "Company"}, userConfig.Company, survey.WithIcons(icons))
+		err := survey.AskOne(&survey.Input{Message: "Company"}, &userConfig.Company, survey.WithIcons(icons))
 		if err != nil {
 			return err
 		}
+	}
+
+	if !userConfig.Eula {
+		prompt := &survey.Confirm{
+			Message: "I agree to Mirantis Launchpad End-User License Agreement (EULA) https://github.com/Mirantis/launchpad/blob/master/EULA.md",
+			Default: true,
+		}
+		err := survey.AskOne(prompt, &userConfig.Eula, survey.WithIcons(icons))
+		if err != nil {
+			return err
+		}
+	}
+
+	if !userConfig.Eula {
+		return errors.New("You must agree to Mirantis Launchpad End-User License Agreement (EULA) before you can use the tool")
 	}
 
 	err := config.SaveUserConfig(userConfig)

@@ -63,6 +63,12 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 		}
 		installFlags = append(installFlags, fmt.Sprintf("--license '%s'", string(license)))
 	}
+
+	if config.Spec.Ucp.IsCustomImageRepo() {
+		// In case of custom repo, don't let UCP to check the images
+		installFlags = append(installFlags, "--pull never")
+	}
+
 	flags := strings.Join(installFlags, " ")
 	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
 	err := swarmLeader.ExecCmd(installCmd, "", true, true)
