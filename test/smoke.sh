@@ -20,13 +20,42 @@ curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloos
 chmod +x ./footloose
 ./footloose create
 
+curl -LO https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+
 set +e
 ../bin/launchpad --debug apply
 result=$?
+
+if [ $result -ne 0 ]; then
+    echo "'launchpad apply' returned non-zero exit code " $result
+    exit $result
+fi
+
+../bin/launchpad --debug download-bundle --username admin --password orcaorcaorca
+# to source the env file succesfully we must be in the same directory
+cd ~/.mirantis-launchpad/cluster/$CLUSTER_NAME/bundle/admin/
+source env.sh
+docker ps
+result=$?
+if [ $result -ne 0 ]; then
+    echo "'docker ps' returned non-zero exit code " $result
+    exit $result
+fi
+# TODO ./kubectl
+kubectl get pods
+result=$?
+if [ $result -ne 0 ]; then
+    echo "'kubectl get pods' returned non-zero exit code " $result
+    exit $result
+fi
+cd -
+
+unset DOCKER_HOST
+unset DOCKER_CERT_PATH
+unset DOCKER_TLS_VERIFY
 
 ./footloose delete
 docker volume prune -f
 ## Clean the local state
 rm -rf ~/.mirantis-launchpad/cluster/$CUSTER_NAME
-
-exit $result
