@@ -18,7 +18,7 @@ envsubst < footloose.yaml.tpl > footloose.yaml
 
 curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
 chmod +x ./footloose
-./footloose create
+# ./footloose create
 
 curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
 chmod +x ./kubectl
@@ -36,6 +36,7 @@ fi
 # to source the env file succesfully we must be in the same directory
 cd ~/.mirantis-launchpad/cluster/$CLUSTER_NAME/bundle/admin/
 source env.sh
+cd -
 
 docker ps
 result=$?
@@ -50,7 +51,6 @@ if [ $result -ne 0 ]; then
     echo "'kubectl get pods' returned non-zero exit code " $result
     exit $result
 fi
-cd -
 
 unset DOCKER_HOST
 unset DOCKER_CERT_PATH
