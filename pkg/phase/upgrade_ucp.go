@@ -27,6 +27,8 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	p.EventTitle = "UCP Upgraded"
 	swarmLeader := config.Spec.SwarmLeader()
 
+	props := analytics.NewAnalyticsEventProperties()
+	props["upgraded"] = false
 	// Check specified bootstrapper images version
 	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Spec.Ucp.GetBootstrapperImage()))
 	if err != nil {
@@ -51,7 +53,7 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
-	props := analytics.NewAnalyticsEventProperties()
+	props["upgraded"] = true
 	props["installed_version"] = installedVersion
 	props["upgraded_version"] = bootstrapperVersion
 	p.EventProperties = props
