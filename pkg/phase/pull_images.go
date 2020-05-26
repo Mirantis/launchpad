@@ -20,23 +20,41 @@ func (p *PullImages) Title() string {
 // Run pulls all the needed images on managers in parallel.
 // Parallel on each host and pulls 5 images at a time on each host.
 func (p *PullImages) Run(c *api.ClusterConfig) error {
-	images, err := p.listImages(c)
-	if err != nil {
-		return NewError(err.Error())
-	}
-	log.Debugf("loaded images list: %v", images)
-
-	err = runParallelOnHosts(c.Spec.Hosts, c, func(h *api.Host, c *api.ClusterConfig) error {
+	err := runParallelOnHosts(c.Spec.Hosts, c, func(h *api.Host, c *api.ClusterConfig) error {
 		return h.AuthenticateDocker(c.Spec.Ucp.ImageRepo)
 	})
 
 	if err != nil {
 		return err
 	}
+	images, err := p.listImages(c)
+	if err != nil {
+		return NewError(err.Error())
+	}
+	log.Debugf("loaded images list: %v", images)
 
+	if c.Spec.Ucp.IsCustomImageRepo() {
+		// Store map of original --> custom repo images
+		imageMap := make(map[string]string, len(images))
+		for index, i := range images {
+			newImage := strings.Replace(i, "docker/", fmt.Sprintf("%s/", c.Spec.Ucp.ImageRepo), 1)
+			imageMap[i] = newImage
+			images[index] = newImage
+		}
+		// In case of custom image repo, we need to pull and retag all the images on all hosts
+		return runParallelOnHosts(c.Spec.Hosts, c, func(h *api.Host, c *api.ClusterConfig) error {
+			err := p.pullImages(h, images)
+			if err != nil {
+				return err
+			}
+			return p.retagImages(h, imageMap)
+		})
+	}
+	// Normally we pull only on managers, let workers pull needed stuff on-demand
 	return runParallelOnHosts(c.Spec.Managers(), c, func(h *api.Host, c *api.ClusterConfig) error {
 		return p.pullImages(h, images)
 	})
+
 }
 
 func (p *PullImages) listImages(config *api.ClusterConfig) ([]string, error) {
@@ -70,5 +88,19 @@ func (p *PullImages) pullImages(host *api.Host, images []string) error {
 			}
 		})
 	}
+	return nil
+}
+
+func (p *PullImages) retagImages(host *api.Host, imageMap map[string]string) error {
+
+	for dockerImage, realImage := range imageMap {
+		retagCmd := host.Configurer.DockerCommandf("tag %s %s", realImage, dockerImage)
+		log.Debugf("%s: retag %s --> %s", host.Address, realImage, dockerImage)
+		_, err := host.ExecWithOutput(retagCmd)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
