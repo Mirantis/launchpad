@@ -40,7 +40,7 @@ data "aws_ami" "windows_2019" {
 
   filter {
     name   = "name"
-    values = ["testkit/win_core2019/*"]
+    values = ["Windows_Server-2019-English-Core-ContainersLatest-*"]
   }
 
   filter {
@@ -48,7 +48,7 @@ data "aws_ami" "windows_2019" {
     values = ["hvm"]
   }
 
-  owners = ["546848686991"] # Mirantis?
+  owners = ["801119661308"] # Amazon
 }
 
 resource "aws_security_group" "common" {
