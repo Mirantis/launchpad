@@ -26,7 +26,6 @@ func (p *InstallUCP) Title() string {
 
 // Run the installer container
 func (p *InstallUCP) Run(config *api.ClusterConfig) error {
-	p.EventTitle = "UCP Installed"
 	props := analytics.NewAnalyticsEventProperties()
 	props["ucp_version"] = config.Spec.Ucp.Version
 	p.EventProperties = props

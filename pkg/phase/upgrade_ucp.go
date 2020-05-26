@@ -24,7 +24,6 @@ func (p *UpgradeUcp) Title() string {
 
 // Run the installer container
 func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
-	p.EventTitle = "UCP Upgraded"
 	swarmLeader := config.Spec.SwarmLeader()
 
 	props := analytics.NewAnalyticsEventProperties()
@@ -36,6 +35,7 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	}
 	installedVersion := config.Spec.Ucp.Metadata.InstalledVersion
 	if bootstrapperVersion == installedVersion {
+		p.EventProperties = props
 		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
 		return nil
 	}
@@ -46,6 +46,7 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
 	err = swarmLeader.ExecCmd(upgradeCmd, "", true, false)
 	if err != nil {
+		p.EventProperties = props
 		return NewError("Failed to run UCP upgrade")
 	}
 

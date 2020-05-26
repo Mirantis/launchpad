@@ -24,7 +24,6 @@ func (p *InstallEngine) Title() string {
 
 // Run installs the engine on each host
 func (p *InstallEngine) Run(c *api.ClusterConfig) error {
-	p.EventTitle = "Engine Installed"
 	props := analytics.NewAnalyticsEventProperties()
 	props["engine_version"] = c.Spec.Engine.Version
 	p.EventProperties = props

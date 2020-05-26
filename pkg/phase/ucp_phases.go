@@ -47,11 +47,11 @@ func (m *Manager) Run() error {
 			}
 			if err != nil {
 				props["success"] = false
-				analytics.TrackEvent(p.GetEventTitle(), props)
+				analytics.TrackEvent(phase.Title(), props)
 				return err
 			}
 			props["success"] = true
-			analytics.TrackEvent(p.GetEventTitle(), props)
+			analytics.TrackEvent(phase.Title(), props)
 
 		} else {
 			err := phase.Run(m.config)

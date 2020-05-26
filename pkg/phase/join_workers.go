@@ -20,7 +20,6 @@ func (p *JoinWorkers) Title() string {
 
 // Run joins all the workers nodes to swarm if not already part of it.
 func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
-	p.EventTitle = "Workers Joined"
 	swarmLeader := config.Spec.SwarmLeader()
 
 	for _, h := range config.Spec.Workers() {

@@ -18,7 +18,6 @@ func (p *Connect) Title() string {
 
 // Run connects to all the hosts in parallel
 func (p *Connect) Run(config *api.ClusterConfig) error {
-	p.EventTitle = "SSH Connection Opened"
 	return runParallelOnHosts(config.Spec.Hosts, config, p.connectHost)
 }
 

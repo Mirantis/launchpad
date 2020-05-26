@@ -20,7 +20,6 @@ func (p *JoinManagers) Title() string {
 
 // Run joins the manager nodes into swarm
 func (p *JoinManagers) Run(config *api.ClusterConfig) error {
-	p.EventTitle = "Controllers Joined"
 	swarmLeader := config.Spec.SwarmLeader()
 
 	for _, h := range config.Spec.Managers() {

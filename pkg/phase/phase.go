@@ -17,19 +17,12 @@ type Phase interface {
 
 // Eventable interface
 type Eventable interface {
-	GetEventTitle() string
 	GetEventProperties() map[string]interface{}
 }
 
 // Analytics struct
 type Analytics struct {
-	EventTitle      string
 	EventProperties map[string]interface{}
-}
-
-// GetEventTitle returns analytic event title
-func (p *Analytics) GetEventTitle() string {
-	return p.EventTitle
 }
 
 // GetEventProperties returns analytic event properties

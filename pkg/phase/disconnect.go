@@ -17,7 +17,6 @@ func (p *Disconnect) Title() string {
 
 // Run disconnects from all the hosts
 func (p *Disconnect) Run(config *api.ClusterConfig) error {
-	p.EventTitle = "SSH Connections Disconnected"
 	return runParallelOnHosts(config.Spec.Hosts, config, p.disconnectHost)
 }
 

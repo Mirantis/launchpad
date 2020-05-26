@@ -22,7 +22,6 @@ func (p *PullImages) Title() string {
 // Run pulls all the needed images on managers in parallel.
 // Parallel on each host and pulls 5 images at a time on each host.
 func (p *PullImages) Run(c *api.ClusterConfig) error {
-	p.EventTitle = "Images Pulled"
 	images, err := p.listImages(c)
 	if err != nil {
 		return NewError(err.Error())
