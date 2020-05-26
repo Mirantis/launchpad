@@ -143,7 +143,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 	}
 
 	if !sensitiveCommand {
-		log.Debugf("executing command: %s", cmd)
+		log.Debugf("%s: executing command: %s", h.Address, cmd)
 	}
 
 	if err := session.Start(cmd); err != nil {
@@ -151,7 +151,7 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 	}
 
 	if stdin != "" {
-		log.Debugf("writing data to command stdin: %s", stdin)
+		log.Debugf("%s: writing data to command stdin: %s", h.Address, stdin)
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)
