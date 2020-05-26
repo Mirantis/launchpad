@@ -18,7 +18,7 @@ envsubst < footloose.yaml.tpl > footloose.yaml
 
 curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
 chmod +x ./footloose
-# ./footloose create
+./footloose create
 
 curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
 chmod +x ./kubectl
