@@ -15,7 +15,7 @@ pipeline {
     }
     stage("Smoke test") {
       parallel {
-        stage("Ubuntu 18.04") {
+        stage("Ubuntu 18.04: apply") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2'
@@ -25,7 +25,7 @@ pipeline {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
-        stage("CentOS 7") {
+        stage("CentOS 7: apply") {
           agent {
               node {
                   label 'amd64 && ubuntu-1804 && overlay2'
@@ -35,7 +35,7 @@ pipeline {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/centos7"
           }
         }
-        stage("CentOS 8") {
+        stage("CentOS 8: apply") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2'
@@ -45,11 +45,7 @@ pipeline {
             sh "make smoke-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
           }
         }
-      }
-    }
-    stage("Smoke test upgrade") {
-      parallel {
-        stage("Upgrade 3.2 -> 3.3 (Ubuntu 18.04)") {
+        stage("Ubuntu 18.04: upgrade 3.2 -> 3.3") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2'
@@ -57,6 +53,26 @@ pipeline {
           }
           steps {
             sh "make smoke-upgrade-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+          }
+        }
+        stage("Ubuntu 18.04: reset") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2'
+            }
+          }
+          steps {
+            sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+          }
+        }
+        stage("CentOS 8: reset") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2'
+            }
+          }
+          steps {
+            sh "make smoke-reset-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
           }
         }
       }
