@@ -71,8 +71,8 @@ func (p *PullImages) listImages(config *api.ClusterConfig) ([]string, error) {
 		return []string{}, fmt.Errorf("failed to get image list")
 	}
 
-	re := regexp.MustCompile("(?m)^\n$")
-	return strings.Split(re.ReplaceAllString(output, ""), "\n"), nil
+	re := regexp.MustCompile(`(?m)^\s{0,}\n$`)
+	return strings.Split(re.ReplaceAllString(strings.TrimSpace(output), ""), "\n"), nil
 }
 
 // Pulls images on a host in parallel using a workerpool with 5 workers. Essentially we pull 5 images in parallel.
