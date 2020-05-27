@@ -1,6 +1,7 @@
 package apply
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"os"
 
@@ -40,7 +41,6 @@ func Apply(configFile string) error {
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
 
 	phaseManager := phase.NewManager(&clusterConfig)
-
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{})
 	phaseManager.AddPhase(&phase.PrepareHost{})
@@ -58,6 +58,18 @@ func Apply(configFile string) error {
 	if phaseErr != nil {
 		return phaseErr
 	}
-
+	props := analytics.NewAnalyticsEventProperties()
+	props["kind"] = clusterConfig.Kind
+	props["api_version"] = clusterConfig.APIVersion
+	props["hosts"] = len(clusterConfig.Spec.Hosts)
+	props["managers"] = len(clusterConfig.Spec.Managers())
+	props["workers"] = len(clusterConfig.Spec.Workers())
+	props["engine_version"] = clusterConfig.Spec.Engine.Version
+	clusterID := clusterConfig.Spec.Ucp.Metadata.ClusterID
+	props["cluster_id"] = clusterID
+	// send ucp analytics user id as ucp_instance_id property
+	ucpInstanceID := fmt.Sprintf("%x", sha1.Sum([]byte(clusterID)))
+	props["ucp_instance_id"] = ucpInstanceID
+	analytics.TrackEvent("Cluster Installed", props)
 	return nil
 }

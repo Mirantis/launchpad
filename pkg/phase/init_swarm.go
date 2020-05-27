@@ -10,7 +10,9 @@ import (
 )
 
 // InitSwarm phase implementation
-type InitSwarm struct{}
+type InitSwarm struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *InitSwarm) Title() string {
@@ -43,6 +45,5 @@ func (p *InitSwarm) Run(config *api.ClusterConfig) error {
 		return NewError("failed to get swarm worker join-token")
 	}
 	config.WorkerJoinToken = workerToken
-
 	return nil
 }

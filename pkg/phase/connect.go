@@ -7,7 +7,9 @@ import (
 )
 
 // Connect connects to each of the hosts
-type Connect struct{}
+type Connect struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *Connect) Title() string {

@@ -9,7 +9,9 @@ import (
 )
 
 // JoinManagers phase implementation
-type JoinManagers struct{}
+type JoinManagers struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *JoinManagers) Title() string {

@@ -21,7 +21,9 @@ import (
 )
 
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts
-type GatherFacts struct{}
+type GatherFacts struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *GatherFacts) Title() string {

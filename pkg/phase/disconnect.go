@@ -6,7 +6,9 @@ import (
 )
 
 // Disconnect phase implementation
-type Disconnect struct{}
+type Disconnect struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *Disconnect) Title() string {
