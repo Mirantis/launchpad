@@ -54,7 +54,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 					func() error {
 						return h.Exec("curl -k -f https://localhost/_ping")
 					},
-					retry.Attempts(10), // last attempt should wait 1min30s, should be long enough
+					retry.Attempts(12), // last attempt should wait ~7min, should be long enough
 				)
 				if err != nil {
 					return err
