@@ -19,10 +19,9 @@ func NewDownloadBundleCommand() *cli.Command {
 		Usage: "Download a client bundle",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:     "username",
-				Usage:    "Username",
-				Aliases:  []string{"u"},
-				Required: true,
+				Name:    "username",
+				Usage:   "Username",
+				Aliases: []string{"u"},
 			},
 			&cli.StringFlag{
 				Name:    "password",
@@ -41,11 +40,9 @@ func NewDownloadBundleCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			password := ctx.String("password")
-			if ctx.Bool("password-stdin") || password == "" {
-				password = readPasswordFrom(os.Stdin)
-			}
-			err := bundle.Download(ctx.String("config"), ctx.String("username"), password)
+			username, password := resolveCredentials(ctx)
+
+			err := bundle.Download(ctx.String("config"), username, password)
 			if err != nil {
 				analytics.TrackEvent("Bundle Download Failed", nil)
 			} else {
@@ -55,6 +52,18 @@ func NewDownloadBundleCommand() *cli.Command {
 			return err
 		},
 	}
+}
+
+func resolveCredentials(ctx *cli.Context) (username, password string) {
+	username = ctx.String("username")
+	if username == "" {
+		username = readUsernameFrom(os.Stdin)
+	}
+	password = ctx.String("password")
+	if ctx.Bool("password-stdin") || password == "" {
+		password = readPasswordFrom(os.Stdin)
+	}
+	return username, password
 }
 
 func readPasswordFrom(in io.Reader) string {
@@ -71,6 +80,11 @@ func readPasswordFrom(in io.Reader) string {
 		}
 	}
 	fmt.Printf("Password: ")
+	return readFrom(in)
+}
+
+func readUsernameFrom(in io.Reader) string {
+	fmt.Printf("Username: ")
 	return readFrom(in)
 }
 
