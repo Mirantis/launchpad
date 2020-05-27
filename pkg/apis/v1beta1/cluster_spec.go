@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	"fmt"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -82,5 +83,5 @@ func isSwarmLeader(host *Host) bool {
 		log.Warnf("failed to get host's swarm leader status, probably not part of swarm")
 		return false
 	}
-	return output == "true"
+	return strings.HasPrefix("true", output)
 }
