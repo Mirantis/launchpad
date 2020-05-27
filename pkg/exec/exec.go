@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"regexp"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh"
@@ -156,6 +157,13 @@ func Cmd(h host, cmd string, opts ...Option) error {
 
 	multiReader := io.MultiReader(stdout, stderr)
 	outputScanner := bufio.NewScanner(multiReader)
+
+	if options.Output != nil {
+		// Clean out the extra linefeed added by the output append
+		defer func() {
+			*options.Output = strings.TrimSuffix(*options.Output, "\n")
+		}()
+	}
 
 	for outputScanner.Scan() {
 		text := outputScanner.Text()
