@@ -22,6 +22,23 @@ func (c *Configurer) InstallBasePackages() error {
 	return c.Host.Exec("sudo yum install -y curl")
 }
 
+// UninstallEngine uninstalls docker-ee engine
+func (c *Configurer) UninstallEngine(engineConfig *api.EngineConfig) error {
+	err := c.Host.Exec("sudo systemctl stop docker")
+	if err != nil {
+		return err
+	}
+	err = c.Host.Exec("sudo systemctl stop containerd")
+	if err != nil {
+		return err
+	}
+	err = c.Host.Exec("sudo yum remove -y docker-ee docker-ee-cli")
+	if err != nil {
+		return err
+	}
+	return c.Host.Exec("sudo rm -rf /var/lib/docker /var/lib/containerd /etc/docker/daemon.json /var/lib/kubelet")
+}
+
 // InstallEngine install Docker EE engine on Linux
 func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	daemonJSON := make(map[string]interface{})
