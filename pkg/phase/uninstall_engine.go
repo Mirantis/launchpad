@@ -6,7 +6,9 @@ import (
 )
 
 // UninstallEngine phase implementation
-type UninstallEngine struct{}
+type UninstallEngine struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *UninstallEngine) Title() string {

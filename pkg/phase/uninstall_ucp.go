@@ -8,7 +8,9 @@ import (
 )
 
 // UninstallUCP is the phase implementation for running UCP uninstall
-type UninstallUCP struct{}
+type UninstallUCP struct {
+	Analytics
+}
 
 // Title prints the phase title
 func (p *UninstallUCP) Title() string {
