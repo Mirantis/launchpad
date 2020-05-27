@@ -8,6 +8,7 @@ type HostConfigurer interface {
 	IsContainerized() bool
 	InstallBasePackages() error
 	InstallEngine(engineConfig *EngineConfig) error
+	UninstallEngine(engineConfig *EngineConfig) error
 	DockerCommandf(template string, args ...interface{}) string
 	RestartEngine() error
 }

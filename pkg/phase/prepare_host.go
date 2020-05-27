@@ -7,7 +7,9 @@ import (
 )
 
 // PrepareHost phase implementation does all the prep work we need for the hosts
-type PrepareHost struct{}
+type PrepareHost struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *PrepareHost) Title() string {

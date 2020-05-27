@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
@@ -13,7 +14,9 @@ import (
 )
 
 // UpgradeUcp is the phase implementation for running the actual UCP upgrade container
-type UpgradeUcp struct{}
+type UpgradeUcp struct {
+	Analytics
+}
 
 // Title prints the phase title
 func (p *UpgradeUcp) Title() string {
@@ -24,13 +27,15 @@ func (p *UpgradeUcp) Title() string {
 func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	swarmLeader := config.Spec.SwarmLeader()
 
+	p.EventProperties = analytics.NewAnalyticsEventProperties()
+	p.EventProperties["upgraded"] = false
 	// Check specified bootstrapper images version
 	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Spec.Ucp.GetBootstrapperImage()))
 	if err != nil {
 		return NewError("Failed to check bootstrapper image version")
 	}
-
-	if bootstrapperVersion == config.Spec.Ucp.Metadata.InstalledVersion {
+	installedVersion := config.Spec.Ucp.Metadata.InstalledVersion
+	if bootstrapperVersion == installedVersion {
 		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
 		return nil
 	}
@@ -48,6 +53,9 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
+	p.EventProperties["upgraded"] = true
+	p.EventProperties["installed_version"] = installedVersion
+	p.EventProperties["upgraded_version"] = bootstrapperVersion
 	config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil

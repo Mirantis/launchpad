@@ -33,6 +33,12 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 	return nil
 }
 
+// UninstallEngine uninstalls docker-ee engine
+// TODO: actually uninstall
+func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) error {
+	return c.Host.Exec("docker system prune -f")
+}
+
 // RestartEngine restarts Docker EE engine
 func (c *WindowsConfigurer) RestartEngine() error {
 	// TODO: handle restart

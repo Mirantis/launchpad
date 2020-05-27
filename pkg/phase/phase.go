@@ -15,6 +15,21 @@ type Phase interface {
 	Title() string
 }
 
+// Eventable interface
+type Eventable interface {
+	GetEventProperties() map[string]interface{}
+}
+
+// Analytics struct
+type Analytics struct {
+	EventProperties map[string]interface{}
+}
+
+// GetEventProperties returns analytic event properties
+func (p *Analytics) GetEventProperties() map[string]interface{} {
+	return p.EventProperties
+}
+
 // Error collects multiple error into one as we execute many phases in parallel
 // for many hosts.
 type Error struct {

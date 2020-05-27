@@ -11,7 +11,9 @@ import (
 )
 
 // PullImages phase implementation
-type PullImages struct{}
+type PullImages struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *PullImages) Title() string {

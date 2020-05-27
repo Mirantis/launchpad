@@ -10,7 +10,9 @@ import (
 )
 
 // JoinWorkers phase implementation
-type JoinWorkers struct{}
+type JoinWorkers struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *JoinWorkers) Title() string {

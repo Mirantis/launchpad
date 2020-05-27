@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
-	"github.com/Mirantis/mcc/pkg/ucp"
+	"github.com/Mirantis/mcc/pkg/analytilsytics"
+	"github.com/Mirantis/mcc/pkg/exe	"github.com/Mirantis/mcc/pkg/ucp"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	log "github.com/sirupsen/logrus"
@@ -15,7 +15,9 @@ import (
 const configName string = "com.docker.ucp.config"
 
 // InstallUCP is the phase implementation for running the actual UCP installer container
-type InstallUCP struct{}
+type InstallUCP struct {
+	Analytics
+}
 
 // Title prints the phase title
 func (p *InstallUCP) Title() string {
@@ -24,6 +26,9 @@ func (p *InstallUCP) Title() string {
 
 // Run the installer container
 func (p *InstallUCP) Run(config *api.ClusterConfig) error {
+	props := analytics.NewAnalyticsEventProperties()
+	props["ucp_version"] = config.Spec.Ucp.Version
+	p.EventProperties = props
 	swarmLeader := config.Spec.SwarmLeader()
 
 	if config.Spec.Ucp.Metadata.Installed {

@@ -20,6 +20,23 @@ func (c *Configurer) InstallBasePackages() error {
 	return c.Host.Exec("sudo apt-get update && sudo apt-get install -y curl apt-utils")
 }
 
+// UninstallEngine uninstalls docker-ee engine
+func (c *Configurer) UninstallEngine(engineConfig *api.EngineConfig) error {
+	err := c.Host.Exec("sudo docker system prune -f")
+	if err != nil {
+		return err
+	}
+	err = c.Host.Exec("sudo systemctl stop docker")
+	if err != nil {
+		return err
+	}
+	err = c.Host.Exec("sudo systemctl stop containerd")
+	if err != nil {
+		return err
+	}
+	return c.Host.Exec("sudo apt-get remove -y docker-ee docker-ee-cli && sudo apt autoremove -y")
+}
+
 func resolveUbuntuConfigurer(h *api.Host) api.HostConfigurer {
 	if h.Metadata.Os.ID != "ubuntu" {
 		return nil

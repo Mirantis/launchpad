@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
@@ -12,7 +13,9 @@ import (
 )
 
 // InstallEngine phase implementation
-type InstallEngine struct{}
+type InstallEngine struct {
+	Analytics
+}
 
 // Title for the phase
 func (p *InstallEngine) Title() string {
@@ -21,6 +24,9 @@ func (p *InstallEngine) Title() string {
 
 // Run installs the engine on each host
 func (p *InstallEngine) Run(c *api.ClusterConfig) error {
+	props := analytics.NewAnalyticsEventProperties()
+	props["engine_version"] = c.Spec.Engine.Version
+	p.EventProperties = props
 	err := p.upgradeEngines(c)
 	if err != nil {
 		return err
