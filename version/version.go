@@ -70,7 +70,7 @@ func CheckForUpgrade() {
 	}
 	if current.LessThan(remote) {
 		fmt.Println("")
-		fmt.Println(fmt.Sprintf("New version (%s) of the `launchpad` is available. Please visit %s to upgrade the tool.", latest.Name, latest.URL))""
+		fmt.Println(fmt.Sprintf("New version (%s) of the `launchpad` is available. Please visit %s to upgrade the tool.", latest.Name, latest.URL))
 
 	}
 
