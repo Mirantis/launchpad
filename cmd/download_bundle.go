@@ -1,9 +1,15 @@
 package cmd
 
 import (
+	"bufio"
+	"fmt"
+	"io"
+	"os"
+
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/cmd/bundle"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // NewDownloadBundleCommand creates a download bundle command to be called via the CLI
@@ -19,10 +25,9 @@ func NewDownloadBundleCommand() *cli.Command {
 				Required: true,
 			},
 			&cli.StringFlag{
-				Name:     "password",
-				Usage:    "Password",
-				Aliases:  []string{"p"},
-				Required: true,
+				Name:    "password",
+				Usage:   "Password",
+				Aliases: []string{"p"},
 			},
 			&cli.StringFlag{
 				Name:    "config",
@@ -32,7 +37,11 @@ func NewDownloadBundleCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			err := bundle.Download(ctx.String("config"), ctx.String("username"), ctx.String("password"))
+			password := ctx.String("password")
+			if password == "" {
+				password = readPasswordFrom(os.Stdin)
+			}
+			err := bundle.Download(ctx.String("config"), ctx.String("username"), password)
 			if err != nil {
 				analytics.TrackEvent("Bundle Download Failed", nil)
 			} else {
@@ -42,4 +51,31 @@ func NewDownloadBundleCommand() *cli.Command {
 			return err
 		},
 	}
+}
+
+func readPasswordFrom(in io.Reader) string {
+	if in == os.Stdin {
+		fd := int(os.Stdin.Fd())
+		if terminal.IsTerminal(fd) {
+			fmt.Fprint(os.Stderr, "Password: ")
+			pw, err := terminal.ReadPassword(fd)
+			fmt.Fprintln(os.Stderr)
+			if err != nil {
+				fmt.Println("error while reading password: ", err)
+			}
+			return string(pw)
+		}
+	}
+	fmt.Printf("Password: ")
+	return readFrom(in)
+}
+
+func readFrom(in io.Reader) string {
+	reader := bufio.NewReader(in)
+	line, _, err := reader.ReadLine()
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	return string(line)
 }
