@@ -12,12 +12,13 @@ import (
 type host interface {
 	IsWindows() bool
 	Name() string
-	SshSession() (*ssh.Session, error)
+	SSHSession() (*ssh.Session, error)
 }
 
-type Option func(*Options)
+// Option is a functional option for the exec package
+type Option func(*options)
 
-type Options struct {
+type options struct {
 	Stdin      string
 	LogInfo    bool
 	LogDebug   bool
@@ -27,7 +28,7 @@ type Options struct {
 	Output     *string
 }
 
-var defaultOptions = Options{
+var defaultoptions = options{
 	Stdin:      "",
 	LogInfo:    false,
 	LogCommand: true,
@@ -39,35 +40,35 @@ var defaultOptions = Options{
 
 // Stdin exec option for sending data to the command through stdin
 func Stdin(t string) Option {
-	return func(o *Options) {
+	return func(o *options) {
 		o.Stdin = t
 	}
 }
 
 // StreamOutput exec option for sending the command output to info log
 func StreamOutput() Option {
-	return func(o *Options) {
+	return func(o *options) {
 		o.LogInfo = true
 	}
 }
 
 // HideCommand exec option for hiding the command-string and stdin contents from the logs
 func HideCommand() Option {
-	return func(o *Options) {
+	return func(o *options) {
 		o.LogCommand = true
 	}
 }
 
 // HideOutput exec option for hiding the command output from logs
 func HideOutput() Option {
-	return func(o *Options) {
+	return func(o *options) {
 		o.LogDebug = false
 	}
 }
 
 // Sensitive exec option for disabling all logging of the command
 func Sensitive() Option {
-	return func(o *Options) {
+	return func(o *options) {
 		o.LogDebug = false
 		o.LogInfo = false
 		o.LogError = false
@@ -77,7 +78,7 @@ func Sensitive() Option {
 
 // Redact exec option for defining a redact regexp pattern that will be replaced with [REDACTED] in the logs
 func Redact(s string) Option {
-	return func(o *Options) {
+	return func(o *options) {
 		o.Redact = s
 	}
 }
@@ -87,24 +88,24 @@ func redactFunc(rs string) func(s string) string {
 		return func(s string) string {
 			return s
 		}
-	} else {
-		re := *regexp.MustCompile(rs)
-		return func(s string) string {
-			return re.ReplaceAllString(s, "[REDACTED]")
-		}
+	}
+
+	re := *regexp.MustCompile(rs)
+	return func(s string) string {
+		return re.ReplaceAllString(s, "[REDACTED]")
 	}
 }
 
 // Cmd runs a command on the host
 func Cmd(h host, cmd string, opts ...Option) error {
-	options := defaultOptions
+	options := defaultoptions
 	for _, o := range opts {
 		o(&options)
 	}
 
 	redact := redactFunc(options.Redact)
 
-	session, err := h.SshSession()
+	session, err := h.SSHSession()
 	if err != nil {
 		return err
 	}
@@ -180,7 +181,7 @@ func Cmd(h host, cmd string, opts ...Option) error {
 
 // withOutput a helper to build a Stdin option
 func withOutput(t *string) Option {
-	return func(o *Options) {
+	return func(o *options) {
 		o.Output = t
 	}
 }

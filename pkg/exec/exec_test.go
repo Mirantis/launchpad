@@ -7,31 +7,31 @@ import (
 )
 
 func TestExec_Stdin(t *testing.T) {
-	opts := Options{}
+	opts := options{}
 	Stdin("hello")(&opts)
 	require.Equal(t, "hello", opts.Stdin)
 }
 
 func TestExec_StreamOutput(t *testing.T) {
-	opts := Options{}
+	opts := options{}
 	StreamOutput()(&opts)
 	require.True(t, opts.LogInfo)
 }
 
 func TestExec_HideCommand(t *testing.T) {
-	opts := Options{}
+	opts := options{}
 	StreamOutput()(&opts)
 	require.False(t, opts.LogCommand)
 }
 
 func TestExec_HideOutput(t *testing.T) {
-	opts := Options{}
+	opts := options{}
 	HideOutput()(&opts)
 	require.False(t, opts.LogDebug)
 }
 
 func TestExec_Redact(t *testing.T) {
-	opts := Options{}
+	opts := options{}
 	Redact("hello")(&opts)
 	require.Equal(t, "hello", opts.Redact)
 }

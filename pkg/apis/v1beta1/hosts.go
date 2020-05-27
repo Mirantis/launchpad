@@ -56,11 +56,13 @@ type Host struct {
 	sshClient *ssh.Client
 }
 
-func (h *Host) SshSession() (*ssh.Session, error) {
+// SSHSession returns a new Session from the host's SSH client
+func (h *Host) SSHSession() (*ssh.Session, error) {
 	session, err := h.sshClient.NewSession()
 	return session, err
 }
 
+// Name returns the IP address of the host (can be used later to display for example a hostname after it has been discovered)
 func (h *Host) Name() string {
 	return h.Address
 }
