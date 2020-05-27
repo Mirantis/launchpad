@@ -28,8 +28,9 @@ func main() {
 	}
 
 	app := &cli.App{
-		Name:  "launchpad",
-		Usage: "Mirantis Launchpad",
+		Name:                 "launchpad",
+		Usage:                "Mirantis Launchpad",
+		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",
