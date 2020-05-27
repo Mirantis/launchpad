@@ -64,6 +64,8 @@ func openClusterFile(clusterFile string) (*os.File, error) {
 			if newError != nil {
 				return nil, fmt.Errorf("can not find cluster configuration file: %v: %v", newError, err)
 			}
+		} else {
+			return nil, fmt.Errorf("can not find cluster configuration file: %v", err)
 		}
 	}
 	log.Debugf("opened config file from %s", fp)
