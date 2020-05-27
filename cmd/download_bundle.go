@@ -29,6 +29,10 @@ func NewDownloadBundleCommand() *cli.Command {
 				Usage:   "Password",
 				Aliases: []string{"p"},
 			},
+			&cli.BoolFlag{
+				Name:  "password-stdin",
+				Usage: "Provide password via stdin",
+			},
 			&cli.StringFlag{
 				Name:    "config",
 				Usage:   "Path to cluster config yaml",
@@ -38,7 +42,7 @@ func NewDownloadBundleCommand() *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			password := ctx.String("password")
-			if password == "" {
+			if ctx.Bool("password-stdin") || password == "" {
 				password = readPasswordFrom(os.Stdin)
 			}
 			err := bundle.Download(ctx.String("config"), ctx.String("username"), password)
