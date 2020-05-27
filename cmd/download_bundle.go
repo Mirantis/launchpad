@@ -28,10 +28,6 @@ func NewDownloadBundleCommand() *cli.Command {
 				Usage:   "Password",
 				Aliases: []string{"p"},
 			},
-			&cli.BoolFlag{
-				Name:  "password-stdin",
-				Usage: "Provide password via stdin",
-			},
 			&cli.StringFlag{
 				Name:    "config",
 				Usage:   "Path to cluster config yaml",
@@ -60,7 +56,7 @@ func resolveCredentials(ctx *cli.Context) (username, password string) {
 		username = readUsernameFrom(os.Stdin)
 	}
 	password = ctx.String("password")
-	if ctx.Bool("password-stdin") || password == "" {
+	if password == "" {
 		password = readPasswordFrom(os.Stdin)
 	}
 	return username, password
