@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -70,7 +69,9 @@ func CheckForUpgrade() {
 		return // ignore invalid versions
 	}
 	if current.LessThan(remote) {
-		log.Infof("New version (%s) of the `launchpad` is available. Please visit %s to upgrade the tool.", latest.Name, latest.URL)
+		fmt.Println("")
+		fmt.Println(fmt.Sprintf("New version (%s) of the `launchpad` is available. Please visit %s to upgrade the tool.", latest.Name, latest.URL))""
+
 	}
 
 }
