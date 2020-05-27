@@ -51,6 +51,7 @@ func Apply(configFile string) error {
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
 	phaseManager.AddPhase(&phase.JoinWorkers{})
+	phaseManager.AddPhase(&phase.RemoveNodes{})
 	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.UcpInfo{})
 
