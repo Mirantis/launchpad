@@ -9,6 +9,20 @@ export CLUSTER_NAME=${BUILD_TAG:-"local"}
 
 export ANALYTICS_DISABLED="true"
 
+function cleanup() {
+    unset DOCKER_HOST
+    unset DOCKER_CERT_PATH
+    unset DOCKER_TLS_VERIFY
+
+    ./footloose delete
+    docker volume prune -f
+    ## Clean the local state
+    rm -rf ~/.mirantis-launchpad/cluster/$CLUSTER_NAME
+    rm ./kubectl
+    rm ./footloose
+}
+trap cleanup EXIT
+
 cd test
 rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
@@ -45,18 +59,9 @@ if [ $result -ne 0 ]; then
     exit $result
 fi
 
-./kubectl get pods
+./kubectl get pods --all-namespaces
 result=$?
 if [ $result -ne 0 ]; then
     echo "'kubectl get pods' returned non-zero exit code " $result
     exit $result
 fi
-
-unset DOCKER_HOST
-unset DOCKER_CERT_PATH
-unset DOCKER_TLS_VERIFY
-
-./footloose delete
-docker volume prune -f
-## Clean the local state
-rm -rf ~/.mirantis-launchpad/cluster/$CLUSTER_NAME
