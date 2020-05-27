@@ -32,7 +32,7 @@ GETTING STARTED:
     https://github.com/Mirantis/launchpad/blob/master/docs/getting-started.md
 
 SUPPORT:
-    https://github.com/mirantis/launchpad/issues
+    https://github.com/Mirantis/launchpad/issues
 `, cli.AppHelpTemplate)
 
 	app := &cli.App{
