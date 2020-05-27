@@ -30,8 +30,8 @@ func RegisterCommand() *cli.Command {
 				Aliases: []string{"e"},
 			},
 			&cli.BoolFlag{
-				Name:    "accept-eula",
-				Usage:   "Accept EULA",
+				Name:    "accept-license",
+				Usage:   "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE",
 				Aliases: []string{"a"},
 			},
 		},
@@ -41,7 +41,7 @@ func RegisterCommand() *cli.Command {
 				Name:    ctx.String("name"),
 				Company: ctx.String("company"),
 				Email:   ctx.String("email"),
-				Eula:    ctx.Bool("accept-eula"),
+				Eula:    ctx.Bool("accept-license"),
 			}
 			err := register.Register(userConfig)
 			if err == terminal.InterruptErr {
