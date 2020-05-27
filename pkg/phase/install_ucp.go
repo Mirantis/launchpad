@@ -5,8 +5,9 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/analytilsytics"
-	"github.com/Mirantis/mcc/pkg/exe	"github.com/Mirantis/mcc/pkg/ucp"
+	"github.com/Mirantis/mcc/pkg/analytics"
+	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/Mirantis/mcc/pkg/ucp"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	log "github.com/sirupsen/logrus"
