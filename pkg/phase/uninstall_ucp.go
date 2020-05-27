@@ -23,8 +23,8 @@ func (p *UninstallUCP) Run(config *api.ClusterConfig) error {
 
 	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
 	args := fmt.Sprintf("--id %s", swarm.ClusterID(swarmLeader))
-	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s uninstall-ucp %s", image, args)
-	err := swarmLeader.ExecCmd(installCmd, "", true, true)
+	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s uninstall-ucp %s", image, args)
+	err := swarmLeader.ExecCmd(uninstallCmd, "", true, true)
 	if err != nil {
 		return NewError("Failed to run UCP uninstaller")
 	}
