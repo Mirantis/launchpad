@@ -51,6 +51,7 @@ func main() {
 			cmd.RegisterCommand(),
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
+			cmd.NewInitCommand(),
 			versionCmd,
 		},
 	}
