@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/exec"
@@ -160,7 +161,7 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		}
 
 		log.Infof("%s: authenticating docker for image repo %s", h.Address, imageRepo)
-		err := h.Exec(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.Redact(pass))
+		err := h.Exec(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.Redact(fmt.Sprintf("(%s|%s)", regexp.QuoteMeta(pass), regexp.QuoteMeta(user))))
 
 		if err != nil {
 			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
