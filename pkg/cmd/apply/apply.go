@@ -63,7 +63,17 @@ func Apply(configFile string) error {
 	props["api_version"] = clusterConfig.APIVersion
 	props["hosts"] = len(clusterConfig.Spec.Hosts)
 	props["managers"] = len(clusterConfig.Spec.Managers())
-	props["workers"] = len(clusterConfig.Spec.Workers())
+	linuxWorkersCount := 0
+	windowsWorkersCount := 0
+	for _, h := range clusterConfig.Spec.Workers() {
+		if h.IsWindows() {
+			windowsWorkersCount++
+		} else {
+			linuxWorkersCount++
+		}
+	}
+	props["linux_workers"] = linuxWorkersCount
+	props["windows_workers"] = windowsWorkersCount
 	props["engine_version"] = clusterConfig.Spec.Engine.Version
 	clusterID := clusterConfig.Spec.Ucp.Metadata.ClusterID
 	props["cluster_id"] = clusterID
