@@ -27,6 +27,14 @@ func main() {
 		},
 	}
 
+	cli.AppHelpTemplate = fmt.Sprintf(`%s
+GETTING STARTED:
+    https://github.com/Mirantis/launchpad/blob/master/docs/getting-started.md
+
+SUPPORT:
+    https://github.com/Mirantis/launchpad/issues
+`, cli.AppHelpTemplate)
+
 	app := &cli.App{
 		Name:  "launchpad",
 		Usage: "Mirantis Launchpad",
