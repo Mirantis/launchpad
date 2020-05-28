@@ -33,8 +33,8 @@ if ! ../bin/launchpad --debug apply ; then
   exit 1
 fi
 
-export UCP_VERSION=${UCP_UPGRADE_VERSION:-"3.3.0-rc1"}
-export ENGINE_VERSION=${ENGINE_UPGRADE_VERSION:-"19.03.8-rc1"}
+export UCP_VERSION=${UCP_UPGRADE_VERSION:-"3.3.0"}
+export ENGINE_VERSION=${ENGINE_UPGRADE_VERSION:-"19.03.8"}
 envsubst < cluster.yaml.tpl > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml
 cat cluster.yaml
