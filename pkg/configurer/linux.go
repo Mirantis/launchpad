@@ -49,7 +49,7 @@ func (c *LinuxConfigurer) ResolveHostname() string {
 func (c *LinuxConfigurer) ResolveInternalIP() (string, error) {
 	output, err := c.Host.ExecWithOutput(fmt.Sprintf("ip -o addr show dev %s scope global", c.Host.PrivateInterface))
 	if err != nil {
-		return "", fmt.Errorf("failed to find private interface with name %s: %s", c.Host.PrivateInterface, output)
+		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", c.Host.PrivateInterface, output)
 	}
 	lines := strings.Split(output, "\r\n")
 	for _, line := range lines {
