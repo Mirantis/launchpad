@@ -7,8 +7,8 @@ rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
-export UCP_VERSION=${UCP_VERSION:-"3.3.0-rc1"}
-export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8-rc1"}
+export UCP_VERSION=${UCP_VERSION:-"3.3.0"}
+export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8"}
 export CLUSTER_NAME=$BUILD_TAG
 export ANALYTICS_DISABLED="true"
 
