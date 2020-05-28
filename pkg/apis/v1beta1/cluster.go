@@ -20,7 +20,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawClusterConfig ClusterConfig
 	raw := rawClusterConfig{
 		Metadata: &ClusterMeta{
-			Name: "mcc-ucp",
+			Name: "launchpad-ucp",
 		},
 		Spec: &ClusterSpec{},
 	}
