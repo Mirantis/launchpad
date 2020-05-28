@@ -5,6 +5,7 @@ import (
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	log "github.com/sirupsen/logrus"
 )
 
 // UninstallUCP is the phase implementation for running UCP uninstall
@@ -20,6 +21,10 @@ func (p *UninstallUCP) Title() string {
 // Run the installer container
 func (p *UninstallUCP) Run(config *api.ClusterConfig) error {
 	swarmLeader := config.Spec.SwarmLeader()
+	if !config.Spec.Ucp.Metadata.Installed {
+		log.Infof("%s: UCP is not installed, skipping", swarmLeader.Address)
+		return nil
+	}
 
 	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
 	args := fmt.Sprintf("--id %s", swarm.ClusterID(swarmLeader))

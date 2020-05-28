@@ -21,8 +21,13 @@ func (p *UninstallEngine) Run(c *api.ClusterConfig) error {
 }
 
 func (p *UninstallEngine) uninstallEngine(host *api.Host, c *api.ClusterConfig) error {
+	err := host.Exec(host.Configurer.DockerCommandf("info"))
+	if err != nil {
+		log.Infof("%s: engine not installed, skipping", host.Address)
+		return nil
+	}
 	log.Infof("%s: uninstalling engine", host.Address)
-	err := host.Configurer.UninstallEngine(&c.Spec.Engine)
+	err = host.Configurer.UninstallEngine(&c.Spec.Engine)
 	if err == nil {
 		log.Infof("%s: engine uninstalled", host.Address)
 	}
