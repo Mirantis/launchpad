@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/swarm"
@@ -24,18 +25,9 @@ func (p *RemoveNodes) Title() string {
 func (p *RemoveNodes) Run(config *api.ClusterConfig) error {
 	swarmLeader := config.Spec.SwarmLeader()
 
-	nodeIDs := []string{}
-	for _, h := range config.Spec.Hosts {
-		nodeID, err := swarm.NodeID(h)
-		if err != nil {
-			return err
-		}
-		labelCmd := swarmLeader.Configurer.DockerCommandf("node update --label-add com.mirantis.launchpad.managed=true %s", nodeID)
-		err = swarmLeader.Exec(labelCmd)
-		if err != nil {
-			return fmt.Errorf("Failed to label node %s (%s)", h.Address, nodeID)
-		}
-		nodeIDs = append(nodeIDs, nodeID)
+	nodeIDs, err := p.labelCurrentNodes(config, swarmLeader)
+	if err != nil {
+		return err
 	}
 	swarmIDs, err := p.swarmNodeIDs(swarmLeader)
 	if err != nil {
@@ -51,6 +43,23 @@ func (p *RemoveNodes) Run(config *api.ClusterConfig) error {
 	}
 
 	return nil
+}
+
+func (p *RemoveNodes) labelCurrentNodes(config *api.ClusterConfig, swarmLeader *api.Host) ([]string, error) {
+	nodeIDs := []string{}
+	for _, h := range config.Spec.Hosts {
+		nodeID, err := swarm.NodeID(h)
+		if err != nil {
+			return []string{}, err
+		}
+		labelCmd := swarmLeader.Configurer.DockerCommandf("node update --label-add com.mirantis.launchpad.managed=true %s", nodeID)
+		err = swarmLeader.Exec(labelCmd)
+		if err != nil {
+			return []string{}, fmt.Errorf("Failed to label node %s (%s)", h.Address, nodeID)
+		}
+		nodeIDs = append(nodeIDs, nodeID)
+	}
+	return nodeIDs, nil
 }
 
 func (p *RemoveNodes) swarmNodeIDs(swarmLeader *api.Host) ([]string, error) {
@@ -80,13 +89,16 @@ func (p *RemoveNodes) removeNode(swarmLeader *api.Host, nodeID string) error {
 		}
 		log.Infof("%s: orphan node %s demoted", swarmLeader.Address, nodeAddr)
 	}
+
 	log.Infof("%s: draining orphan node %s", swarmLeader.Address, nodeAddr)
 	drainCmd := swarmLeader.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
 	err = swarmLeader.Exec(drainCmd)
 	if err != nil {
 		return err
 	}
+	time.Sleep(30 * time.Second)
 	log.Infof("%s: orphan node %s drained", swarmLeader.Address, nodeAddr)
+
 	removeCmd := swarmLeader.Configurer.DockerCommandf("node rm --force %s", nodeID)
 	err = swarmLeader.Exec(removeCmd)
 	if err != nil {

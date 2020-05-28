@@ -16,7 +16,7 @@ import (
 )
 
 // Apply ...
-func Apply(configFile string) error {
+func Apply(configFile string, prune bool) error {
 	if err := analytics.RequireRegisteredUser(); err != nil {
 		return err
 	}
@@ -51,7 +51,9 @@ func Apply(configFile string) error {
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
 	phaseManager.AddPhase(&phase.JoinWorkers{})
-	phaseManager.AddPhase(&phase.RemoveNodes{})
+	if prune {
+		phaseManager.AddPhase(&phase.RemoveNodes{})
+	}
 	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.UcpInfo{})
 
