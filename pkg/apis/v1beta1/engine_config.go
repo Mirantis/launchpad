@@ -7,9 +7,9 @@ import (
 // EngineConfig holds the engine installation specific options
 type EngineConfig struct {
 	Version    string `yaml:"version"`
-	RepoURL    string `yaml:"repoUrl"`
-	InstallURL string `yaml:"installURL"`
-	Channel    string `yaml:"channel"`
+	RepoURL    string `yaml:"repoUrl,omitempty"`
+	InstallURL string `yaml:"installURL,omitempty"`
+	Channel    string `yaml:"channel,omitempty"`
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml

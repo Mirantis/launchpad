@@ -11,8 +11,8 @@ type ClusterConfig struct {
 	Kind             string       `yaml:"kind" validate:"eq=UCP"`
 	Metadata         *ClusterMeta `yaml:"metadata"`
 	Spec             *ClusterSpec `yaml:"spec"`
-	ManagerJoinToken string
-	WorkerJoinToken  string
+	ManagerJoinToken string       `yaml:"-"`
+	WorkerJoinToken  string       `yaml:"-"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
@@ -20,7 +20,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawClusterConfig ClusterConfig
 	raw := rawClusterConfig{
 		Metadata: &ClusterMeta{
-			Name: "mcc-ucp",
+			Name: "launchpad-ucp",
 		},
 		Spec: &ClusterSpec{},
 	}

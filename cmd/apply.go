@@ -21,11 +21,16 @@ func NewApplyCommand() *cli.Command {
 				Aliases: []string{"c"},
 				Value:   "cluster.yaml",
 			},
+			&cli.BoolFlag{
+				Name:  "prune",
+				Usage: "Automatically remove nodes that are not anymore part of cluster config yaml",
+				Value: false,
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
-			err := apply.Apply(ctx.String("config"))
+			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"))
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {

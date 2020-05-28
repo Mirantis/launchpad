@@ -44,15 +44,15 @@ type Hosts []*Host
 
 // Host contains all the needed details to work with hosts
 type Host struct {
-	Address          string   `yaml:"address" validate:"required,hostname|ip"`
-	User             string   `yaml:"user" validate:"omitempty,gt=2" default:"root"`
-	SSHPort          int      `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
-	SSHKeyPath       string   `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
-	Role             string   `yaml:"role" validate:"oneof=manager worker"`
-	ExtraArgs        []string `yaml:"extraArgs"`
-	PrivateInterface string   `yaml:"privateInterface" default:"eth0" validate:"gt=2"`
-	Metadata         *HostMetadata
-	Configurer       HostConfigurer
+	Address          string `yaml:"address" validate:"required,hostname|ip"`
+	User             string `yaml:"user" validate:"omitempty,gt=2" default:"root"`
+	SSHPort          int    `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
+	SSHKeyPath       string `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
+	Role             string `yaml:"role" validate:"oneof=manager worker"`
+	PrivateInterface string `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+
+	Metadata   *HostMetadata  `yaml:"-"`
+	Configurer HostConfigurer `yaml:"-"`
 
 	sshClient *ssh.Client
 }
