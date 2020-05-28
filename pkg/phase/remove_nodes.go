@@ -1,7 +1,6 @@
 package phase
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -25,7 +24,7 @@ func (p *RemoveNodes) Title() string {
 func (p *RemoveNodes) Run(config *api.ClusterConfig) error {
 	swarmLeader := config.Spec.SwarmLeader()
 
-	nodeIDs, err := p.labelCurrentNodes(config, swarmLeader)
+	nodeIDs, err := p.currentNodeIDs(config)
 	if err != nil {
 		return err
 	}
@@ -45,17 +44,12 @@ func (p *RemoveNodes) Run(config *api.ClusterConfig) error {
 	return nil
 }
 
-func (p *RemoveNodes) labelCurrentNodes(config *api.ClusterConfig, swarmLeader *api.Host) ([]string, error) {
+func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error) {
 	nodeIDs := []string{}
 	for _, h := range config.Spec.Hosts {
 		nodeID, err := swarm.NodeID(h)
 		if err != nil {
 			return []string{}, err
-		}
-		labelCmd := swarmLeader.Configurer.DockerCommandf("node update --label-add com.mirantis.launchpad.managed=true %s", nodeID)
-		err = swarmLeader.Exec(labelCmd)
-		if err != nil {
-			return []string{}, fmt.Errorf("Failed to label node %s (%s)", h.Address, nodeID)
 		}
 		nodeIDs = append(nodeIDs, nodeID)
 	}

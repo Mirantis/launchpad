@@ -51,6 +51,7 @@ func Apply(configFile string, prune bool) error {
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
 	phaseManager.AddPhase(&phase.JoinWorkers{})
+	phaseManager.AddPhase(&phase.LabelNodes{})
 	if prune {
 		phaseManager.AddPhase(&phase.RemoveNodes{})
 	}
