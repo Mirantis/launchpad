@@ -46,10 +46,11 @@ func Download(clusterFile string, username string, password string) error {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	url, err := resolveURL(m.Address)
+	url, err := resolveURL(clusterConfig.Spec.WebURL())
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
 	}
+
 	bundle, err := ucp.GetClientBundle(url, tlsConfig, username, password)
 	if err != nil {
 		return fmt.Errorf("failed to download admin bundle: %s", err)
@@ -76,7 +77,10 @@ func getBundleDir(clusterName, username string) (string, error) {
 }
 
 func resolveURL(serverURL string) (*url.URL, error) {
-	url, err := url.Parse(fmt.Sprintf("https://%s", serverURL))
+	if !strings.HasPrefix(serverURL, "https://") {
+		serverURL = fmt.Sprintf("https://%s", serverURL)
+	}
+	url, err := url.Parse(serverURL)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +88,7 @@ func resolveURL(serverURL string) (*url.URL, error) {
 }
 
 func getTLSConfigFrom(manager *api.Host, imageRepo, ucpVersion string) (*tls.Config, error) {
-	output, err := manager.ExecWithOutput(fmt.Sprintf(`docker run --rm -v /var/run/docker.sock:/var/run/docker.sock %s/ucp:%s dump-certs --ca`, imageRepo, ucpVersion))
+	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock %s/ucp:%s dump-certs --ca`, imageRepo, ucpVersion))
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
 	}
