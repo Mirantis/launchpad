@@ -130,10 +130,6 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 		}
 	}
 
-	if !h.IsWindows() {
-		session.Setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin")
-	}
-
 	stdout, err := session.StdoutPipe()
 	if err != nil {
 		return err
@@ -198,10 +194,6 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 		return "", err
 	}
 	defer session.Close()
-
-	if !h.IsWindows() {
-		session.Setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/bin")
-	}
 
 	output, err := session.CombinedOutput(cmd)
 	if err != nil {
