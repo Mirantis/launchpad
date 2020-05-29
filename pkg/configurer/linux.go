@@ -51,6 +51,11 @@ func (c *LinuxConfigurer) ResolveInternalIP() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", c.Host.PrivateInterface, output)
 	}
+	return c.ParseInternalIPFromIPOutput(output)
+}
+
+// ParseInternalIPFromIPOutput parses internal ip from ip command output
+func (c *LinuxConfigurer) ParseInternalIPFromIPOutput(output string) (string, error) {
 	lines := strings.Split(output, "\r\n")
 	for _, line := range lines {
 		items := strings.Fields(line)
