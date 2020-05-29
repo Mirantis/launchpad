@@ -48,6 +48,21 @@ func ResolveClusterFile(clusterFile string) ([]byte, error) {
 }
 
 func openClusterFile(clusterFile string) (*os.File, error) {
+	clusterFileName := detectClusterFile(clusterFile)
+	if clusterFileName == "" {
+		return nil, fmt.Errorf("can not find cluster configuration file %s", clusterFile)
+	}
+
+	file, fp, err := openFile(clusterFileName)
+	if err != nil {
+		return nil, fmt.Errorf("error while opening cluster file %s: %w", clusterFileName, err)
+	}
+
+	log.Debugf("opened config file from %s", fp)
+	return file, nil
+}
+
+func detectClusterFile(clusterFile string) string {
 	// the first option always is the file name provided by the user
 	possibleOptions := []string{clusterFile}
 	if strings.HasSuffix(clusterFile, ".yaml") {
@@ -57,30 +72,18 @@ func openClusterFile(clusterFile string) (*os.File, error) {
 		possibleOptions = append(possibleOptions, strings.ReplaceAll(clusterFile, ".yml", ".yaml"))
 	}
 
-	var (
-		file *os.File
-		fp   string
-		err  error
-	)
-	// iterate over all possible options
 	for _, option := range possibleOptions {
 		if _, err := os.Stat(option); err != nil {
 			continue
 		}
 
-		file, fp, err = openFileWithName(option)
-		if err != nil {
-			return nil, fmt.Errorf("error while opening cluster file %s: %w", option, err)
-		}
-		log.Debugf("opened config file from %s", fp)
-		return file, nil
+		return option
 	}
 
-	return nil, fmt.Errorf("can not find cluster configuration file %s: %v", clusterFile, err)
-
+	return ""
 }
 
-func openFileWithName(fileName string) (file *os.File, path string, err error) {
+func openFile(fileName string) (file *os.File, path string, err error) {
 	fp, err := filepath.Abs(fileName)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to lookup current directory name: %v", err)
