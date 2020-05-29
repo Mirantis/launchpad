@@ -55,12 +55,12 @@ func (c *WindowsConfigurer) ResolveHostname() string {
 }
 
 // ResolveInternalIP resolves internal ip from private interface
-func (c *WindowsConfigurer) ResolveInternalIP() string {
+func (c *WindowsConfigurer) ResolveInternalIP() (string, error) {
 	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias \"%s\").IPAddress"`, c.Host.PrivateInterface))
 	if err != nil {
-		return c.Host.Address
+		return c.Host.Address, err
 	}
-	return strings.TrimSpace(output)
+	return strings.TrimSpace(output), nil
 }
 
 // IsContainerized checks if host is actually a container
@@ -72,4 +72,10 @@ func (c *WindowsConfigurer) IsContainerized() bool {
 // and builds a command string for running the docker cli on the host
 func (c *WindowsConfigurer) DockerCommandf(template string, args ...interface{}) string {
 	return fmt.Sprintf("docker.exe %s", fmt.Sprintf(template, args...))
+}
+
+// ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
+func (c *WindowsConfigurer) ValidateFacts() error {
+	// TODO How to validate private address to be node local address?
+	return nil
 }

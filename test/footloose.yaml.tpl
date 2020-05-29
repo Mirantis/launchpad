@@ -23,6 +23,8 @@ machines:
       hostPort: 9022
     - containerPort: 443
       hostPort: 443
+    - containerPort: 6443
+      hostPort: 6443
 - count: 1
   backend: docker
   spec:

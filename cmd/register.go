@@ -36,6 +36,9 @@ func RegisterCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			if _, err := config.GetUserConfig(); err != nil {
+				analytics.TrackEvent("User Not Registered", nil)
+			}
 			analytics.TrackEvent("User Register Started", nil)
 			userConfig := &config.UserConfig{
 				Name:    ctx.String("name"),

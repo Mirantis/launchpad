@@ -87,8 +87,17 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
-	h.Metadata.InternalAddress = h.Configurer.ResolveInternalIP()
+	a, err := h.Configurer.ResolveInternalIP()
+	if err != nil {
+		return err
+	}
+	h.Metadata.InternalAddress = a
 	h.Metadata.EngineVersion = resolveEngineVersion(h)
+
+	err = h.Configurer.ValidateFacts()
+	if err != nil {
+		return err
+	}
 
 	log.Infof("%s: is running \"%s\"", h.Address, h.Metadata.Os.Name)
 	log.Infof("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)

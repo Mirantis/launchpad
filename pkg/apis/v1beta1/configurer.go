@@ -4,13 +4,14 @@ package v1beta1
 // This is under v1beta1 because it has direct deps to api structs
 type HostConfigurer interface {
 	ResolveHostname() string
-	ResolveInternalIP() string
+	ResolveInternalIP() (string, error)
 	IsContainerized() bool
 	InstallBasePackages() error
 	InstallEngine(engineConfig *EngineConfig) error
 	UninstallEngine(engineConfig *EngineConfig) error
 	DockerCommandf(template string, args ...interface{}) string
 	RestartEngine() error
+	ValidateFacts() error
 }
 
 // HostConfigurerBuilder defines the builder function signature
