@@ -27,7 +27,11 @@ func NewInitCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-
+			analytics.TrackEvent("Cluster Init Started", nil)
+			if err := analytics.RequireRegisteredUser(); err != nil {
+				analytics.TrackEvent("Cluster Init Failed", nil)
+				return err
+			}
 			clusterConfig := api.ClusterConfig{
 				APIVersion: "launchpad.mirantis.com/v1beta1",
 				Kind:       "UCP",
