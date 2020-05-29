@@ -262,6 +262,9 @@ func (h *Host) SwarmAddress() string {
 
 // IsWindows returns true if host has been detected running windows
 func (h *Host) IsWindows() bool {
+	if h.Metadata == nil {
+		return false
+	}
 	if h.Metadata.Os == nil {
 		return false
 	}
