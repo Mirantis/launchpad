@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 
@@ -36,16 +37,7 @@ func Validate(c *api.ClusterConfig) error {
 // It returns the contents of this file as []byte if found,
 // or error if it didn't.
 func ResolveClusterFile(clusterFile string) ([]byte, error) {
-	fp, err := filepath.Abs(clusterFile)
-	if err != nil {
-		return []byte{}, fmt.Errorf("failed to lookup current directory name: %v", err)
-	}
-	file, err := os.Open(fp)
-	if err != nil {
-		return []byte{}, fmt.Errorf("can not find cluster configuration file: %v", err)
-	}
-	log.Debugf("opened config file from %s", fp)
-
+	file, err := openClusterFile(clusterFile)
 	defer file.Close()
 
 	buf, err := ioutil.ReadAll(file)
@@ -53,4 +45,52 @@ func ResolveClusterFile(clusterFile string) ([]byte, error) {
 		return []byte{}, fmt.Errorf("failed to read file: %v", err)
 	}
 	return buf, nil
+}
+
+func openClusterFile(clusterFile string) (*os.File, error) {
+	clusterFileName := detectClusterFile(clusterFile)
+	if clusterFileName == "" {
+		return nil, fmt.Errorf("can not find cluster configuration file %s", clusterFile)
+	}
+
+	file, fp, err := openFile(clusterFileName)
+	if err != nil {
+		return nil, fmt.Errorf("error while opening cluster file %s: %w", clusterFileName, err)
+	}
+
+	log.Debugf("opened config file from %s", fp)
+	return file, nil
+}
+
+func detectClusterFile(clusterFile string) string {
+	// the first option always is the file name provided by the user
+	possibleOptions := []string{clusterFile}
+	if strings.HasSuffix(clusterFile, ".yaml") {
+		possibleOptions = append(possibleOptions, strings.ReplaceAll(clusterFile, ".yaml", ".yml"))
+	}
+	if strings.HasSuffix(clusterFile, ".yml") {
+		possibleOptions = append(possibleOptions, strings.ReplaceAll(clusterFile, ".yml", ".yaml"))
+	}
+
+	for _, option := range possibleOptions {
+		if _, err := os.Stat(option); err != nil {
+			continue
+		}
+
+		return option
+	}
+
+	return ""
+}
+
+func openFile(fileName string) (file *os.File, path string, err error) {
+	fp, err := filepath.Abs(fileName)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to lookup current directory name: %v", err)
+	}
+	file, err = os.Open(fp)
+	if err != nil {
+		return nil, fp, fmt.Errorf("can not find cluster configuration file: %v", err)
+	}
+	return file, fp, nil
 }
