@@ -17,7 +17,7 @@ func (c *Configurer) InstallBasePackages() error {
 	if err != nil {
 		return err
 	}
-	return c.Host.Exec("sudo apt-get update && sudo apt-get install -y curl apt-utils")
+	return c.Host.Exec("sudo apt-get update && sudo apt-get install -y curl apt-utils socat")
 }
 
 // UninstallEngine uninstalls docker-ee engine

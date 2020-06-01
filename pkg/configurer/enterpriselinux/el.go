@@ -29,7 +29,7 @@ func (c *Configurer) InstallBasePackages() error {
 	if err != nil {
 		return err
 	}
-	return c.Host.Exec("sudo yum install -y curl")
+	return c.Host.Exec("sudo yum install -y curl socat")
 }
 
 // UninstallEngine uninstalls docker-ee engine
