@@ -15,6 +15,16 @@ pipeline {
     }
     stage("Smoke test") {
       parallel {
+        stage("Ubuntu 16.04: apply") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2'
+            }
+          }
+          steps {
+            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
+          }
+        }
         stage("Ubuntu 18.04: apply") {
           agent {
             node {
@@ -63,6 +73,16 @@ pipeline {
           }
           steps {
             sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+          }
+        }
+        stage("Ubuntu 16.04: reset") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2'
+            }
+          }
+          steps {
+            sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
           }
         }
         stage("CentOS 8: reset") {
