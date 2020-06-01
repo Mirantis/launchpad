@@ -66,13 +66,13 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	os := &api.OsRelease{}
 	if isWindows(h) {
-		winOs, err := resolveWindowsOsRelease(h)
+		winOs, err := ResolveWindowsOsRelease(h)
 		if err != nil {
 			return err
 		}
 		os = winOs
 	} else {
-		linuxOs, err := resolveLinuxOsRelease(h)
+		linuxOs, err := ResolveLinuxOsRelease(h)
 		if err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	h.Metadata = &api.HostMetadata{
 		Os: os,
 	}
-	err := resolveHostConfigurer(h)
+	err := api.ResolveHostConfigurer(h)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,8 @@ func isWindows(h *api.Host) bool {
 	return true
 }
 
-func resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
+// ResolveWindowsOsRelease ...
+func ResolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
 	osName = strings.TrimSpace(osName)
 	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
@@ -135,7 +136,8 @@ func resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 	return osRelease, nil
 }
 
-func resolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
+// ResolveLinuxOsRelease ...
+func ResolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
 	output, err := h.ExecWithOutput("cat /etc/os-release")
 	if err != nil {
 		return nil, err
@@ -155,20 +157,6 @@ func resolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
 	}
 
 	return osRelease, nil
-}
-
-func resolveHostConfigurer(h *api.Host) error {
-	configurers := api.GetHostConfigurers()
-	for _, resolver := range configurers {
-		configurer := resolver(h)
-		if configurer != nil {
-			h.Configurer = configurer
-		}
-	}
-	if h.Configurer == nil {
-		return fmt.Errorf("%s: has unsupported OS (%s)", h.Address, h.Metadata.Os.Name)
-	}
-	return nil
 }
 
 func resolveEngineVersion(h *api.Host) string {

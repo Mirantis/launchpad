@@ -15,6 +15,7 @@ import (
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/mitchellh/go-homedir"
@@ -39,6 +40,10 @@ func Download(clusterFile string, username string, password string) error {
 	m := clusterConfig.Spec.Managers()[0] // Does not have to be real swarm leader
 	if err := m.Connect(); err != nil {
 		return fmt.Errorf("error while connecting to manager node: %w", err)
+	}
+
+	if err := configureManager(m); err != nil {
+		return err
 	}
 
 	tlsConfig, err := getTLSConfigFrom(m, clusterConfig.Spec.Ucp.ImageRepo, clusterConfig.Spec.Ucp.Version)
@@ -66,6 +71,17 @@ func Download(clusterFile string, username string, password string) error {
 	}
 
 	return nil
+}
+
+func configureManager(m *api.Host) error {
+	os, err := phase.ResolveLinuxOsRelease(m)
+	if err != nil {
+		return err
+	}
+	m.Metadata = &api.HostMetadata{
+		Os: os,
+	}
+	return api.ResolveHostConfigurer(m)
 }
 
 func getBundleDir(clusterName, username string) (string, error) {
