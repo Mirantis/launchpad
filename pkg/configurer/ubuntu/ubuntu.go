@@ -51,6 +51,15 @@ func resolveUbuntuConfigurer(h *api.Host) api.HostConfigurer {
 			},
 		}
 		return configurer
+	case "16.04":
+		configurer := &XenialConfigurer{
+			Configurer: Configurer{
+				LinuxConfigurer: configurer.LinuxConfigurer{
+					Host: h,
+				},
+			},
+		}
+		return configurer
 	}
 
 	return nil
