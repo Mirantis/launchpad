@@ -6,6 +6,7 @@ type HostConfigurer interface {
 	ResolveHostname() string
 	ResolveInternalIP() (string, error)
 	IsContainerized() bool
+	SELinuxEnabled() bool
 	InstallBasePackages() error
 	InstallEngine(engineConfig *EngineConfig) error
 	UninstallEngine(engineConfig *EngineConfig) error

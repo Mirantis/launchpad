@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/swarm"
@@ -28,7 +29,11 @@ func (p *UninstallUCP) Run(config *api.ClusterConfig) error {
 
 	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
 	args := fmt.Sprintf("--id %s", swarm.ClusterID(swarmLeader))
-	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s uninstall-ucp %s", image, args)
+	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	if swarmLeader.Configurer.SELinuxEnabled() {
+		runFlags = append(runFlags, "--security-opt label=disable")
+	}
+	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", strings.Join(runFlags, " "), image, args)
 	err := swarmLeader.ExecCmd(uninstallCmd, "", true, true)
 	if err != nil {
 		return NewError("Failed to run UCP uninstaller")

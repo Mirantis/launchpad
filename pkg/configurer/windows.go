@@ -68,6 +68,11 @@ func (c *WindowsConfigurer) IsContainerized() bool {
 	return false
 }
 
+// SELinuxEnabled is SELinux enabled
+func (c *WindowsConfigurer) SELinuxEnabled() bool {
+	return false
+}
+
 // DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host
 func (c *WindowsConfigurer) DockerCommandf(template string, args ...interface{}) string {

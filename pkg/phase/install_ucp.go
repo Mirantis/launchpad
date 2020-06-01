@@ -68,9 +68,12 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 		// In case of custom repo, don't let UCP to check the images
 		installFlags = append(installFlags, "--pull never")
 	}
+	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	if swarmLeader.Configurer.SELinuxEnabled() {
+		runFlags = append(runFlags, "--security-opt label=disable")
+	}
 
-	flags := strings.Join(installFlags, " ")
-	installCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s install %s", image, flags)
+	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
 	err := swarmLeader.ExecCmd(installCmd, "", true, true)
 	if err != nil {
 		return NewError("Failed to run UCP installer")

@@ -88,7 +88,11 @@ func resolveURL(serverURL string) (*url.URL, error) {
 }
 
 func getTLSConfigFrom(manager *api.Host, imageRepo, ucpVersion string) (*tls.Config, error) {
-	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock %s/ucp:%s dump-certs --ca`, imageRepo, ucpVersion))
+	runFlags := []string{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	if manager.Configurer.SELinuxEnabled() {
+		runFlags = append(runFlags, "--security-opt label=disable")
+	}
+	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, strings.Join(runFlags, " "), imageRepo, ucpVersion))
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
 	}

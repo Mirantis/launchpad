@@ -3,7 +3,6 @@ package enterpriselinux
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/configurer"
@@ -66,13 +65,4 @@ func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	}
 	c.Host.WriteFile("/etc/docker/daemon.json", string(json), "0700")
 	return c.LinuxConfigurer.InstallEngine(engineConfig)
-}
-
-// SELinuxEnabled is SELinux enabled
-func (c *Configurer) SELinuxEnabled() bool {
-	output, err := c.Host.ExecWithOutput("sudo getenforce")
-	if err != nil {
-		return false
-	}
-	return strings.ToLower(strings.TrimSpace(output)) == "enforcing"
 }
