@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/swarm"
@@ -40,8 +41,11 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	}
 
 	swarmClusterID := swarm.ClusterID(swarmLeader)
-
-	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run --rm -i -v /var/run/docker.sock:/var/run/docker.sock %s upgrade --id %s", config.Spec.Ucp.GetBootstrapperImage(), swarmClusterID)
+	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	if swarmLeader.Configurer.SELinuxEnabled() {
+		runFlags = append(runFlags, "--security-opt label=disable")
+	}
+	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s", strings.Join(runFlags, " "), config.Spec.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
 	err = swarmLeader.ExecCmd(upgradeCmd, "", true, false)
 	if err != nil {

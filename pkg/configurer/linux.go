@@ -113,6 +113,15 @@ func (c *LinuxConfigurer) ValidateFacts() error {
 	return nil
 }
 
+// SELinuxEnabled is SELinux enabled
+func (c *LinuxConfigurer) SELinuxEnabled() bool {
+	output, err := c.Host.ExecWithOutput("sudo getenforce")
+	if err != nil {
+		return false
+	}
+	return strings.ToLower(strings.TrimSpace(output)) == "enforcing"
+}
+
 func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
 	output, err := c.Host.ExecWithOutput("sudo hostname --all-ip-addresses")
 	if err != nil {
