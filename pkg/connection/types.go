@@ -1,0 +1,10 @@
+package connection
+
+type Connection interface {
+	Connect() error
+	Disconnect()
+	ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error
+	ExecWithOutput(cmd string) (string, error)
+	IsWindows() bool
+	SetWindows(bool)
+}

@@ -47,18 +47,18 @@ func NewInitCommand() *cli.Command {
 					},
 					Hosts: []*api.Host{
 						&api.Host{
-							Address:    "1.2.3.4",
-							Role:       "manager",
-							SSHPort:    22,
-							SSHKeyPath: "~/.ssh/id_rsa",
-							User:       "root",
+							Address: "10.0.0.1",
+							Role:    "manager",
+							SSH: &api.SSH{
+								User:    "root",
+								Port:    22,
+								KeyPath: "~/.ssh/id_rsa",
+							},
 						},
 						&api.Host{
-							Address:    "4.5.6.7",
-							Role:       "worker",
-							SSHPort:    22,
-							SSHKeyPath: "~/.ssh/id_rsa",
-							User:       "root",
+							Address: "10.0.0.2",
+							Role:    "worker",
+							SSH:     api.DefaultSSH(),
 						},
 					},
 				},

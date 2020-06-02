@@ -61,17 +61,15 @@ func (c *ClusterSpec) WebURL() string {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawConfig ClusterSpec
-	raw := rawConfig{
-		Engine: NewEngineConfig(),
-		Ucp:    NewUcpConfig(),
-	}
+	type yclusterspec ClusterSpec
+	yc := (*yclusterspec)(c)
+	c.Engine = NewEngineConfig()
+	c.Ucp = NewUcpConfig()
 
-	if err := unmarshal(&raw); err != nil {
+	if err := unmarshal(yc); err != nil {
 		return err
 	}
 
-	*c = ClusterSpec(raw)
 	return nil
 }
 

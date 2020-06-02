@@ -13,7 +13,7 @@ type Connect struct {
 
 // Title for the phase
 func (p *Connect) Title() string {
-	return "Open SSH Connection"
+	return "Open Remote Connection"
 }
 
 // Run connects to all the hosts in parallel
@@ -22,9 +22,15 @@ func (p *Connect) Run(config *api.ClusterConfig) error {
 }
 
 func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
+	proto := "SSH"
+
+	if host.WinRM != nil {
+		proto = "WinRM"
+	}
+
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: opening SSH connection", host.Address)
+			log.Infof("%s: opening %s connection", host.Address, proto)
 			err := host.Connect()
 			if err != nil {
 				log.Errorf("%s: failed to connect -> %s", host.Address, err.Error())
@@ -37,6 +43,6 @@ func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 
-	log.Printf("%s: SSH connection opened", host.Address)
+	log.Printf("%s: %s connection opened", host.Address, proto)
 	return nil
 }

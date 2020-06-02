@@ -17,17 +17,17 @@ type ClusterConfig struct {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawClusterConfig ClusterConfig
-	raw := rawClusterConfig{
-		Metadata: &ClusterMeta{
-			Name: "launchpad-ucp",
-		},
-		Spec: &ClusterSpec{},
+	c.Metadata = &ClusterMeta{
+		Name: "launchpad-ucp",
 	}
-	if err := unmarshal(&raw); err != nil {
+	c.Spec = &ClusterSpec{}
+
+	type yclusterconfig ClusterConfig
+	yc := (*yclusterconfig)(c)
+
+	if err := unmarshal(yc); err != nil {
 		return err
 	}
 
-	*c = ClusterConfig(raw)
 	return nil
 }
