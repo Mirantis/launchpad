@@ -44,17 +44,17 @@ type Hosts []*Host
 
 // Host contains all the needed details to work with hosts
 type Host struct {
-	Address          string `yaml:"address" validate:"required,hostname|ip"`
-	User             string `yaml:"user" validate:"omitempty,gt=2" default:"root"`
-	SSHPort          int    `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
-	SSHKeyPath       string `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
-	Role             string `yaml:"role" validate:"oneof=manager worker"`
-	PrivateInterface string `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+	Address          string      `yaml:"address" validate:"required,hostname|ip"`
+	User             string      `yaml:"user" validate:"omitempty,gt=2" default:"root"`
+	SSHPort          int         `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
+	SSHKeyPath       string      `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
+	Role             string      `yaml:"role" validate:"oneof=manager worker"`
+	PrivateInterface string      `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
 	DaemonConfig     GenericHash `yaml:"engineConfig,flow" default:"{}"`
 
 	Metadata   *HostMetadata  `yaml:"-"`
 	Configurer HostConfigurer `yaml:"-"`
-	
+
 	sshClient *ssh.Client
 }
 
@@ -154,13 +154,9 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 	}
 
 	if stdin != "" {
-<<<<<<< HEAD
-		log.Debugf("%s: writing data to command stdin: %s", h.Address, stdin)
-=======
 		if !sensitiveCommand {
 			log.Debugf("writing data to command stdin: %s", stdin)
 		}
->>>>>>> 479b027... Engine config under host configs
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)
