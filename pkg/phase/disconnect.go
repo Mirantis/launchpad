@@ -21,7 +21,11 @@ func (p *Disconnect) Run(config *api.ClusterConfig) error {
 }
 
 func (p *Disconnect) disconnectHost(host *api.Host, c *api.ClusterConfig) error {
-	host.Connect()
+	err := host.Disconnect()
+	if err != nil {
+		log.Warnf("%s: error disconnecting: %w", host.Address, err)
+		return nil // We cannot do much if the disconnect fails
+	}
 	log.Printf("%s: SSH connection closed", host.Address)
 	return nil
 }

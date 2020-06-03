@@ -1,11 +1,13 @@
 package configurer
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	"github.com/Mirantis/mcc/pkg/constant"
+	log "github.com/sirupsen/logrus"
 )
 
 // WindowsConfigurer is a generic windows host configurer
@@ -15,7 +17,17 @@ type WindowsConfigurer struct {
 
 // InstallEngine install Docker EE engine on Windows
 func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
-	// FIXME Need to write the daemon.json config to C:\ProgramData\docker\config\daemon.json
+	if len(c.Host.DaemonConfig) > 0 {
+		daemonJSONData, err := json.Marshal(c.Host.DaemonConfig)
+		if err != nil {
+			return fmt.Errorf("failed to marshal daemon json config: %w", err)
+		}
+		log.Debugf(`writing C:\ProgramData\Docker\config\daemon.json`)
+		err = c.WriteFile(`C:\ProgramData\Docker\config\daemon.json`, string(daemonJSONData), "0700")
+		if err != nil {
+			return err
+		}
+	}
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
@@ -35,7 +47,8 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 }
 
 // UninstallEngine uninstalls docker-ee engine
-// TODO: actually uninstall
+// TODO: actually uninstall, the install.ps1 script has '-Uninstall' option for this.
+// There's also some uninstall intructions on MS site: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#uninstall-docker
 func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) error {
 	return c.Host.Exec("docker system prune -f")
 }
@@ -83,5 +96,16 @@ func (c *WindowsConfigurer) DockerCommandf(template string, args ...interface{})
 // ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
 func (c *WindowsConfigurer) ValidateFacts() error {
 	// TODO How to validate private address to be node local address?
+	return nil
+}
+
+// WriteFile writes file to host with given contents
+func (c *WindowsConfigurer) WriteFile(path string, data string, permissions string) error {
+	// TODO Once we know how to handle permissions, change this to use similar process with linux:
+	// create tmp; pipe stdin to tmp; mv tmp --> real; apply permissions; rm tmp
+	err := c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "$Input | New-Item -Path %s -Force -ItemType File"`, path), data, false, true)
+	if err != nil {
+		return err
+	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
@@ -83,6 +84,7 @@ func (h *Host) Connect() error {
 	config := &ssh.ClientConfig{
 		User:            h.User,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         10 * time.Second,
 	}
 	address := fmt.Sprintf("%s:%d", h.Address, h.SSHPort)
 
@@ -111,6 +113,15 @@ func (h *Host) Connect() error {
 	h.sshClient = client
 
 	return nil
+}
+
+// Disconnect from the host
+func (h *Host) Disconnect() error {
+	if h.sshClient == nil {
+		return nil
+	}
+
+	return h.sshClient.Close()
 }
 
 // ExecCmd a command on the host piping stdin and streams the logs
@@ -204,16 +215,6 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 	}
 
 	return trimOutput(output), nil
-}
-
-// WriteFile writes file to host with given contents
-func (h *Host) WriteFile(path string, data string, permissions string) error {
-	tempFile, _ := h.ExecWithOutput("mktemp")
-	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func trimOutput(output []byte) string {

@@ -25,7 +25,7 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 			return fmt.Errorf("failed to marshal daemon json config: %w", err)
 		}
 		log.Debugf("writing /etc/docker/daemon.json...")
-		err = c.Host.WriteFile("/etc/docker/daemon.json", string(daemonJSONData), "0700")
+		err = c.WriteFile("/etc/docker/daemon.json", string(daemonJSONData), "0700")
 		if err != nil {
 			return err
 		}
@@ -134,6 +134,16 @@ func (c *LinuxConfigurer) SELinuxEnabled() bool {
 		return false
 	}
 	return strings.ToLower(strings.TrimSpace(output)) == "enforcing"
+}
+
+// WriteFile writes file to host with given contents
+func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string) error {
+	tempFile, _ := c.Host.ExecWithOutput("mktemp")
+	err := c.Host.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
