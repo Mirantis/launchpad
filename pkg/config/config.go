@@ -9,16 +9,37 @@ import (
 
 	"gopkg.in/yaml.v2"
 
+	"github.com/Mirantis/mcc/pkg/apis/v1beta1"
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
 
+// Version is used for determining the configuration file type and version
+type Version struct {
+	APIVersion string `yaml:"apiVersion" validate:"required,gt=2"`
+	Kind       string `yaml:"kind" validate:"required,gt=2"`
+}
+
 // FromYaml loads the cluster config from given yaml data
 func FromYaml(data []byte) (api.ClusterConfig, error) {
 	c := api.ClusterConfig{}
 
-	err := yaml.Unmarshal(data, &c)
+	cv := Version{}
+	err := yaml.Unmarshal(data, &cv)
+	if err != nil {
+		return c, err
+	}
+
+	if cv.Kind != "UCP" {
+		return c, fmt.Errorf("Unknown kind: %s", cv.Kind)
+	}
+
+	if cv.APIVersion == "launchpad.mirantis.com/v1beta1" {
+		v1beta1.MigrateV1Beta2(&data)
+	}
+
+	err = yaml.Unmarshal(data, &c)
 	if err != nil {
 		return c, err
 	}
