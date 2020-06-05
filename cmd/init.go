@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,7 +33,7 @@ func NewInitCommand() *cli.Command {
 				return err
 			}
 			clusterConfig := api.ClusterConfig{
-				APIVersion: "launchpad.mirantis.com/v1beta1",
+				APIVersion: "launchpad.mirantis.com/v1beta2",
 				Kind:       "UCP",
 				Metadata: &api.ClusterMeta{
 					Name: "my-ucp-cluster",

@@ -1,4 +1,4 @@
-package v1beta1
+package v1beta2
 
 // ClusterMeta defines cluster metadata
 type ClusterMeta struct {
@@ -7,7 +7,7 @@ type ClusterMeta struct {
 
 // ClusterConfig describes cluster.yaml configuration
 type ClusterConfig struct {
-	APIVersion       string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1beta1"`
+	APIVersion       string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1beta2"`
 	Kind             string       `yaml:"kind" validate:"eq=UCP"`
 	Metadata         *ClusterMeta `yaml:"metadata"`
 	Spec             *ClusterSpec `yaml:"spec"`

@@ -9,7 +9,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )

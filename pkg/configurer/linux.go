@@ -6,7 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/util"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	log "github.com/sirupsen/logrus"
 )
 

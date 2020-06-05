@@ -1,9 +1,9 @@
-package v1beta1
+package v1beta2
 
 import "fmt"
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
-// This is under v1beta1 because it has direct deps to api structs
+// This is under v1beta2 because it has direct deps to api structs
 type HostConfigurer interface {
 	ResolveHostname() string
 	ResolveInternalIP() (string, error)
