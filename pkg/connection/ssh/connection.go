@@ -15,9 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Configuration struct {
-}
-
+// Connection describes an SSH connection
 type Connection struct {
 	Address string
 	User    string
@@ -28,18 +26,22 @@ type Connection struct {
 	client    *ssh.Client
 }
 
+// Disconnect closes the SSH connection
 func (c *Connection) Disconnect() {
 	c.client.Close()
 }
 
+// SetWindows can be used to tell the SSH connection to consider the host to be running Windows
 func (c *Connection) SetWindows(v bool) {
 	c.isWindows = v
 }
 
+// IsWindows is true when SetWindows(true) has been used
 func (c *Connection) IsWindows() bool {
 	return c.isWindows
 }
 
+// Connect opens the SSH connection
 func (c *Connection) Connect() error {
 	key, err := util.LoadExternalFile(c.KeyPath)
 	if err != nil {
@@ -79,6 +81,7 @@ func (c *Connection) Connect() error {
 	return nil
 }
 
+// ExecCmd executes a command on the host
 func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
 	session, err := c.client.NewSession()
 	if err != nil {
@@ -143,7 +146,7 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	return session.Wait()
 }
 
-// ExecWithOutput execs a command on the host and return output
+// ExecWithOutput execs a command on the host and returns its output
 func (c *Connection) ExecWithOutput(cmd string) (string, error) {
 	session, err := c.client.NewSession()
 	if err != nil {

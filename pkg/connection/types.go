@@ -1,5 +1,6 @@
 package connection
 
+// Connection is an interface to remote host connections
 type Connection interface {
 	Connect() error
 	Disconnect()

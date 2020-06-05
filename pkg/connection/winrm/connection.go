@@ -13,6 +13,7 @@ import (
 	"github.com/masterzen/winrm"
 )
 
+// Connection describes a WinRM connection with its configuration options
 type Connection struct {
 	Address       string
 	User          string
@@ -32,9 +33,11 @@ type Connection struct {
 	client *winrm.Client
 }
 
+// SetWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
 func (c *Connection) SetWindows(v bool) {
 }
 
+// IsWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
 func (c *Connection) IsWindows() bool {
 	return true
 }
@@ -70,6 +73,7 @@ func (c *Connection) loadCertificates() error {
 	return nil
 }
 
+// Connect opens the WinRM connection
 func (c *Connection) Connect() error {
 	if err := c.loadCertificates(); err != nil {
 		return fmt.Errorf("%s: failed to load certificates: %s", c.Address, err)
@@ -102,8 +106,12 @@ func (c *Connection) Connect() error {
 	return nil
 }
 
-func (c *Connection) Disconnect() {}
+// Disconnect closes the WinRM connection
+func (c *Connection) Disconnect() {
+	// TODO actually close the connection somehow
+}
 
+// ExecCmd executes a command on the host
 func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
 	shell, err := c.client.CreateShell()
 	if err != nil {
@@ -149,6 +157,7 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	return nil
 }
 
+// ExecWithOutput executes a command on the host and returns its output
 func (c *Connection) ExecWithOutput(cmd string) (string, error) {
 	shell, err := c.client.CreateShell()
 	if err != nil {

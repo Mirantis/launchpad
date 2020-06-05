@@ -6,7 +6,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-// Host contains all the needed details to work with hosts
+// WinRM contains configuration options for a WinRM connection
 type WinRM struct {
 	User          string `yaml:"user" validate:"omitempty,gt=2" default:"Administrator"`
 	Port          int    `yaml:"port" default:"5985" validate:"gt=0,lte=65535"`
@@ -38,6 +38,7 @@ func (w *WinRM) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// NewConnection returns a new WinRM connection instance
 func (w WinRM) NewConnection(address string) *winrm.Connection {
 	return &winrm.Connection{
 		Address:       address,

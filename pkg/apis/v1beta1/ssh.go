@@ -6,7 +6,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-// Host contains all the needed details to work with hosts
+// SSH contains ssh connection configuration options
 type SSH struct {
 	User    string `yaml:"user" validate:"omitempty,gt=2" default:"root"`
 	Port    int    `yaml:"port" default:"22" validate:"gt=0,lte=65535"`
@@ -29,6 +29,7 @@ func (s *SSH) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// NewConnection returns a new ssh connection instance
 func (s *SSH) NewConnection(address string) *ssh.Connection {
 	return &ssh.Connection{
 		Address: address,
@@ -38,6 +39,7 @@ func (s *SSH) NewConnection(address string) *ssh.Connection {
 	}
 }
 
+// DefaultSSH provides an instance of ssh configuration with the defaults set
 func DefaultSSH() *SSH {
 	ssh := SSH{}
 	defaults.Set(&ssh)
