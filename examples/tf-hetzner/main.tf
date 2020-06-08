@@ -74,7 +74,9 @@ output "ucp_cluster" {
             hosts = [
                 for host in concat(hcloud_server.master, hcloud_server.worker) : {
                     address      = host.ipv4_address
-                    user    = "root"
+                    ssh = {
+                      user    = var.ssh_user
+                    }
                     role    = host.labels.role
                 }
             ]
