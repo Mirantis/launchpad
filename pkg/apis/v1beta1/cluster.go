@@ -5,12 +5,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// MigrateV1Beta2 migrates an v1beta1 format configuration into v1beta2 format and replaces the contents of the supplied data byte slice
-func MigrateV1Beta2(data *[]byte) error {
+// MigrateToV1Beta2 migrates an v1beta1 format configuration into v1beta2 format and replaces the contents of the supplied data byte slice
+func MigrateToV1Beta2(data *[]byte) error {
 	plain := make(map[string]interface{})
 	yaml.Unmarshal(*data, &plain)
-
-	plain["apiVersion"] = "launchpad.mirantis.com/v1beta2"
 
 	if plain["spec"] == nil {
 		return nil
@@ -40,6 +38,9 @@ func MigrateV1Beta2(data *[]byte) error {
 			}
 		}
 	}
+
+	plain["apiVersion"] = "launchpad.mirantis.com/v1beta2"
+
 	out, err := yaml.Marshal(&plain)
 	if err != nil {
 		return err

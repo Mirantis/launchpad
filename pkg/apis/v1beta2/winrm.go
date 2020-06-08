@@ -31,9 +31,17 @@ func (w *WinRM) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	w.CACertPath, _ = homedir.Expand(w.CACertPath)
-	w.CertPath, _ = homedir.Expand(w.CACertPath)
-	w.KeyPath, _ = homedir.Expand(w.CACertPath)
+	if len(w.CACertPath) > 0 {
+		w.CACertPath, _ = homedir.Expand(w.CACertPath)
+	}
+
+	if len(w.CertPath) > 0 {
+		w.CertPath, _ = homedir.Expand(w.CertPath)
+	}
+
+	if len(w.KeyPath) > 0 {
+		w.KeyPath, _ = homedir.Expand(w.KeyPath)
+	}
 
 	return nil
 }
