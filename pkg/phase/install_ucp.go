@@ -14,6 +14,19 @@ import (
 
 const configName string = "com.docker.ucp.config"
 
+var (
+	ports = append([]int{
+		179,
+		443,
+		2376,
+		6443,
+		6444,
+		10250,
+		12376,
+		12388,
+	}, intRange(12378, 12386)...)
+)
+
 // InstallUCP is the phase implementation for running the actual UCP installer container
 type InstallUCP struct {
 	Analytics
@@ -72,6 +85,12 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	if swarmLeader.Configurer.SELinuxEnabled() {
 		runFlags = append(runFlags, "--security-opt label=disable")
 	}
+	
+	log.Debugln("Starting to check ports for connectivity")
+	if err := assurePortsAreAccessible(swarmLeader, image); err != nil {
+		return NewError(err.Error())
+	}
+	log.Debugln("All needed ports are accessible")
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
 	err := swarmLeader.ExecCmd(installCmd, "", true, true)
@@ -86,4 +105,67 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil
+}
+
+func assurePortsAreAccessible(host *api.Host, image string) (err error) {
+	defer host.Exec("sudo docker rm -f port-tester")
+
+	flags := []string{}
+	for _, port := range ports {
+		flags = append(flags, fmt.Sprintf("-p %d:2376", port))
+	}
+	cmd := fmt.Sprintf("sudo docker run -d --name port-tester --rm %s %s port-check-server", strings.Join(flags, " "), image)
+
+	if err := host.Exec(cmd); err != nil {
+		return err
+	}
+
+	pErr := &portError{}
+	for _, p := range ports {
+		// only wait 1 second if there is no connectivity
+		cmd := fmt.Sprintf(`sudo curl -s -o /dev/null -m 1 -w "%%{http_code}" http://%s:%d/`, host.Address, p)
+		o, err := host.ExecWithOutput(cmd)
+		if err != nil {
+			err := fmt.Errorf("error while executing cmd `%s`: %w", cmd, err)
+			pErr.append(p, err)
+		} else if o != "200" {
+			err := fmt.Errorf("error while curl-ling port %d: got response code %s", p, o)
+			pErr.append(p, err)
+		}
+	}
+	return pErr.errOrNil()
+}
+
+type portError struct {
+	Errors []error
+	Ports  []int
+}
+
+func (p *portError) Error() string {
+	ports := strings.Trim(strings.Replace(fmt.Sprint(p.Ports), " ", ", ", -1), "[]")
+	return fmt.Sprintf("the following ports need to be accessible before proceeding with the installation - %s", ports)
+}
+
+func (p *portError) append(port int, err error) {
+	p.Ports = append(p.Ports, port)
+	p.Errors = append(p.Errors, err)
+}
+
+func (p *portError) errOrNil() error {
+	if len(p.Ports) == 0 && len(p.Errors) == 0 {
+		return nil
+	}
+	return p
+}
+
+func intRange(begin, end int) []int {
+	if end < begin {
+		return []int{}
+	}
+
+	res := []int{}
+	for i := begin; i <= end; i++ {
+		res = append(res, i)
+	}
+	return res
 }
