@@ -108,7 +108,7 @@ func (c *Connection) Connect() error {
 
 // Disconnect closes the WinRM connection
 func (c *Connection) Disconnect() {
-	// TODO actually close the connection somehow
+	c.client = nil
 }
 
 // ExecCmd executes a command on the host
