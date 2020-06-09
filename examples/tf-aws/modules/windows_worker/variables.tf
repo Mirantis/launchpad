@@ -15,7 +15,7 @@ variable "image_id" {}
 variable "kube_cluster_tag" {}
 
 variable "worker_count" {
-  default = 1
+  default = 0
 }
 
 variable "worker_type" {
