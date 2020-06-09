@@ -25,7 +25,16 @@ func (p *InstallUCP) Title() string {
 }
 
 // Run the installer container
-func (p *InstallUCP) Run(config *api.ClusterConfig) error {
+func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
+	defer func() {
+		if err != nil {
+			log.Println("Cleaning-up")
+			if cleanupErr := config.Spec.SwarmLeader().Exec("sudo docker rm -f $(docker ps -aq)"); cleanupErr != nil {
+				log.Warnln("Error while cleaning-up resources")
+			}
+		}
+	}()
+
 	props := analytics.NewAnalyticsEventProperties()
 	props["ucp_version"] = config.Spec.Ucp.Version
 	p.EventProperties = props
@@ -74,7 +83,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	}
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err := swarmLeader.ExecCmd(installCmd, "", true, true)
+	err = swarmLeader.ExecCmd(installCmd, "", true, true)
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}
