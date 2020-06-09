@@ -26,10 +26,12 @@ func (p *InstallUCP) Title() string {
 
 // Run the installer container
 func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
+	swarmLeader := config.Spec.SwarmLeader()
+
 	defer func() {
 		if err != nil {
 			log.Println("Cleaning-up")
-			if cleanupErr := config.Spec.SwarmLeader().Exec("sudo docker rm -f $(docker ps -aq)"); cleanupErr != nil {
+			if cleanupErr := swarmLeader.Exec("sudo docker rm -f $(docker ps -aq)"); cleanupErr != nil {
 				log.Warnln("Error while cleaning-up resources")
 			}
 		}
@@ -38,7 +40,6 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	props := analytics.NewAnalyticsEventProperties()
 	props["ucp_version"] = config.Spec.Ucp.Version
 	p.EventProperties = props
-	swarmLeader := config.Spec.SwarmLeader()
 
 	if config.Spec.Ucp.Metadata.Installed {
 		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Spec.Ucp.Metadata.InstalledVersion)
