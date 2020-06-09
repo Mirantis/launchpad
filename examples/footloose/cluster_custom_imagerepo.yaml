@@ -3,12 +3,14 @@ kind: UCP
 spec:
   hosts:
     - address: "127.0.0.1"
-      sshPort: 9022
-      user: "root"
+      ssh:
+        port: 9022
+        user: "root"
       role: "manager"
     - address: "127.0.0.1"
-      sshPort: 9023
-      user: "root"
+      ssh:
+        port: 9023
+        user: "root"
       role: "worker"
   ucp:
     version: 3.3.0-rc4
