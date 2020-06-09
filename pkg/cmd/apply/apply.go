@@ -21,7 +21,19 @@ import (
 
 // Apply ...
 func Apply(configFile string, prune bool) error {
-	if err := analytics.RequireRegisteredUser(); err != nil {
+	var (
+		logFile *os.File
+		err     error
+	)
+	defer func() {
+		// logFile can be nil if error occurred before parsing the config
+		if err != nil && logFile != nil {
+			log.Infof("See %s for more logs ", logFile.Name())
+		}
+
+	}()
+
+	if err = analytics.RequireRegisteredUser(); err != nil {
 		return err
 	}
 	cfgData, err := config.ResolveClusterFile(configFile)
@@ -43,7 +55,7 @@ func Apply(configFile string, prune bool) error {
 	}
 
 	// Add logger to dump all log levels to file
-	err = addFileLogger(clusterConfig.Metadata.Name)
+	logFile, err = addFileLogger(clusterConfig.Metadata.Name)
 	if err != nil {
 		return err
 	}
@@ -66,10 +78,10 @@ func Apply(configFile string, prune bool) error {
 	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.UcpInfo{})
 
-	phaseErr := phaseManager.Run()
-	if phaseErr != nil {
-		return phaseErr
+	if err = phaseManager.Run(); err != nil {
+		return err
 	}
+
 	props := analytics.NewAnalyticsEventProperties()
 	props["kind"] = clusterConfig.Kind
 	props["api_version"] = clusterConfig.APIVersion
@@ -98,25 +110,25 @@ func Apply(configFile string, prune bool) error {
 
 const fileMode = 0700
 
-func addFileLogger(clusterName string) error {
+func addFileLogger(clusterName string) (*os.File, error) {
 	home, err := homedir.Dir()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
 	if err := util.EnsureDir(clusterDir); err != nil {
-		return fmt.Errorf("error while creating directory for apply logs: %w", err)
+		return nil, fmt.Errorf("error while creating directory for apply logs: %w", err)
 	}
 	logFileName := path.Join(clusterDir, "apply.log")
 	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileMode)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create apply log at %s: %s", logFileName, err.Error())
+		return nil, fmt.Errorf("Failed to create apply log at %s: %s", logFileName, err.Error())
 	}
 
 	// Send all logs to named file, this ensures we always have debug logs also available when needed
 	log.AddHook(mcclog.NewFileHook(logFile))
 
-	return nil
+	return logFile, nil
 }
