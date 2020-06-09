@@ -5,14 +5,16 @@ metadata:
 spec:
   hosts:
     - address: "127.0.0.1"
-      sshPort: 9022
-      sshKeyPath: "./id_rsa_launchpad"
-      user: "root"
+      ssh:
+        port: 9022
+        keyPath: "./id_rsa_launchpad"
+        user: "root"
       role: "manager"
     - address: "127.0.0.1"
-      sshPort: 9023
-      sshKeyPath: "./id_rsa_launchpad"
-      user: "root"
+      ssh:
+        port: 9023
+        keyPath: "./id_rsa_launchpad"
+        user: "root"
       role: "worker"
   ucp:
     version: $UCP_VERSION
