@@ -17,7 +17,7 @@ type WinRM struct {
 	CACertPath    string `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
 	CertPath      string `yaml:"certPath,omitempty" validate:"omitempty,file"`
 	KeyPath       string `yaml:"keyPath,omitempty" validate:"omitempty,file"`
-	TLSServerName string `yaml:"tlsServerName,omitempty"`
+	TLSServerName string `yaml:"tlsServerName,omitempty" validate:"omitempty,hostname|ip"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
@@ -41,6 +41,12 @@ func (w *WinRM) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	if len(w.KeyPath) > 0 {
 		w.KeyPath, _ = homedir.Expand(w.KeyPath)
+	}
+
+	if w.UseHTTPS && w.Port == 5985 {
+		// Questionable - the user could be forcing port 5985 for HTTPS, which is now impossible.
+		// (the default port for WinRM HTTP is 5985 and the default for WinRM HTTPS is 5986.)
+		w.Port = 5986
 	}
 
 	return nil

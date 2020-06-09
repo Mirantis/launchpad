@@ -128,8 +128,10 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 
 	if stdin != "" {
+		if !sensitiveCommand {
+			log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
+		}
 		sb := bytes.NewBufferString(stdin)
-		log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
 		go io.Copy(command.Stdin, sb)
 	}
 
