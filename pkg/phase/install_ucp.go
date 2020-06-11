@@ -31,7 +31,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	defer func() {
 		if err != nil {
 			log.Println("Cleaning-up")
-			if cleanupErr := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("rm -f $(docker ps -aq --filter name=ucp-)")); cleanupErr != nil {
+			if cleanupErr := cleanup(swarmLeader); cleanupErr != nil {
 				log.Warnln("Error while cleaning-up resources")
 			}
 		}
@@ -95,5 +95,21 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	}
 	config.Spec.Ucp.Metadata = ucpMeta
 
+	return nil
+}
+
+func cleanup(host *api.Host) error {
+	containersToRemove, err := host.ExecWithOutput(host.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
+	if err != nil {
+		return err
+	}
+	if strings.Trim(containersToRemove, " ") == "" {
+		log.Debugf("No containers to remove")
+		return nil
+	}
+	containersToRemove = strings.ReplaceAll(containersToRemove, "\n", " ")
+	if err := host.Exec(host.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+		return err
+	}
 	return nil
 }
