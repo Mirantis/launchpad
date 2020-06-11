@@ -45,15 +45,14 @@ The implementation will be made using Segment + Snowflake + Looker (similar to m
 * **Integration Tests** - At this stage only elementary smoke tests are included to test the product on various host OS environments such as CentOS7/8 and Ubuntu 18.04.  **The Plan:** Add more smoke tests to cover more host OS options, and add k8s/conformance + k8s/sig-windows suites part of the smoke tests. In the future, automate tests utilizing built-in terraform integration on AWS/Azure/GCP/OpenStack/VMWare.
 * **Manual Tests** - We hope QA team would run some of their existing test plans manually on clusters created with `launchpad`.
 
-## Release Process and Plan
+## Release Process
 
-No releases have been made yet. The first public release is targeted for May 28, 2020. For official release process, a dedicated Jenkins job will be created:
+Releases are made from git tags by CICD system. The release builds must be triggered manually. The release process is the following:
 
-* Build the `launchpad` binaries for various host operating systems: Win/MacOS/Linux (already done)
-* Calculate SHA sums for verification purposes
-* Upload built binaries to selected CDN
-
-Pre-releases will be made available soon. Schedule TBD.
+1. Create new or update the existing release branch
+2. Create new tag, for example `TAG=0.11.3 git tag $TAG && git push origin $TAG`
+3. Go to [Jenkins](https://ci.docker.com/teams-orchestration/job/mcc/job/mcc/view/tags/) and select `Build now` from the dropdown menu of the corresponding tag to trigger the release build.
+4. After the release build is ready, go to [Launchpad releases](https://github.com/Mirantis/launchpad/releases) in GitHub. Edit the draft release, write the changelog in the description field and publish the release.
 
 ## Comparison to Alternative Tools
 
