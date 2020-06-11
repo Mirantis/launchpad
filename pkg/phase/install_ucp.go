@@ -31,7 +31,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	defer func() {
 		if err != nil {
 			log.Println("Cleaning-up")
-			if cleanupErr := swarmLeader.Exec("sudo docker rm -f $(docker ps -aq --filter name=ucp-)"); cleanupErr != nil {
+			if cleanupErr := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("rm -f $(docker ps -aq --filter name=ucp-)")); cleanupErr != nil {
 				log.Warnln("Error while cleaning-up resources")
 			}
 		}
