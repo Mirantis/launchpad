@@ -25,11 +25,21 @@ func (p *InstallUCP) Title() string {
 }
 
 // Run the installer container
-func (p *InstallUCP) Run(config *api.ClusterConfig) error {
+func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
+	swarmLeader := config.Spec.SwarmLeader()
+
+	defer func() {
+		if err != nil {
+			log.Println("Cleaning-up")
+			if cleanupErr := cleanup(swarmLeader); cleanupErr != nil {
+				log.Warnln("Error while cleaning-up resources")
+			}
+		}
+	}()
+
 	props := analytics.NewAnalyticsEventProperties()
 	props["ucp_version"] = config.Spec.Ucp.Version
 	p.EventProperties = props
-	swarmLeader := config.Spec.SwarmLeader()
 
 	if config.Spec.Ucp.Metadata.Installed {
 		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Spec.Ucp.Metadata.InstalledVersion)
@@ -74,7 +84,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	}
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err := swarmLeader.ExecCmd(installCmd, "", true, true)
+	err = swarmLeader.ExecCmd(installCmd, "", true, true)
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}
@@ -85,5 +95,21 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) error {
 	}
 	config.Spec.Ucp.Metadata = ucpMeta
 
+	return nil
+}
+
+func cleanup(host *api.Host) error {
+	containersToRemove, err := host.ExecWithOutput(host.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
+	if err != nil {
+		return err
+	}
+	if strings.Trim(containersToRemove, " ") == "" {
+		log.Debugf("No containers to remove")
+		return nil
+	}
+	containersToRemove = strings.ReplaceAll(containersToRemove, "\n", " ")
+	if err := host.Exec(host.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+		return err
+	}
 	return nil
 }
