@@ -51,8 +51,8 @@ Releases are made from git tags by CICD system. The release builds must be trigg
 
 1. Create new or update the existing release branch
 2. Create new tag, for example `TAG=0.11.3 git tag $TAG && git push origin $TAG`
-3. Go to Jenkins and select created tag and click `Build now` to trigger the release build.
-4. After the release build is ready, go to Launchpad releases in GitHub. Edit the draft release, write changelog in the description field and publish the release.
+3. Go to [Jenkins](https://ci.docker.com/teams-orchestration/job/mcc/job/mcc/view/tags/) and select `Build now` from the dropdown menu of the corresponding tag to trigger the release build.
+4. After the release build is ready, go to [Launchpad releases](https://github.com/Mirantis/launchpad/releases) in GitHub. Edit the draft release, write the changelog in the description field and publish the release.
 
 ## Comparison to Alternative Tools
 
