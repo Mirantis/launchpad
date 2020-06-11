@@ -2,6 +2,8 @@ module github.com/Mirantis/mcc
 
 go 1.13
 
+replace github.com/masterzen/winrm => /Users/kimmo/Projects/winrm
+
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
 	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4 // indirect

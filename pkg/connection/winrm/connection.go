@@ -131,8 +131,9 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 		if !sensitiveCommand {
 			log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
 		}
-		sb := bytes.NewBufferString(stdin)
-		go io.Copy(command.Stdin, sb)
+		go func() {
+			command.Stdin.WriteClose([]byte(stdin))
+		}()
 	}
 
 	multiReader := io.MultiReader(command.Stdout, command.Stderr)

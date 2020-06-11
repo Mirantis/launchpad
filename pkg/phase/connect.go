@@ -44,5 +44,18 @@ func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 	}
 
 	log.Printf("%s: %s connection opened", host.Address, proto)
+	return testConnection(host)
+}
+
+func testConnection(host *api.Host) error {
+	log.Infof("%s: testing connection", host.Address)
+	privCheck := "$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Host 'User has admin privileges'; exit 0; } else { Write-Host 'User does not have admin privileges'; exit 1 }"
+	err := host.ExecCmd("powershell.exe", privCheck, false, false)
+	if err != nil {
+		err := host.ExecCmd("sudo bash -", "ps", false, false)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
