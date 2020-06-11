@@ -29,7 +29,7 @@ func (p *InitSwarm) Run(config *api.ClusterConfig) error {
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", output))
 		}
-		log.Infof("%s: swarm initialized succesfully", swarmLeader.Address)
+		log.Infof("%s: swarm initialized successfully", swarmLeader.Address)
 	} else {
 		log.Infof("%s: swarm already initialized", swarmLeader.Address)
 	}
