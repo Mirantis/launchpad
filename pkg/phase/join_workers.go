@@ -33,7 +33,7 @@ func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
 		}
-		log.Infof("%s: joined succesfully", h.Address)
+		log.Infof("%s: joined successfully", h.Address)
 	}
 	return nil
 }
