@@ -1,8 +1,10 @@
 ### Please try to make your PR title understandable to the general public as a changelog item
 
-## Labels
+### Use "squash and merge" and delete the branch if it was made to the main repo
 
-#### "Breaking change"
+#### Labels
+
+##### "Breaking change"
 
 (minor version bump)
 
