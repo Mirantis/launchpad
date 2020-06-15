@@ -122,7 +122,12 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 
 	if stdin != "" {
-		log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
+		if sensitiveCommand {
+			log.Debugf("%s: writing data to command stdin", c.Address)
+		} else {
+			log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
+		}
+
 		go func() {
 			defer stdinPipe.Close()
 			io.WriteString(stdinPipe, stdin)

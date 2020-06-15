@@ -15,6 +15,7 @@ type HostConfigurer interface {
 	DockerCommandf(template string, args ...interface{}) string
 	RestartEngine() error
 	ValidateFacts() error
+	AuthenticateDocker(user, pass, repo string) error
 }
 
 // HostConfigurerBuilder defines the builder function signature

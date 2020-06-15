@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -128,13 +129,17 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 
 	if stdin != "" {
-		if !sensitiveCommand {
+		if sensitiveCommand {
+			log.Debugf("%s: writing data to command stdin", c.Address)
+		} else {
 			log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
 		}
 		go func() {
 			command.Stdin.Write([]byte(stdin))
 			command.Stdin.Close()
 		}()
+	} else {
+		command.Stdin.Close()
 	}
 
 	multiReader := io.MultiReader(command.Stdout, command.Stderr)
@@ -185,5 +190,5 @@ func (c *Connection) ExecWithOutput(cmd string) (string, error) {
 		return "", fmt.Errorf("%s: command failed (%d): %s", c.Address, command.ExitCode(), errWriter.String())
 	}
 
-	return outWriter.String(), nil
+	return strings.TrimSpace(outWriter.String()), nil
 }

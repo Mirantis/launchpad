@@ -87,3 +87,10 @@ func (c *WindowsConfigurer) ValidateFacts() error {
 	// TODO How to validate private address to be node local address?
 	return nil
 }
+
+// AuthenticateDocker performs a docker login on the host
+func (c *WindowsConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
+	// the --pasword-stdin seems to hang in windows
+	_, err := c.Host.ExecWithOutput(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo))
+	return err
+}

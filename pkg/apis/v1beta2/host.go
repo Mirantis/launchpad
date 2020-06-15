@@ -128,17 +128,9 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		}
 
 		log.Infof("%s: authenticating docker for image repo %s", h.Address, imageRepo)
-		old := log.GetLevel()
-		log.SetLevel(log.ErrorLevel)
-		err := h.ExecCmd(h.Configurer.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), pass, false, true)
-		log.SetLevel(old)
-
-		if err != nil {
-			return fmt.Errorf("%s: failed to authenticate docker: %s", h.Address, err)
-		}
-	} else {
-		log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
+		return h.Configurer.AuthenticateDocker(user, pass, imageRepo)
 	}
+	log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
 	return nil
 }
 
