@@ -42,7 +42,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-test CONFIG_TEMPLATE=v1beta2_cluster.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-test CONFIG_TEMPLATE=v1beta1_cluster.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("CentOS 7: apply") {
