@@ -1,27 +1,15 @@
-package v1beta1
+package v1beta2
 
 import (
-	"bufio"
 	"fmt"
-	"io"
-	"net"
 	"os"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/connection"
 	"github.com/creasty/defaults"
-	"github.com/mitchellh/go-homedir"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 
 	log "github.com/sirupsen/logrus"
 )
-
-// RemoteHost interface defines the connection (ssh) related interface each remote host should implement
-type RemoteHost interface {
-	Connect() error
-	Disconnect() error
-}
 
 // OsRelease host operating system info
 type OsRelease struct {
@@ -42,136 +30,59 @@ type HostMetadata struct {
 // Host contains all the needed details to work with hosts
 type Host struct {
 	Address          string `yaml:"address" validate:"required,hostname|ip"`
-	User             string `yaml:"user" validate:"omitempty,gt=2" default:"root"`
-	SSHPort          int    `yaml:"sshPort" default:"22" validate:"gt=0,lte=65535"`
-	SSHKeyPath       string `yaml:"sshKeyPath" validate:"file" default:"~/.ssh/id_rsa"`
 	Role             string `yaml:"role" validate:"oneof=manager worker"`
 	PrivateInterface string `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+
+	WinRM *WinRM `yaml:"winRM,omitempty"`
+	SSH   *SSH   `yaml:"ssh,omitempty"`
 
 	Metadata   *HostMetadata  `yaml:"-"`
 	Configurer HostConfigurer `yaml:"-"`
 
-	sshClient *ssh.Client
+	Connection connection.Connection `yaml:"-"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
 
-	type plain Host
-	if err := unmarshal((*plain)(h)); err != nil {
+	type yhost Host
+	yh := (*yhost)(h)
+
+	if err := unmarshal(yh); err != nil {
 		return err
 	}
 
-	// Need to expand possible ~... paths so validation will pass
-	h.SSHKeyPath, _ = homedir.Expand(h.SSHKeyPath)
+	if h.WinRM == nil && h.SSH == nil {
+		h.SSH = DefaultSSH()
+	}
 
 	return nil
 }
 
 // Connect to the host
 func (h *Host) Connect() error {
-	key, err := util.LoadExternalFile(h.SSHKeyPath)
-	if err != nil {
+	var c connection.Connection
+
+	if h.WinRM == nil {
+		c = h.SSH.NewConnection(h.Address)
+	} else {
+		c = h.WinRM.NewConnection(h.Address)
+	}
+
+	if err := c.Connect(); err != nil {
+		h.Connection = nil
 		return err
 	}
 
-	config := &ssh.ClientConfig{
-		User:            h.User,
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-	address := fmt.Sprintf("%s:%d", h.Address, h.SSHPort)
-
-	sshAgentSock := os.Getenv("SSH_AUTH_SOCK")
-	signer, err := ssh.ParsePrivateKey(key)
-	if err != nil && sshAgentSock == "" {
-		return err
-	}
-	if err == nil {
-		config.Auth = append(config.Auth, ssh.PublicKeys(signer))
-	}
-
-	if sshAgentSock != "" {
-		sshAgent, err := net.Dial("unix", sshAgentSock)
-		if err != nil {
-			return fmt.Errorf("cannot connect to SSH agent auth socket %s: %s", sshAgentSock, err)
-		}
-		log.Debugf("using SSH auth sock %s", sshAgentSock)
-		config.Auth = append(config.Auth, ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers))
-	}
-
-	client, err := ssh.Dial("tcp", address, config)
-	if err != nil {
-		return err
-	}
-	h.sshClient = client
+	h.Connection = c
 
 	return nil
 }
 
 // ExecCmd a command on the host piping stdin and streams the logs
 func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
-	session, err := h.sshClient.NewSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
-
-	if stdin == "" && !h.IsWindows() {
-		// FIXME not requesting a pty for commands with stdin input for now,
-		// as it appears the pipe doesn't get closed with stdinpipe.Close()
-		modes := ssh.TerminalModes{}
-		err = session.RequestPty("xterm", 80, 40, modes)
-		if err != nil {
-			return err
-		}
-	}
-
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := session.StderrPipe()
-	if err != nil {
-		return err
-	}
-
-	stdinPipe, err := session.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	if !sensitiveCommand {
-		log.Debugf("%s: executing command: %s", h.Address, cmd)
-	}
-
-	if err := session.Start(cmd); err != nil {
-		return err
-	}
-
-	if stdin != "" {
-		log.Debugf("%s: writing data to command stdin: %s", h.Address, stdin)
-		go func() {
-			defer stdinPipe.Close()
-			io.WriteString(stdinPipe, stdin)
-		}()
-	}
-
-	multiReader := io.MultiReader(stdout, stderr)
-	outputScanner := bufio.NewScanner(multiReader)
-
-	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s:  %s", h.Address, outputScanner.Text())
-		} else {
-			log.Debugf("%s:  %s", h.Address, outputScanner.Text())
-		}
-	}
-	if err := outputScanner.Err(); err != nil {
-		log.Errorf("%s:  %s", h.Address, err.Error())
-	}
-
-	return session.Wait()
+	return h.Connection.ExecCmd(cmd, stdin, streamStdout, sensitiveCommand)
 }
 
 // Exec a command on the host and streams the logs
@@ -186,18 +97,7 @@ func (h *Host) Execf(cmd string, args ...interface{}) error {
 
 // ExecWithOutput execs a command on the host and return output
 func (h *Host) ExecWithOutput(cmd string) (string, error) {
-	session, err := h.sshClient.NewSession()
-	if err != nil {
-		return "", err
-	}
-	defer session.Close()
-
-	output, err := session.CombinedOutput(cmd)
-	if err != nil {
-		return trimOutput(output), err
-	}
-
-	return trimOutput(output), nil
+	return h.Connection.ExecWithOutput(cmd)
 }
 
 // WriteFile writes file to host with given contents
