@@ -2,8 +2,6 @@ module github.com/Mirantis/mcc
 
 go 1.13
 
-replace github.com/masterzen/winrm => /Users/kimmo/Projects/winrm
-
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
 	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4 // indirect
@@ -18,11 +16,12 @@ require (
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
+	github.com/google/go-cmp v0.4.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
-	github.com/masterzen/winrm v0.0.0-20200518133226-8ad2e8823256
+	github.com/masterzen/winrm v0.0.0-20200612141538-f6f9b2959811
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0
@@ -37,5 +36,4 @@ require (
 	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/yaml.v2 v2.3.0
-	gopkg.in/yaml.v3 v3.0.0-20200603094226-e3079894b1e8
 )

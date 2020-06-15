@@ -132,7 +132,8 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 			log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
 		}
 		go func() {
-			command.Stdin.WriteClose([]byte(stdin))
+			command.Stdin.Write([]byte(stdin))
+			command.Stdin.Close()
 		}()
 	}
 
@@ -151,6 +152,7 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 
 	command.Wait()
+	command.Close()
 	shell.Close()
 
 	if command.ExitCode() > 0 {
