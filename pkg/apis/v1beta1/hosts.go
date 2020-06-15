@@ -1,5 +1,11 @@
 package v1beta1
 
+import (
+	"fmt"
+	"strings"
+	"sync"
+)
+
 // Hosts is a collection of Hosts
 type Hosts []*Host
 
@@ -47,11 +53,59 @@ func (hosts *Hosts) IndexAll(filter func(host *Host) bool) []int {
 	return result
 }
 
+// Each runs a function on every Host. The function should return nil or an error. The first encountered error
+// will be returned and the process will be halted.
+func (hosts *Hosts) Each(filter func(host *Host) error) error {
+	for _, h := range *hosts {
+		if err := filter(h); err != nil {
+			return fmt.Errorf("%s: %s", h.Address, err.Error())
+		}
+	}
+	return nil
+}
+
+// Each runs a function on every Host parallelly. The function should return nil or an error.
+// Any errors will be concatenated and returned.
+func (hosts *Hosts) ParallelEach(filter func(host *Host) error) error {
+	var wg sync.WaitGroup
+	var errors []string
+	type erritem struct {
+		address string
+		err     error
+	}
+	ec := make(chan erritem, 1)
+
+	wg.Add(len(*hosts))
+
+	for _, h := range *hosts {
+		go func(h *Host) {
+			ec <- erritem{h.Address, filter(h)}
+		}(h)
+	}
+
+	go func() {
+		for e := range ec {
+			if e.err != nil {
+				errors = append(errors, fmt.Sprintf("%s: %s", e.address, e.err.Error()))
+			}
+			wg.Done()
+		}
+	}()
+
+	wg.Wait()
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed on %d hosts:\n - %s", len(errors), strings.Join(errors, "\n - "))
+	}
+
+	return nil
+}
+
 // Map returns a new slice which is the result of running the map function on each host.
 func (hosts *Hosts) Map(filter func(host *Host) interface{}) []interface{} {
 	result := make([]interface{}, len(*hosts))
-	for _, h := range *hosts {
-		result = append(result, filter(h))
+	for i, h := range *hosts {
+		result[i] = filter(h)
 	}
 	return result
 }
@@ -59,8 +113,8 @@ func (hosts *Hosts) Map(filter func(host *Host) interface{}) []interface{} {
 // MapString returns a new slice which is the result of running the map function on each host
 func (hosts *Hosts) MapString(filter func(host *Host) string) []string {
 	result := make([]string, len(*hosts))
-	for _, h := range *hosts {
-		result = append(result, filter(h))
+	for i, h := range *hosts {
+		result[i] = filter(h)
 	}
 	return result
 }
