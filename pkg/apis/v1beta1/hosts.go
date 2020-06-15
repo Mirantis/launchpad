@@ -9,9 +9,28 @@ import (
 // Hosts is a collection of Hosts
 type Hosts []*Host
 
+// First returns the first host
+func (hosts *Hosts) First() *Host {
+	if len(*hosts) == 0 {
+		return nil
+	}
+	return (*hosts)[0]
+}
+
+// Last returns the last host
+func (hosts *Hosts) Last() *Host {
+	c := len(*hosts) - 1
+
+	if c < 0 {
+		return nil
+	}
+
+	return (*hosts)[c]
+}
+
 // Filter returns a filtered list of Hosts. The filter function should returnn true for hosts matching the criteria.
 func (hosts *Hosts) Filter(filter func(host *Host) bool) Hosts {
-	result := make([]*Host, 0, len(*hosts))
+	result := make(Hosts, 0, len(*hosts))
 
 	for _, h := range *hosts {
 		if filter(h) {

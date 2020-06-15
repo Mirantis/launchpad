@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -80,6 +81,70 @@ func TestCount(t *testing.T) {
 	require.Equal(t, hosts.Count(func(h *Host) bool { return h.Role == "manager" }), 2)
 	require.Equal(t, hosts.Count(func(h *Host) bool { return h.Role == "worker" }), 1)
 	require.Equal(t, hosts.Count(func(h *Host) bool { return h.Role == "foo" }), 0)
+}
+
+func TestEach(t *testing.T) {
+	err := hosts.Each(func(h *Host) error {
+		h.PrivateInterface = "test"
+		return nil
+	})
+
+	require.NoError(t, err)
+
+	for _, h := range hosts {
+		require.Equal(t, h.PrivateInterface, "test")
+	}
+
+	err = hosts.Each(func(h *Host) error {
+		h.PrivateInterface = "test2"
+		if h.Address == "man2" {
+			return fmt.Errorf("err!")
+		}
+
+		return nil
+	})
+
+	require.Error(t, err)
+
+	require.Equal(t, hosts[0].PrivateInterface, "test2")
+	require.Equal(t, hosts[1].PrivateInterface, "test2")
+	require.Equal(t, hosts[2].PrivateInterface, "test") // should remain unchanged
+}
+
+func TestParallelEach(t *testing.T) {
+	err := hosts.ParallelEach(func(h *Host) error {
+		h.PrivateInterface = "test"
+		return nil
+	})
+
+	require.NoError(t, err)
+
+	for _, h := range hosts {
+		require.Equal(t, h.PrivateInterface, "test")
+	}
+
+	err = hosts.ParallelEach(func(h *Host) error {
+		h.PrivateInterface = "test2"
+		if h.Address == "man2" {
+			return fmt.Errorf("err!")
+		}
+
+		return nil
+	})
+
+	require.Error(t, err)
+
+	require.Equal(t, hosts[0].PrivateInterface, "test2")
+	require.Equal(t, hosts[1].PrivateInterface, "test2")
+	require.Equal(t, hosts[2].PrivateInterface, "test2")
+}
+
+func TestFirst(t *testing.T) {
+	require.Equal(t, hosts.First().Address, "man1")
+}
+
+func TestLast(t *testing.T) {
+	require.Equal(t, hosts.Last().Address, "work1")
 }
 
 func ExampleHosts_Filter() {
