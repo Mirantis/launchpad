@@ -83,7 +83,7 @@ func (hosts *Hosts) Each(filter func(host *Host) error) error {
 	return nil
 }
 
-// Each runs a function on every Host parallelly. The function should return nil or an error.
+// ParallelEach runs a function on every Host parallelly. The function should return nil or an error.
 // Any errors will be concatenated and returned.
 func (hosts *Hosts) ParallelEach(filter func(host *Host) error) error {
 	var wg sync.WaitGroup
