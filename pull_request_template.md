@@ -13,10 +13,6 @@
 - Requires user to make changes to their configuration or hosts
 - Adds a new supported platform
 
-#### "Requires user action"
-
-- To note the change has to be communicated to the user
-
 #### "Non-breaking change"
 
 (patch version bump)
