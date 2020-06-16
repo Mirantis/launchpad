@@ -98,7 +98,7 @@ func TestEach(t *testing.T) {
 	err = hosts.Each(func(h *Host) error {
 		h.PrivateInterface = "test2"
 		if h.Address == "man2" {
-			return fmt.Errorf("Err!")
+			return fmt.Errorf("error")
 		}
 
 		return nil
@@ -126,7 +126,7 @@ func TestParallelEach(t *testing.T) {
 	err = hosts.ParallelEach(func(h *Host) error {
 		h.PrivateInterface = "test2"
 		if h.Address == "man2" {
-			return fmt.Errorf("Err!")
+			return fmt.Errorf("error")
 		}
 
 		return nil
