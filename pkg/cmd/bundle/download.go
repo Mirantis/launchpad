@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/phase"

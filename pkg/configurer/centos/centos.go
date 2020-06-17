@@ -1,7 +1,7 @@
 package centos
 
 import (
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/configurer"
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
 )
