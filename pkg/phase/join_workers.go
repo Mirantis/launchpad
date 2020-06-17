@@ -44,10 +44,7 @@ func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
 			time.Sleep(5 * time.Second)
 			err = retry.Do(
 				func() error {
-					err = h.Disconnect()
-					if err != nil {
-						return fmt.Errorf("error disconnecting host %s: %w", h.Address, err)
-					}
+					h.Disconnect()
 					err = h.Connect()
 					if err != nil {
 						return fmt.Errorf("error reconnecting host %s: %w", h.Address, err)
