@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"

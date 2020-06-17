@@ -50,37 +50,45 @@ module "windows_workers" {
   security_group_id     = module.common.security_group_id
   image_id              = module.common.windows_2019_image_id
   kube_cluster_tag      = module.common.kube_cluster_tag
-  ssh_key               = var.cluster_name
   instance_profile_name = module.common.instance_profile_name
   worker_type           = var.worker_type
+  windows_administrator_password = var.windows_administrator_password
 }
 
 locals {
   managers = [
     for host in module.masters.machines : {
       address = host.public_ip
-      user    = "ubuntu"
+      ssh = {
+        user    = "ubuntu"
+        keyPath = "./ssh_keys/${var.cluster_name}.pem"
+      }
       role    = host.tags["Role"]
       privateInterface = "ens5"
-      sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
     }
   ]
   workers = [
     for host in module.workers.machines : {
       address = host.public_ip
-      user    = "ubuntu"
+      ssh = {
+        user    = "ubuntu"
+        keyPath = "./ssh_keys/${var.cluster_name}.pem"
+      }
       role    = host.tags["Role"]
       privateInterface = "ens5"
-      sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
     }
   ]
   windows_workers = [
     for host in module.windows_workers.machines : {
       address = host.public_ip
-      user    = "administrator"
+      winRM = {
+        user    = "Administrator"
+        password = var.windows_administrator_password
+        useHTTPS = true
+        insecure = true
+      }
       role    = host.tags["Role"]
       privateInterface = "Ethernet 2"
-      sshKeyPath = "./ssh_keys/${var.cluster_name}.pem"
     }
   ]
 }
@@ -88,7 +96,7 @@ locals {
 
 output "ucp_cluster" {
   value = {
-    apiVersion = "launchpad.mirantis.com/v1beta1"
+    apiVersion = "launchpad.mirantis.com/v1beta2"
     kind = "UCP"
     spec = {
       ucp = {

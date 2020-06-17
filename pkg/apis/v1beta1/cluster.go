@@ -1,33 +1,52 @@
 package v1beta1
 
-// ClusterMeta defines cluster metadata
-type ClusterMeta struct {
-	Name string `yaml:"name" validate:"required"`
-}
+import (
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+)
 
-// ClusterConfig describes cluster.yaml configuration
-type ClusterConfig struct {
-	APIVersion       string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1beta1"`
-	Kind             string       `yaml:"kind" validate:"eq=UCP"`
-	Metadata         *ClusterMeta `yaml:"metadata"`
-	Spec             *ClusterSpec `yaml:"spec"`
-	ManagerJoinToken string       `yaml:"-"`
-	WorkerJoinToken  string       `yaml:"-"`
-}
+// MigrateToV1Beta2 migrates an v1beta1 format configuration into v1beta2 format and replaces the contents of the supplied data byte slice
+func MigrateToV1Beta2(data *[]byte) error {
+	plain := make(map[string]interface{})
+	yaml.Unmarshal(*data, &plain)
 
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
-func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawClusterConfig ClusterConfig
-	raw := rawClusterConfig{
-		Metadata: &ClusterMeta{
-			Name: "launchpad-ucp",
-		},
-		Spec: &ClusterSpec{},
+	if plain["spec"] == nil {
+		return nil
 	}
-	if err := unmarshal(&raw); err != nil {
+
+	hosts := plain["spec"].(map[interface{}]interface{})["hosts"]
+	hslice := hosts.([]interface{})
+
+	for _, h := range hslice {
+		host := h.(map[interface{}]interface{})
+		host["ssh"] = make(map[string]interface{})
+		ssh := host["ssh"].(map[string]interface{})
+		for k, v := range host {
+			switch k.(string) {
+			case "sshKeyPath":
+				ssh["keyPath"] = v
+				delete(host, k)
+				log.Debugf("migrated v1beta1 host sshKeyPath '%s' to v1beta2 ssh[keyPath]", v)
+			case "sshPort":
+				ssh["port"] = v
+				delete(host, k)
+				log.Debugf("migrated v1beta1 host sshPort '%d' to v1beta2 ssh[port]", v)
+			case "user":
+				ssh["user"] = v
+				delete(host, k)
+				log.Debugf("migrated v1beta1 host user '%s' to v1beta2 ssh[user]", v)
+			}
+		}
+	}
+
+	plain["apiVersion"] = "launchpad.mirantis.com/v1beta2"
+
+	out, err := yaml.Marshal(&plain)
+	if err != nil {
 		return err
 	}
 
-	*c = ClusterConfig(raw)
+	*data = out
+
 	return nil
 }

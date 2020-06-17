@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
@@ -66,6 +66,7 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	os := &api.OsRelease{}
 	if isWindows(h) {
+		h.Connection.SetWindows(true)
 		winOs, err := ResolveWindowsOsRelease(h)
 		if err != nil {
 			return err
@@ -107,8 +108,7 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 }
 
 func isWindows(h *api.Host) bool {
-	// need to use STDIN so that we don't request PTY (which does not work on Windows)
-	err := h.ExecCmd(`powershell`, `Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"`, false, false)
+	err := h.ExecCmd(`powershell -Command "Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\""`, "", false, false)
 	if err != nil {
 		return false
 	}

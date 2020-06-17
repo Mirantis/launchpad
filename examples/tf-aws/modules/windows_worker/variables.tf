@@ -14,10 +14,6 @@ variable "image_id" {}
 
 variable "kube_cluster_tag" {}
 
-variable "ssh_key" {
-  description = "SSH key name"
-}
-
 variable "worker_count" {
   default = 0
 }
@@ -28,4 +24,7 @@ variable "worker_type" {
 
 variable "worker_volume_size" {
   default = 100
+}
+
+variable "windows_administrator_password" {
 }

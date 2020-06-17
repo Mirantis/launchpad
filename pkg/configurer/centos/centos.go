@@ -1,7 +1,7 @@
 package centos
 
 import (
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/configurer"
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
 )
@@ -9,6 +9,15 @@ import (
 // Configurer is the CentOS specific implementation of a host configurer
 type Configurer struct {
 	enterpriselinux.Configurer
+}
+
+// InstallBasePackages install all the needed base packages on the host
+func (c *Configurer) InstallBasePackages() error {
+	err := c.FixContainerizedHost()
+	if err != nil {
+		return err
+	}
+	return c.Host.Exec("sudo yum install -y curl socat iptables")
 }
 
 func resolveCentosConfigurer(h *api.Host) api.HostConfigurer {

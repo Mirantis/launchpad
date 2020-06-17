@@ -7,7 +7,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/util"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -158,4 +158,9 @@ func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
 	}
 
 	return strings.Split(output, " "), nil
+}
+
+// AuthenticateDocker performs a docker login on the host
+func (c *LinuxConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
+	return c.Host.ExecCmd(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), pass, false, true)
 }

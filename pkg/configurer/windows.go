@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/constant"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,11 +32,14 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 		return nil
 	}
 	scriptURL := fmt.Sprintf("%sinstall.ps1", constant.EngineInstallURL)
-	dlCommand := fmt.Sprintf("$ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest %s -UseBasicParsing -OutFile install.ps1", scriptURL)
-	err := c.Host.ExecCmd("powershell", dlCommand, false, false)
+	dlCommand := fmt.Sprintf("powershell -Command \"$ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest %s -UseBasicParsing -OutFile install.ps1\"", scriptURL)
+	err := c.Host.ExecCmd(dlCommand, "", false, false)
 	if err != nil {
 		return err
 	}
+
+	defer c.Host.Exec("del install.ps1")
+
 	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -File install.ps1 -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel)
 	err = c.Host.Exec(installCommand)
 	if err != nil {
@@ -99,13 +102,9 @@ func (c *WindowsConfigurer) ValidateFacts() error {
 	return nil
 }
 
-// WriteFile writes file to host with given contents
-func (c *WindowsConfigurer) WriteFile(path string, data string, permissions string) error {
-	// TODO Once we know how to handle permissions, change this to use similar process with linux:
-	// create tmp; pipe stdin to tmp; mv tmp --> real; apply permissions; rm tmp
-	err := c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "$Input | New-Item -Path %s -Force -ItemType File"`, path), data, false, true)
-	if err != nil {
-		return err
-	}
-	return nil
+// AuthenticateDocker performs a docker login on the host
+func (c *WindowsConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
+	// the --pasword-stdin seems to hang in windows
+	_, err := c.Host.ExecWithOutput(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo))
+	return err
 }
