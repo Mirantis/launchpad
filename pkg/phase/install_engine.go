@@ -43,7 +43,7 @@ func (p *InstallEngine) Run(c *api.ClusterConfig) error {
 }
 
 func resolveEngineVersions(c *api.ClusterConfig) {
-	c.Spec.Hosts.Each(func(h *api.Host) error {
+	c.Spec.Hosts.ParallelEach(func(h *api.Host) error {
 		log.Infof("%s: resolving docker engine version", h.Address)
 		h.Metadata.EngineVersion = resolveEngineVersion(h)
 		if h.Metadata.EngineVersion == "" {
