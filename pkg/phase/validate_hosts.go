@@ -29,7 +29,7 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run(conf *api.ClusterConfig) error {
-	conf.Spec.Hosts.Each(func(h *api.Host) error {
+	conf.Spec.Hosts.ParallelEach(func(h *api.Host) error {
 		log.Infof("%s: validating host facts", h.Address)
 		err := h.Configurer.ValidateFacts()
 		if err != nil {
