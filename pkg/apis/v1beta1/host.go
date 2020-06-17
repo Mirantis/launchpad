@@ -39,6 +39,30 @@ type HostMetadata struct {
 	Os              *OsRelease
 }
 
+type Errors struct {
+	errors []string
+}
+
+func (errors *Errors) Count() int {
+	return len(errors.errors)
+}
+
+func (errors *Errors) Add(e string) {
+	errors.errors = append(errors.errors, e)
+}
+
+func (errors *Errors) Addf(template string, args ...interface{}) {
+	errors.errors = append(errors.errors, fmt.Sprintf(template, args...))
+}
+
+func (errors *Errors) String() string {
+	if errors.Count() == 0 {
+		return ""
+	}
+
+	return "- " + strings.Join(errors.errors, "\n- ")
+}
+
 // Host contains all the needed details to work with hosts
 type Host struct {
 	Address          string `yaml:"address" validate:"required,hostname|ip"`
@@ -50,6 +74,7 @@ type Host struct {
 
 	Metadata   *HostMetadata  `yaml:"-"`
 	Configurer HostConfigurer `yaml:"-"`
+	Errors     Errors         `yaml:"-"`
 
 	sshClient *ssh.Client
 }
@@ -141,7 +166,9 @@ func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCom
 		return err
 	}
 
-	if !sensitiveCommand {
+	if sensitiveCommand {
+		log.Debugf("%s: executing command", h.Address)
+	} else {
 		log.Debugf("%s: executing command: %s", h.Address, cmd)
 	}
 

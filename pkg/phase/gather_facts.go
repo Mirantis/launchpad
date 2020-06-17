@@ -92,12 +92,6 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 	h.Metadata.InternalAddress = a
-	h.Metadata.EngineVersion = resolveEngineVersion(h)
-
-	err = h.Configurer.ValidateFacts()
-	if err != nil {
-		return err
-	}
 
 	log.Infof("%s: is running \"%s\"", h.Address, h.Metadata.Os.Name)
 	log.Infof("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)
@@ -157,13 +151,4 @@ func ResolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
 	}
 
 	return osRelease, nil
-}
-
-func resolveEngineVersion(h *api.Host) string {
-	cmd := h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`)
-	version, err := h.ExecWithOutput(cmd)
-	if err != nil {
-		return ""
-	}
-	return version
 }

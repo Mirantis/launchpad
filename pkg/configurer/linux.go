@@ -106,6 +106,10 @@ func (c *LinuxConfigurer) DockerCommandf(template string, args ...interface{}) s
 
 // ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
 func (c *LinuxConfigurer) ValidateFacts() error {
+	if err := c.checkSudo(); err != nil {
+		return fmt.Errorf("user does not have passwordless sudo access: %w", err)
+	}
+
 	localAddresses, err := c.getHostLocalAddresses()
 	if err != nil {
 		return fmt.Errorf("failed to find host local addresses: %w", err)
@@ -116,6 +120,10 @@ func (c *LinuxConfigurer) ValidateFacts() error {
 	}
 
 	return nil
+}
+
+func (c *LinuxConfigurer) checkSudo() error {
+	return c.Host.ExecCmd("sudo -n true", "", false, false)
 }
 
 // SELinuxEnabled is SELinux enabled
