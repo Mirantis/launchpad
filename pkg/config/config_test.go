@@ -154,8 +154,6 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	t.Logf("daemon config: %#v", c.Spec.Hosts[0].DaemonConfig)
-
 	_, err := json.Marshal(c.Spec.Hosts[0].DaemonConfig)
 	require.NoError(t, err)
 }
