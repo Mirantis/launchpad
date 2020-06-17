@@ -17,7 +17,7 @@ func (c *Configurer) InstallBasePackages() error {
 	if err != nil {
 		return err
 	}
-	return c.Host.Exec("sudo apt-get update && sudo apt-get install -y curl apt-utils socat")
+	return c.Host.Exec("sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl apt-utils socat")
 }
 
 // UninstallEngine uninstalls docker-ee engine
@@ -44,6 +44,15 @@ func resolveUbuntuConfigurer(h *api.Host) api.HostConfigurer {
 	switch h.Metadata.Os.Version {
 	case "18.04":
 		configurer := &BionicConfigurer{
+			Configurer: Configurer{
+				LinuxConfigurer: configurer.LinuxConfigurer{
+					Host: h,
+				},
+			},
+		}
+		return configurer
+	case "16.04":
+		configurer := &XenialConfigurer{
 			Configurer: Configurer{
 				LinuxConfigurer: configurer.LinuxConfigurer{
 					Host: h,

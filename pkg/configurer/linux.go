@@ -40,7 +40,12 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 		return err
 	}
 
-	err = c.Host.Exec("sudo systemctl enable --now docker")
+	err = c.Host.Exec("sudo systemctl enable docker")
+	if err != nil {
+		return err
+	}
+
+	err = c.Host.Exec("sudo systemctl start docker")
 	if err != nil {
 		return err
 	}

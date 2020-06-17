@@ -162,6 +162,6 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 			return err
 		}
 	}
-	log.Infof("Succesfully wrote client bundle to %s", bundleDir)
+	log.Infof("Successfully wrote client bundle to %s", bundleDir)
 	return nil
 }
