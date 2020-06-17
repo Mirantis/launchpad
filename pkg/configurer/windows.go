@@ -84,7 +84,7 @@ func (c *WindowsConfigurer) ValidateFacts() error {
 	// TODO How to validate private address to be node local address?
 
 	if err := c.checkAdminPrivilege(); err != nil {
-		return fmt.Errorf("User does not have administrator privileges")
+		return fmt.Errorf("user does not have administrator privileges")
 	}
 
 	return nil
