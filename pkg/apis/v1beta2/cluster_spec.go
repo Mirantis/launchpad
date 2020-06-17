@@ -14,38 +14,26 @@ type ClusterSpec struct {
 }
 
 // Workers filters only the workers from the cluster config
-func (c *ClusterSpec) Workers() []*Host {
-	workers := make([]*Host, 0)
-	for _, h := range c.Hosts {
-		if h.Role == "worker" {
-			workers = append(workers, h)
-		}
-	}
-
-	return workers
+func (c *ClusterSpec) Workers() Hosts {
+	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "worker" })
 }
 
 // Managers filters only the manager nodes from the cluster config
-func (c *ClusterSpec) Managers() []*Host {
-	managers := make([]*Host, 0)
-	for _, h := range c.Hosts {
-		if h.Role == "manager" {
-			managers = append(managers, h)
-		}
-	}
-
-	return managers
+func (c *ClusterSpec) Managers() Hosts {
+	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "manager" })
 }
 
 // SwarmLeader resolves the current swarm leader host
 func (c *ClusterSpec) SwarmLeader() *Host {
-	for _, h := range c.Managers() {
-		if isSwarmLeader(h) {
-			return h
-		}
+	m := c.Managers()
+	leader := m.Find(isSwarmLeader)
+	if leader != nil {
+		log.Debugf("%s: is the swarm leader", leader.Address)
+		return leader
 	}
-	log.Debugf("did not find real swarm manager, fallback to first manager host")
-	return c.Managers()[0]
+
+	log.Debugf("did not find a real swarm manager, fallback to first manager host")
+	return m.First()
 }
 
 // WebURL returns an URL to web UI
