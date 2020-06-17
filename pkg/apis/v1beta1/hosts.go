@@ -28,7 +28,7 @@ func (hosts *Hosts) Last() *Host {
 	return (*hosts)[c]
 }
 
-// Filter returns a filtered list of Hosts. The filter function should returnn true for hosts matching the criteria.
+// Filter returns a filtered list of Hosts. The filter function should return true for hosts matching the criteria.
 func (hosts *Hosts) Filter(filter func(host *Host) bool) Hosts {
 	result := make(Hosts, 0, len(*hosts))
 
