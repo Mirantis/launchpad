@@ -63,19 +63,20 @@ func (p *ValidateHosts) formatErrors(conf *api.ClusterConfig) error {
 }
 
 func (p *ValidateHosts) validateHostnameUniqueness(conf *api.ClusterConfig) {
-	hncount := make(map[string]api.Hosts)
+	hostnames := make(map[string]api.Hosts)
 
 	conf.Spec.Hosts.Each(func(h *api.Host) error {
-		hncount[h.Metadata.Hostname] = append(hncount[h.Metadata.Hostname], h)
+		hostnames[h.Metadata.Hostname] = append(hostnames[h.Metadata.Hostname], h)
 		return nil
 	})
 
-	for hn, h := range hncount {
-		if len(h) > 1 {
-			for _, dupeHost := range h {
-				otherHostnames := h.MapString(func(h *api.Host) string { return h.Address })
-				dupeHost.Errors.Addf("duplicate hostname '%s' found on hosts %s", hn, strings.Join(otherHostnames, ", "))
-			}
+	for hn, hosts := range hostnames {
+		if len(hosts) > 1 {
+			others := strings.Join(hosts.MapString(func(h *api.Host) string { return h.Address }), ", ")
+			hosts.Each(func(h *api.Host) error {
+				h.Errors.Addf("duplicate hostname '%s' found on hosts %s", hn, others)
+				return nil
+			})
 		}
 	}
 }
