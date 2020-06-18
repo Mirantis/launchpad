@@ -105,12 +105,12 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 	}
 	defer c.Host.ExecWithOutput(fmt.Sprintf("del \"%s\"", tempFile))
 
-	err = c.Host.ExecCmd(fmt.Sprintf("powershell -Command \"$Input | Out-File -FilePath \\\"%s\\\"\"", tempFile), data, false, false)
+	err = c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "$Input | Out-File -FilePath \"%s\""`, tempFile), data, false, false)
 	if err != nil {
 		return err
 	}
 
-	err = c.Host.ExecCmd(fmt.Sprintf("powershell -Command \"Move-Item -Force -Path \\\"%s\\\" -Destination \\\"%s\\\"\"", tempFile, path), "", false, false)
+	err = c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "Move-Item -Force -Path \"%s\" -Destination \"%s\""`, tempFile, path), "", false, false)
 	if err != nil {
 		return err
 	}
@@ -120,15 +120,15 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 
 // ReadFile reads a files contents from the host.
 func (c *WindowsConfigurer) ReadFile(path string) (string, error) {
-	return c.Host.ExecWithOutput(fmt.Sprintf("type \"%s\"", path))
+	return c.Host.ExecWithOutput(fmt.Sprintf(`type "%s"`, path))
 }
 
 // DeleteFile deletes a file from the host.
 func (c *WindowsConfigurer) DeleteFile(path string) error {
-	return c.Host.ExecCmd(fmt.Sprintf("del /f \"%s\"", path), "", false, false)
+	return c.Host.ExecCmd(fmt.Sprintf(`del /f "%s"`, path), "", false, false)
 }
 
 // FileExist checks if a file exists on the host
 func (c *WindowsConfigurer) FileExist(path string) bool {
-	return c.Host.ExecCmd(fmt.Sprintf("powershell -Command \"if (!(Test-Path -Path \\\"%s\\\")) { exit 1 }\"", path), "", false, false) == nil
+	return c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "if (!(Test-Path -Path \"%s\")) { exit 1 }"`, path), "", false, false) == nil
 }
