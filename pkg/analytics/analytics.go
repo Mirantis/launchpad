@@ -3,7 +3,6 @@ package analytics
 import (
 	"io/ioutil"
 	"log"
-	"os"
 	"runtime"
 
 	"github.com/Mirantis/mcc/pkg/config"
@@ -19,6 +18,11 @@ const (
 	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
 )
 
+var (
+	// IsDisabled indicated whether telemetry is disabled
+	IsDisabled = true
+)
+
 // Analytics is the interface used for our analytics client.
 type Analytics interface {
 	Enqueue(msg analytics.Message) error
@@ -32,8 +36,8 @@ var testClient Analytics
 func Client() Analytics {
 	if testClient != nil {
 		return testClient
-	}	
-  segmentToken := DevSegmentToken
+	}
+	segmentToken := DevSegmentToken
 	if version.IsProduction() {
 		segmentToken = ProdSegmentToken
 	}
@@ -44,14 +48,14 @@ func Client() Analytics {
 	}
 	segmentClient, err := analytics.NewWithConfig(segmentToken, segmentConfig)
 	if err != nil {
-		os.Setenv("ANALYTICS_DISABLED", "true")
+		IsDisabled = true
 	}
 	return segmentClient
 }
 
 // IsAnalyticsDisabled detects if analytics is disabled
 func IsAnalyticsDisabled() bool {
-	return os.Getenv("ANALYTICS_DISABLED") == "true"
+	return IsDisabled
 }
 
 // TrackEvent uploads the given event to segment if analytics tracking
