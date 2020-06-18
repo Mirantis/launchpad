@@ -157,7 +157,6 @@ func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string
 
 // ReadFile reads a files contents from the host.
 func (c *LinuxConfigurer) ReadFile(path string) (string, error) {
-	c.Host.ExecCmd("ls -al", "", true, false)
 	return c.Host.ExecWithOutput(fmt.Sprintf("sudo cat \"%s\"", path))
 }
 
