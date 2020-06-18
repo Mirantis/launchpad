@@ -143,8 +143,12 @@ func (c *LinuxConfigurer) AuthenticateDocker(user, pass, imageRepo string) error
 
 // WriteFile writes file to host with given contents. Do not use for large files.
 func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string) error {
-	tempFile, _ := c.Host.ExecWithOutput("mktemp")
-	err := c.Host.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	tempFile, err := c.Host.ExecWithOutput("mktemp")
+	if err != nil {
+		return err
+	}
+
+	err = c.Host.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
 	if err != nil {
 		return err
 	}
