@@ -167,5 +167,5 @@ func (c *LinuxConfigurer) DeleteFile(path string) error {
 
 // FileExist checks if a file exists on the host
 func (c *LinuxConfigurer) FileExist(path string) bool {
-	return c.Host.ExecCmd(fmt.Sprintf("sudo test -e \"%s\"", path), "", false, false) == nil
+	return c.Host.ExecCmd(fmt.Sprintf(`sudo test -e "%s"`, path), "", false, false) == nil
 }
