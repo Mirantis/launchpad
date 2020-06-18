@@ -107,7 +107,7 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	err = h.Configurer.DeleteFile(testfn)
 	if err != nil || h.Configurer.FileExist(testfn) {
-		return fmt.Errorf("connection file write test failed at file exist after delete check ")
+		return fmt.Errorf("connection file write test failed at file exist after delete check")
 	}
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
