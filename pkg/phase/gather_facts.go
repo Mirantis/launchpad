@@ -88,8 +88,17 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 
+	// TODO move this into the host validations
 	testfn := "launchpad_connection_test.txt"
 	log.Debugf("%s: testing connection", h.Address)
+
+	// cleanup
+	if h.Configurer.FileExist(testfn) {
+		if err := h.Configurer.DeleteFile(testfn); err != nil {
+			return err
+		}
+	}
+
 	if err := h.Configurer.WriteFile(testfn, "test", "0600"); err != nil {
 		return err
 	}
