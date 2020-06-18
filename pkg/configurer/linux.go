@@ -162,7 +162,7 @@ func (c *LinuxConfigurer) ReadFile(path string) (string, error) {
 
 // DeleteFile deletes a file from the host.
 func (c *LinuxConfigurer) DeleteFile(path string) error {
-	return c.Host.ExecCmd(fmt.Sprintf("sudo rm -f \"%s\"", path), "", false, false)
+	return c.Host.ExecCmd(fmt.Sprintf(`sudo rm -f "%s"`, path), "", false, false)
 }
 
 // FileExist checks if a file exists on the host
