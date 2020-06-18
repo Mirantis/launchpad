@@ -13,7 +13,7 @@ import (
 )
 
 // NewDownloadBundleCommand creates a download bundle command to be called via the CLI
-func NewDownloadBundleCommand() *cli.Command {
+func NewDownloadBundleCommand(analytics *analytics.Client) *cli.Command {
 	return &cli.Command{
 		Name:  "download-bundle",
 		Usage: "Download a client bundle",

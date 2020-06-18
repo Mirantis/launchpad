@@ -11,7 +11,7 @@ import (
 )
 
 // Register ...
-func Register(userConfig *config.UserConfig) error {
+func Register(userConfig *config.UserConfig, analyticsClient *analytics.Client) error {
 	icons := func(icons *survey.IconSet) {
 		icons.Question.Text = ">"
 	}
@@ -54,7 +54,7 @@ func Register(userConfig *config.UserConfig) error {
 
 	err := config.SaveUserConfig(userConfig)
 	if err == nil {
-		analytics.IdentifyUser(userConfig)
+		analyticsClient.IdentifyUser(userConfig)
 		log.Info("Registration completed!")
 	} else {
 		log.Error("Registration failed!")

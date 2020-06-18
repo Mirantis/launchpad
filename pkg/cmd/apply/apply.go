@@ -20,7 +20,7 @@ import (
 )
 
 // Apply ...
-func Apply(configFile string, prune bool) error {
+func Apply(configFile string, prune bool, analyticsClient *analytics.Client) error {
 	var (
 		logFile *os.File
 		err     error
@@ -33,7 +33,7 @@ func Apply(configFile string, prune bool) error {
 
 	}()
 
-	if err = analytics.RequireRegisteredUser(); err != nil {
+	if err = analyticsClient.RequireRegisteredUser(); err != nil {
 		return err
 	}
 	cfgData, err := config.ResolveClusterFile(configFile)
@@ -60,7 +60,7 @@ func Apply(configFile string, prune bool) error {
 		return err
 	}
 
-	phaseManager := phase.NewManager(&clusterConfig)
+	phaseManager := phase.NewManager(&clusterConfig, analyticsClient)
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{})
 	phaseManager.AddPhase(&phase.PrepareHost{})
@@ -104,7 +104,7 @@ func Apply(configFile string, prune bool) error {
 	// send ucp analytics user id as ucp_instance_id property
 	ucpInstanceID := fmt.Sprintf("%x", sha1.Sum([]byte(clusterID)))
 	props["ucp_instance_id"] = ucpInstanceID
-	analytics.TrackEvent("Cluster Installed", props)
+	analyticsClient.TrackEvent("Cluster Installed", props)
 	return nil
 }
 

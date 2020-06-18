@@ -27,19 +27,22 @@ func (m *mockClient) Close() error {
 // functions sends tracking message if analytics is enabled
 func TestTrackAnalyticsEvent(t *testing.T) {
 	client := &mockClient{}
-	testClient = client
-	defer func() { testClient = nil }()
+	analyticsClient := Client{
+		AnalyticsClient: client,
+	}
+
 	t.Run("Analytics disabled", func(t *testing.T) {
-		IsDisabled = true
-		defer func() { IsDisabled = false }()
-		TrackEvent("test", nil)
+		analyticsClient.IsDisabled = true
+		defer func() { analyticsClient.IsDisabled = false }()
+
+		analyticsClient.TrackEvent("test", nil)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)
 	})
 	t.Run("Analytics enabled", func(t *testing.T) {
 		props := make(map[string]interface{}, 1)
 		props["foo"] = "bar"
-		TrackEvent("test", props)
+		analyticsClient.TrackEvent("test", props)
 		lastMessage := client.lastMessage.(analytics.Track)
 		require.NotNil(t, client.lastMessage)
 		require.Equal(t, "test", lastMessage.Event)
@@ -50,8 +53,9 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 
 func TestIdentifyAnalyticsUser(t *testing.T) {
 	client := &mockClient{}
-	testClient = client
-	defer func() { testClient = nil }()
+	analyticsClient := Client{
+		AnalyticsClient: client,
+	}
 
 	userConfig := config.UserConfig{
 		Name:    "John Doe",
@@ -59,14 +63,15 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		Company: "Acme, Inc.",
 	}
 	t.Run("Analytics disabled", func(t *testing.T) {
-		IsDisabled = true
-		defer func() { IsDisabled = false }()
-		IdentifyUser(&userConfig)
+		analyticsClient.IsDisabled = true
+		defer func() { analyticsClient.IsDisabled = false }()
+
+		analyticsClient.IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)
 	})
 	t.Run("Analytics enabled", func(t *testing.T) {
-		IdentifyUser(&userConfig)
+		analyticsClient.IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage.(analytics.Identify)
 		require.NotNil(t, client.lastMessage)
 		require.Equal(t, "john.doe@example.org", lastMessage.UserId)

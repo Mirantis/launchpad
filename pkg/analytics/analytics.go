@@ -11,61 +11,41 @@ import (
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
 
-const (
-	// ProdSegmentToken is the API token we use for Segment in production.
-	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z"
-	// DevSegmentToken is the API token we use for Segment in development.
-	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
-)
-
-var (
-	// IsDisabled indicated whether telemetry is disabled
-	IsDisabled = true
-)
-
 // Analytics is the interface used for our analytics client.
 type Analytics interface {
 	Enqueue(msg analytics.Message) error
 	Close() error
 }
 
-// testClient is only meant to be used in unit testing.
-var testClient Analytics
+// Client is the struct that encapsulates the dependencies needed to send analytics 
+// and to interact with the analytics package
+type Client struct {
+	IsDisabled      bool
+	AnalyticsClient Analytics
+}
 
-// Client returns a client for uploading analytics data.
-func Client() Analytics {
-	if testClient != nil {
-		return testClient
-	}
-	segmentToken := DevSegmentToken
-	if version.IsProduction() {
-		segmentToken = ProdSegmentToken
-	}
-
+// NewSegmentClient returns a Segment client for uploading analytics data.
+func NewSegmentClient(segmentToken string) (Analytics, error) {
 	segmentLogger := analytics.StdLogger(log.New(ioutil.Discard, "segment ", log.LstdFlags))
 	segmentConfig := analytics.Config{
 		Logger: segmentLogger,
 	}
 	segmentClient, err := analytics.NewWithConfig(segmentToken, segmentConfig)
 	if err != nil {
-		IsDisabled = true
+		return nil, err
 	}
-	return segmentClient
-}
-
-// IsAnalyticsDisabled detects if analytics is disabled
-func IsAnalyticsDisabled() bool {
-	return IsDisabled
+	return segmentClient, nil
 }
 
 // TrackEvent uploads the given event to segment if analytics tracking
 // is enabled.
-func TrackEvent(event string, properties map[string]interface{}) error {
-	if IsAnalyticsDisabled() {
+func (c *Client) TrackEvent(event string, properties map[string]interface{}) error {
+	if c.IsDisabled {
 		return nil
 	}
-	client := Client()
-	defer client.Close()
+	// TODO: close
+	// client := c.DefaultAnalyticsClient()
+	// defer client.Close()
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
@@ -79,17 +59,17 @@ func TrackEvent(event string, properties map[string]interface{}) error {
 	if userID := UserID(); userID != "" {
 		msg.UserId = userID
 	}
-	return client.Enqueue(msg)
+	return c.AnalyticsClient.Enqueue(msg)
 }
 
 // IdentifyUser identifies user on analytics service if analytics
 // is enabled
-func IdentifyUser(userConfig *config.UserConfig) error {
-	if IsAnalyticsDisabled() {
+func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
+	if c.IsDisabled {
 		return nil
 	}
-	client := Client()
-	defer client.Close()
+	// client := c.DefaultAnalyticsClient()
+	// defer client.Close()
 	msg := analytics.Identify{
 		AnonymousId: MachineID(),
 		UserId:      userConfig.Email,
@@ -98,7 +78,7 @@ func IdentifyUser(userConfig *config.UserConfig) error {
 			SetEmail(userConfig.Email).
 			Set("company", userConfig.Company),
 	}
-	return client.Enqueue(msg)
+	return c.AnalyticsClient.Enqueue(msg)
 }
 
 // NewAnalyticsEventProperties constructs new properties map and returns it

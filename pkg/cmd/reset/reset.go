@@ -15,8 +15,8 @@ import (
 )
 
 // Reset ...
-func Reset(configFile string) error {
-	if err := analytics.RequireRegisteredUser(); err != nil {
+func Reset(configFile string, analyticsClient *analytics.Client) error {
+	if err := analyticsClient.RequireRegisteredUser(); err != nil {
 		return err
 	}
 	cfgData, err := config.ResolveClusterFile(configFile)
@@ -39,7 +39,7 @@ func Reset(configFile string) error {
 
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
 
-	phaseManager := phase.NewManager(&clusterConfig)
+	phaseManager := phase.NewManager(&clusterConfig, analyticsClient)
 
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{})
