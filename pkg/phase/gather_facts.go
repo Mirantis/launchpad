@@ -105,8 +105,8 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return fmt.Errorf("connection file write test failed, expected \"test\", received \"%s\" (%w)", content, err)
 	}
 
-	h.Configurer.DeleteFile(testfn)
-	if h.Configurer.FileExist(testfn) {
+	err = h.Configurer.DeleteFile(testfn)
+	if err != nil || h.Configurer.FileExist(testfn) {
 		return fmt.Errorf("connection file write test failed at file exist after delete check ")
 	}
 
