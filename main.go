@@ -113,7 +113,7 @@ func initAnalytics(ctx *cli.Context) {
 		analyticsClient.IsDisabled = true
 	}
 
-	analyticsClient.IsDisabled = ctx.Bool("disable-telemetry")
+	analyticsClient.IsDisabled = ctx.Bool("disable-analytics")
 }
 
 func closeClient() {
