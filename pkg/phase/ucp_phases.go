@@ -19,7 +19,8 @@ type Manager struct {
 // NewManager constructs new phase manager
 func NewManager(config *api.ClusterConfig, analyticsClient *analytics.Client) *Manager {
 	phaseMgr := &Manager{
-		config: config,
+		config:          config,
+		analyticsClient: analyticsClient,
 	}
 
 	return phaseMgr
