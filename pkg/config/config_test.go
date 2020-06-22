@@ -139,12 +139,13 @@ spec:
 
 func TestHostWithComplexEngineConfig(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta1
+apiVersion: launchpad.mirantis.com/v1beta2
 kind: UCP
 spec:
   hosts:
   - address: "1.2.3.4"
-    sshPort: 22
+		ssh:
+		  port: 22
     role: worker
     engineConfig:
       debug: true
