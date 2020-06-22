@@ -141,16 +141,6 @@ func (c *LinuxConfigurer) SELinuxEnabled() bool {
 	return strings.ToLower(strings.TrimSpace(output)) == "enforcing"
 }
 
-// WriteFile writes file to host with given contents
-func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string) error {
-	tempFile, _ := c.Host.ExecWithOutput("mktemp")
-	err := c.Host.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
 	output, err := c.Host.ExecWithOutput("sudo hostname --all-ip-addresses")
 	if err != nil {

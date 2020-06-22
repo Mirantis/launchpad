@@ -107,16 +107,6 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 	return h.Connection.ExecWithOutput(cmd)
 }
 
-// WriteFile writes file to host with given contents
-func (h *Host) WriteFile(path string, data string, permissions string) error {
-	tempFile, _ := h.ExecWithOutput("mktemp")
-	err := h.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func trimOutput(output []byte) string {
 	if len(output) > 0 {
 		return strings.TrimSpace(string(output))
