@@ -81,6 +81,7 @@ func (h *Host) Connect() error {
 	return nil
 }
 
+// Disconnect the host
 func (h *Host) Disconnect() {
 	if h.Connection != nil {
 		h.Connection.Disconnect()
