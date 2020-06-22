@@ -9,7 +9,7 @@ import (
 )
 
 // RegisterCommand creates register command to be called from cli
-func RegisterCommand(analyticsClient *analytics.Client) *cli.Command {
+func RegisterCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "register",
 		Usage: "Register a user",
@@ -37,23 +37,23 @@ func RegisterCommand(analyticsClient *analytics.Client) *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			if _, err := config.GetUserConfig(); err != nil {
-				analyticsClient.TrackEvent("User Not Registered", nil)
+				analytics.TrackEvent("User Not Registered", nil)
 			}
-			analyticsClient.TrackEvent("User Register Started", nil)
+			analytics.TrackEvent("User Register Started", nil)
 			userConfig := &config.UserConfig{
 				Name:    ctx.String("name"),
 				Company: ctx.String("company"),
 				Email:   ctx.String("email"),
 				Eula:    ctx.Bool("accept-license"),
 			}
-			err := register.Register(userConfig, analyticsClient)
+			err := register.Register(userConfig)
 			if err == terminal.InterruptErr {
-				analyticsClient.TrackEvent("User Register Cancelled", nil)
+				analytics.TrackEvent("User Register Cancelled", nil)
 				return nil
 			} else if err != nil {
-				analyticsClient.TrackEvent("User Register Failed", nil)
+				analytics.TrackEvent("User Register Failed", nil)
 			} else {
-				analyticsClient.TrackEvent("User Register Completed", nil)
+				analytics.TrackEvent("User Register Completed", nil)
 			}
 			return err
 		},

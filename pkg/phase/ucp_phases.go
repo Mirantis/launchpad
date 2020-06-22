@@ -11,16 +11,14 @@ import (
 
 // Manager executes phases to construct the cluster
 type Manager struct {
-	phases          []Phase
-	config          *api.ClusterConfig
-	analyticsClient *analytics.Client
+	phases []Phase
+	config *api.ClusterConfig
 }
 
 // NewManager constructs new phase manager
-func NewManager(config *api.ClusterConfig, analyticsClient *analytics.Client) *Manager {
+func NewManager(config *api.ClusterConfig) *Manager {
 	phaseMgr := &Manager{
-		config:          config,
-		analyticsClient: analyticsClient,
+		config: config,
 	}
 
 	return phaseMgr
@@ -49,11 +47,11 @@ func (m *Manager) Run() error {
 			}
 			if err != nil {
 				props["success"] = false
-				m.analyticsClient.TrackEvent(phase.Title(), props)
+				analytics.TrackEvent(phase.Title(), props)
 				return err
 			}
 			props["success"] = true
-			m.analyticsClient.TrackEvent(phase.Title(), props)
+			analytics.TrackEvent(phase.Title(), props)
 
 		} else {
 			err := phase.Run(m.config)

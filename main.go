@@ -14,10 +14,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var (
-	analyticsClient = &analytics.Client{}
-)
-
 func init() {
 	log.SetOutput(os.Stdout)
 }
@@ -67,11 +63,11 @@ SUPPORT:
 			return nil
 		},
 		Commands: []*cli.Command{
-			cmd.NewApplyCommand(analyticsClient),
-			cmd.RegisterCommand(analyticsClient),
-			cmd.NewDownloadBundleCommand(analyticsClient),
-			cmd.NewResetCommand(analyticsClient),
-			cmd.NewInitCommand(analyticsClient),
+			cmd.NewApplyCommand(),
+			cmd.RegisterCommand(),
+			cmd.NewDownloadBundleCommand(),
+			cmd.NewResetCommand(),
+			cmd.NewInitCommand(),
 			versionCmd,
 		},
 	}
@@ -94,32 +90,14 @@ func initLogger(ctx *cli.Context) {
 	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug")))
 }
 
-const (
-	// ProdSegmentToken is the API token we use for Segment in production.
-	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z"
-	// DevSegmentToken is the API token we use for Segment in development.
-	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
-)
-
 func initAnalytics(ctx *cli.Context) {
-	segmentToken := DevSegmentToken
-	if version.IsProduction() {
-		segmentToken = ProdSegmentToken
+	if disabled := ctx.Bool("disable-analytics"); disabled {
+		analytics.Disable()
 	}
-
-	var err error
-	analyticsClient.AnalyticsClient, err = analytics.NewSegmentClient(segmentToken)
-	if err != nil {
-		analyticsClient.IsDisabled = true
-	}
-
-	analyticsClient.IsDisabled = ctx.Bool("disable-analytics")
 }
 
 func closeClient() {
-	if analyticsClient.AnalyticsClient != nil {
-		if err := analyticsClient.AnalyticsClient.Close(); err != nil {
-			log.Debugf("Error while closing analytics client: %v", err)
-		}
+	if err := analytics.Close(); err != nil {
+		log.Debugf("Error while closing analytics client: %v", err)
 	}
 }

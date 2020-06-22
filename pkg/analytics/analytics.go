@@ -11,17 +11,29 @@ import (
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
 
+const (
+	// ProdSegmentToken is the API token we use for Segment in production.
+	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z"
+	// DevSegmentToken is the API token we use for Segment in development.
+	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
+)
+
 // Analytics is the interface used for our analytics client.
 type Analytics interface {
 	Enqueue(msg analytics.Message) error
 	Close() error
 }
 
-// Client is the struct that encapsulates the dependencies needed to send analytics 
+// Client is the struct that encapsulates the dependencies needed to send analytics
 // and to interact with the analytics package
 type Client struct {
 	IsDisabled      bool
 	AnalyticsClient Analytics
+}
+
+var defaultClient = Client{
+	IsDisabled:      false,
+	AnalyticsClient: nil,
 }
 
 // NewSegmentClient returns a Segment client for uploading analytics data.
@@ -79,6 +91,72 @@ func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
 			Set("company", userConfig.Company),
 	}
 	return c.AnalyticsClient.Enqueue(msg)
+}
+
+// Disable disable the client
+func (c *Client) Disable() {
+	c.IsDisabled = true
+}
+
+// Enable enables the client
+func (c *Client) Enable() {
+	c.IsDisabled = false
+}
+
+// TrackEvent uses the default analytics client to track an event
+func TrackEvent(event string, properties map[string]interface{}) error {
+	if err := initClient(); err != nil {
+		return err
+	}
+	return defaultClient.TrackEvent(event, properties)
+}
+
+// IdentifyUser uses the default analytics client to identify the user
+func IdentifyUser(userConfig *config.UserConfig) error {
+	if err := initClient(); err != nil {
+		return err
+	}
+	return defaultClient.IdentifyUser(userConfig)
+}
+
+// RequireRegisteredUser uses the default analytics client to require registered user
+func RequireRegisteredUser() error {
+	if err := initClient(); err != nil {
+		return err
+	}
+	return defaultClient.RequireRegisteredUser()
+}
+
+// Close closes the default analytics client
+func Close() error {
+	if defaultClient.AnalyticsClient != nil {
+		return defaultClient.AnalyticsClient.Close()
+	}
+	return nil
+}
+
+// Disable disable the default client
+func Disable() {
+	defaultClient.IsDisabled = true
+}
+
+// Enable enables the default client
+func Enable() {
+	defaultClient.IsDisabled = false
+}
+
+func initClient() (err error) {
+	if defaultClient.AnalyticsClient == nil {
+		segmentToken := DevSegmentToken
+		if version.IsProduction() {
+			segmentToken = ProdSegmentToken
+		}
+		defaultClient.AnalyticsClient, err = NewSegmentClient(segmentToken)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // NewAnalyticsEventProperties constructs new properties map and returns it

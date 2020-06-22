@@ -10,7 +10,7 @@ import (
 )
 
 // NewApplyCommand creates new install command to be called from cli
-func NewApplyCommand(analyticsClient *analytics.Client) *cli.Command {
+func NewApplyCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "apply",
 		Usage: "Apply a cluster configuration",
@@ -29,15 +29,15 @@ func NewApplyCommand(analyticsClient *analytics.Client) *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
-			analyticsClient.TrackEvent("Cluster Apply Started", nil)
-			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"), analyticsClient)
+			analytics.TrackEvent("Cluster Apply Started", nil)
+			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"))
 			if err != nil {
-				analyticsClient.TrackEvent("Cluster Apply Failed", nil)
+				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {
 				duration := time.Since(start)
 				props := analytics.NewAnalyticsEventProperties()
 				props["duration"] = duration.Seconds()
-				analyticsClient.TrackEvent("Cluster Apply Completed", props)
+				analytics.TrackEvent("Cluster Apply Completed", props)
 			}
 			return err
 		},

@@ -13,7 +13,7 @@ import (
 )
 
 // NewInitCommand creates new init command to be called from cli
-func NewInitCommand(analytics *analytics.Client) *cli.Command {
+func NewInitCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "init",
 		Usage: "Initialize cluster.yaml file",

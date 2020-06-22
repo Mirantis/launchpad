@@ -10,7 +10,7 @@ import (
 )
 
 // NewResetCommand creates new install command to be called from cli
-func NewResetCommand(analyticsClient *analytics.Client) *cli.Command {
+func NewResetCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "reset",
 		Usage: "Reset (uninstall) a cluster",
@@ -24,15 +24,15 @@ func NewResetCommand(analyticsClient *analytics.Client) *cli.Command {
 		},
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
-			analyticsClient.TrackEvent("Cluster Reset Started", nil)
-			err := reset.Reset(ctx.String("config"), analyticsClient)
+			analytics.TrackEvent("Cluster Reset Started", nil)
+			err := reset.Reset(ctx.String("config"))
 			if err != nil {
-				analyticsClient.TrackEvent("Cluster Reset Failed", nil)
+				analytics.TrackEvent("Cluster Reset Failed", nil)
 			} else {
 				duration := time.Since(start)
 				props := analytics.NewAnalyticsEventProperties()
 				props["duration"] = duration.Seconds()
-				analyticsClient.TrackEvent("Cluster Reset Completed", props)
+				analytics.TrackEvent("Cluster Reset Completed", props)
 			}
 			return err
 		},
