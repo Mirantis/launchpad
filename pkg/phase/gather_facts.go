@@ -87,6 +87,38 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO move this into the host validations
+	testfn := "launchpad_connection_test.txt"
+	log.Debugf("%s: testing connection", h.Address)
+
+	// cleanup
+	if h.Configurer.FileExist(testfn) {
+		if err := h.Configurer.DeleteFile(testfn); err != nil {
+			return err
+		}
+	}
+
+	if err := h.Configurer.WriteFile(testfn, "test", "0600"); err != nil {
+		return err
+	}
+
+	if !h.Configurer.FileExist(testfn) {
+		return fmt.Errorf("connection file write test failed at file exist check")
+	}
+
+	content, err := h.Configurer.ReadFile(testfn)
+	if content != "test" || err != nil {
+		h.Configurer.DeleteFile(testfn)
+
+		return fmt.Errorf(`connection file write test failed, expected "test", received "%s" (%w)`, content, err)
+	}
+
+	err = h.Configurer.DeleteFile(testfn)
+	if err != nil || h.Configurer.FileExist(testfn) {
+		return fmt.Errorf("connection file write test failed at file exist after delete check")
+	}
+
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {

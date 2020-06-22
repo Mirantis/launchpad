@@ -16,6 +16,10 @@ type HostConfigurer interface {
 	RestartEngine() error
 	ValidateFacts() error
 	AuthenticateDocker(user, pass, repo string) error
+	WriteFile(path, content, permissions string) error
+	ReadFile(path string) (string, error)
+	DeleteFile(path string) error
+	FileExist(path string) bool
 }
 
 // HostConfigurerBuilder defines the builder function signature
