@@ -103,7 +103,7 @@ func (c *Client) Enable() {
 // TrackEvent uses the default analytics client to track an event
 func TrackEvent(event string, properties map[string]interface{}) error {
 	if err := initClient(); err != nil {
-		return err
+		defaultClient.IsDisabled = true
 	}
 	return defaultClient.TrackEvent(event, properties)
 }
@@ -111,7 +111,7 @@ func TrackEvent(event string, properties map[string]interface{}) error {
 // IdentifyUser uses the default analytics client to identify the user
 func IdentifyUser(userConfig *config.UserConfig) error {
 	if err := initClient(); err != nil {
-		return err
+		defaultClient.IsDisabled = true
 	}
 	return defaultClient.IdentifyUser(userConfig)
 }
@@ -119,7 +119,7 @@ func IdentifyUser(userConfig *config.UserConfig) error {
 // RequireRegisteredUser uses the default analytics client to require registered user
 func RequireRegisteredUser() error {
 	if err := initClient(); err != nil {
-		return err
+		defaultClient.IsDisabled = true
 	}
 	return defaultClient.RequireRegisteredUser()
 }
