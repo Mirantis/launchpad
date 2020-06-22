@@ -108,3 +108,41 @@ func (c *WindowsConfigurer) AuthenticateDocker(user, pass, imageRepo string) err
 	_, err := c.Host.ExecWithOutput(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo))
 	return err
 }
+
+// WriteFile writes file to host with given contents. Do not use for large files.
+// The permissions argument is ignored on windows.
+func (c *WindowsConfigurer) WriteFile(path string, data string, permissions string) error {
+
+	tempFile, err := c.Host.ExecWithOutput("powershell -Command \"New-TemporaryFile | Write-Host\"")
+	if err != nil {
+		return err
+	}
+	defer c.Host.ExecWithOutput(fmt.Sprintf("del \"%s\"", tempFile))
+
+	err = c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "$Input | Out-File -FilePath \"%s\""`, tempFile), data, false, false)
+	if err != nil {
+		return err
+	}
+
+	err = c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "Move-Item -Force -Path \"%s\" -Destination \"%s\""`, tempFile, path), "", false, false)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ReadFile reads a files contents from the host.
+func (c *WindowsConfigurer) ReadFile(path string) (string, error) {
+	return c.Host.ExecWithOutput(fmt.Sprintf(`type "%s"`, path))
+}
+
+// DeleteFile deletes a file from the host.
+func (c *WindowsConfigurer) DeleteFile(path string) error {
+	return c.Host.ExecCmd(fmt.Sprintf(`del /f "%s"`, path), "", false, false)
+}
+
+// FileExist checks if a file exists on the host
+func (c *WindowsConfigurer) FileExist(path string) bool {
+	return c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "if (!(Test-Path -Path \"%s\")) { exit 1 }"`, path), "", false, false) == nil
+}

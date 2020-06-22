@@ -164,3 +164,32 @@ func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
 func (c *LinuxConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
 	return c.Host.ExecCmd(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), pass, false, true)
 }
+
+// WriteFile writes file to host with given contents. Do not use for large files.
+func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string) error {
+	tempFile, err := c.Host.ExecWithOutput("mktemp")
+	if err != nil {
+		return err
+	}
+
+	err = c.Host.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReadFile reads a files contents from the host.
+func (c *LinuxConfigurer) ReadFile(path string) (string, error) {
+	return c.Host.ExecWithOutput(fmt.Sprintf("sudo cat \"%s\"", path))
+}
+
+// DeleteFile deletes a file from the host.
+func (c *LinuxConfigurer) DeleteFile(path string) error {
+	return c.Host.ExecCmd(fmt.Sprintf(`sudo rm -f "%s"`, path), "", false, false)
+}
+
+// FileExist checks if a file exists on the host
+func (c *LinuxConfigurer) FileExist(path string) bool {
+	return c.Host.ExecCmd(fmt.Sprintf(`sudo test -e "%s"`, path), "", false, false) == nil
+}
