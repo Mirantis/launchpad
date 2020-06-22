@@ -77,8 +77,6 @@ func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
 	if c.IsDisabled {
 		return nil
 	}
-	// client := c.DefaultAnalyticsClient()
-	// defer client.Close()
 	msg := analytics.Identify{
 		AnonymousId: MachineID(),
 		UserId:      userConfig.Email,
