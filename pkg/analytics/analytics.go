@@ -55,9 +55,6 @@ func (c *Client) TrackEvent(event string, properties map[string]interface{}) err
 	if c.IsDisabled {
 		return nil
 	}
-	// TODO: close
-	// client := c.DefaultAnalyticsClient()
-	// defer client.Close()
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
