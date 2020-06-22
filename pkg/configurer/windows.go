@@ -22,12 +22,21 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 		if err != nil {
 			return fmt.Errorf("failed to marshal daemon json config: %w", err)
 		}
-		log.Debugf(`writing C:\ProgramData\Docker\config\daemon.json`)
-		err = c.WriteFile(`C:\ProgramData\Docker\config\daemon.json`, string(daemonJSONData), "0700")
-		if err != nil {
+
+		cfg := `\ProgramData\Docker\config\daemon.json`
+		if c.FileExist(cfg) {
+			log.Debugf("deleting %s", cfg)
+			if err := c.DeleteFile(cfg); err != nil {
+				return err
+			}
+		}
+
+		log.Debugf("writing %s", cfg)
+		if err := c.WriteFile(cfg, string(daemonJSONData), "0700"); err != nil {
 			return err
 		}
 	}
+
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
