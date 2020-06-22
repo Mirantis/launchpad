@@ -20,7 +20,7 @@ done
 popd
 
 curl -L https://github.com/github-release/github-release/releases/download/v0.8.1/linux-amd64-github-release.bz2 > ./github-release.bz2
-bunzip2 ./github-release.bz2
+bunzip2 -f ./github-release.bz2
 chmod +x ./github-release
 
 if [[ "${TAG_NAME}" == *-* ]] ; then
