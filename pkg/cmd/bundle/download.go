@@ -1,8 +1,6 @@
 package bundle
 
 import (
-	"fmt"
-
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -27,11 +25,6 @@ func Download(clusterFile string, username string, password string) error {
 	newHosts := make(api.Hosts, 1)
 	newHosts[0] = manager
 	clusterConfig.Spec.Hosts = newHosts
-
-	m := clusterConfig.Spec.Managers()[0] // Does not have to be a real swarm leader
-	if err := m.Connect(); err != nil {
-		return fmt.Errorf("error while connecting to manager node: %w", err)
-	}
 
 	phaseManager := phase.NewManager(&clusterConfig)
 	phaseManager.AddPhase(&phase.Connect{})
