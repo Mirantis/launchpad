@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
@@ -85,6 +85,8 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 					return err
 				}
 			}
+		} else {
+			log.Infof("%s: Engine is already at version %s", h.Address, h.Metadata.EngineVersion)
 		}
 	}
 

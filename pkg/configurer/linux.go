@@ -1,12 +1,13 @@
 package configurer
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/util"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,6 +18,27 @@ type LinuxConfigurer struct {
 
 // InstallEngine install Docker EE engine on Linux
 func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
+	log.Debugf("engine config: %+v", c.Host.DaemonConfig)
+	if len(c.Host.DaemonConfig) > 0 {
+		daemonJSONData, err := json.Marshal(c.Host.DaemonConfig)
+		if err != nil {
+			return fmt.Errorf("failed to marshal daemon json config: %w", err)
+		}
+
+		cfg := `\ProgramData\Docker\config\daemon.json`
+		if c.FileExist(cfg) {
+			log.Debugf("deleting %s", cfg)
+			if err := c.DeleteFile(cfg); err != nil {
+				return err
+			}
+		}
+
+		log.Debugf("writing %s", cfg)
+		if err := c.WriteFile(cfg, string(daemonJSONData), "0700"); err != nil {
+			return err
+		}
+	}
+
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
@@ -142,4 +164,38 @@ func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
 	}
 
 	return strings.Split(output, " "), nil
+}
+
+// AuthenticateDocker performs a docker login on the host
+func (c *LinuxConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
+	return c.Host.ExecCmd(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), pass, false, true)
+}
+
+// WriteFile writes file to host with given contents. Do not use for large files.
+func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string) error {
+	tempFile, err := c.Host.ExecWithOutput("mktemp")
+	if err != nil {
+		return err
+	}
+
+	err = c.Host.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReadFile reads a files contents from the host.
+func (c *LinuxConfigurer) ReadFile(path string) (string, error) {
+	return c.Host.ExecWithOutput(fmt.Sprintf("sudo cat \"%s\"", path))
+}
+
+// DeleteFile deletes a file from the host.
+func (c *LinuxConfigurer) DeleteFile(path string) error {
+	return c.Host.ExecCmd(fmt.Sprintf(`sudo rm -f "%s"`, path), "", false, false)
+}
+
+// FileExist checks if a file exists on the host
+func (c *LinuxConfigurer) FileExist(path string) bool {
+	return c.Host.ExecCmd(fmt.Sprintf(`sudo test -e "%s"`, path), "", false, false) == nil
 }

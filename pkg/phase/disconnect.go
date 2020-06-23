@@ -1,7 +1,7 @@
 package phase
 
 import (
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta1"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -12,7 +12,7 @@ type Disconnect struct {
 
 // Title for the phase
 func (p *Disconnect) Title() string {
-	return "Close SSH Connection"
+	return "Close Connection"
 }
 
 // Run disconnects from all the hosts
@@ -21,7 +21,7 @@ func (p *Disconnect) Run(config *api.ClusterConfig) error {
 }
 
 func (p *Disconnect) disconnectHost(host *api.Host, c *api.ClusterConfig) error {
-	host.Connect()
-	log.Printf("%s: SSH connection closed", host.Address)
+	host.Disconnect()
+	log.Printf("%s: connection closed", host.Address)
 	return nil
 }
