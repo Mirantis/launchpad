@@ -1,7 +1,6 @@
 package analytics
 
 import (
-	"os"
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/config"
@@ -31,8 +30,8 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 	testClient = client
 	defer func() { testClient = nil }()
 	t.Run("Analytics disabled", func(t *testing.T) {
-		os.Setenv("ANALYTICS_DISABLED", "true")
-		defer func() { os.Unsetenv("ANALYTICS_DISABLED") }()
+		IsDisabled = true
+		defer func() { IsDisabled = false }()
 		TrackEvent("test", nil)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)
@@ -60,8 +59,8 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		Company: "Acme, Inc.",
 	}
 	t.Run("Analytics disabled", func(t *testing.T) {
-		os.Setenv("ANALYTICS_DISABLED", "true")
-		defer func() { os.Unsetenv("ANALYTICS_DISABLED") }()
+		IsDisabled = true
+		defer func() { IsDisabled = false }()
 		IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)

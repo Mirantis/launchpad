@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Mirantis/mcc/cmd"
+	"github.com/Mirantis/mcc/pkg/analytics"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/version"
 	log "github.com/sirupsen/logrus"
@@ -45,9 +46,15 @@ SUPPORT:
 				Aliases: []string{"d"},
 				EnvVars: []string{"DEBUG"},
 			},
+			&cli.BoolFlag{
+				Name:    "disable-analytics",
+				Usage:   "Disable analytics",
+				EnvVars: []string{"ANALYTICS_DISABLED"},
+			},
 		},
 		Before: func(ctx *cli.Context) error {
 			initLogger(ctx)
+			initAnalytics(ctx)
 			return nil
 		},
 		After: func(c *cli.Context) error {
@@ -80,4 +87,8 @@ func initLogger(ctx *cli.Context) {
 
 	// stdout hook on by default of course
 	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug")))
+}
+
+func initAnalytics(ctx *cli.Context) {
+	analytics.IsDisabled = ctx.Bool("disable-analytics")
 }
