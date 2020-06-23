@@ -21,7 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// GatherFacts phase implementation to collect facts (OS, version etc.) from hosts
+// DownloadBundle phase downloads the client bundle to local storage
 type DownloadBundle struct {
 	Analytics
 	Username string
