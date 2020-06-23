@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -134,6 +135,28 @@ spec:
 	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "Role")
+}
+
+func TestHostWithComplexEngineConfig(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/v1beta2
+kind: UCP
+spec:
+  hosts:
+  - address: "1.2.3.4"
+		ssh:
+		  port: 22
+    role: worker
+    engineConfig:
+      debug: true
+      log-opts:
+        max-size: 10m
+        max-files: 5
+`
+	c := loadYaml(t, data)
+
+	_, err := json.Marshal(c.Spec.Hosts[0].DaemonConfig)
+	require.NoError(t, err)
 }
 
 func TestMigrateFromV1Beta1(t *testing.T) {

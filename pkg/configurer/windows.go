@@ -1,11 +1,13 @@
 package configurer
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/constant"
+	log "github.com/sirupsen/logrus"
 )
 
 // WindowsConfigurer is a generic windows host configurer
@@ -15,6 +17,26 @@ type WindowsConfigurer struct {
 
 // InstallEngine install Docker EE engine on Windows
 func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
+	if len(c.Host.DaemonConfig) > 0 {
+		daemonJSONData, err := json.Marshal(c.Host.DaemonConfig)
+		if err != nil {
+			return fmt.Errorf("failed to marshal daemon json config: %w", err)
+		}
+
+		cfg := `\ProgramData\Docker\config\daemon.json`
+		if c.FileExist(cfg) {
+			log.Debugf("deleting %s", cfg)
+			if err := c.DeleteFile(cfg); err != nil {
+				return err
+			}
+		}
+
+		log.Debugf("writing %s", cfg)
+		if err := c.WriteFile(cfg, string(daemonJSONData), "0700"); err != nil {
+			return err
+		}
+	}
+
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
@@ -37,7 +59,8 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 }
 
 // UninstallEngine uninstalls docker-ee engine
-// TODO: actually uninstall
+// TODO: actually uninstall, the install.ps1 script has '-Uninstall' option for this.
+// There's also some uninstall intructions on MS site: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#uninstall-docker
 func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) error {
 	return c.Host.Exec("docker system prune -f")
 }
