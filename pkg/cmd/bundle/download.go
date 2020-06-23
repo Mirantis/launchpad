@@ -24,7 +24,9 @@ func Download(clusterFile string, username string, password string) error {
 	}
 
 	manager := clusterConfig.Spec.Managers()[0]
-	clusterConfig.Spec.Hosts = api.Hosts{manager}
+	newHosts := make(api.Hosts, 1)
+	newHosts[0] = manager
+	clusterConfig.Spec.Hosts = newHosts
 
 	m := clusterConfig.Spec.Managers()[0] // Does not have to be a real swarm leader
 	if err := m.Connect(); err != nil {
