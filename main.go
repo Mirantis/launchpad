@@ -91,7 +91,7 @@ func initLogger(ctx *cli.Context) {
 }
 
 func initAnalytics(ctx *cli.Context) {
-	if disabled := ctx.Bool("disable-analytics"); disabled {
+	if ctx.Bool("disable-analytics") {
 		analytics.Disable()
 	}
 }
