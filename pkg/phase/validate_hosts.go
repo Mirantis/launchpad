@@ -29,21 +29,13 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run(conf *api.ClusterConfig) error {
-	conf.Spec.Hosts.ParallelEach(func(h *api.Host) error {
-		log.Infof("%s: validating host facts", h.Address)
-		err := h.Configurer.ValidateFacts()
-		if err != nil {
-			h.Errors.Add(err.Error())
-		}
-		return nil
-	})
-
-	if err := p.formatErrors(conf); err != nil {
-		return err
+	if err := p.validateHostFacts(conf); err != nil {
+		return p.formatErrors(conf)
 	}
 
-	log.Infof("validating hostname uniqueness")
-	p.validateHostnameUniqueness(conf)
+	if err := p.validateHostnameUniqueness(conf); err != nil {
+		return p.formatErrors(conf)
+	}
 
 	return p.formatErrors(conf)
 }
@@ -62,7 +54,20 @@ func (p *ValidateHosts) formatErrors(conf *api.ClusterConfig) error {
 	return nil
 }
 
-func (p *ValidateHosts) validateHostnameUniqueness(conf *api.ClusterConfig) {
+func (p *ValidateHosts) validateHostFacts(conf *api.ClusterConfig) error {
+	return conf.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+		log.Infof("%s: validating host facts", h.Address)
+		err := h.Configurer.ValidateFacts()
+		if err != nil {
+			h.Errors.Add(err.Error())
+			return err
+		}
+		return nil
+	})
+}
+
+func (p *ValidateHosts) validateHostnameUniqueness(conf *api.ClusterConfig) error {
+	log.Infof("validating hostname uniqueness")
 	hostnames := make(map[string]api.Hosts)
 
 	conf.Spec.Hosts.Each(func(h *api.Host) error {
@@ -79,4 +84,6 @@ func (p *ValidateHosts) validateHostnameUniqueness(conf *api.ClusterConfig) {
 			})
 		}
 	}
+
+	return p.formatErrors(conf)
 }

@@ -44,13 +44,15 @@ func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 	}
 
 	log.Printf("%s: %s connection opened", host.Address, proto)
-	return testConnection(host)
+	return p.testConnection(host)
 }
 
-func testConnection(host *api.Host) error {
-	log.Infof("%s: testing connection", host.Address)
-	if err := host.ExecCmd("echo", "", false, false); err != nil {
+func (p *Connect) testConnection(h *api.Host) error {
+	log.Infof("%s: testing connection", h.Address)
+
+	if err := h.ExecCmd("echo", "", false, false); err != nil {
 		return err
 	}
+
 	return nil
 }
