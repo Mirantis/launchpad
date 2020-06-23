@@ -54,6 +54,9 @@ Releases are made from git tags by CICD system. The release builds must be trigg
 3. Go to [Jenkins](https://ci.docker.com/teams-orchestration/job/mcc/job/mcc/view/tags/) and select `Build now` from the dropdown menu of the corresponding tag to trigger the release build.
 4. After the release build is ready, go to [Launchpad releases](https://github.com/Mirantis/launchpad/releases) in GitHub. Edit the draft release, write the changelog in the description field and publish the release.
 
-## Comparison to Alternative Tools
+## Comparison to Existing Tools
 
-TBD
+Overall, none of the pre-existing tools provide the convenience and flexibility we'd like to have for a tool that is designed for self service with an amazing new user experience.
+
+* **Convenience** means user experience; minimizing prerequisites, must read docs, domain specific knowledge and actual steps required for performing the install (or upgrade).
+* **Flexibility** means this tool should work in any environment, system or infrastructure the user might have already available for the purpose (=evaluation, running in prod or other). Note: with _any environment_ we should mean literally any. AWS, Azure, GCP, VMware, RH satellite managed systems, OpenStack, Mirantis private cloud where machines are ordered via IT tickets, any other private datacenter or whatever public cloud provider, rack of machines in your own home closet... etc.
