@@ -29,10 +29,11 @@ type HostMetadata struct {
 
 // Host contains all the needed details to work with hosts
 type Host struct {
-	Address          string      `yaml:"address" validate:"required,hostname|ip"`
-	Role             string      `yaml:"role" validate:"oneof=manager worker"`
-	PrivateInterface string      `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
-	DaemonConfig     GenericHash `yaml:"engineConfig,flow" default:"{}"`
+	Address          string            `yaml:"address" validate:"required,hostname|ip"`
+	Role             string            `yaml:"role" validate:"oneof=manager worker"`
+	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+	DaemonConfig     GenericHash       `yaml:"engineConfig,flow" default:"{}"`
+	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 
 	WinRM *WinRM `yaml:"winRM,omitempty"`
 	SSH   *SSH   `yaml:"ssh,omitempty"`

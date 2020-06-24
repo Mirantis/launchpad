@@ -44,6 +44,12 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 		return c, err
 	}
 
+	result, err := yaml.Marshal(c)
+	if err != nil {
+		return c, err
+	}
+	log.Debugf("loaded configuration:\n%s", result)
+
 	return c, nil
 }
 

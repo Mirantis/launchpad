@@ -6,6 +6,7 @@ require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
 	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4 // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
+	github.com/alessio/shellescape v1.2.2
 	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cobaugh/osrelease v0.0.0-20181218015638-a93a0a55a249

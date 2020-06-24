@@ -8,6 +8,8 @@ import (
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/constant"
 	log "github.com/sirupsen/logrus"
+
+	escape "github.com/alessio/shellescape"
 )
 
 // WindowsConfigurer is a generic windows host configurer
@@ -23,7 +25,7 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 			return fmt.Errorf("failed to marshal daemon json config: %w", err)
 		}
 
-		cfg := `\ProgramData\Docker\config\daemon.json`
+		cfg := `C:\ProgramData\Docker\config\daemon.json`
 		if c.FileExist(cfg) {
 			log.Debugf("deleting %s", cfg)
 			if err := c.DeleteFile(cfg); err != nil {
@@ -154,4 +156,15 @@ func (c *WindowsConfigurer) DeleteFile(path string) error {
 // FileExist checks if a file exists on the host
 func (c *WindowsConfigurer) FileExist(path string) bool {
 	return c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "if (!(Test-Path -Path \"%s\")) { exit 1 }"`, path), "", false, false) == nil
+}
+
+// UpdateEnvironment updates the hosts's environment variables
+func (c *WindowsConfigurer) UpdateEnvironment() error {
+	for k, v := range c.Host.Environment {
+		err := c.Host.ExecCmd(fmt.Sprintf(`setx %s %s`, escape.Quote(k), escape.Quote(v)), "", false, false)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

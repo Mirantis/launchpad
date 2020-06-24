@@ -3,7 +3,7 @@ package phase
 import (
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	retry "github.com/avast/retry-go"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // PrepareHost phase implementation does all the prep work we need for the hosts
@@ -18,23 +18,43 @@ func (p *PrepareHost) Title() string {
 
 // Run does all the prep work on the hosts in parallel
 func (p *PrepareHost) Run(config *api.ClusterConfig) error {
-	return runParallelOnHosts(config.Spec.Hosts, config, p.prepareHost)
+	err := runParallelOnHosts(config.Spec.Hosts, config, p.installBasePackages)
+	if err != nil {
+		return err
+	}
+
+	err = runParallelOnHosts(config.Spec.Hosts, config, p.updateEnvironment)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (p *PrepareHost) prepareHost(host *api.Host, c *api.ClusterConfig) error {
+func (p *PrepareHost) installBasePackages(host *api.Host, c *api.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
-			logrus.Infof("%s: installing base packages", host.Address)
+			log.Infof("%s: installing base packages", host.Address)
 			err := host.Configurer.InstallBasePackages()
 
 			return err
 		},
 	)
 	if err != nil {
-		logrus.Errorf("%s: failed to install base packages -> %s", host.Address, err.Error())
+		log.Errorf("%s: failed to install base packages -> %s", host.Address, err.Error())
 		return err
 	}
 
-	logrus.Printf("%s: base packages installed", host.Address)
+	log.Printf("%s: base packages installed", host.Address)
+	return nil
+}
+
+func (p *PrepareHost) updateEnvironment(host *api.Host, c *api.ClusterConfig) error {
+	if len(host.Environment) > 0 {
+		log.Infof("%s: updating environment", host.Address)
+		return host.Configurer.UpdateEnvironment()
+	}
+
+	log.Debugf("%s: no environment variables specified for the host", host.Address)
 	return nil
 }
