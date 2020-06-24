@@ -193,10 +193,9 @@ func (p *GatherFacts) testConnection(h *api.Host) error {
 func (p *GatherFacts) resolveEngineVersions(c *api.ClusterConfig) error {
 	return c.Spec.Hosts.ParallelEach(func(h *api.Host) error {
 		log.Infof("%s: resolving docker engine version", h.Address)
-		version, err := h.EngineVersion()
-		if err != nil {
-			return err
-		}
+
+		version := h.EngineVersion()
+
 		if version == "" {
 			log.Infof("%s: docker engine not installed", h.Address)
 		} else {

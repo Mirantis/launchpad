@@ -124,10 +124,7 @@ func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) erro
 		return err
 	}
 
-	currentVersion, err := host.EngineVersion()
-	if err != nil {
-		return err
-	}
+	currentVersion := host.EngineVersion()
 
 	if !newInstall && currentVersion == prevVersion {
 		err = host.Configurer.RestartEngine()

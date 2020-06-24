@@ -184,10 +184,10 @@ func (h *Host) IsWindows() bool {
 }
 
 // EngineVersion returns the current engine version installed on the host
-func (h *Host) EngineVersion() (string, error) {
+func (h *Host) EngineVersion() string {
 	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
-		return "", err
+		return ""
 	}
 
 	if version == "" {
@@ -196,5 +196,5 @@ func (h *Host) EngineVersion() (string, error) {
 		log.Infof("%s: is running docker engine version %s", h.Address, h.Metadata.EngineVersion)
 	}
 
-	return version, nil
+	return version
 }
