@@ -91,9 +91,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 
-	if err := p.resolveEngineVersions(c); err != nil {
-		return err
-	}
+	h.Metadata.EngineVersion = h.EngineVersion()
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	a, err := h.Configurer.ResolveInternalIP()
@@ -188,22 +186,4 @@ func (p *GatherFacts) testConnection(h *api.Host) error {
 	}
 
 	return nil
-}
-
-func (p *GatherFacts) resolveEngineVersions(c *api.ClusterConfig) error {
-	return c.Spec.Hosts.ParallelEach(func(h *api.Host) error {
-		log.Infof("%s: resolving docker engine version", h.Address)
-
-		version := h.EngineVersion()
-
-		if version == "" {
-			log.Infof("%s: docker engine not installed", h.Address)
-		} else {
-			log.Infof("%s: is running docker engine version %s", h.Address, h.Metadata.EngineVersion)
-		}
-
-		h.Metadata.EngineVersion = version
-
-		return nil
-	})
 }
