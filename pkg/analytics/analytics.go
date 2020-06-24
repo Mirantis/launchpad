@@ -27,12 +27,12 @@ type Analytics interface {
 // Client is the struct that encapsulates the dependencies needed to send analytics
 // and to interact with the analytics package
 type Client struct {
-	IsDisabled      bool
+	isEnabled       bool
 	AnalyticsClient Analytics
 }
 
 var defaultClient = Client{
-	IsDisabled:      false,
+	isEnabled:       true,
 	AnalyticsClient: nil,
 }
 
@@ -52,7 +52,7 @@ func NewSegmentClient(segmentToken string) (Analytics, error) {
 // TrackEvent uploads the given event to segment if analytics tracking
 // is enabled.
 func (c *Client) TrackEvent(event string, properties map[string]interface{}) error {
-	if c.IsDisabled {
+	if !c.isEnabled {
 		return nil
 	}
 	if properties == nil {
@@ -74,7 +74,7 @@ func (c *Client) TrackEvent(event string, properties map[string]interface{}) err
 // IdentifyUser identifies user on analytics service if analytics
 // is enabled
 func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
-	if c.IsDisabled {
+	if !c.isEnabled {
 		return nil
 	}
 	msg := analytics.Identify{
@@ -88,20 +88,15 @@ func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
 	return c.AnalyticsClient.Enqueue(msg)
 }
 
-// Disable disable the client
-func (c *Client) Disable() {
-	c.IsDisabled = true
-}
-
-// Enable enables the client
-func (c *Client) Enable() {
-	c.IsDisabled = false
+// SetEnabled enables the client
+func (c *Client) SetEnabled(enabled bool) {
+	c.isEnabled = enabled
 }
 
 // TrackEvent uses the default analytics client to track an event
 func TrackEvent(event string, properties map[string]interface{}) error {
 	if err := initClient(); err != nil {
-		defaultClient.IsDisabled = true
+		defaultClient.isEnabled = false
 	}
 	return defaultClient.TrackEvent(event, properties)
 }
@@ -109,7 +104,7 @@ func TrackEvent(event string, properties map[string]interface{}) error {
 // IdentifyUser uses the default analytics client to identify the user
 func IdentifyUser(userConfig *config.UserConfig) error {
 	if err := initClient(); err != nil {
-		defaultClient.IsDisabled = true
+		defaultClient.isEnabled = false
 	}
 	return defaultClient.IdentifyUser(userConfig)
 }
@@ -117,7 +112,7 @@ func IdentifyUser(userConfig *config.UserConfig) error {
 // RequireRegisteredUser uses the default analytics client to require registered user
 func RequireRegisteredUser() error {
 	if err := initClient(); err != nil {
-		defaultClient.IsDisabled = true
+		defaultClient.isEnabled = false
 	}
 	return defaultClient.RequireRegisteredUser()
 }
@@ -130,14 +125,9 @@ func Close() error {
 	return nil
 }
 
-// Disable disable the default client
-func Disable() {
-	defaultClient.IsDisabled = true
-}
-
-// Enable enables the default client
-func Enable() {
-	defaultClient.IsDisabled = false
+// SetEnabled enables the default client
+func Enabled(enabled bool) {
+	defaultClient.SetEnabled(enabled)
 }
 
 func initClient() (err error) {

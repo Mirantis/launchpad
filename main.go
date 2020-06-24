@@ -58,7 +58,7 @@ SUPPORT:
 			return nil
 		},
 		After: func(c *cli.Context) error {
-			closeClient()
+			closeAnalyticsClient()
 			version.CheckForUpgrade()
 			return nil
 		},
@@ -92,11 +92,11 @@ func initLogger(ctx *cli.Context) {
 
 func initAnalytics(ctx *cli.Context) {
 	if ctx.Bool("disable-analytics") {
-		analytics.Disable()
+		analytics.Enabled(false)
 	}
 }
 
-func closeClient() {
+func closeAnalyticsClient() {
 	if err := analytics.Close(); err != nil {
 		log.Debugf("Error while closing analytics client: %v", err)
 	}

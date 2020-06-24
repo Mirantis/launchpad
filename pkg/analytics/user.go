@@ -8,7 +8,7 @@ import (
 
 // RequireRegisteredUser checks if user has registered
 func (c *Client) RequireRegisteredUser() error {
-	if c.IsDisabled {
+	if !c.isEnabled {
 		return nil
 	}
 	if _, err := config.GetUserConfig(); err != nil {
