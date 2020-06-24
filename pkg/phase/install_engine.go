@@ -24,8 +24,6 @@ func (p *InstallEngine) Title() string {
 
 // Run installs the engine on each host
 func (p *InstallEngine) Run(c *api.ClusterConfig) error {
-	resolveEngineVersions(c)
-
 	props := analytics.NewAnalyticsEventProperties()
 	props["engine_version"] = c.Spec.Engine.Version
 	p.EventProperties = props
@@ -40,29 +38,6 @@ func (p *InstallEngine) Run(c *api.ClusterConfig) error {
 		}
 	}
 	return runParallelOnHosts(newHosts, c, p.installEngine)
-}
-
-func resolveEngineVersions(c *api.ClusterConfig) {
-	c.Spec.Hosts.ParallelEach(func(h *api.Host) error {
-		log.Infof("%s: resolving docker engine version", h.Address)
-		h.Metadata.EngineVersion = resolveEngineVersion(h)
-		if h.Metadata.EngineVersion == "" {
-			log.Infof("%s: docker engine not installed", h.Address)
-		} else {
-			log.Infof("%s: is running docker engine version %s", h.Address, h.Metadata.EngineVersion)
-		}
-
-		return nil
-	})
-}
-
-func resolveEngineVersion(h *api.Host) string {
-	cmd := h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`)
-	version, err := h.ExecWithOutput(cmd)
-	if err != nil {
-		return ""
-	}
-	return version
 }
 
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
@@ -127,7 +102,8 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 
 func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) error {
 	newInstall := host.Metadata.EngineVersion == ""
-	prevVersion := resolveEngineVersion(host)
+	prevVersion := host.Metadata.EngineVersion
+
 	err := retry.Do(
 		func() error {
 			if newInstall {
@@ -148,7 +124,11 @@ func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) erro
 		return err
 	}
 
-	currentVersion := resolveEngineVersion(host)
+	currentVersion, err := host.EngineVersion()
+	if err != nil {
+		return err
+	}
+
 	if !newInstall && currentVersion == prevVersion {
 		err = host.Configurer.RestartEngine()
 		if err != nil {
