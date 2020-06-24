@@ -16,13 +16,16 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	-e GOEXE \
 	$(BUILDER_IMAGE)
 
+clean:
+	rm bin/launchpad
+
 builder:
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
 
 unit-test: builder
 	$(GO) go test -v ./...
 
-build: builder
+build: clean builder
 	$(GO) go build $(BUILD_FLAGS) -o bin/launchpad main.go
 
 build-all: builder
