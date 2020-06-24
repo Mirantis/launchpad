@@ -32,8 +32,8 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 	}
 
 	t.Run("Analytics disabled", func(t *testing.T) {
-		analyticsClient.SetEnabled(true)
-		defer func() { analyticsClient.SetEnabled(false) }()
+		analyticsClient.SetEnabled(false)
+		defer func() { analyticsClient.SetEnabled(true) }()
 
 		analyticsClient.TrackEvent("test", nil)
 		lastMessage := client.lastMessage
@@ -63,8 +63,8 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		Company: "Acme, Inc.",
 	}
 	t.Run("Analytics disabled", func(t *testing.T) {
-		analyticsClient.SetEnabled(true)
-		defer func() { analyticsClient.SetEnabled(false) }()
+		analyticsClient.SetEnabled(false)
+		defer func() { analyticsClient.SetEnabled(true) }()
 
 		analyticsClient.IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage
