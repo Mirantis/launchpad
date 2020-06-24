@@ -125,7 +125,7 @@ func Close() error {
 	return nil
 }
 
-// SetEnabled enables the default client
+// Enabled enables the default client
 func Enabled(enabled bool) {
 	defaultClient.SetEnabled(enabled)
 }
