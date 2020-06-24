@@ -25,7 +25,7 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 			return fmt.Errorf("failed to marshal daemon json config: %w", err)
 		}
 
-		cfg := `\ProgramData\Docker\config\daemon.json`
+		cfg := "/etc/docker/daemon.json"
 		if c.FileExist(cfg) {
 			log.Debugf("deleting %s", cfg)
 			if err := c.DeleteFile(cfg); err != nil {

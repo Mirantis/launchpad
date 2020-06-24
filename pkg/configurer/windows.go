@@ -23,7 +23,7 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 			return fmt.Errorf("failed to marshal daemon json config: %w", err)
 		}
 
-		cfg := `\ProgramData\Docker\config\daemon.json`
+		cfg := `C:\ProgramData\Docker\config\daemon.json`
 		if c.FileExist(cfg) {
 			log.Debugf("deleting %s", cfg)
 			if err := c.DeleteFile(cfg); err != nil {
