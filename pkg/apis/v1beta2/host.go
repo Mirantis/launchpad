@@ -187,6 +187,7 @@ func (h *Host) IsWindows() bool {
 func (h *Host) EngineVersion() string {
 	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
+		log.Debugf("%s: failed to get docker engine version: %s: %w", h.Address, version, err)
 		return ""
 	}
 
