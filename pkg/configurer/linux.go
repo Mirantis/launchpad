@@ -225,6 +225,7 @@ func (c *LinuxConfigurer) UpdateEnvironment() error {
 	return c.ConfigureDockerProxy()
 }
 
+// ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables
 func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 	proxyenvs := make(map[string]string)
 
