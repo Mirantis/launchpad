@@ -3,7 +3,6 @@ package phase
 import (
 	"errors"
 	"strings"
-	"sync"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	log "github.com/sirupsen/logrus"
@@ -62,25 +61,12 @@ func NewError(err string) *Error {
 	}
 }
 
-func runParallelOnHosts(hosts []*api.Host, c *api.ClusterConfig, action func(host *api.Host, config *api.ClusterConfig) error) error {
-	var wg sync.WaitGroup
-	phaseError := &Error{}
-	for _, host := range hosts {
-		wg.Add(1)
-		go func(h *api.Host) {
-			defer wg.Done()
-			err := action(h, c)
-			if err != nil {
-				phaseError.AddError(err)
-				log.Errorf("%s: failed -> %s", h.Address, err.Error())
-			}
-		}(host)
-	}
-	wg.Wait()
-
-	if phaseError.Count() > 0 {
-		return phaseError
-	}
-
-	return nil
+func runParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(host *api.Host, config *api.ClusterConfig) error) error {
+	return hosts.ParallelEach(func(host *api.Host) error {
+		err := action(host, config)
+		if err != nil {
+			log.Error(err.Error())
+		}
+		return err
+	})
 }

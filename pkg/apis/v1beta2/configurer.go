@@ -5,6 +5,7 @@ import "fmt"
 // HostConfigurer defines the interface each host OS specific configurers implement.
 // This is under v1beta2 because it has direct deps to api structs
 type HostConfigurer interface {
+	CheckPrivilege() error
 	ResolveHostname() string
 	ResolveInternalIP() (string, error)
 	IsContainerized() bool

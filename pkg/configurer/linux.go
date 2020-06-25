@@ -143,6 +143,15 @@ func (c *LinuxConfigurer) ValidateFacts() error {
 	return nil
 }
 
+// CheckPrivilege returns an error if the user does not have passwordless sudo enabled
+func (c *LinuxConfigurer) CheckPrivilege() error {
+	if c.Host.ExecCmd("sudo -n true", "", false, false) != nil {
+		return fmt.Errorf("user does not have passwordless sudo access")
+	}
+
+	return nil
+}
+
 // SELinuxEnabled is SELinux enabled
 func (c *LinuxConfigurer) SELinuxEnabled() bool {
 	output, err := c.Host.ExecWithOutput("sudo getenforce")

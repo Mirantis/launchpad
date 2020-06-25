@@ -32,7 +32,7 @@ func (p *GatherFacts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
-	err := runParallelOnHosts(conf.Spec.Hosts, conf, investigateHost)
+	err := runParallelOnHosts(conf.Spec.Hosts, conf, p.investigateHost)
 	if err != nil {
 		return err
 	}
@@ -61,19 +61,19 @@ func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
 	return nil
 }
 
-func investigateHost(h *api.Host, c *api.ClusterConfig) error {
+func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h.Address)
 
 	os := &api.OsRelease{}
-	if isWindows(h) {
+	if p.isWindows(h) {
 		h.Connection.SetWindows(true)
-		winOs, err := ResolveWindowsOsRelease(h)
+		winOs, err := p.resolveWindowsOsRelease(h)
 		if err != nil {
 			return err
 		}
 		os = winOs
 	} else {
-		linuxOs, err := ResolveLinuxOsRelease(h)
+		linuxOs, err := p.resolveLinuxOsRelease(h)
 		if err != nil {
 			return err
 		}
@@ -83,41 +83,15 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	h.Metadata = &api.HostMetadata{
 		Os: os,
 	}
-	err := api.ResolveHostConfigurer(h)
-	if err != nil {
+	if err := api.ResolveHostConfigurer(h); err != nil {
 		return err
 	}
 
-	// TODO move this into the host validations
-	testfn := "launchpad_connection_test.txt"
-	log.Debugf("%s: testing connection", h.Address)
-
-	// cleanup
-	if h.Configurer.FileExist(testfn) {
-		if err := h.Configurer.DeleteFile(testfn); err != nil {
-			return err
-		}
-	}
-
-	if err := h.Configurer.WriteFile(testfn, "test", "0600"); err != nil {
+	if err := h.Configurer.CheckPrivilege(); err != nil {
 		return err
 	}
 
-	if !h.Configurer.FileExist(testfn) {
-		return fmt.Errorf("connection file write test failed at file exist check")
-	}
-
-	content, err := h.Configurer.ReadFile(testfn)
-	if content != "test" || err != nil {
-		h.Configurer.DeleteFile(testfn)
-
-		return fmt.Errorf(`connection file write test failed, expected "test", received "%s" (%w)`, content, err)
-	}
-
-	err = h.Configurer.DeleteFile(testfn)
-	if err != nil || h.Configurer.FileExist(testfn) {
-		return fmt.Errorf("connection file write test failed at file exist after delete check")
-	}
+	h.Metadata.EngineVersion = h.EngineVersion()
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	a, err := h.Configurer.ResolveInternalIP()
@@ -125,12 +99,6 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 	h.Metadata.InternalAddress = a
-	h.Metadata.EngineVersion = resolveEngineVersion(h)
-
-	err = h.Configurer.ValidateFacts()
-	if err != nil {
-		return err
-	}
 
 	log.Infof("%s: is running \"%s\"", h.Address, h.Metadata.Os.Name)
 	log.Infof("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)
@@ -139,16 +107,12 @@ func investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	return nil
 }
 
-func isWindows(h *api.Host) bool {
-	err := h.ExecCmd(`powershell -Command "Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\""`, "", false, false)
-	if err != nil {
-		return false
-	}
-	return true
+func (p *GatherFacts) isWindows(h *api.Host) bool {
+	return h.ExecCmd("cmd /c exit 0", "", false, false) == nil
 }
 
 // ResolveWindowsOsRelease ...
-func ResolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
+func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
 	osName = strings.TrimSpace(osName)
 	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
@@ -169,7 +133,7 @@ func ResolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 }
 
 // ResolveLinuxOsRelease ...
-func ResolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
+func (p *GatherFacts) resolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
 	output, err := h.ExecWithOutput("cat /etc/os-release")
 	if err != nil {
 		return nil, err
@@ -191,11 +155,35 @@ func ResolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
 	return osRelease, nil
 }
 
-func resolveEngineVersion(h *api.Host) string {
-	cmd := h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`)
-	version, err := h.ExecWithOutput(cmd)
-	if err != nil {
-		return ""
+func (p *GatherFacts) testConnection(h *api.Host) error {
+	testfn := "launchpad_connection_test.txt"
+
+	// cleanup
+	if h.Configurer.FileExist(testfn) {
+		if err := h.Configurer.DeleteFile(testfn); err != nil {
+			return fmt.Errorf("failed to delete connection test file: %w", err)
+		}
 	}
-	return version
+
+	if err := h.Configurer.WriteFile(testfn, "test", "0600"); err != nil {
+		return fmt.Errorf("failed to write connection test file: %w", err)
+	}
+
+	if !h.Configurer.FileExist(testfn) {
+		return fmt.Errorf("file does not exist after connection test file write")
+	}
+
+	content, err := h.Configurer.ReadFile(testfn)
+	if content != "test" || err != nil {
+		h.Configurer.DeleteFile(testfn)
+
+		return fmt.Errorf(`connection file write test failed, expected "test", received "%s" (%w)`, content, err)
+	}
+
+	err = h.Configurer.DeleteFile(testfn)
+	if err != nil || h.Configurer.FileExist(testfn) {
+		return fmt.Errorf("connection file write test failed at file exist after delete check")
+	}
+
+	return nil
 }
