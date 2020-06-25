@@ -54,31 +54,29 @@ do
 done
 
 # Release to the public repo
-if [[ "${TAG_NAME}" != *-* ]] ; then
-  ./github-release release \
-    --draft \
+./github-release release \
+  --draft \
+  --user Mirantis \
+  --repo launchpad \
+  --tag "${TAG_NAME}" \
+  --name "${TAG_NAME}"
+
+for bin in "${binaries[@]}"
+do
+  ./github-release upload \
     --user Mirantis \
     --repo launchpad \
     --tag "${TAG_NAME}" \
-    --name "${TAG_NAME}"
+    --name "${bin}" \
+    --file "./bin/${bin}"
 
-  for bin in "${binaries[@]}"
-  do
-    ./github-release upload \
-      --user Mirantis \
-      --repo launchpad \
-      --tag "${TAG_NAME}" \
-      --name "${bin}" \
-      --file "./bin/${bin}"
-
-    ./github-release upload \
-      --user Mirantis \
-      --repo launchpad \
-      --tag "${TAG_NAME}" \
-      --name "${bin}.sha256" \
-      --file "./tmp.sha256/${bin}.sha256"
+  ./github-release upload \
+    --user Mirantis \
+    --repo launchpad \
+    --tag "${TAG_NAME}" \
+    --name "${bin}.sha256" \
+    --file "./tmp.sha256/${bin}.sha256"
   done
-fi
 
 rm ./github-release
 rm -rf tmp.sha256
