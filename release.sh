@@ -55,6 +55,7 @@ done
 
 # Release to the public repo
 ./github-release release \
+  $releaseopt \
   --draft \
   --user Mirantis \
   --repo launchpad \
