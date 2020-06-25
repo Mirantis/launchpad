@@ -102,7 +102,8 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 
 func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) error {
 	newInstall := host.Metadata.EngineVersion == ""
-	prevVersion := resolveEngineVersion(host)
+	prevVersion := host.Metadata.EngineVersion
+
 	err := retry.Do(
 		func() error {
 			if newInstall {
@@ -123,7 +124,8 @@ func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) erro
 		return err
 	}
 
-	currentVersion := resolveEngineVersion(host)
+	currentVersion := host.EngineVersion()
+
 	if !newInstall && currentVersion == prevVersion {
 		err = host.Configurer.RestartEngine()
 		if err != nil {

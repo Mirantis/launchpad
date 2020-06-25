@@ -27,6 +27,30 @@ type HostMetadata struct {
 	Os              *OsRelease
 }
 
+type errors struct {
+	errors []string
+}
+
+func (errors *errors) Count() int {
+	return len(errors.errors)
+}
+
+func (errors *errors) Add(e string) {
+	errors.errors = append(errors.errors, e)
+}
+
+func (errors *errors) Addf(template string, args ...interface{}) {
+	errors.errors = append(errors.errors, fmt.Sprintf(template, args...))
+}
+
+func (errors *errors) String() string {
+	if errors.Count() == 0 {
+		return ""
+	}
+
+	return "- " + strings.Join(errors.errors, "\n- ")
+}
+
 // Host contains all the needed details to work with hosts
 type Host struct {
 	Address          string      `yaml:"address" validate:"required,hostname|ip"`
@@ -39,6 +63,7 @@ type Host struct {
 
 	Metadata   *HostMetadata  `yaml:"-"`
 	Configurer HostConfigurer `yaml:"-"`
+	Errors     errors         `yaml:"-"`
 
 	Connection connection.Connection `yaml:"-"`
 }
@@ -156,4 +181,21 @@ func (h *Host) IsWindows() bool {
 		return false
 	}
 	return strings.HasPrefix(h.Metadata.Os.ID, "windows-")
+}
+
+// EngineVersion returns the current engine version installed on the host
+func (h *Host) EngineVersion() string {
+	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
+	if err != nil {
+		log.Debugf("%s: failed to get docker engine version: %s: %w", h.Address, version, err)
+		return ""
+	}
+
+	if version == "" {
+		log.Infof("%s: docker engine not installed", h.Address)
+	} else {
+		log.Infof("%s: is running docker engine version %s", h.Address, h.Metadata.EngineVersion)
+	}
+
+	return version
 }

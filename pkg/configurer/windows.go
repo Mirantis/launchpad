@@ -108,6 +108,18 @@ func (c *WindowsConfigurer) DockerCommandf(template string, args ...interface{})
 // ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
 func (c *WindowsConfigurer) ValidateFacts() error {
 	// TODO How to validate private address to be node local address?
+
+	return nil
+}
+
+// CheckPrivilege returns an error if the user does not have admin access to the host
+func (c *WindowsConfigurer) CheckPrivilege() error {
+	privCheck := "$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Host 'User has admin privileges'; exit 0; } else { Write-Host 'User does not have admin privileges'; exit 1 }"
+
+	if c.Host.ExecCmd("powershell.exe", privCheck, false, false) != nil {
+		return fmt.Errorf("user does not have administrator rights on the host")
+	}
+
 	return nil
 }
 
