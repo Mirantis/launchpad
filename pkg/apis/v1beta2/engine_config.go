@@ -6,10 +6,11 @@ import (
 
 // EngineConfig holds the engine installation specific options
 type EngineConfig struct {
-	Version    string `yaml:"version"`
-	RepoURL    string `yaml:"repoUrl,omitempty"`
-	InstallURL string `yaml:"installURL,omitempty"`
-	Channel    string `yaml:"channel,omitempty"`
+	Version           string `yaml:"version"`
+	RepoURL           string `yaml:"repoUrl,omitempty"`
+	InstallURL        string `yaml:"installURL,omitempty"`
+	InstallURLWindows string `yaml:"installURLWindows,omitempty"`
+	Channel           string `yaml:"channel,omitempty"`
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml
@@ -28,9 +29,10 @@ func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewEngineConfig creates new default engine config struct
 func NewEngineConfig() EngineConfig {
 	return EngineConfig{
-		Version:    constant.EngineVersion,
-		Channel:    constant.EngineChannel,
-		RepoURL:    constant.EngineRepoURL,
-		InstallURL: constant.EngineInstallURL,
+		Version:           constant.EngineVersion,
+		Channel:           constant.EngineChannel,
+		RepoURL:           constant.EngineRepoURL,
+		InstallURL:        constant.EngineInstallURL,
+		InstallURLWindows: constant.EngineInstallURLWindows,
 	}
 }

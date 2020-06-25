@@ -122,10 +122,10 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 
 	if stdin != "" {
-		if sensitiveCommand {
-			log.Debugf("%s: writing data to command stdin", c.Address)
+		if sensitiveCommand || len(stdin) > 256 {
+			log.Debugf("%s: writing %d bytes to command stdin", c.Address, len(stdin))
 		} else {
-			log.Debugf("%s: writing data to command stdin: %s", c.Address, stdin)
+			log.Debugf("%s: writing %d bytes to command stdin: %s", c.Address, len(stdin), stdin)
 		}
 
 		go func() {

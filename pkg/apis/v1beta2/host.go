@@ -21,10 +21,11 @@ type OsRelease struct {
 
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
-	Hostname        string
-	InternalAddress string
-	EngineVersion   string
-	Os              *OsRelease
+	Hostname            string
+	InternalAddress     string
+	EngineVersion       string
+	Os                  *OsRelease
+	EngineInstallScript *string
 }
 
 type errors struct {

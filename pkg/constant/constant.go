@@ -11,9 +11,10 @@ const (
 	EngineChannel = "stable"
 	// EngineRepoURL is the default engine repo
 	EngineRepoURL = "https://repos.mirantis.com"
-	// EngineInstallURL is the default engine install script location
+	// EngineInstallURL is the default engine install script location for linux
 	EngineInstallURL = "https://get.mirantis.com/"
-
+	// EngineInstallURLWindows is the default engine install script location for windows
+	EngineInstallURLWindows = "https://get.mirantis.com/install.ps1"
 	// StateBaseDir defines the base dir for all local state
 	StateBaseDir = ".mirantis-launchpad"
 )
