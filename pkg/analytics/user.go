@@ -7,12 +7,12 @@ import (
 )
 
 // RequireRegisteredUser checks if user has registered
-func RequireRegisteredUser() error {
-	if IsAnalyticsDisabled() {
+func (c *Client) RequireRegisteredUser() error {
+	if !c.isEnabled {
 		return nil
 	}
 	if _, err := config.GetUserConfig(); err != nil {
-		TrackEvent("User Not Registered", nil)
+		c.TrackEvent("User Not Registered", nil)
 		return errors.New("Registration is required. Please use `launchpad register` command to register")
 	}
 	return nil

@@ -18,54 +18,43 @@ const (
 	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
 )
 
-var (
-	// IsDisabled indicated whether telemetry is disabled
-	IsDisabled = true
-)
-
 // Analytics is the interface used for our analytics client.
 type Analytics interface {
 	Enqueue(msg analytics.Message) error
 	Close() error
 }
 
-// testClient is only meant to be used in unit testing.
-var testClient Analytics
+// Client is the struct that encapsulates the dependencies needed to send analytics
+// and to interact with the analytics package
+type Client struct {
+	isEnabled       bool
+	AnalyticsClient Analytics
+}
 
-// Client returns a client for uploading analytics data.
-func Client() Analytics {
-	if testClient != nil {
-		return testClient
-	}
-	segmentToken := DevSegmentToken
-	if version.IsProduction() {
-		segmentToken = ProdSegmentToken
-	}
+var defaultClient = Client{
+	isEnabled:       true,
+	AnalyticsClient: nil,
+}
 
+// NewSegmentClient returns a Segment client for uploading analytics data.
+func NewSegmentClient(segmentToken string) (Analytics, error) {
 	segmentLogger := analytics.StdLogger(log.New(ioutil.Discard, "segment ", log.LstdFlags))
 	segmentConfig := analytics.Config{
 		Logger: segmentLogger,
 	}
 	segmentClient, err := analytics.NewWithConfig(segmentToken, segmentConfig)
 	if err != nil {
-		IsDisabled = true
+		return nil, err
 	}
-	return segmentClient
-}
-
-// IsAnalyticsDisabled detects if analytics is disabled
-func IsAnalyticsDisabled() bool {
-	return IsDisabled
+	return segmentClient, nil
 }
 
 // TrackEvent uploads the given event to segment if analytics tracking
 // is enabled.
-func TrackEvent(event string, properties map[string]interface{}) error {
-	if IsAnalyticsDisabled() {
+func (c *Client) TrackEvent(event string, properties map[string]interface{}) error {
+	if !c.isEnabled {
 		return nil
 	}
-	client := Client()
-	defer client.Close()
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
@@ -79,17 +68,15 @@ func TrackEvent(event string, properties map[string]interface{}) error {
 	if userID := UserID(); userID != "" {
 		msg.UserId = userID
 	}
-	return client.Enqueue(msg)
+	return c.AnalyticsClient.Enqueue(msg)
 }
 
 // IdentifyUser identifies user on analytics service if analytics
 // is enabled
-func IdentifyUser(userConfig *config.UserConfig) error {
-	if IsAnalyticsDisabled() {
+func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
+	if !c.isEnabled {
 		return nil
 	}
-	client := Client()
-	defer client.Close()
 	msg := analytics.Identify{
 		AnonymousId: MachineID(),
 		UserId:      userConfig.Email,
@@ -98,7 +85,63 @@ func IdentifyUser(userConfig *config.UserConfig) error {
 			SetEmail(userConfig.Email).
 			Set("company", userConfig.Company),
 	}
-	return client.Enqueue(msg)
+	return c.AnalyticsClient.Enqueue(msg)
+}
+
+// SetEnabled enables the client
+func (c *Client) SetEnabled(enabled bool) {
+	c.isEnabled = enabled
+}
+
+// TrackEvent uses the default analytics client to track an event
+func TrackEvent(event string, properties map[string]interface{}) error {
+	if err := initClient(); err != nil {
+		defaultClient.isEnabled = false
+	}
+	return defaultClient.TrackEvent(event, properties)
+}
+
+// IdentifyUser uses the default analytics client to identify the user
+func IdentifyUser(userConfig *config.UserConfig) error {
+	if err := initClient(); err != nil {
+		defaultClient.isEnabled = false
+	}
+	return defaultClient.IdentifyUser(userConfig)
+}
+
+// RequireRegisteredUser uses the default analytics client to require registered user
+func RequireRegisteredUser() error {
+	if err := initClient(); err != nil {
+		defaultClient.isEnabled = false
+	}
+	return defaultClient.RequireRegisteredUser()
+}
+
+// Close closes the default analytics client
+func Close() error {
+	if defaultClient.AnalyticsClient != nil {
+		return defaultClient.AnalyticsClient.Close()
+	}
+	return nil
+}
+
+// Enabled enables the default client
+func Enabled(enabled bool) {
+	defaultClient.SetEnabled(enabled)
+}
+
+func initClient() (err error) {
+	if defaultClient.AnalyticsClient == nil {
+		segmentToken := DevSegmentToken
+		if version.IsProduction() {
+			segmentToken = ProdSegmentToken
+		}
+		defaultClient.AnalyticsClient, err = NewSegmentClient(segmentToken)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // NewAnalyticsEventProperties constructs new properties map and returns it
