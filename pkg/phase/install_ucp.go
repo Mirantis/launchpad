@@ -74,6 +74,16 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 		installFlags = append(installFlags, fmt.Sprintf("--license '%s'", string(license)))
 	}
 
+	if cloudProvider := config.Spec.Ucp.Cloud.Provider; cloudProvider != "" {
+		cloudConfig := config.Spec.Ucp.Cloud.Config
+		if cloudConfig == "" {
+			return fmt.Errorf("'ucp.cloud.config' is required when 'ucp.cloud.provider' is set")
+		}
+		installFlags = append(installFlags, fmt.Sprintf("--cloud-provider '%s'", cloudProvider))
+		// TODO: append config.Spec.Ucp.Cloud.Config to the corresponding flag, when that is implemented in UCP
+		// installFlags = append(installFlags, fmt.Sprintf("--TODO '%s'", cloudConfig))
+	}
+
 	if config.Spec.Ucp.IsCustomImageRepo() {
 		// In case of custom repo, don't let UCP to check the images
 		installFlags = append(installFlags, "--pull never")

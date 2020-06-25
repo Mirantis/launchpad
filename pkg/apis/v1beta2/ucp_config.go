@@ -16,8 +16,15 @@ type UcpConfig struct {
 	ConfigFile      string   `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string   `yaml:"configData,omitempty"`
 	LicenseFilePath string   `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
+	Cloud           Cloud    `yaml:"cloud"`
 
 	Metadata *UcpMetadata `yaml:"-"`
+}
+
+// Cloud has all the bits for configuring external Cloud provider
+type Cloud struct {
+	Provider string `yaml:"provider,omitempty"`
+	Config   string `yaml:"config,omitempty" validate:"omitempty,file"`
 }
 
 // UcpMetadata has the "runtime" discovered metadata of already existing installation.
