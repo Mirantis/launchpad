@@ -179,7 +179,7 @@ spec:
 	validateErrorField(t, err, "KeyPath")
 	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta2")
 
-	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com")
+	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
 }
