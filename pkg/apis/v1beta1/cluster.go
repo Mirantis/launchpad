@@ -18,9 +18,9 @@ func MigrateToV1Beta2(data *[]byte) error {
 	if eint != nil {
 		engine := eint.(map[interface{}]interface{})
 		if len(engine) > 0 {
-			installUrl := engine["installURL"]
-			if installUrl != "" {
-				engine["installURLLinux"] = installUrl
+			installURL := engine["installURL"]
+			if installURL != "" {
+				engine["installURLLinux"] = installURL
 				delete(engine, "installURL")
 				log.Debugf("migrated v1beta1 engine[installURL] to v1beta2 engine[installURLLinux]")
 			}
