@@ -6,7 +6,14 @@ ENVIRONMENT ?= "development"
 LAUNCHPAD_VERSION ?= $(or ${TAG_NAME},dev)
 LD_FLAGS = "-w -X github.com/Mirantis/mcc/version.Environment=$(ENVIRONMENT) -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(LAUNCHPAD_VERSION)
 BUILD_FLAGS = -a -tags "netgo static_build" -installsuffix netgo -ldflags $(LD_FLAGS) -extldflags '-static'"
-
+ifeq ($(OS),Windows_NT)
+       uname_s := "windows"
+       TARGET ?= "bin\\launchpad.exe"
+else
+       uname_s := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+       TARGET ?= "bin/launchpad"
+endif
+GOOS ?= ${uname_s}
 BUILDER_IMAGE = launchpad-builder
 GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	-w "/go/src/github.com/Mirantis/mcc" \
@@ -16,14 +23,17 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	-e GOEXE \
 	$(BUILDER_IMAGE)
 
+clean:
+	rm -f bin/launchpad
+
 builder:
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
 
 unit-test: builder
 	$(GO) go test -v ./...
 
-build: builder
-	$(GO) go build $(BUILD_FLAGS) -o bin/launchpad main.go
+build: clean builder
+	GOOS=${GOOS} $(GO) go build $(BUILD_FLAGS) -o $(TARGET) main.go
 
 build-all: builder
 	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 main.go

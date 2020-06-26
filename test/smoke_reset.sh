@@ -23,7 +23,18 @@ function cleanup {
   rm -rf ~/.mirantis-launchpad/cluster/$CUSTER_NAME
 }
 
-curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
+function downloadFootloose() {
+  OS=$(uname)
+  if [ "$OS" == "Darwin" ]; then
+      curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-darwin-x86_64.tar.gz > ./footloose.tar.gz
+      tar -xvf footloose.tar.gz
+  else
+      curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
+  fi
+}
+
+downloadFootloose
+
 chmod +x ./footloose
 ./footloose create
 

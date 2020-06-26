@@ -24,6 +24,20 @@ function cleanup() {
 }
 trap cleanup EXIT
 
+function downloadTools() {
+    OS=$(uname)
+    if [ "$OS" == "Darwin" ]; then
+        curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-darwin-x86_64.tar.gz > ./footloose.tar.gz
+        tar -xvf footloose.tar.gz
+
+        curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/darwin/amd64/kubectl > ./kubectl
+    else
+        curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
+        
+        curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
+    fi
+}
+
 cd test
 rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
@@ -31,11 +45,11 @@ ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 envsubst < "${CONFIG_TEMPLATE}" > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml
 
-curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
+downloadTools
+
 chmod +x ./footloose
 ./footloose create
 
-curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
 chmod +x ./kubectl
 
 set +e
