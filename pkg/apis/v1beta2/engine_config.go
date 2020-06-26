@@ -15,24 +15,22 @@ type EngineConfig struct {
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml
 func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawConfig EngineConfig
-	config := NewEngineConfig()
-	raw := rawConfig(config)
-	if err := unmarshal(&raw); err != nil {
+	c.SetDefaults()
+
+	type yEngineConfig EngineConfig
+	yc := (*yEngineConfig)(c)
+
+	if err := unmarshal(yc); err != nil {
 		return err
 	}
 
-	*c = EngineConfig(raw)
 	return nil
 }
 
-// NewEngineConfig creates new default engine config struct
-func NewEngineConfig() EngineConfig {
-	return EngineConfig{
-		Version:           constant.EngineVersion,
-		Channel:           constant.EngineChannel,
-		RepoURL:           constant.EngineRepoURL,
-		InstallURLLinux:   constant.EngineInstallURLLinux,
-		InstallURLWindows: constant.EngineInstallURLWindows,
-	}
+func (c *EngineConfig) SetDefaults() {
+	c.Version = constant.EngineVersion
+	c.Channel = constant.EngineChannel
+	c.RepoURL = constant.EngineRepoURL
+	c.InstallURLLinux = constant.EngineInstallURLLinux
+	c.InstallURLWindows = constant.EngineInstallURLWindows
 }

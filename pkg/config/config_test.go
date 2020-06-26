@@ -164,6 +164,8 @@ func TestMigrateFromV1Beta1(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
+  engine:
+	  installURL: http://example.com/
   hosts:
   - address: "1.2.3.4"
 		sshPort: 9022
@@ -177,6 +179,7 @@ spec:
 	validateErrorField(t, err, "KeyPath")
 	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta2")
 
+	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
 }
