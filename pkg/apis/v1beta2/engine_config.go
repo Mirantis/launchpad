@@ -8,7 +8,7 @@ import (
 type EngineConfig struct {
 	Version           string `yaml:"version"`
 	RepoURL           string `yaml:"repoUrl,omitempty"`
-	InstallURL        string `yaml:"installURL,omitempty"`
+	InstallURLLinux   string `yaml:"installURLLinux,omitempty"`
 	InstallURLWindows string `yaml:"installURLWindows,omitempty"`
 	Channel           string `yaml:"channel,omitempty"`
 }
@@ -32,7 +32,7 @@ func NewEngineConfig() EngineConfig {
 		Version:           constant.EngineVersion,
 		Channel:           constant.EngineChannel,
 		RepoURL:           constant.EngineRepoURL,
-		InstallURL:        constant.EngineInstallURL,
+		InstallURLLinux:   constant.EngineInstallURLLinux,
 		InstallURLWindows: constant.EngineInstallURLWindows,
 	}
 }

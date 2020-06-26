@@ -24,7 +24,7 @@ func (p *DownloadInstaller) Title() string {
 
 // Run does all the prep work on the hosts in parallel
 func (p *DownloadInstaller) Run(config *api.ClusterConfig) error {
-	linuxScript, err := p.getScript(config.Spec.Engine.InstallURL)
+	linuxScript, err := p.getScript(config.Spec.Engine.InstallURLLinux)
 	if err != nil {
 		return err
 	}

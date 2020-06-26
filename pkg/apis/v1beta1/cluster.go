@@ -14,6 +14,19 @@ func MigrateToV1Beta2(data *[]byte) error {
 		return nil
 	}
 
+	eint := plain["spec"].(map[interface{}]interface{})["engine"]
+	if eint != nil {
+		engine := eint.(map[interface{}]interface{})
+		if len(engine) > 0 {
+			installUrl := engine["installURL"]
+			if installUrl != "" {
+				engine["installURLLinux"] = installUrl
+				delete(engine, "installURL")
+				log.Debugf("migrated v1beta1 engine[installURL] to v1beta2 engine[installURLLinux]")
+			}
+		}
+	}
+
 	hosts := plain["spec"].(map[interface{}]interface{})["hosts"]
 	hslice := hosts.([]interface{})
 

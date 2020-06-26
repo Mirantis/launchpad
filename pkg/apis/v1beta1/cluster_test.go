@@ -11,6 +11,8 @@ func TestMigrationToV1Beta2Basic(t *testing.T) {
 apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: UCP
 spec:
+  engine:
+    installURL: http://get.example.com/
   hosts:
     - address: "10.0.0.1"
       sshKeyPath: /tmp/tmp
@@ -22,6 +24,8 @@ spec:
 	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta2
 kind: UCP
 spec:
+  engine:
+    installURLLinux: http://get.example.com/
   hosts:
   - address: 10.0.0.1
     role: manager
@@ -31,5 +35,5 @@ spec:
       user: admin
 `)
 	require.NoError(t, MigrateToV1Beta2(&b1))
-	require.Equal(t, b1, b2)
+	require.Equal(t, b2, b1)
 }
