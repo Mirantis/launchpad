@@ -11,7 +11,7 @@ const (
 	EngineChannel = "stable"
 	// EngineRepoURL is the default engine repo
 	EngineRepoURL = "https://repos.mirantis.com"
-	// EngineInstallURL is the default engine install script location for linux
+	// EngineInstallURLLinux is the default engine install script location for linux
 	EngineInstallURLLinux = "https://get.mirantis.com/"
 	// EngineInstallURLWindows is the default engine install script location for windows
 	EngineInstallURLWindows = "https://get.mirantis.com/install.ps1"
