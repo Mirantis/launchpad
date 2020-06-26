@@ -27,6 +27,7 @@ func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// SetDefaults sets defaults on the object
 func (c *EngineConfig) SetDefaults() {
 	c.Version = constant.EngineVersion
 	c.Channel = constant.EngineChannel
