@@ -11,6 +11,7 @@ type HostConfigurer interface {
 	IsContainerized() bool
 	SELinuxEnabled() bool
 	InstallBasePackages() error
+	UpdateEnvironment() error
 	InstallEngine(engineConfig *EngineConfig) error
 	UninstallEngine(engineConfig *EngineConfig) error
 	DockerCommandf(template string, args ...interface{}) string

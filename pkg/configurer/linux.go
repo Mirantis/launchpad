@@ -3,12 +3,15 @@ package configurer
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/util"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	log "github.com/sirupsen/logrus"
+
+	escape "github.com/alessio/shellescape"
 )
 
 // LinuxConfigurer is a generic linux host configurer
@@ -199,4 +202,65 @@ func (c *LinuxConfigurer) DeleteFile(path string) error {
 // FileExist checks if a file exists on the host
 func (c *LinuxConfigurer) FileExist(path string) bool {
 	return c.Host.ExecCmd(fmt.Sprintf(`sudo test -e "%s"`, path), "", false, false) == nil
+}
+
+// LineIntoFile tries to find a matching line in a file and replace it with a new entry
+func (c *LinuxConfigurer) LineIntoFile(path, matcher, newLine string) error {
+	if c.FileExist(path) {
+		err := c.Host.ExecCmd(fmt.Sprintf(`file=%s; match=%s; line=%s; sudo grep -q "${match}" "$file" && sudo sed -i "s|${match}.*|${line}|" "$file" || (echo "$line" | sudo tee -a "$file" > /dev/null)`, escape.Quote(path), escape.Quote(matcher), escape.Quote(newLine)), "", false, false)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return c.WriteFile(path, newLine, "0700")
+}
+
+// UpdateEnvironment updates the hosts's environment variables
+func (c *LinuxConfigurer) UpdateEnvironment() error {
+	for k, v := range c.Host.Environment {
+		err := c.LineIntoFile("/etc/environment", fmt.Sprintf("^%s=", k), fmt.Sprintf("%s=%s", k, v))
+		if err != nil {
+			return err
+		}
+	}
+
+	// Update current environment from the /etc/environment
+	err := c.Host.ExecCmd(`while read -r pair; do if [[ $pair == ?* && $pair != \#* ]]; then export "$pair" || exit 2; fi; done < /etc/environment`, "", false, false)
+	if err != nil {
+		return err
+	}
+
+	return c.ConfigureDockerProxy()
+}
+
+// ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables
+func (c *LinuxConfigurer) ConfigureDockerProxy() error {
+	proxyenvs := make(map[string]string)
+
+	for k, v := range c.Host.Environment {
+		if !strings.HasSuffix(k, "_PROXY") && !strings.HasSuffix(k, "_proxy") {
+			continue
+		}
+		proxyenvs[k] = v
+	}
+
+	if len(proxyenvs) == 0 {
+		return nil
+	}
+
+	dir := "/etc/systemd/system/docker.service.d"
+	cfg := path.Join(dir, "http-proxy.conf")
+
+	err := c.Host.ExecCmd(fmt.Sprintf("mkdir -p %s", dir), "", false, false)
+	if err != nil {
+		return err
+	}
+
+	content := "[Service]\n"
+	for k, v := range proxyenvs {
+		content += fmt.Sprintf(`Environment="%s=%s\n"`, escape.Quote(k), escape.Quote(v))
+	}
+
+	return c.WriteFile(cfg, content, "0600")
 }
