@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
 
 	"github.com/stretchr/testify/require"
@@ -180,6 +181,31 @@ spec:
 	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta2")
 
 	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com/")
+	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
+	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
+}
+
+func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/v1beta1
+kind: UCP
+spec:
+  engine:
+	  version: 1.2.3
+  hosts:
+  - address: "1.2.3.4"
+		sshPort: 9022
+		sshKeyPath: /path/to/nonexisting
+		user: foofoo
+    role: manager
+`
+	c := loadYaml(t, data)
+	err := Validate(c)
+	require.Error(t, err)
+	validateErrorField(t, err, "KeyPath")
+	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta2")
+
+	require.Equal(t, c.Spec.Engine.InstallURLLinux, constant.EngineInstallURLLinux)
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
 }

@@ -29,9 +29,24 @@ func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // SetDefaults sets defaults on the object
 func (c *EngineConfig) SetDefaults() {
-	c.Version = constant.EngineVersion
-	c.Channel = constant.EngineChannel
-	c.RepoURL = constant.EngineRepoURL
-	c.InstallURLLinux = constant.EngineInstallURLLinux
-	c.InstallURLWindows = constant.EngineInstallURLWindows
+	// Constants can't be used in tags, so yaml defaults can't be used here.
+	if c.Version == "" {
+		c.Version = constant.EngineVersion
+	}
+
+	if c.Channel == "" {
+		c.Channel = constant.EngineChannel
+	}
+
+	if c.RepoURL == "" {
+		c.RepoURL = constant.EngineRepoURL
+	}
+
+	if c.InstallURLLinux == "" {
+		c.InstallURLLinux = constant.EngineInstallURLLinux
+	}
+
+	if c.InstallURLWindows == "" {
+		c.InstallURLWindows = constant.EngineInstallURLWindows
+	}
 }

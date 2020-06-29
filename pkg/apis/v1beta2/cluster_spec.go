@@ -52,12 +52,13 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type yclusterspec ClusterSpec
 	yc := (*yclusterspec)(c)
 	c.Engine = EngineConfig{}
-	c.Engine.SetDefaults()
 	c.Ucp = NewUcpConfig()
 
 	if err := unmarshal(yc); err != nil {
 		return err
 	}
+
+	c.Engine.SetDefaults()
 
 	return nil
 }
