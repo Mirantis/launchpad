@@ -60,7 +60,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 					return err
 				}
 			}
-		} else {
+		} else if h.Metadata.EngineVersion != "" {
 			log.Infof("%s: Engine is already at version %s", h.Address, h.Metadata.EngineVersion)
 		}
 	}
