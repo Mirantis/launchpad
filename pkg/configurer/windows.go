@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
-	"github.com/Mirantis/mcc/pkg/constant"
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"
@@ -42,22 +41,14 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
-	scriptURL := fmt.Sprintf("%sinstall.ps1", constant.EngineInstallURL)
-	dlCommand := fmt.Sprintf("powershell -Command \"$ProgressPreference = 'SilentlyContinue'; [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest %s -UseBasicParsing -OutFile install.ps1\"", scriptURL)
-	err := c.Host.ExecCmd(dlCommand, "", false, false)
-	if err != nil {
-		return err
-	}
 
-	defer c.Host.Exec("del install.ps1")
+	installer := "install.ps1"
+	c.WriteFile(installer, *c.Host.Metadata.EngineInstallScript, "0600")
 
-	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -File install.ps1 -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel)
-	err = c.Host.Exec(installCommand)
-	if err != nil {
-		return err
-	}
+	defer c.Host.Execf("del %s", installer)
 
-	return nil
+	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, installer)
+	return c.Host.Exec(installCommand)
 }
 
 // UninstallEngine uninstalls docker-ee engine
