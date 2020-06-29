@@ -152,6 +152,9 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		}
 
 		log.Infof("%s: authenticating docker for image repo %s", h.Address, imageRepo)
+		if strings.HasPrefix(imageRepo, "docker.io/") { // docker.io is a special case for auth
+			imageRepo = ""
+		}
 		return h.Configurer.AuthenticateDocker(user, pass, imageRepo)
 	}
 	log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)

@@ -75,6 +75,18 @@ pipeline {
             sh "make smoke-upgrade-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
+        stage("Ubuntu 18.04: with docker credentials") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2'
+            }
+          }
+          steps {
+            withCredentials([usernameColonPassword(credentialsId: "orcaeng-hub.docker.com", usernameVariable: "REGISTRY_USERNAME", passwordVariable: "REGISTRY_PASSWORD")]) {
+              sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            }
+          }
+        }
         stage("Ubuntu 18.04: reset") {
           agent {
             node {
