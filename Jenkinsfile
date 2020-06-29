@@ -83,11 +83,10 @@ pipeline {
           }
           environment {
             UCP_IMAGE_REPO = "docker.io/dockereng"
+            REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
           }
           steps {
-            withCredentials([usernameColonPassword(credentialsId: "dockerbuildbot-index.docker.io", usernameVariable: "REGISTRY_USERNAME", passwordVariable: "REGISTRY_PASSWORD")]) {
-              sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-            }
+            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("Ubuntu 18.04: reset") {

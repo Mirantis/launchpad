@@ -11,6 +11,13 @@ export CLUSTER_NAME=${BUILD_TAG:-"local"}
 
 export ANALYTICS_DISABLED="true"
 
+if [ ! -z "${REGISTRY_CREDS_USR}" ]; then
+  export REGISTRY_USERNAME="${REGISTRY_CREDS_USR}"
+fi
+if [ ! -z "${REGISTRY_CREDS_PSW}" ]; then
+  export REGISTRY_PASSWORD="${REGISTRY_CREDS_PSW}"
+fi
+
 function cleanup() {
     unset DOCKER_HOST
     unset DOCKER_CERT_PATH
