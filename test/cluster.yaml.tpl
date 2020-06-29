@@ -18,6 +18,7 @@ spec:
       role: "worker"
   ucp:
     version: $UCP_VERSION
+    imageRepo: $UCP_IMAGE_REPO
     configData: |-
       [scheduling_configuration]
         default_node_orchestrator = "kubernetes"

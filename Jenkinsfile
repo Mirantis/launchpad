@@ -75,6 +75,20 @@ pipeline {
             sh "make smoke-upgrade-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
+        stage("Ubuntu 18.04: with docker credentials") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2'
+            }
+          }
+          environment {
+            UCP_IMAGE_REPO = "docker.io/dockereng"
+            REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
+          }
+          steps {
+            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+          }
+        }
         stage("Ubuntu 18.04: reset") {
           agent {
             node {
