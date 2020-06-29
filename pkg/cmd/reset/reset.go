@@ -45,6 +45,7 @@ func Reset(configFile string) error {
 		phaseManager.AddPhase(&phase.UninstallDTR{})
 	}
 	phaseManager.AddPhase(&phase.UninstallUCP{})
+	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.UninstallEngine{})
 	phaseManager.AddPhase(&phase.Disconnect{})
 

@@ -55,7 +55,13 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 // TODO: actually uninstall, the install.ps1 script has '-Uninstall' option for this.
 // There's also some uninstall intructions on MS site: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#uninstall-docker
 func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) error {
-	return c.Host.Exec("docker system prune -f")
+	uninstaller := "install.ps1"
+	c.WriteFile(uninstaller, *c.Host.Metadata.EngineInstallScript, "0600")
+
+	defer c.Host.Execf("del %s", uninstaller)
+
+	uninstallCommand := fmt.Sprintf("powershell -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", uninstaller)
+	return c.Host.Exec(uninstallCommand)
 }
 
 // RestartEngine restarts Docker EE engine
