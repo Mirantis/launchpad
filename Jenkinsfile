@@ -81,8 +81,11 @@ pipeline {
               label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
+          environment {
+            UCP_IMAGE_REPO = "docker.io/dockereng"
+          }
           steps {
-            withCredentials([usernameColonPassword(credentialsId: "orcaeng-hub.docker.com", usernameVariable: "REGISTRY_USERNAME", passwordVariable: "REGISTRY_PASSWORD")]) {
+            withCredentials([usernameColonPassword(credentialsId: "dockerbuildbot-index.docker.io", usernameVariable: "REGISTRY_USERNAME", passwordVariable: "REGISTRY_PASSWORD")]) {
               sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
             }
           }

@@ -5,6 +5,7 @@ set -e
 CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-cluster.yaml.tpl}
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.3.0"}
+export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/docker"}
 export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8"}
 export CLUSTER_NAME=${BUILD_TAG:-"local"}
 
@@ -33,7 +34,7 @@ function downloadTools() {
         curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/darwin/amd64/kubectl > ./kubectl
     else
         curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
-        
+
         curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
     fi
 }
