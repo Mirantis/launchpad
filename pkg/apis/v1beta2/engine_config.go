@@ -15,14 +15,14 @@ type EngineConfig struct {
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml
 func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	c.SetDefaults()
-
 	type yEngineConfig EngineConfig
 	yc := (*yEngineConfig)(c)
 
 	if err := unmarshal(yc); err != nil {
 		return err
 	}
+
+	c.SetDefaults()
 
 	return nil
 }
