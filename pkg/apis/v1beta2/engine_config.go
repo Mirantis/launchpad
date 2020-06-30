@@ -7,7 +7,7 @@ import (
 // EngineConfig holds the engine installation specific options
 type EngineConfig struct {
 	Version           string `yaml:"version"`
-	RepoURL           string `yaml:"repoUrl,omitempty"`
+	RepoURL           string `yaml:"repoURL,omitempty"`
 	InstallURLLinux   string `yaml:"installURLLinux,omitempty"`
 	InstallURLWindows string `yaml:"installURLWindows,omitempty"`
 	Channel           string `yaml:"channel,omitempty"`
