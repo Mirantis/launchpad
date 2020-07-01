@@ -140,7 +140,7 @@ func initClient() (err error) {
 		}
 		defaultClient.AnalyticsClient, err = NewSegmentClient(segmentToken)
 		if err != nil {
-			log.Debugf("failed to initialize analytics: %s", err.Error)
+			log.Debugf("failed to initialize analytics: %s", err.Error())
 			return err
 		}
 	}
