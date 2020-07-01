@@ -126,6 +126,13 @@ func (c *WindowsConfigurer) AuthenticateDocker(user, pass, imageRepo string) err
 // WriteFile writes file to host with given contents. Do not use for large files.
 // The permissions argument is ignored on windows.
 func (c *WindowsConfigurer) WriteFile(path string, data string, permissions string) error {
+	if data == "" {
+		return fmt.Errorf("empty content in WriteFile to %s", path)
+	}
+
+	if path == "" {
+		return fmt.Errorf("empty path in WriteFile")
+	}
 
 	tempFile, err := c.Host.ExecWithOutput("powershell -Command \"New-TemporaryFile | Write-Host\"")
 	if err != nil {
