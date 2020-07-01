@@ -2,12 +2,13 @@ package analytics
 
 import (
 	"io/ioutil"
-	"log"
+	logger "log"
 	"runtime"
 
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/version"
 	"github.com/denisbrodbeck/machineid"
+	log "github.com/sirupsen/logrus"
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
 
@@ -38,7 +39,7 @@ var defaultClient = Client{
 
 // NewSegmentClient returns a Segment client for uploading analytics data.
 func NewSegmentClient(segmentToken string) (Analytics, error) {
-	segmentLogger := analytics.StdLogger(log.New(ioutil.Discard, "segment ", log.LstdFlags))
+	segmentLogger := analytics.StdLogger(logger.New(ioutil.Discard, "segment ", logger.LstdFlags))
 	segmentConfig := analytics.Config{
 		Logger: segmentLogger,
 	}
@@ -53,8 +54,10 @@ func NewSegmentClient(segmentToken string) (Analytics, error) {
 // is enabled.
 func (c *Client) TrackEvent(event string, properties map[string]interface{}) error {
 	if !c.isEnabled {
+		log.Debugf("analytics disabled, not tracking event '%s'", event)
 		return nil
 	}
+	log.Debugf("tracking analytics event '%s'", event)
 	if properties == nil {
 		properties = make(map[string]interface{}, 10)
 	}
@@ -75,6 +78,7 @@ func (c *Client) TrackEvent(event string, properties map[string]interface{}) err
 // is enabled
 func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
 	if !c.isEnabled {
+		log.Debug("analytics disabled, not identifying user")
 		return nil
 	}
 	msg := analytics.Identify{
@@ -85,6 +89,7 @@ func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
 			SetEmail(userConfig.Email).
 			Set("company", userConfig.Company),
 	}
+	log.Debugf("identified analytics user %+v", msg)
 	return c.AnalyticsClient.Enqueue(msg)
 }
 
@@ -111,9 +116,6 @@ func IdentifyUser(userConfig *config.UserConfig) error {
 
 // RequireRegisteredUser uses the default analytics client to require registered user
 func RequireRegisteredUser() error {
-	if err := initClient(); err != nil {
-		defaultClient.isEnabled = false
-	}
 	return defaultClient.RequireRegisteredUser()
 }
 
@@ -138,9 +140,11 @@ func initClient() (err error) {
 		}
 		defaultClient.AnalyticsClient, err = NewSegmentClient(segmentToken)
 		if err != nil {
+			log.Debugf("failed to initialize analytics: %s", err.Error)
 			return err
 		}
 	}
+	log.Debugf("initialized analytics client")
 	return nil
 }
 

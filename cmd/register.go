@@ -29,11 +29,6 @@ func RegisterCommand() *cli.Command {
 				Usage:   "Email",
 				Aliases: []string{"e"},
 			},
-			&cli.BoolFlag{
-				Name:    "accept-license",
-				Usage:   "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE",
-				Aliases: []string{"a"},
-			},
 		},
 		Action: func(ctx *cli.Context) error {
 			if _, err := config.GetUserConfig(); err != nil {

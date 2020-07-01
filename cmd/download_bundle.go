@@ -47,6 +47,12 @@ func NewDownloadBundleCommand() *cli.Command {
 
 			return err
 		},
+		Before: func(ctx *cli.Context) error {
+			if !ctx.Bool("accept-license") {
+				return analytics.RequireRegisteredUser()
+			}
+			return nil
+		},
 	}
 }
 

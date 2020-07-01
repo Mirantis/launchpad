@@ -9,7 +9,8 @@ export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/docker"}
 export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8"}
 export CLUSTER_NAME=${BUILD_TAG:-"local"}
 
-export ANALYTICS_DISABLED="true"
+export TELEMETRY_DISABLED="true"
+export ACCEPT_LICENSE="true"
 
 if [ ! -z "${REGISTRY_CREDS_USR}" ]; then
   export REGISTRY_USERNAME="${REGISTRY_CREDS_USR}"
