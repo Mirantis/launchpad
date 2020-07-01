@@ -47,9 +47,16 @@ SUPPORT:
 				EnvVars: []string{"DEBUG"},
 			},
 			&cli.BoolFlag{
-				Name:    "disable-analytics",
-				Usage:   "Disable analytics",
-				EnvVars: []string{"ANALYTICS_DISABLED"},
+				Name:    "disable-telemetry",
+				Usage:   "Disable telemetry",
+				Aliases: []string{"t"},
+				EnvVars: []string{"DISABLE_TELEMETRY"},
+			},
+			&cli.BoolFlag{
+				Name:    "accept-license",
+				Usage:   "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE",
+				Aliases: []string{"a"},
+				EnvVars: []string{"ACCEPT_LICENSE"},
 			},
 		},
 		Before: func(ctx *cli.Context) error {
@@ -91,7 +98,7 @@ func initLogger(ctx *cli.Context) {
 }
 
 func initAnalytics(ctx *cli.Context) {
-	if ctx.Bool("disable-analytics") {
+	if ctx.Bool("disable-telemetry") {
 		analytics.Enabled(false)
 	}
 }

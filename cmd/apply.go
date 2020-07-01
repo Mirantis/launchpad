@@ -27,6 +27,12 @@ func NewApplyCommand() *cli.Command {
 				Value: false,
 			},
 		},
+		Before: func(ctx *cli.Context) error {
+			if !ctx.Bool("accept-license") {
+				return analytics.RequireRegisteredUser()
+			}
+			return nil
+		},
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)

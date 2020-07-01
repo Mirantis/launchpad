@@ -11,7 +11,8 @@ export UCP_VERSION=${UCP_VERSION:-"3.2.6"}
 export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/docker"}
 export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.5"}
 export CLUSTER_NAME=$BUILD_TAG
-export ANALYTICS_DISABLED="true"
+export DISABLE_TELEMETRY="true"
+export ACCEPT_LICENSE="true"
 
 envsubst < cluster.yaml.tpl > cluster.yaml
 envsubst < footloose.yaml.tpl > footloose.yaml

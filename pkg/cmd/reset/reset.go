@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -16,9 +15,6 @@ import (
 
 // Reset ...
 func Reset(configFile string) error {
-	if err := analytics.RequireRegisteredUser(); err != nil {
-		return err
-	}
 	cfgData, err := config.ResolveClusterFile(configFile)
 	if err != nil {
 		return err

@@ -33,9 +33,6 @@ func Apply(configFile string, prune bool) error {
 
 	}()
 
-	if err = analytics.RequireRegisteredUser(); err != nil {
-		return err
-	}
 	cfgData, err := config.ResolveClusterFile(configFile)
 	if err != nil {
 		return err
