@@ -144,7 +144,6 @@ func initClient() (err error) {
 			return err
 		}
 	}
-	log.Debugf("initialized analytics client")
 	return nil
 }
 
