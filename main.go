@@ -50,7 +50,7 @@ SUPPORT:
 				Name:    "disable-telemetry",
 				Usage:   "Disable telemetry",
 				Aliases: []string{"t"},
-				EnvVars: []string{"TELEMETRY_DISABLED"},
+				EnvVars: []string{"DISABLE_TELEMETRY"},
 			},
 			&cli.BoolFlag{
 				Name:    "accept-license",
