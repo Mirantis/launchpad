@@ -10,12 +10,13 @@ import (
 
 // UcpConfig has all the bits needed to configure UCP during installation
 type UcpConfig struct {
-	Version         string   `yaml:"version"`
-	ImageRepo       string   `yaml:"imageRepo,omitempty"`
-	InstallFlags    []string `yaml:"installFlags,omitempty,flow"`
-	ConfigFile      string   `yaml:"configFile,omitempty" validate:"omitempty,file"`
-	ConfigData      string   `yaml:"configData,omitempty"`
-	LicenseFilePath string   `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
+	Version         string    `yaml:"version"`
+	ImageRepo       string    `yaml:"imageRepo,omitempty"`
+	InstallFlags    []string  `yaml:"installFlags,omitempty,flow"`
+	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
+	ConfigData      string    `yaml:"configData,omitempty"`
+	LicenseFilePath string    `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
+	Cloud           *UcpCloud `yaml:"cloud,omitempty"`
 
 	Metadata *UcpMetadata `yaml:"-"`
 }
@@ -25,6 +26,13 @@ type UcpMetadata struct {
 	Installed        bool
 	InstalledVersion string
 	ClusterID        string
+}
+
+// UcpCloud has the cloud provider configuration
+type UcpCloud struct {
+	Provider   string `yaml:"provider,omitempty" validate:"required"`
+	ConfigFile string `yaml:"configFile,omitempty" validate:"omitempty,file"`
+	ConfigData string `yaml:"configData,omitempty"`
 }
 
 func (c *UcpConfig) getInstallFlagValue(name string) string {
@@ -60,6 +68,14 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 		raw.ConfigData = string(configData)
+	}
+
+	if raw.Cloud != nil && raw.Cloud.ConfigFile != "" {
+		cloudConfigData, err := util.LoadExternalFile(raw.Cloud.ConfigFile)
+		if err != nil {
+			return err
+		}
+		raw.Cloud.ConfigData = string(cloudConfigData)
 	}
 
 	*c = UcpConfig(raw)
