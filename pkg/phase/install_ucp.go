@@ -108,19 +108,20 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 }
 
 func applyCloudConfig(config *api.ClusterConfig) error {
-	configData := config.Spec.Ucp.ConfigData
+	configData := config.Spec.Ucp.Cloud.ConfigData
+	provider := config.Spec.Ucp.Cloud.Provider
 
 	var destFile string
-	if config.Spec.Ucp.Cloud.Provider == "azure" {
+	if provider == "azure" {
 		destFile = "/etc/kubernetes/azure.json"
-	} else if config.Spec.Ucp.Cloud.Provider == "openstack" {
+	} else if provider == "openstack" {
 		destFile = "/etc/kubernetes/openstack.conf"
 	} else {
 		return fmt.Errorf("Spec.Cloud.configData is only supported with Azure and OpenStack cloud providers")
 	}
 
 	err := runParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, c *api.ClusterConfig) error {
-		log.Infof("%s: copying cloud provider (%s) config to %s", h.Address, config.Spec.Ucp.Cloud.Provider, destFile)
+		log.Infof("%s: copying cloud provider (%s) config to %s", h.Address, provider, destFile)
 		return h.Configurer.WriteFile(destFile, configData, "0700")
 	})
 
