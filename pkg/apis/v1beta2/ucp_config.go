@@ -70,6 +70,14 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		raw.ConfigData = string(configData)
 	}
 
+	if raw.Cloud != nil && raw.Cloud.ConfigFile != "" {
+		cloudConfigData, err := util.LoadExternalFile(raw.Cloud.ConfigFile)
+		if err != nil {
+			return err
+		}
+		raw.Cloud.ConfigData = string(cloudConfigData)
+	}
+
 	*c = UcpConfig(raw)
 	return nil
 }

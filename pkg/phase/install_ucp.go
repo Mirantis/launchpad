@@ -74,8 +74,13 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 		installFlags = append(installFlags, fmt.Sprintf("--license '%s'", string(license)))
 	}
 
-	if config.Spec.Ucp.Cloud != nil && config.Spec.Ucp.Cloud.Provider != "" {
-		installFlags = append(installFlags, fmt.Sprintf("--cloud-provider %s", config.Spec.Ucp.Cloud.Provider))
+	if config.Spec.Ucp.Cloud != nil {
+		if config.Spec.Ucp.Cloud.Provider != "" {
+			installFlags = append(installFlags, fmt.Sprintf("--cloud-provider %s", config.Spec.Ucp.Cloud.Provider))
+		}
+		if config.Spec.Ucp.Cloud.ConfigData != "" {
+			applyCloudConfig(config)
+		}
 	}
 
 	if config.Spec.Ucp.IsCustomImageRepo() {
@@ -100,6 +105,26 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil
+}
+
+func applyCloudConfig(config *api.ClusterConfig) error {
+	configData := config.Spec.Ucp.ConfigData
+
+	var destFile string
+	if config.Spec.Ucp.Cloud.Provider == "azure" {
+		destFile = "/etc/kubernetes/azure.json"
+	} else if config.Spec.Ucp.Cloud.Provider == "openstack" {
+		destFile = "/etc/kubernetes/openstack.conf"
+	} else {
+		return fmt.Errorf("Spec.Cloud.configData is only supported with Azure and OpenStack cloud providers")
+	}
+
+	err := runParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, c *api.ClusterConfig) error {
+		log.Infof("%s: copying cloud provider (%s) config to %s", h.Address, config.Spec.Ucp.Cloud.Provider, destFile)
+		return h.Configurer.WriteFile(destFile, configData, "0700")
+	})
+
+	return err
 }
 
 func cleanup(host *api.Host) error {
