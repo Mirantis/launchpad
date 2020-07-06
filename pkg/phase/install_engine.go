@@ -5,7 +5,6 @@ import (
 	"math"
 	"sync"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
@@ -24,19 +23,21 @@ func (p *InstallEngine) Title() string {
 
 // Run installs the engine on each host
 func (p *InstallEngine) Run(c *api.ClusterConfig) error {
-	props := analytics.NewAnalyticsEventProperties()
-	props["engine_version"] = c.Spec.Engine.Version
-	p.EventProperties = props
+	p.EventProperties = map[string]interface{}{
+		"engine_version": c.Spec.Engine.Version,
+	}
 	err := p.upgradeEngines(c)
 	if err != nil {
 		return err
 	}
+
 	newHosts := []*api.Host{}
 	for _, h := range c.Spec.Hosts {
 		if h.Metadata.EngineVersion == "" {
 			newHosts = append(newHosts, h)
 		}
 	}
+
 	return runParallelOnHosts(newHosts, c, p.installEngine)
 }
 

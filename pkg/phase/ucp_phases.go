@@ -36,9 +36,10 @@ func (m *Manager) Run() error {
 		log.Infof(text, phase.Title())
 		if p, ok := interface{}(phase).(Eventable); ok {
 			start := time.Now()
-			props := analytics.NewAnalyticsEventProperties()
-			props["kind"] = m.config.Kind
-			props["api_version"] = m.config.APIVersion
+			props := map[string]interface{}{
+				"kind":        m.config.Kind,
+				"api_version": m.config.APIVersion,
+			}
 			err := phase.Run(m.config)
 			duration := time.Since(start)
 			props["duration"] = duration.Seconds()

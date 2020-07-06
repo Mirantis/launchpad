@@ -30,8 +30,9 @@ func NewResetCommand() *cli.Command {
 				analytics.TrackEvent("Cluster Reset Failed", nil)
 			} else {
 				duration := time.Since(start)
-				props := analytics.NewAnalyticsEventProperties()
-				props["duration"] = duration.Seconds()
+				props := map[string]interface{}{
+					"duration": duration.Seconds(),
+				}
 				analytics.TrackEvent("Cluster Reset Completed", props)
 			}
 			return err

@@ -32,8 +32,8 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 	}
 
 	t.Run("Analytics disabled", func(t *testing.T) {
-		analyticsClient.SetEnabled(false)
-		defer func() { analyticsClient.SetEnabled(true) }()
+		analyticsClient.IsEnabled = false
+		defer func() { analyticsClient.IsEnabled = true }()
 
 		analyticsClient.TrackEvent("test", nil)
 		lastMessage := client.lastMessage
@@ -63,8 +63,8 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		Company: "Acme, Inc.",
 	}
 	t.Run("Analytics disabled", func(t *testing.T) {
-		analyticsClient.SetEnabled(false)
-		defer func() { analyticsClient.SetEnabled(true) }()
+		analyticsClient.IsEnabled = false
+		defer func() { analyticsClient.IsEnabled = true }()
 
 		analyticsClient.IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage
@@ -78,5 +78,33 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		require.Equal(t, "John Doe", lastMessage.Traits["name"])
 		require.Equal(t, "john.doe@example.org", lastMessage.Traits["email"])
 		require.Equal(t, "Acme, Inc.", lastMessage.Traits["company"])
+	})
+}
+
+func TestDefaultClient(t *testing.T) {
+	userConfig := config.UserConfig{
+		Name:    "John Doe",
+		Email:   "john.doe@example.org",
+		Company: "Acme, Inc.",
+	}
+
+	t.Run("Analytics disabled", func(t *testing.T) {
+		old := defaultClient.IsEnabled
+		Enabled(false)
+		defer Enabled(old)
+
+		TrackEvent("foobar", nil)
+		IdentifyUser(&userConfig)
+		RequireRegisteredUser()
+	})
+
+	t.Run("Analytics enabled", func(t *testing.T) {
+		old := defaultClient.IsEnabled
+		Enabled(true)
+		defer Enabled(old)
+
+		TrackEvent("foobar", nil)
+		IdentifyUser(&userConfig)
+		RequireRegisteredUser()
 	})
 }

@@ -41,8 +41,9 @@ func NewApplyCommand() *cli.Command {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {
 				duration := time.Since(start)
-				props := analytics.NewAnalyticsEventProperties()
-				props["duration"] = duration.Seconds()
+				props := map[string]interface{}{
+					"duration": duration.Seconds(),
+				}
 				analytics.TrackEvent("Cluster Apply Completed", props)
 			}
 			return err
