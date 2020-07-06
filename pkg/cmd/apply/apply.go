@@ -9,14 +9,14 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
+	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-homedir"
-
-	mcclog "github.com/Mirantis/mcc/pkg/log"
 	log "github.com/sirupsen/logrus"
+	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // Apply ...
@@ -91,7 +91,7 @@ func Apply(configFile string, prune bool) error {
 		}
 	}
 	clusterID := clusterConfig.Spec.Ucp.Metadata.ClusterID
-	props := map[string]interface{}{
+	props := event.Properties{
 		"kind":            clusterConfig.Kind,
 		"api_version":     clusterConfig.APIVersion,
 		"hosts":           len(clusterConfig.Spec.Hosts),
@@ -104,7 +104,11 @@ func Apply(configFile string, prune bool) error {
 		"ucp_instance_id": fmt.Sprintf("%x", sha1.Sum([]byte(clusterID))),
 	}
 
-	return analytics.TrackEvent("Cluster Installed", props)
+	if err := analytics.TrackEvent("Cluster Installed", props); err != nil {
+		log.Warnf("tracking failed: %v", err)
+	}
+
+	return nil
 }
 
 const fileMode = 0700

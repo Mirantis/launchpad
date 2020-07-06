@@ -5,8 +5,8 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/cmd/apply"
-
 	"github.com/urfave/cli/v2"
+	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // NewApplyCommand creates new install command to be called from cli
@@ -41,7 +41,7 @@ func NewApplyCommand() *cli.Command {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {
 				duration := time.Since(start)
-				props := map[string]interface{}{
+				props := event.Properties{
 					"duration": duration.Seconds(),
 				}
 				analytics.TrackEvent("Cluster Apply Completed", props)

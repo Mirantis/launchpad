@@ -40,8 +40,9 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 		require.Nil(t, lastMessage)
 	})
 	t.Run("Analytics enabled", func(t *testing.T) {
-		props := make(map[string]interface{}, 1)
-		props["foo"] = "bar"
+		props := analytics.Properties{
+			"foo": "bar",
+		}
 		analyticsClient.TrackEvent("test", props)
 		lastMessage := client.lastMessage.(analytics.Track)
 		require.NotNil(t, client.lastMessage)

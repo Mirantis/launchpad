@@ -41,7 +41,7 @@ func init() {
 	}
 	ac, err := NewSegmentClient(segmentToken)
 	if err != nil {
-		log.Fatalf("failed to initialize analytics: %v", err)
+		log.Warnf("failed to initialize analytics: %v", err)
 		return
 	}
 
@@ -61,25 +61,26 @@ func NewSegmentClient(segmentToken string) (Analytics, error) {
 
 // TrackEvent uploads the given event to segment if analytics tracking
 // is enabled.
-func (c *Client) TrackEvent(event string, properties map[string]interface{}) error {
+func (c *Client) TrackEvent(event string, properties analytics.Properties) error {
 	if !c.IsEnabled {
 		log.Debugf("analytics disabled, not tracking event '%s'", event)
 		return nil
 	}
 
-	log.Debugf("tracking analytics event '%s'", event)
 	if properties == nil {
-		properties = make(map[string]interface{}, 10)
+		properties = analytics.NewProperties()
 	}
+
+	log.Debugf("tracking analytics event '%s'", event)
 	properties["os"] = runtime.GOOS
 	properties["version"] = version.Version
-	msg := analytics.Track{
+
+	return c.AnalyticsClient.Enqueue(analytics.Track{
 		UserId:      UserID(),
 		AnonymousId: MachineID(),
 		Event:       event,
 		Properties:  properties,
-	}
-	return c.AnalyticsClient.Enqueue(msg)
+	})
 }
 
 // IdentifyUser identifies user on analytics service if analytics

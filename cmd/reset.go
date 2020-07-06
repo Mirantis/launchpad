@@ -5,8 +5,8 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/cmd/reset"
-
 	"github.com/urfave/cli/v2"
+	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // NewResetCommand creates new install command to be called from cli
@@ -30,7 +30,7 @@ func NewResetCommand() *cli.Command {
 				analytics.TrackEvent("Cluster Reset Failed", nil)
 			} else {
 				duration := time.Since(start)
-				props := map[string]interface{}{
+				props := event.Properties{
 					"duration": duration.Seconds(),
 				}
 				analytics.TrackEvent("Cluster Reset Completed", props)
