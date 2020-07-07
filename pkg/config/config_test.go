@@ -302,6 +302,40 @@ spec:
 	require.Equal(t, c.Spec.Hosts[0].WinRM.Insecure, false)
 }
 
+func TestValidationWithDtrRole(t *testing.T) {
+
+	t.Run("the role is not ucp, worker or dtr", func(t *testing.T) {
+		data := `
+apiVersion: launchpad.mirantis.com/v1beta2
+kind: UCP
+spec:
+  hosts:
+    - address: "1.2.3.4"
+		  role: weirdrole
+`
+		c := loadYaml(t, data)
+
+		require.Error(t, Validate(c))
+	})
+
+	t.Run("the role is dtr", func(t *testing.T) {
+		data := `
+apiVersion: launchpad.mirantis.com/v1beta2
+kind: UCP
+spec:
+  hosts:
+    - address: "1.2.3.4"
+		  role: dtr
+		  winRM:
+		    user: User
+`
+		c := loadYaml(t, data)
+
+		require.NoError(t, Validate(c))
+	})
+
+}
+
 // Just a small helper to load the config struct from yaml to get defaults etc. in place
 func loadYaml(t *testing.T, data string) *api.ClusterConfig {
 	// convert any tabs added by editor into double spaces

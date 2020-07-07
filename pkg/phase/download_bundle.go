@@ -42,7 +42,8 @@ func (p *DownloadBundle) Run(conf *api.ClusterConfig) error {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	url, err := p.resolveURL(conf.Spec.WebURL())
+	urls := conf.Spec.WebURLs()
+	url, err := p.resolveURL(urls.Ucp)
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
 	}

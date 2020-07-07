@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
+	"github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
@@ -57,9 +58,11 @@ func Apply(configFile string, prune bool) error {
 		return err
 	}
 
+	dtr := configContainsDtr(clusterConfig)
+
 	phaseManager := phase.NewManager(&clusterConfig)
 	phaseManager.AddPhase(&phase.Connect{})
-	phaseManager.AddPhase(&phase.GatherFacts{})
+	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
 	phaseManager.AddPhase(&phase.ValidateHosts{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.PrepareHost{})
@@ -69,13 +72,22 @@ func Apply(configFile string, prune bool) error {
 	phaseManager.AddPhase(&phase.InstallUCP{})
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
-	phaseManager.AddPhase(&phase.JoinWorkers{})
+	phaseManager.AddPhase(&phase.JoinWorkers{Dtr: dtr})
+	// If the clusterConfig contains any of the DTR role then install and
+	// upgrade DTR on those specific host roles
+	if dtr {
+		phaseManager.AddPhase(&phase.ValidateUcpHealth{})
+		phaseManager.AddPhase(&phase.PullImages{Dtr: dtr})
+		phaseManager.AddPhase(&phase.InstallDtr{})
+		phaseManager.AddPhase(&phase.UpgradeDtr{})
+		phaseManager.AddPhase(&phase.JoinDtrReplicas{})
+	}
 	phaseManager.AddPhase(&phase.LabelNodes{})
 	if prune {
 		phaseManager.AddPhase(&phase.RemoveNodes{})
 	}
 	phaseManager.AddPhase(&phase.Disconnect{})
-	phaseManager.AddPhase(&phase.UcpInfo{})
+	phaseManager.AddPhase(&phase.Info{})
 
 	if err = phaseManager.Run(); err != nil {
 		return err
@@ -96,6 +108,7 @@ func Apply(configFile string, prune bool) error {
 		"api_version":     clusterConfig.APIVersion,
 		"hosts":           len(clusterConfig.Spec.Hosts),
 		"managers":        len(clusterConfig.Spec.Managers()),
+		"dtrs":            len(clusterConfig.Spec.Dtrs()),
 		"linux_workers":   linuxWorkersCount,
 		"windows_workers": windowsWorkersCount,
 		"engine_version":  clusterConfig.Spec.Engine.Version,
@@ -134,4 +147,8 @@ func addFileLogger(clusterName string) (*os.File, error) {
 	log.AddHook(mcclog.NewFileHook(logFile))
 
 	return logFile, nil
+}
+
+func configContainsDtr(config v1beta2.ClusterConfig) bool {
+	return len(config.Spec.Dtrs()) > 0
 }
