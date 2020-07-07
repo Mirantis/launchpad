@@ -18,6 +18,8 @@ machines:
       destination: /var/lib/docker
     - type: volume
       destination: /var/lib/kubelet
+    networks:
+    - footloose-cluster
     portMappings:
     - containerPort: 22
       hostPort: 9022
@@ -41,6 +43,31 @@ machines:
       destination: /var/lib/docker
     - type: volume
       destination: /var/lib/kubelet
+    networks:
+    - footloose-cluster
     portMappings:
     - containerPort: 22
       hostPort: 9022
+- count: 2
+  backend: docker
+  spec:
+    image: $LINUX_IMAGE
+    name: dtr%d
+    privileged: true
+    volumes:
+    - type: bind
+      source: /lib/modules
+      destination: /lib/modules
+    - type: volume
+      destination: /var/lib/containerd
+    - type: volume
+      destination: /var/lib/docker
+    - type: volume
+      destination: /var/lib/kubelet
+    networks:
+    - footloose-cluster
+    portMappings:
+    - containerPort: 22
+      hostPort: 9022
+    - containerPort: 444
+      hostPort: 442

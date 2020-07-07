@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,7 +38,15 @@ func (p *LabelNodes) labelCurrentNodes(config *api.ClusterConfig, swarmLeader *a
 			return err
 		}
 		log.Infof("%s: labeling node", h.Address)
-		labelCmd := swarmLeader.Configurer.DockerCommandf("node update --label-add com.mirantis.launchpad.managed=true %s", nodeID)
+		if h.Role == "dtr" {
+			// Add the DTR label in addition to the managed label
+			dtrLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedDtrLabelCmd, nodeID)
+			err = swarmLeader.Exec(dtrLabelCmd)
+			if err != nil {
+				return fmt.Errorf("Failed to label node %s as DTR (%s)", h.Address, nodeID)
+			}
+		}
+		labelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedLabelCmd, nodeID)
 		err = swarmLeader.Exec(labelCmd)
 		if err != nil {
 			return fmt.Errorf("Failed to label node %s (%s)", h.Address, nodeID)

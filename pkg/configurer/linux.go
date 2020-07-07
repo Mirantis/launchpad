@@ -69,7 +69,7 @@ func (c *LinuxConfigurer) RestartEngine() error {
 
 // ResolveHostname resolves hostname
 func (c *LinuxConfigurer) ResolveHostname() string {
-	hostname, _ := c.Host.ExecWithOutput("hostname -s")
+	hostname, _ := c.Host.ExecWithOutput("hostname")
 
 	return hostname
 }

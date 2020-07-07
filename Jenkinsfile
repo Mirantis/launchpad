@@ -81,7 +81,7 @@ pipeline {
             sh "make smoke-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
           }
         }
-        stage("Ubuntu 18.04: upgrade 3.2 -> 3.3") {
+        stage("Ubuntu 18.04: upgrade UCP 3.2 -> 3.3, DTR 2.7 -> 2.8") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2'

@@ -24,7 +24,7 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	$(BUILDER_IMAGE)
 
 clean:
-	rm -f bin/launchpad
+	sudo rm -f bin/launchpad
 
 builder:
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .

@@ -2,11 +2,11 @@ package phase
 
 import (
 	"fmt"
-	"io/ioutil"
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/ucp"
+	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	defer func() {
 		if err != nil {
 			log.Println("Cleaning-up")
-			if cleanupErr := cleanup(swarmLeader); cleanupErr != nil {
+			if cleanupErr := cleanupUcp(swarmLeader); cleanupErr != nil {
 				log.Warnln("Error while cleaning-up resources")
 			}
 		}
@@ -64,12 +64,12 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	}
 
 	if licenseFilePath := config.Spec.Ucp.LicenseFilePath; licenseFilePath != "" {
-		log.Debugf("Installing with LicenseFilePath: %s", licenseFilePath)
-		license, err := ioutil.ReadFile(licenseFilePath)
+		log.Debugf("Installing UCP with LicenseFilePath: %s", licenseFilePath)
+		licenseFlag, err := util.SetupLicenseFile(config.Spec.Ucp.LicenseFilePath)
 		if err != nil {
 			return fmt.Errorf("error while reading license file %s: %v", licenseFilePath, err)
 		}
-		installFlags = append(installFlags, fmt.Sprintf("--license '%s'", string(license)))
+		installFlags = append(installFlags, licenseFlag)
 	}
 
 	if config.Spec.Ucp.Cloud != nil {
@@ -81,8 +81,8 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 		}
 	}
 
-	if config.Spec.Ucp.IsCustomImageRepo() {
-		// In case of custom repo, don't let UCP to check the images
+	if api.IsCustomImageRepo(config.Spec.Ucp.ImageRepo) {
+		// In case of custom repo, don't let UCP check the images
 		installFlags = append(installFlags, "--pull never")
 	}
 	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
@@ -126,7 +126,7 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 	return err
 }
 
-func cleanup(host *api.Host) error {
+func cleanupUcp(host *api.Host) error {
 	containersToRemove, err := host.ExecWithOutput(host.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
 		return err

@@ -13,6 +13,7 @@ import (
 // JoinWorkers phase implementation
 type JoinWorkers struct {
 	Analytics
+	Dtr bool
 }
 
 // Title for the phase
@@ -24,7 +25,15 @@ func (p *JoinWorkers) Title() string {
 func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
 	swarmLeader := config.Spec.SwarmLeader()
 
-	for _, h := range config.Spec.Workers() {
+	var hosts api.Hosts
+	if p.Dtr {
+		// If dtr roles are detected, add them to the list of workers
+		hosts = config.Spec.WorkersAndDtrs()
+	} else {
+		hosts = config.Spec.Workers()
+	}
+
+	for _, h := range hosts {
 		if swarm.IsSwarmNode(h) {
 			log.Infof("%s: already a swarm node", h.Address)
 			continue
