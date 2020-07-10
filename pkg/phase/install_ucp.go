@@ -5,10 +5,8 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/ucp"
-
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	"github.com/Mirantis/mcc/pkg/ucp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,9 +35,9 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 		}
 	}()
 
-	props := analytics.NewAnalyticsEventProperties()
-	props["ucp_version"] = config.Spec.Ucp.Version
-	p.EventProperties = props
+	p.EventProperties = map[string]interface{}{
+		"ucp_version": config.Spec.Ucp.Version,
+	}
 
 	if config.Spec.Ucp.Metadata.Installed {
 		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Spec.Ucp.Metadata.InstalledVersion)

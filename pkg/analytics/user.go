@@ -12,6 +12,6 @@ func (c *Client) RequireRegisteredUser() error {
 		c.TrackEvent("User Not Registered", nil)
 		return errors.New("Registration or license acceptance is required. Please use `launchpad register` command to register")
 	}
-	return nil
 
+	return nil
 }

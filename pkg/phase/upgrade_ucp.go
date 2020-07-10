@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
-
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,8 +24,9 @@ func (p *UpgradeUcp) Title() string {
 func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	swarmLeader := config.Spec.SwarmLeader()
 
-	p.EventProperties = analytics.NewAnalyticsEventProperties()
-	p.EventProperties["upgraded"] = false
+	p.EventProperties = map[string]interface{}{
+		"upgraded": false,
+	}
 	// Check specified bootstrapper images version
 	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Spec.Ucp.GetBootstrapperImage()))
 	if err != nil {

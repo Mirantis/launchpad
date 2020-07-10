@@ -9,14 +9,14 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
+	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-homedir"
-
-	mcclog "github.com/Mirantis/mcc/pkg/log"
 	log "github.com/sirupsen/logrus"
+	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // Apply ...
@@ -81,13 +81,8 @@ func Apply(configFile string, prune bool) error {
 		return err
 	}
 
-	props := analytics.NewAnalyticsEventProperties()
-	props["kind"] = clusterConfig.Kind
-	props["api_version"] = clusterConfig.APIVersion
-	props["hosts"] = len(clusterConfig.Spec.Hosts)
-	props["managers"] = len(clusterConfig.Spec.Managers())
-	linuxWorkersCount := 0
 	windowsWorkersCount := 0
+	linuxWorkersCount := 0
 	for _, h := range clusterConfig.Spec.Workers() {
 		if h.IsWindows() {
 			windowsWorkersCount++
@@ -95,15 +90,24 @@ func Apply(configFile string, prune bool) error {
 			linuxWorkersCount++
 		}
 	}
-	props["linux_workers"] = linuxWorkersCount
-	props["windows_workers"] = windowsWorkersCount
-	props["engine_version"] = clusterConfig.Spec.Engine.Version
 	clusterID := clusterConfig.Spec.Ucp.Metadata.ClusterID
-	props["cluster_id"] = clusterID
-	// send ucp analytics user id as ucp_instance_id property
-	ucpInstanceID := fmt.Sprintf("%x", sha1.Sum([]byte(clusterID)))
-	props["ucp_instance_id"] = ucpInstanceID
-	analytics.TrackEvent("Cluster Installed", props)
+	props := event.Properties{
+		"kind":            clusterConfig.Kind,
+		"api_version":     clusterConfig.APIVersion,
+		"hosts":           len(clusterConfig.Spec.Hosts),
+		"managers":        len(clusterConfig.Spec.Managers()),
+		"linux_workers":   linuxWorkersCount,
+		"windows_workers": windowsWorkersCount,
+		"engine_version":  clusterConfig.Spec.Engine.Version,
+		"cluster_id":      clusterID,
+		// send ucp analytics user id as ucp_instance_id property
+		"ucp_instance_id": fmt.Sprintf("%x", sha1.Sum([]byte(clusterID))),
+	}
+
+	if err := analytics.TrackEvent("Cluster Installed", props); err != nil {
+		log.Warnf("tracking failed: %v", err)
+	}
+
 	return nil
 }
 

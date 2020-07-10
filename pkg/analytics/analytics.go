@@ -28,13 +28,25 @@ type Analytics interface {
 // Client is the struct that encapsulates the dependencies needed to send analytics
 // and to interact with the analytics package
 type Client struct {
-	isEnabled       bool
+	IsEnabled       bool
 	AnalyticsClient Analytics
 }
 
-var defaultClient = Client{
-	isEnabled:       true,
-	AnalyticsClient: nil,
+var defaultClient Client
+
+func init() {
+	segmentToken := DevSegmentToken
+	if version.IsProduction() {
+		segmentToken = ProdSegmentToken
+	}
+	ac, err := NewSegmentClient(segmentToken)
+	if err != nil {
+		log.Warnf("failed to initialize analytics: %v", err)
+		return
+	}
+
+	defaultClient.AnalyticsClient = ac
+	defaultClient.IsEnabled = true
 }
 
 // NewSegmentClient returns a Segment client for uploading analytics data.
@@ -43,41 +55,38 @@ func NewSegmentClient(segmentToken string) (Analytics, error) {
 	segmentConfig := analytics.Config{
 		Logger: segmentLogger,
 	}
-	segmentClient, err := analytics.NewWithConfig(segmentToken, segmentConfig)
-	if err != nil {
-		return nil, err
-	}
-	return segmentClient, nil
+
+	return analytics.NewWithConfig(segmentToken, segmentConfig)
 }
 
 // TrackEvent uploads the given event to segment if analytics tracking
 // is enabled.
-func (c *Client) TrackEvent(event string, properties map[string]interface{}) error {
-	if !c.isEnabled {
+func (c *Client) TrackEvent(event string, properties analytics.Properties) error {
+	if !c.IsEnabled {
 		log.Debugf("analytics disabled, not tracking event '%s'", event)
 		return nil
 	}
-	log.Debugf("tracking analytics event '%s'", event)
+
 	if properties == nil {
-		properties = make(map[string]interface{}, 10)
+		properties = analytics.NewProperties()
 	}
+
+	log.Debugf("tracking analytics event '%s'", event)
 	properties["os"] = runtime.GOOS
 	properties["version"] = version.Version
-	msg := analytics.Track{
+
+	return c.AnalyticsClient.Enqueue(analytics.Track{
+		UserId:      UserID(),
 		AnonymousId: MachineID(),
 		Event:       event,
 		Properties:  properties,
-	}
-	if userID := UserID(); userID != "" {
-		msg.UserId = userID
-	}
-	return c.AnalyticsClient.Enqueue(msg)
+	})
 }
 
 // IdentifyUser identifies user on analytics service if analytics
 // is enabled
 func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
-	if !c.isEnabled {
+	if !c.IsEnabled {
 		log.Debug("analytics disabled, not identifying user")
 		return nil
 	}
@@ -93,24 +102,13 @@ func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
 	return c.AnalyticsClient.Enqueue(msg)
 }
 
-// SetEnabled enables the client
-func (c *Client) SetEnabled(enabled bool) {
-	c.isEnabled = enabled
-}
-
 // TrackEvent uses the default analytics client to track an event
 func TrackEvent(event string, properties map[string]interface{}) error {
-	if err := initClient(); err != nil {
-		defaultClient.isEnabled = false
-	}
 	return defaultClient.TrackEvent(event, properties)
 }
 
 // IdentifyUser uses the default analytics client to identify the user
 func IdentifyUser(userConfig *config.UserConfig) error {
-	if err := initClient(); err != nil {
-		defaultClient.isEnabled = false
-	}
 	return defaultClient.IdentifyUser(userConfig)
 }
 
@@ -129,27 +127,7 @@ func Close() error {
 
 // Enabled enables the default client
 func Enabled(enabled bool) {
-	defaultClient.SetEnabled(enabled)
-}
-
-func initClient() (err error) {
-	if defaultClient.AnalyticsClient == nil {
-		segmentToken := DevSegmentToken
-		if version.IsProduction() {
-			segmentToken = ProdSegmentToken
-		}
-		defaultClient.AnalyticsClient, err = NewSegmentClient(segmentToken)
-		if err != nil {
-			log.Debugf("failed to initialize analytics: %s", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-// NewAnalyticsEventProperties constructs new properties map and returns it
-func NewAnalyticsEventProperties() map[string]interface{} {
-	return make(map[string]interface{}, 10)
+	defaultClient.IsEnabled = enabled
 }
 
 // MachineID hashes a machine id as an anonymized identifier for our
@@ -161,9 +139,10 @@ func MachineID() string {
 
 // UserID returs user id for our analytics events.
 func UserID() string {
-	userConfig, _ := config.GetUserConfig()
-	if userConfig != nil {
-		return userConfig.Email
+	userConfig, err := config.GetUserConfig()
+	if err != nil {
+		return ""
 	}
-	return ""
+
+	return userConfig.Email
 }
