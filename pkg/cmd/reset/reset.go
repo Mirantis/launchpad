@@ -37,8 +37,13 @@ func Reset(configFile string) error {
 
 	phaseManager := phase.NewManager(&clusterConfig)
 
+	dtr := config.ContainsDtr(clusterConfig)
+
 	phaseManager.AddPhase(&phase.Connect{})
-	phaseManager.AddPhase(&phase.GatherFacts{})
+	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
+	if dtr {
+		phaseManager.AddPhase(&phase.UninstallDTR{})
+	}
 	phaseManager.AddPhase(&phase.UninstallUCP{})
 	phaseManager.AddPhase(&phase.UninstallEngine{})
 	phaseManager.AddPhase(&phase.Disconnect{})
