@@ -29,7 +29,7 @@ func (p *InstallDtr) Run(config *api.ClusterConfig) (err error) {
 	defer func() {
 		if err != nil {
 			log.Println("Cleaning-up")
-			if cleanupErr := cleanupDtr(dtrLeader); cleanupErr != nil {
+			if cleanupErr := dtr.Destroy(dtrLeader); cleanupErr != nil {
 				log.Warnln("Error while cleaning-up resources")
 				log.Debugf("Cleanup resources error: %s", err)
 			}
@@ -85,48 +85,4 @@ func (p *InstallDtr) Run(config *api.ClusterConfig) (err error) {
 	}
 	config.Spec.Dtr.Metadata = dtrMeta
 	return nil
-}
-
-// cleanupDtr is functionally equivalent to a DTR destroy and is intended to
-// remove any DTR containers and volumes that may have been started via the
-// installer if it fails
-func cleanupDtr(host *api.Host) error {
-	// Remove containers
-	containersToRemove, err := host.ExecWithOutput(host.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
-	if err != nil {
-		return err
-	}
-	if strings.TrimSpace(containersToRemove) == "" {
-		log.Debugf("No DTR containers to remove")
-		return nil
-	}
-	containersToRemove = strings.Join(strings.Fields(containersToRemove), " ")
-	if err := host.Exec(host.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
-		return err
-	}
-
-	// Remove volumes
-	volumeOutput, err := host.ExecWithOutput(host.Configurer.DockerCommandf("volume ls -q"))
-	if err != nil {
-		return err
-	}
-	if strings.Trim(volumeOutput, " ") == "" {
-		log.Debugf("No volumes in volume list")
-		return nil
-	}
-	// Iterate the volumeList and determine what we need to remove
-	var volumesToRemove []string
-	volumeList := strings.Split(volumeOutput, " ")
-	for _, v := range volumeList {
-		if strings.HasPrefix(v, "dtr-") {
-			volumesToRemove = append(volumesToRemove, v)
-		}
-	}
-	// Perform the removal
-	if len(volumesToRemove) == 0 {
-		log.Debugf("No DTR volumes to remove")
-		return nil
-	}
-	volumes := strings.Join(volumesToRemove, " ")
-	return host.Exec(host.Configurer.DockerCommandf("volume rm -f", volumes))
 }

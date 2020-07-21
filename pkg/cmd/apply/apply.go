@@ -7,7 +7,6 @@ import (
 	"path"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
@@ -58,7 +57,7 @@ func Apply(configFile string, prune bool) error {
 		return err
 	}
 
-	dtr := configContainsDtr(clusterConfig)
+	dtr := config.ContainsDtr(clusterConfig)
 
 	phaseManager := phase.NewManager(&clusterConfig)
 	phaseManager.AddPhase(&phase.Connect{})
@@ -147,8 +146,4 @@ func addFileLogger(clusterName string) (*os.File, error) {
 	log.AddHook(mcclog.NewFileHook(logFile))
 
 	return logFile, nil
-}
-
-func configContainsDtr(config v1beta2.ClusterConfig) bool {
-	return len(config.Spec.Dtrs()) > 0
 }

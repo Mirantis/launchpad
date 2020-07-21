@@ -7,6 +7,7 @@ import (
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	"github.com/Mirantis/mcc/pkg/util"
+	log "github.com/sirupsen/logrus"
 )
 
 // Details defines DTR host details
@@ -49,17 +50,35 @@ func GetDTRDetails(dtrHost *api.Host) (*Details, error) {
 	if rethinkdbContainerID == "" {
 		return nil, ErrorNoSuchObject
 	}
-	output, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
+
+	version, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
 	if err != nil {
 		return nil, err
 	}
-
-	outputFields := strings.Fields(output)
-	details := &Details{
-		Version:   outputFields[3],
-		ReplicaID: strings.Trim(outputFields[len(outputFields)-1], ")"),
+	replicaID, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`, rethinkdbContainerID))
+	if err != nil {
+		return nil, err
 	}
-
+	if version == "" || replicaID == "" {
+		// If we failed to obtain either label then this DTR version does not
+		// support the version Config.Labels or something else may have gone
+		// wrong, attempt to pull these details with the old method
+		output, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
+		if err != nil {
+			return nil, err
+		}
+		outputFields := strings.Fields(output)
+		if version == "" {
+			version = outputFields[3]
+		}
+		if replicaID == "" {
+			replicaID = strings.Trim(outputFields[len(outputFields)-1], ")")
+		}
+	}
+	details := &Details{
+		Version:   version,
+		ReplicaID: replicaID,
+	}
 	return details, nil
 }
 
@@ -155,4 +174,71 @@ func GetUcpURL(config *api.ClusterConfig) string {
 		controllerPort = "443"
 	}
 	return fmt.Sprintf("%s:%s", config.Spec.SwarmLeader().Address, controllerPort)
+}
+
+// Destroy is functionally equivalent to a DTR destroy and is intended to
+// remove any DTR containers and volumes that may have been started via the
+// installer if it fails
+func Destroy(dtrHost *api.Host) error {
+	// Remove containers
+	log.Debugf("%s: Removing DTR containers", dtrHost.Address)
+	containersToRemove, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(containersToRemove) == "" {
+		log.Debugf("No DTR containers to remove")
+	} else {
+		containersToRemove = strings.Join(strings.Fields(containersToRemove), " ")
+		if err := dtrHost.Exec(dtrHost.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+			return err
+		}
+	}
+
+	// Remove volumes
+	log.Debugf("%s: Removing DTR volumes", dtrHost.Address)
+	volumeOutput, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf("volume ls -q"))
+	if err != nil {
+		return err
+	}
+	if strings.Trim(volumeOutput, " ") == "" {
+		log.Debugf("No volumes in volume list")
+	} else {
+		// Iterate the volumeList and determine what we need to remove
+		var volumesToRemove []string
+		volumeList := strings.Fields(volumeOutput)
+		for _, v := range volumeList {
+			if strings.HasPrefix(v, "dtr-") {
+				volumesToRemove = append(volumesToRemove, v)
+			}
+		}
+		// Perform the removal
+		if len(volumesToRemove) == 0 {
+			log.Debugf("No DTR volumes to remove")
+			return nil
+		}
+		volumes := strings.Join(volumesToRemove, " ")
+		err = dtrHost.Exec(dtrHost.Configurer.DockerCommandf("volume rm -f %s", volumes))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CleanupDtrs accepts a list of dtrHosts to remove all containers, volumes
+// and networks on, it is intended to be used to uninstall DTR or cleanup
+// a failed install
+func CleanupDtrs(dtrHosts []*api.Host, swarmLeader *api.Host) error {
+	for _, h := range dtrHosts {
+		log.Debugf("%s: Destroying DTR host", h.Address)
+		err := Destroy(h)
+		if err != nil {
+			return fmt.Errorf("failed to run DTR destroy: %s", err)
+		}
+	}
+	// Remove dtr-ol via the swarmLeader
+	log.Infof("%s: Removing dtr-ol network", swarmLeader.Address)
+	swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("network rm dtr-ol"))
+	return nil
 }
