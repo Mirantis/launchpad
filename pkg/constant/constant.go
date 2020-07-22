@@ -21,8 +21,8 @@ const (
 	StateBaseDir = ".mirantis-launchpad"
 	// ProductDTR defines DTR
 	ProductDTR = "dtr"
-	// ManagedLabelCmd defines the node is managed by launchpad
+	// ManagedLabelCmd marks the node as being managed by launchpad
 	ManagedLabelCmd = "node update --label-add com.mirantis.launchpad.managed=true"
-	// ManagedDtrLabelCmd defines the DTR is managed by launchpad
+	// ManagedDtrLabelCmd marks a DTR node as being managed by launchpad
 	ManagedDtrLabelCmd = "node update --label-add com.mirantis.launchpad.managed.dtr=true"
 )
