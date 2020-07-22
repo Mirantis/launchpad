@@ -76,8 +76,8 @@ func Apply(configFile string, prune bool) error {
 	// If the clusterConfig contains any of the DTR role then install and
 	// upgrade DTR on those specific host roles
 	if dtr {
-		phaseManager.AddPhase(&phase.ValidateUcpHealth{})
 		phaseManager.AddPhase(&phase.PullImages{Dtr: dtr})
+		phaseManager.AddPhase(&phase.ValidateUcpHealth{})
 		phaseManager.AddPhase(&phase.InstallDtr{})
 		phaseManager.AddPhase(&phase.UpgradeDtr{})
 		phaseManager.AddPhase(&phase.JoinDtrReplicas{})
