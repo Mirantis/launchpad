@@ -38,7 +38,8 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
-      - --san $UCP_MANAGER_IP 
+      - --san $UCP_MANAGER_IP
+      - --debug
   engine:
     version: $ENGINE_VERSION
   dtr:
@@ -49,4 +50,5 @@ spec:
       - --ucp-insecure-tls
       - --replica-http-port 81
       - --replica-https-port 444
+      - --debug
     replicaConfig: sequential
