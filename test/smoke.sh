@@ -61,6 +61,8 @@ function downloadTools() {
     fi
 }
 
+docker version
+docker info
 ## report how clean
 echo "All containers:"
 docker ps -a
