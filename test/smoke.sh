@@ -38,6 +38,11 @@ function cleanup() {
     rm -rf ~/.mirantis-launchpad/cluster/$CLUSTER_NAME
     rm ./kubectl
     rm ./footloose
+    ## report how clean
+	echo "All containers:"
+	docker ps -a
+	echo "Listening ports:"
+	ss -tulpn | grep LISTEN
 }
 trap cleanup EXIT
 
@@ -55,6 +60,12 @@ function downloadTools() {
         curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
     fi
 }
+
+## report how clean
+echo "All containers:"
+docker ps -a
+echo "Listening ports:"
+ss -tulpn | grep LISTEN
 
 cd test
 rm -f ./id_rsa_launchpad
