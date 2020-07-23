@@ -4,25 +4,25 @@ metadata:
   name: $CLUSTER_NAME
 spec:
   hosts:
-    - address: "127.0.0.1"
+    - address: "manager0"
       ssh:
         port: 9022
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "manager"
-    - address: "127.0.0.1"
+    - address: "worker0"
       ssh:
         port: 9023
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "worker"
-    - address: "127.0.0.1"
+    - address: "dtr0"
       ssh:
         port: 9024
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "dtr"
-    - address: "127.0.0.1"
+    - address: "dtr1"
       ssh:
         port: 9025
         keyPath: "./id_rsa_launchpad"

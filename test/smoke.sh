@@ -82,6 +82,11 @@ downloadTools
 chmod +x ./footloose
 ./footloose create
 
+sudo -- sh -c 'echo "127.0.0.1    manager0" >> /etc/hosts'
+sudo -- sh -c 'echo "127.0.0.1    worker0" >> /etc/hosts'
+sudo -- sh -c 'echo "127.0.0.1    dtr0" >> /etc/hosts'
+sudo -- sh -c 'echo "127.0.0.1    dtr1" >> /etc/hosts'
+
 export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 envsubst < "${CONFIG_TEMPLATE}" > cluster.yaml
 cat cluster.yaml
