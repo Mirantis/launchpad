@@ -251,7 +251,7 @@ func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 	dir := "/etc/systemd/system/docker.service.d"
 	cfg := path.Join(dir, "http-proxy.conf")
 
-	err := c.Host.ExecCmd(fmt.Sprintf("mkdir -p %s", dir), "", false, false)
+	err := c.Host.ExecCmd(fmt.Sprintf("sudo mkdir -p %s", dir), "", false, false)
 	if err != nil {
 		return err
 	}
