@@ -302,6 +302,19 @@ spec:
 	require.Equal(t, c.Spec.Hosts[0].WinRM.Insecure, false)
 }
 
+func TestHostsHasManagerValidation(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/v1beta2
+kind: UCP
+spec:
+  hosts:
+    - address: "1.2.3.4"
+		  role: worker
+`
+	c := loadYaml(t, data)
+	require.Error(t, Validate(c))
+}
+
 // Just a small helper to load the config struct from yaml to get defaults etc. in place
 func loadYaml(t *testing.T, data string) *api.ClusterConfig {
 	// convert any tabs added by editor into double spaces

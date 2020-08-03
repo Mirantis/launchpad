@@ -3,14 +3,20 @@ package v1beta2
 import (
 	"fmt"
 
+	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
 
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
-	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
+	Hosts  Hosts        `yaml:"hosts" validate:"has_manager,required,dive,min=1"`
 	Ucp    UcpConfig    `yaml:"ucp"`
 	Engine EngineConfig `yaml:"engine"`
+}
+
+func ValidateHasManager(fl validator.FieldLevel) bool {
+	hosts := fl.Field().Interface().(Hosts)
+	return hosts.Include(func(h *Host) bool { return h.Role == "manager" })
 }
 
 // Workers filters only the workers from the cluster config

@@ -57,6 +57,7 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func Validate(c *api.ClusterConfig) error {
 	validator := validator.New()
+	validator.RegisterValidation("has_manager", api.ValidateHasManager)
 	return validator.Struct(c)
 }
 
