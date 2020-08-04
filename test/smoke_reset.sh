@@ -5,6 +5,11 @@ set -e
 cd test
 rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
+if ! [ -f "$HOME/.ssh/id_rsa" ]; then
+  mkdir -p $HOME/.ssh
+  cp id_rsa_launchpad $HOME/.ssh/id_rsa
+  cp id_rsa_launchpad.pub $HOME/.ssh/id_rsa.pub
+fi
 
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.3.0"}
