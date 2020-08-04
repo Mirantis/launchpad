@@ -1,5 +1,9 @@
 package v1beta2
 
+import (
+	"fmt"
+)
+
 // ClusterMeta defines cluster metadata
 type ClusterMeta struct {
 	Name string `yaml:"name" validate:"required"`
@@ -27,6 +31,14 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	if err := unmarshal(yc); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (c *ClusterConfig) Validate() error {
+	if len(c.Spec.Managers()) < 1 {
+		return fmt.Errorf("at least one manager host required")
 	}
 
 	return nil

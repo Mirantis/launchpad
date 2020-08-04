@@ -33,6 +33,7 @@ kind: UCP
 spec:
   hosts:
     - address: "512.1.2.3"
+		  role: manager
 `
 	c := loadYaml(t, data)
 
@@ -48,11 +49,11 @@ kind: UCP
 spec:
   hosts:
     - address: "10.10.10.10"
+		  role: manager
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
-	require.NotContains(t, getAllErrorFields(err), "Address")
+	require.NoError(t, Validate(c))
 }
 
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
@@ -62,6 +63,7 @@ kind: UCP
 spec:
   hosts:
     - address: "1-2-foo"
+		  role: manager
 `
 	c := loadYaml(t, data)
 
@@ -77,11 +79,11 @@ kind: UCP
 spec:
   hosts:
     - address: "foo.example.com"
+		  role: manager
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
-	require.NotContains(t, getAllErrorFields(err), "Address")
+	require.NoError(t, Validate(c))
 
 }
 
@@ -110,6 +112,7 @@ kind: UCP
 spec:
   hosts:
     - address: "1.2.3.4"
+		  role: manager
       ssh:
         port: 22
         keyPath: /path/to/nonexisting/key
@@ -130,6 +133,10 @@ spec:
   - address: "1.2.3.4"
     ssh:
 		  port: 22
+    role: manager
+  - address: "1.2.3.5"
+    ssh:
+		  port: 22
     role: foobar
 `
 	c := loadYaml(t, data)
@@ -147,7 +154,7 @@ spec:
   - address: "1.2.3.4"
 		ssh:
 		  port: 22
-    role: worker
+    role: manager
     engineConfig:
       debug: true
       log-opts:
@@ -312,7 +319,7 @@ spec:
 		  role: worker
 `
 	c := loadYaml(t, data)
-	require.Error(t, Validate(c))
+	require.EqualError(t, Validate(c), "at least one manager host required")
 }
 
 // Just a small helper to load the config struct from yaml to get defaults etc. in place
