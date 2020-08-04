@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -13,6 +14,8 @@ import (
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
 	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 // Version is used for determining the configuration file type and version
@@ -57,11 +60,30 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func Validate(c *api.ClusterConfig) error {
 	validator := validator.New()
+	validator.RegisterValidation("file", ValidateFileCustom)
 	err := validator.Struct(c)
 	if err != nil {
 		return err
 	}
 	return c.Validate()
+}
+
+// expands any ~ containing paths, modified version of the stock file validator
+func ValidateFileCustom(fl validator.FieldLevel) bool {
+	field := fl.Field()
+
+	switch field.Kind() {
+	case reflect.String:
+		path, _ := homedir.Expand(field.String())
+		fileInfo, err := os.Stat(path)
+		if err != nil {
+			return false
+		}
+
+		return !fileInfo.IsDir()
+	}
+
+	panic(fmt.Sprintf("Bad field type %T", field.Interface()))
 }
 
 // ResolveClusterFile looks for the cluster.yaml file, based on the value.

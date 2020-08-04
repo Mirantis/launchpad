@@ -8,9 +8,9 @@ import (
 
 // SSH contains ssh connection configuration options
 type SSH struct {
-	User    string `yaml:"user" validate:"omitempty,gt=2" default:"root"`
+	User    string `yaml:"user" default:"root" validate:"gt=2"`
 	Port    int    `yaml:"port" default:"22" validate:"gt=0,lte=65535"`
-	KeyPath string `yaml:"keyPath" validate:"omitempty,file" default:"~/.ssh/id_rsa"`
+	KeyPath string `yaml:"keyPath" default:"~/.ssh/id_rsa" validate:"file"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
