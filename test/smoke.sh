@@ -2,6 +2,7 @@
 
 set -e
 
+FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-footloose.yaml.tpl}
 CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-cluster.yaml.tpl}
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.3.0"}
@@ -60,7 +61,7 @@ cd test
 rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 
-envsubst < footloose.yaml.tpl > footloose.yaml
+envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 echo -e "Creating footloose-cluster network..."
 docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
 
