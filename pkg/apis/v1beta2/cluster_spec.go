@@ -146,9 +146,25 @@ func IsCustomImageRepo(imageRepo string) bool {
 // buildDtrWebURL returns a URL based on the DtrLeaderAddress or whether the
 // user has provided the --dtr-external-url flag
 func (c *ClusterSpec) buildDtrWebURL() string {
+	// Default to using the --dtr-external-url if it's set
 	dtrAddress := util.GetInstallFlagValue(c.Dtr.InstallFlags, "--dtr-external-url")
 	if dtrAddress != "" {
 		return fmt.Sprintf("https://%s", dtrAddress)
 	}
-	return fmt.Sprintf("https://%s", c.Dtr.Metadata.DtrLeaderAddress)
+	// If for some reason we don't have DTR metadata return the
+	// first DTR roles address
+	if c.Dtr.Metadata == nil {
+		for _, h := range c.Hosts {
+			if h.Role == "dtr" {
+
+				return fmt.Sprintf("https://%s", h.Address)
+			}
+		}
+	}
+	// Otherwise, use DtrLeaderAddress
+	if c.Dtr.Metadata.DtrLeaderAddress != "" {
+		return fmt.Sprintf("https://%s", c.Dtr.Metadata.DtrLeaderAddress)
+	}
+	// If we still can't find a host, return nothing
+	return ""
 }

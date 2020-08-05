@@ -61,7 +61,7 @@ fi
 
 # Remove a node from the cluster.yaml and run apply with --prune
 echo -e "Removing one DTR node from cluster.yaml..."
-sed '25,30d' cluster.yaml
+sed -i '25,30d' cluster.yaml
 cat cluster.yaml
 
 ../bin/launchpad --debug apply --prune

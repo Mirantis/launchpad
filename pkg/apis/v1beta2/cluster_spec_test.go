@@ -72,6 +72,23 @@ func TestUCPClusterSpecWebURLWithMultiSan(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
+func TestUCPClusterSpecWebURLWithNoDTRMetadata(t *testing.T) {
+	spec := ClusterSpec{
+		Hosts: []*Host{
+			{Address: "192.168.1.2", Role: "manager"},
+			{Address: "192.168.1.3", Role: "dtr"},
+		},
+		Ucp: UcpConfig{},
+		Dtr: DtrConfig{},
+	}
+	expected := &WebUrls{
+		Ucp: "https://192.168.1.2",
+		Dtr: "https://192.168.1.3",
+	}
+	actual := spec.WebURLs()
+	require.Equal(t, expected, actual)
+}
+
 func TestUCPClusterSpecWebURLWithDTRWebURLWithoutExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
