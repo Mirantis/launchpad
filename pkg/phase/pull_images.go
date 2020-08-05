@@ -39,7 +39,7 @@ func (p *PullImages) Run(c *api.ClusterConfig) error {
 		// Store map of original --> custom repo images
 		imageMap := make(map[string]string, len(images))
 		for index, i := range images {
-			newImage := strings.Replace(i, "docker/", fmt.Sprintf("%s/", c.Spec.Ucp.ImageRepo), 1)
+			newImage := p.ImageFromCustomRepo(i, c.Spec.Ucp.ImageRepo)
 			imageMap[i] = newImage
 			images[index] = newImage
 		}
@@ -56,7 +56,10 @@ func (p *PullImages) Run(c *api.ClusterConfig) error {
 	return runParallelOnHosts(c.Spec.Managers(), c, func(h *api.Host, c *api.ClusterConfig) error {
 		return p.pullImages(h, images)
 	})
+}
 
+func (p *PullImages) ImageFromCustomRepo(image, repo string) string {
+	return fmt.Sprintf("%s%s", repo, image[strings.IndexByte(image, '/'):])
 }
 
 func (p *PullImages) listImages(config *api.ClusterConfig) ([]string, error) {
