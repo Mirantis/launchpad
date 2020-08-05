@@ -206,7 +206,7 @@ func (c *LinuxConfigurer) FileExist(path string) bool {
 // LineIntoFile tries to find a matching line in a file and replace it with a new entry
 func (c *LinuxConfigurer) LineIntoFile(path, matcher, newLine string) error {
 	if c.FileExist(path) {
-		err := c.Host.ExecCmd(fmt.Sprintf(`file=%s; match=%s; line=%s; sudo grep -q "${match}" "$file" && sudo sed -i "s|${match}.*|${line}|" "$file" || (echo "$line" | sudo tee -a "$file" > /dev/null)`, escape.Quote(path), escape.Quote(matcher), escape.Quote(newLine)), "", false, false)
+		err := c.Host.ExecCmd(fmt.Sprintf(`file=%s; match=%s; line=%s; sudo grep -q "${match}" "$file" && sudo sed -i "/${match}/c ${line}" "$file" || (echo "$line" | sudo tee -a "$file" > /dev/null)`, escape.Quote(path), escape.Quote(matcher), escape.Quote(newLine)), "", false, true)
 		if err != nil {
 			return err
 		}
