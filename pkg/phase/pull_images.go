@@ -58,6 +58,7 @@ func (p *PullImages) Run(c *api.ClusterConfig) error {
 	})
 }
 
+// ImageFromCustomRepo will replace the organization part in an image name
 func (p *PullImages) ImageFromCustomRepo(image, repo string) string {
 	return fmt.Sprintf("%s%s", repo, image[strings.IndexByte(image, '/'):])
 }
