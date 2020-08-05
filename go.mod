@@ -13,9 +13,6 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/creasty/defaults v1.3.0
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/docker/docker v1.13.1
-	github.com/docker/go-connections v0.4.0 // indirect
-	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gammazero/deque v0.0.0-20200310222745-50fa758af896 // indirect
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/go-playground/validator/v10 v10.3.0

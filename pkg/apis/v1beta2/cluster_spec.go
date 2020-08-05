@@ -66,7 +66,10 @@ func (c *ClusterSpec) WebURLs() *WebUrls {
 	}
 
 	ucpAddress = fmt.Sprintf("https://%s", ucpAddress)
-	dtrAddress := c.buildDtrWebURL()
+	var dtrAddress string
+	if len(c.Dtrs()) > 0 {
+		dtrAddress = c.buildDtrWebURL()
+	}
 
 	return &WebUrls{
 		Ucp: ucpAddress,
@@ -140,19 +143,12 @@ func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo
 }
 
-// buildDtrWebURL determines whether a web url for DTR should be built and if so
-// returns one based on the DtrLeaderAddress or whether the user has provided
-// the --dtr-external-url flag
+// buildDtrWebURL returns a URL based on the DtrLeaderAddress or whether the
+// user has provided the --dtr-external-url flag
 func (c *ClusterSpec) buildDtrWebURL() string {
-	for _, h := range c.Hosts {
-		if h.Role == "dtr" {
-			dtrAddress := util.GetInstallFlagValue(c.Dtr.InstallFlags, "--dtr-external-url")
-			if dtrAddress != "" {
-				return fmt.Sprintf("https://%s", dtrAddress)
-			}
-
-			return fmt.Sprintf("https://%s", c.Dtr.Metadata.DtrLeaderAddress)
-		}
+	dtrAddress := util.GetInstallFlagValue(c.Dtr.InstallFlags, "--dtr-external-url")
+	if dtrAddress != "" {
+		return fmt.Sprintf("https://%s", dtrAddress)
 	}
-	return ""
+	return fmt.Sprintf("https://%s", c.Dtr.Metadata.DtrLeaderAddress)
 }

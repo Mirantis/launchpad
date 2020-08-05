@@ -70,7 +70,7 @@ func (p *InstallDtr) Run(config *api.ClusterConfig) (err error) {
 	ucpFlags := dtr.BuildUcpFlags(config)
 	// Conduct the install passing the --ucp-node flag for the host provided in
 	// dtrLeader.
-	ucpFlags = append(ucpFlags, fmt.Sprintf("--ucp-node %s", dtrLeader.Metadata.Hostname))
+	ucpFlags = append(ucpFlags, fmt.Sprintf("--ucp-node %s", dtrLeader.Metadata.LongHostname))
 
 	installFlags = append(installFlags, ucpFlags...)
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))

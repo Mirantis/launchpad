@@ -53,5 +53,8 @@ smoke-test: build
 smoke-upgrade-test: build
 	./test/smoke_upgrade.sh
 
+smoke-prune-test: build
+	./test/smoke_prune.sh
+
 smoke-reset-test: build
 	./test/smoke_reset.sh

@@ -41,7 +41,7 @@ func (p *JoinDtrReplicas) Run(config *api.ClusterConfig) error {
 			runFlags = append(runFlags, "--security-opt label=disable")
 		}
 		joinFlags := []string{
-			fmt.Sprintf("--ucp-node %s", d.Metadata.Hostname),
+			fmt.Sprintf("--ucp-node %s", d.Metadata.LongHostname),
 			fmt.Sprintf("--existing-replica-id %s", config.Spec.Dtr.Metadata.DtrLeaderReplicaID),
 		}
 		if config.Spec.Dtr.ReplicaConfig == "sequential" {

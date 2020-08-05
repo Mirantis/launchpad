@@ -117,6 +117,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	h.Metadata.EngineVersion = h.EngineVersion()
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
+	h.Metadata.LongHostname = h.Configurer.ResolveLongHostname()
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {
 		return err

@@ -13,7 +13,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
-	"github.com/docker/docker/api/types"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2/json"
 )
@@ -26,6 +25,26 @@ type RemoveNodes struct {
 type isManaged struct {
 	node bool
 	dtr  bool
+}
+
+type dockerContainer struct {
+	ID         string `json:"Id"`
+	Names      []string
+	Image      string
+	ImageID    string
+	Command    string
+	Created    int64
+	Ports      []interface{}
+	SizeRw     int64 `json:",omitempty"`
+	SizeRootFs int64 `json:",omitempty"`
+	Labels     map[string]string
+	State      string
+	Status     string
+	HostConfig struct {
+		NetworkMode string `json:",omitempty"`
+	}
+	NetworkSettings map[string]interface{}
+	Mounts          []interface{}
 }
 
 // Title for the phase
@@ -233,7 +252,7 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, swarmL
 		return "", fmt.Errorf("unexpected response code: %d from %s endpoint: %s", resp.StatusCode, ucpURL.String(), err)
 	}
 
-	var containersResponse []types.Container
+	var containersResponse []dockerContainer
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err

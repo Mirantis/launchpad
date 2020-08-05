@@ -22,6 +22,7 @@ type OsRelease struct {
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
 	Hostname            string
+	LongHostname        string
 	InternalAddress     string
 	EngineVersion       string
 	Os                  *OsRelease

@@ -111,6 +111,21 @@ pipeline {
             sh "make smoke-upgrade-test"
           }
         }
+        stage("Ubuntu 18.04 with DTR: prune") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          environment {
+            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+          }
+          steps {
+            sh "make smoke-prune-test"
+          }
+        }
         stage("Ubuntu 18.04: with docker credentials") {
           agent {
             node {
