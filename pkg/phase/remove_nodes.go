@@ -187,6 +187,10 @@ func (p *RemoveNodes) removeDtrNode(config *api.ClusterConfig, replicaID string)
 		fmt.Sprintf("--existing-replica-id %s", config.Spec.Dtr.Metadata.DtrLeaderReplicaID),
 	}
 	removeFlags = append(removeFlags, ucpFlags...)
+	for _, f := range dtr.PluckSharedInstallFlags(config.Spec.Dtr.InstallFlags, dtr.SharedInstallRemoveFlags) {
+		removeFlags = append(removeFlags, f)
+	}
+
 	removeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s remove %s", strings.Join(runFlags, " "), config.Spec.Dtr.GetBootstrapperImage(), strings.Join(removeFlags, " "))
 	log.Debugf("%s: Removing DTR replica %s from cluster", dtrLeader.Address, replicaID)
 	err := dtrLeader.ExecCmd(removeCmd, "", true, false)
