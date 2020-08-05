@@ -6,6 +6,8 @@ cd test
 rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 
+FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-footloose.yaml.tpl}
+CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-cluster.yaml.tpl}
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.2.6"}
 export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/docker"}
@@ -41,13 +43,13 @@ docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16
 
 downloadFootloose
 
-envsubst < footloose.yaml.tpl > footloose.yaml
+envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 
 chmod +x ./footloose
 ./footloose create
 
 export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-envsubst < cluster.yaml.tpl > cluster.yaml
+envsubst < "${CONFIG_TEMPLATE}" > cluster.yaml
 cat cluster.yaml
 
 set +e
