@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMigrationToV1Beta2Basic(t *testing.T) {
+func TestMigrationToV1Beta3Basic(t *testing.T) {
 	b1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: UCP
@@ -21,7 +21,7 @@ spec:
       role: "manager"
 `)
 	// go's YAML marshal does not add the --- header
-	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta2
+	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   engine:
@@ -34,11 +34,11 @@ spec:
       port: 9022
       user: admin
 `)
-	require.NoError(t, MigrateToV1Beta2(&b1))
+	require.NoError(t, MigrateToV1Beta3(&b1))
 	require.Equal(t, b2, b1)
 }
 
-func TestMigrationToV1Beta2NoInstallURL(t *testing.T) {
+func TestMigrationToV1Beta3NoInstallURL(t *testing.T) {
 	b1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: UCP
@@ -53,7 +53,7 @@ spec:
       role: "manager"
 `)
 	// go's YAML marshal does not add the --- header
-	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta2
+	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   engine:
@@ -66,6 +66,6 @@ spec:
       port: 9022
       user: admin
 `)
-	require.NoError(t, MigrateToV1Beta2(&b1))
+	require.NoError(t, MigrateToV1Beta3(&b1))
 	require.Equal(t, b2, b1)
 }

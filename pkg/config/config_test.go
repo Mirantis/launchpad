@@ -185,6 +185,25 @@ spec:
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
 }
 
+func TestMigrateFromV1Beta2(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/v1beta2
+kind: UCP
+spec:
+  engine:
+	  installURL: http://example.com/
+  hosts:
+  - address: "1.2.3.4"
+    role: manager
+		winRM:
+		  user: foo
+			password: foo
+`
+	c := loadYaml(t, data)
+	require.NoError(t, Validate(c))
+	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta3")
+}
+
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta1
