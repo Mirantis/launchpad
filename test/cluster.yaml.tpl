@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 metadata:
   name: $CLUSTER_NAME

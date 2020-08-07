@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"

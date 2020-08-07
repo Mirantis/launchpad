@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
 
@@ -14,7 +14,7 @@ import (
 
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1beta2"
+apiVersion: "launchpad.mirantis.com/v1beta3"
 kind: UCP
 spec:
   hosts:
@@ -28,7 +28,7 @@ spec:
 
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -43,7 +43,7 @@ spec:
 
 func TestHostAddressValidationWithValidIP(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -57,7 +57,7 @@ spec:
 
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -72,7 +72,7 @@ spec:
 
 func TestHostAddressValidationWithValidHostname(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -87,7 +87,7 @@ spec:
 
 func TestHostSshPortValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -105,7 +105,7 @@ spec:
 
 func TestHostSshKeyValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -123,7 +123,7 @@ spec:
 
 func TestHostRoleValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -140,7 +140,7 @@ spec:
 
 func TestHostWithComplexEngineConfig(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -178,7 +178,7 @@ spec:
 	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta2")
+	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta3")
 
 	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -203,7 +203,7 @@ spec:
 	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta2")
+	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1beta3")
 
 	require.Equal(t, c.Spec.Engine.InstallURLLinux, constant.EngineInstallURLLinux)
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -212,7 +212,7 @@ spec:
 
 func TestHostWinRMCACertPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -230,7 +230,7 @@ spec:
 
 func TestHostWinRMCertPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -248,7 +248,7 @@ spec:
 
 func TestHostWinRMKeyPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -266,7 +266,7 @@ spec:
 
 func TestHostSSHDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -282,7 +282,7 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -306,7 +306,7 @@ func TestValidationWithDtrRole(t *testing.T) {
 
 	t.Run("the role is not ucp, worker or dtr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:
@@ -320,7 +320,7 @@ spec:
 
 	t.Run("the role is dtr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/v1beta2
+apiVersion: launchpad.mirantis.com/v1beta3
 kind: UCP
 spec:
   hosts:

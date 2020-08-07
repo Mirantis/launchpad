@@ -1,7 +1,7 @@
 package bundle
 
 import (
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/phase"
 )

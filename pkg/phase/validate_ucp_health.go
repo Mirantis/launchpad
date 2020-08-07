@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	"github.com/Mirantis/mcc/pkg/dtr"
 	"github.com/Mirantis/mcc/pkg/pollutil"
 	"github.com/sirupsen/logrus"

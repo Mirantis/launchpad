@@ -5,7 +5,7 @@ import (
 	"math"
 	"sync"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
