@@ -1,33 +1,35 @@
 package v1beta2
 
-// ClusterMeta defines cluster metadata
-type ClusterMeta struct {
-	Name string `yaml:"name" validate:"required"`
-}
+import (
+	"fmt"
 
-// ClusterConfig describes cluster.yaml configuration
-type ClusterConfig struct {
-	APIVersion       string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1beta2"`
-	Kind             string       `yaml:"kind" validate:"eq=UCP"`
-	Metadata         *ClusterMeta `yaml:"metadata"`
-	Spec             *ClusterSpec `yaml:"spec"`
-	ManagerJoinToken string       `yaml:"-"`
-	WorkerJoinToken  string       `yaml:"-"`
-}
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+)
 
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
-func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	c.Metadata = &ClusterMeta{
-		Name: "launchpad-ucp",
+// MigrateToV1Beta3 migrates an v1beta1 format configuration into v1beta3 format and replaces the contents of the supplied data byte slice
+func MigrateToV1Beta3(data *[]byte) error {
+	plain := make(map[string]interface{})
+	yaml.Unmarshal(*data, &plain)
+
+	if plain["spec"] == nil {
+		return nil
 	}
-	c.Spec = &ClusterSpec{}
 
-	type yclusterconfig ClusterConfig
-	yc := (*yclusterconfig)(c)
+	dtr := plain["spec"].(map[interface{}]interface{})["dtr"]
+	if dtr != nil {
+		return fmt.Errorf("dtr requires apiVersion >= launchpad.mirantis.com/v1beta3")
+	}
 
-	if err := unmarshal(yc); err != nil {
+	plain["apiVersion"] = "launchpad.mirantis.com/v1beta3"
+	log.Debugf("migrated configuration from v1beta2 to v1beta3")
+
+	out, err := yaml.Marshal(&plain)
+	if err != nil {
 		return err
 	}
+
+	*data = out
 
 	return nil
 }

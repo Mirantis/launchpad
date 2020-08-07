@@ -10,7 +10,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/apis/v1beta1"
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	"github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
@@ -36,7 +37,11 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta1" {
-		v1beta1.MigrateToV1Beta2(&data)
+		v1beta1.MigrateToV1Beta3(&data)
+	}
+
+	if cv.APIVersion == "launchpad.mirantis.com/v1beta2" {
+		v1beta2.MigrateToV1Beta3(&data)
 	}
 
 	err = yaml.Unmarshal(data, &c)

@@ -1,7 +1,7 @@
 package phase
 
 import (
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )

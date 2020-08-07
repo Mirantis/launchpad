@@ -8,7 +8,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 )
 
 // InstallDtr is the phase implementation for running the actual DTR installer

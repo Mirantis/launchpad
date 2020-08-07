@@ -5,8 +5,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// MigrateToV1Beta2 migrates an v1beta1 format configuration into v1beta2 format and replaces the contents of the supplied data byte slice
-func MigrateToV1Beta2(data *[]byte) error {
+// MigrateToV1Beta3 migrates an v1beta1 format configuration into v1beta3 format and replaces the contents of the supplied data byte slice
+func MigrateToV1Beta3(data *[]byte) error {
 	plain := make(map[string]interface{})
 	yaml.Unmarshal(*data, &plain)
 
@@ -22,7 +22,7 @@ func MigrateToV1Beta2(data *[]byte) error {
 			if installURL != nil {
 				engine["installURLLinux"] = installURL
 				delete(engine, "installURL")
-				log.Debugf("migrated v1beta1 engine[installURL] to v1beta2 engine[installURLLinux]")
+				log.Debugf("migrated v1beta1 engine[installURL] to v1beta3 engine[installURLLinux]")
 			}
 		}
 	}
@@ -39,20 +39,20 @@ func MigrateToV1Beta2(data *[]byte) error {
 			case "sshKeyPath":
 				ssh["keyPath"] = v
 				delete(host, k)
-				log.Debugf("migrated v1beta1 host sshKeyPath '%s' to v1beta2 ssh[keyPath]", v)
+				log.Debugf("migrated v1beta1 host sshKeyPath '%s' to v1beta3 ssh[keyPath]", v)
 			case "sshPort":
 				ssh["port"] = v
 				delete(host, k)
-				log.Debugf("migrated v1beta1 host sshPort '%d' to v1beta2 ssh[port]", v)
+				log.Debugf("migrated v1beta1 host sshPort '%d' to v1beta3 ssh[port]", v)
 			case "user":
 				ssh["user"] = v
 				delete(host, k)
-				log.Debugf("migrated v1beta1 host user '%s' to v1beta2 ssh[user]", v)
+				log.Debugf("migrated v1beta1 host user '%s' to v1beta3 ssh[user]", v)
 			}
 		}
 	}
 
-	plain["apiVersion"] = "launchpad.mirantis.com/v1beta2"
+	plain["apiVersion"] = "launchpad.mirantis.com/v1beta3"
 
 	out, err := yaml.Marshal(&plain)
 	if err != nil {
