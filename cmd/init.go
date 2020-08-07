@@ -25,6 +25,12 @@ func NewInitCommand() *cli.Command {
 				Value:   "UCP",
 				Hidden:  true, // We don't support anything else than UCP for now
 			},
+			&cli.BoolFlag{
+				Name:    "dtr",
+				Usage:   "Init a cluster.yaml file for Docker Trusted Registry (DTR)",
+				Aliases: []string{"d"},
+				Value:   false,
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			analytics.TrackEvent("Cluster Init Started", nil)
@@ -45,8 +51,12 @@ func NewInitCommand() *cli.Command {
 					Ucp: api.UcpConfig{
 						Version: constant.UCPVersion,
 					},
+					Dtr: api.DtrConfig{
+						Version:       constant.DTRVersion,
+						ReplicaConfig: "sequential",
+					},
 					Hosts: []*api.Host{
-						&api.Host{
+						{
 							Address: "10.0.0.1",
 							Role:    "manager",
 							SSH: &api.SSH{
@@ -55,9 +65,14 @@ func NewInitCommand() *cli.Command {
 								KeyPath: "~/.ssh/id_rsa",
 							},
 						},
-						&api.Host{
+						{
 							Address: "10.0.0.2",
 							Role:    "worker",
+							SSH:     api.DefaultSSH(),
+						},
+						{
+							Address: "10.0.0.3",
+							Role:    "dtr",
 							SSH:     api.DefaultSSH(),
 						},
 					},

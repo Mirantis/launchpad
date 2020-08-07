@@ -18,7 +18,7 @@ pipeline {
         stage("Ubuntu 16.04: apply") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           steps {
@@ -28,17 +28,32 @@ pipeline {
         stage("Ubuntu 18.04: apply") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           steps {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
+        stage("Ubuntu 18.04 with DTR: apply") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          environment {
+            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+          }
+          steps {
+            sh "make smoke-test"
+          }
+        }
         stage("Ubuntu 18.04: apply v1beta1") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           steps {
@@ -48,7 +63,7 @@ pipeline {
         stage("Ubuntu 18.04: apply catfish") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           environment {
@@ -64,7 +79,7 @@ pipeline {
         stage("CentOS 7: apply") {
           agent {
               node {
-                  label 'amd64 && ubuntu-1804 && overlay2'
+                  label 'amd64 && ubuntu-1804 && overlay2 && big'
               }
           }
           steps {
@@ -74,51 +89,89 @@ pipeline {
         stage("CentOS 8: apply") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           steps {
             sh "make smoke-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
           }
         }
-        stage("Ubuntu 18.04: upgrade 3.2 -> 3.3") {
+        stage("Ubuntu 18.04: upgrade UCP 3.2 -> 3.3, DTR 2.7 -> 2.8") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
+          environment {
+            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+          }
           steps {
-            sh "make smoke-upgrade-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-upgrade-test"
+          }
+        }
+        stage("Ubuntu 18.04 with DTR: prune") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          environment {
+            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+          }
+          steps {
+            sh "make smoke-prune-test"
           }
         }
         stage("Ubuntu 18.04: with docker credentials") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           environment {
+            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
             UCP_IMAGE_REPO = "docker.io/dockereng"
             REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
           }
           steps {
-            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-test"
           }
         }
         stage("Ubuntu 18.04: reset") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           steps {
             sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
+        stage("Ubuntu 18.04 with DTR: reset") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          environment {
+            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+          }
+          steps {
+            sh "make smoke-reset-test"
+          }
+        }
         stage("Ubuntu 16.04: reset") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           steps {
@@ -128,7 +181,7 @@ pipeline {
         stage("CentOS 8: reset") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2'
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           steps {

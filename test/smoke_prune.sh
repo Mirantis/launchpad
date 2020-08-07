@@ -9,11 +9,12 @@ ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-footloose.yaml.tpl}
 CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-cluster.yaml.tpl}
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
-export UCP_VERSION=${UCP_VERSION:-"3.2.6"}
+export UCP_VERSION=${UCP_VERSION:-"3.3.0"}
 export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/docker"}
-export DTR_VERSION=${DTR_VERSION:-"2.7.7"}
+export DTR_COUNT=${DTR_COUNT:-"0"}
+export DTR_VERSION=${DTR_VERSION:-"2.8.1"}
 export DTR_IMAGE_REPO=${DTR_IMAGE_REPO:-"docker.io/docker"}
-export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.5"}
+export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8"}
 export CLUSTER_NAME=$BUILD_TAG
 export DISABLE_TELEMETRY="true"
 export ACCEPT_LICENSE="true"
@@ -58,14 +59,12 @@ if ! ../bin/launchpad --debug apply ; then
   exit 1
 fi
 
-export UCP_VERSION=${UCP_UPGRADE_VERSION:-"3.3.1"}
-export ENGINE_VERSION=${ENGINE_UPGRADE_VERSION:-"19.03.8"}
-export DTR_VERSION=${DTR_UPGRADE_VERSION:"2.8.1"}
-envsubst < cluster.yaml.tpl > cluster.yaml
-envsubst < footloose.yaml.tpl > footloose.yaml
+# Remove a node from the cluster.yaml and run apply with --prune
+echo -e "Removing one DTR node from cluster.yaml..."
+sed -i '25,30d' cluster.yaml
 cat cluster.yaml
 
-../bin/launchpad --debug apply
+../bin/launchpad --debug apply --prune
 result=$?
 
 cleanup

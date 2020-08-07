@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -58,7 +59,7 @@ func GetClientBundle(ucpURL *url.URL, tlsConfig *tls.Config, username, password 
 	}
 
 	// Login and get a token for the user
-	token, err := getUCPToken(client, ucpURL, username, password)
+	token, err := GetUCPToken(client, ucpURL, username, password)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get token for (%s:%s) : %s", username, password, err)
 	}
@@ -87,7 +88,8 @@ func GetClientBundle(ucpURL *url.URL, tlsConfig *tls.Config, username, password 
 	return zip.NewReader(bytes.NewReader(body), int64(len(body)))
 }
 
-func getUCPToken(client *http.Client, ucpURL *url.URL, username, password string) (string, error) {
+// GetUCPToken gets a UCP Authtoken from the given ucpURL
+func GetUCPToken(client *http.Client, ucpURL *url.URL, username, password string) (string, error) {
 	ucpURL.Path = "/auth/login"
 	creds := Credentials{
 		Username: username,
@@ -113,4 +115,30 @@ func getUCPToken(client *http.Client, ucpURL *url.URL, username, password string
 		return authToken.Token, nil
 	}
 	return "", fmt.Errorf("Unexpected error logging in to UCP: %s", string(body))
+}
+
+// GetTLSConfigFrom retrieves the valid tlsConfig from the given UCP manager
+func GetTLSConfigFrom(manager *api.Host, imageRepo, ucpVersion string) (*tls.Config, error) {
+	runFlags := []string{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	if manager.Configurer.SELinuxEnabled() {
+		runFlags = append(runFlags, "--security-opt label=disable")
+	}
+	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, strings.Join(runFlags, " "), imageRepo, ucpVersion))
+	if err != nil {
+		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
+	}
+	i := strings.Index(output, "-----BEGIN CERTIFICATE-----")
+	if i < 0 {
+		return nil, fmt.Errorf("malformed certificate")
+	}
+
+	cert := []byte(output[i:])
+	caCertPool := x509.NewCertPool()
+	ok := caCertPool.AppendCertsFromPEM(cert)
+	if !ok {
+		return nil, fmt.Errorf("error while appending certs to PEM")
+	}
+	return &tls.Config{
+		RootCAs: caCertPool,
+	}, nil
 }

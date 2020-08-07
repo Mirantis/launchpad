@@ -7,6 +7,7 @@ import "fmt"
 type HostConfigurer interface {
 	CheckPrivilege() error
 	ResolveHostname() string
+	ResolveLongHostname() string
 	ResolveInternalIP() (string, error)
 	IsContainerized() bool
 	SELinuxEnabled() bool

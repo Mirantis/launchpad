@@ -67,11 +67,18 @@ func (c *LinuxConfigurer) RestartEngine() error {
 	return c.Host.Exec("sudo systemctl restart docker")
 }
 
-// ResolveHostname resolves hostname
+// ResolveHostname resolves the short hostname
 func (c *LinuxConfigurer) ResolveHostname() string {
 	hostname, _ := c.Host.ExecWithOutput("hostname -s")
 
 	return hostname
+}
+
+// ResolveLongHostname resolves the FQDN (long) hostname
+func (c *LinuxConfigurer) ResolveLongHostname() string {
+	longHostname, _ := c.Host.ExecWithOutput("hostname")
+
+	return longHostname
 }
 
 // ResolveInternalIP resolves internal ip from private interface

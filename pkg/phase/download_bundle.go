@@ -2,11 +2,8 @@ package phase
 
 import (
 	"archive/zip"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -37,12 +34,13 @@ func (p *DownloadBundle) Title() string {
 func (p *DownloadBundle) Run(conf *api.ClusterConfig) error {
 	m := conf.Spec.Managers()[0]
 
-	tlsConfig, err := p.getTLSConfigFrom(m, conf.Spec.Ucp.ImageRepo, conf.Spec.Ucp.Version)
+	tlsConfig, err := ucp.GetTLSConfigFrom(m, conf.Spec.Ucp.ImageRepo, conf.Spec.Ucp.Version)
 	if err != nil {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	url, err := p.resolveURL(conf.Spec.WebURL())
+	urls := conf.Spec.WebURLs()
+	url, err := util.ResolveURL(urls.Ucp)
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
 	}
@@ -70,42 +68,6 @@ func (p *DownloadBundle) getBundleDir(clusterName, username string) (string, err
 		return "", err
 	}
 	return path.Join(home, constant.StateBaseDir, "cluster", clusterName, "bundle", username), nil
-}
-
-func (p *DownloadBundle) resolveURL(serverURL string) (*url.URL, error) {
-	if !strings.HasPrefix(serverURL, "https://") {
-		serverURL = fmt.Sprintf("https://%s", serverURL)
-	}
-	url, err := url.Parse(serverURL)
-	if err != nil {
-		return nil, err
-	}
-	return url, nil
-}
-
-func (p *DownloadBundle) getTLSConfigFrom(manager *api.Host, imageRepo, ucpVersion string) (*tls.Config, error) {
-	runFlags := []string{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if manager.Configurer.SELinuxEnabled() {
-		runFlags = append(runFlags, "--security-opt label=disable")
-	}
-	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, strings.Join(runFlags, " "), imageRepo, ucpVersion))
-	if err != nil {
-		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
-	}
-	i := strings.Index(output, "-----BEGIN CERTIFICATE-----")
-	if i < 0 {
-		return nil, fmt.Errorf("malformed certificate")
-	}
-
-	cert := []byte(output[i:])
-	caCertPool := x509.NewCertPool()
-	ok := caCertPool.AppendCertsFromPEM(cert)
-	if !ok {
-		return nil, fmt.Errorf("error while appending certs to PEM")
-	}
-	return &tls.Config{
-		RootCAs: caCertPool,
-	}, nil
 }
 
 func (p *DownloadBundle) writeBundle(bundleDir string, bundle *zip.Reader) error {

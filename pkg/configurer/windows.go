@@ -73,6 +73,15 @@ func (c *WindowsConfigurer) ResolveHostname() string {
 	return strings.TrimSpace(output)
 }
 
+// ResolveLongHostname resolves the FQDN (long) hostname
+func (c *WindowsConfigurer) ResolveLongHostname() string {
+	output, err := c.Host.ExecWithOutput("powershell ([System.Net.Dns]::GetHostByName(($env:COMPUTERNAME))).Hostname")
+	if err != nil {
+		return "localhost"
+	}
+	return strings.TrimSpace(output)
+}
+
 // ResolveInternalIP resolves internal ip from private interface
 func (c *WindowsConfigurer) ResolveInternalIP() (string, error) {
 	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias \"%s\").IPAddress"`, c.Host.PrivateInterface))

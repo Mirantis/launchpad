@@ -24,7 +24,7 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	$(BUILDER_IMAGE)
 
 clean:
-	rm -f bin/launchpad
+	sudo rm -f bin/launchpad
 
 builder:
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
@@ -52,6 +52,9 @@ smoke-test: build
 
 smoke-upgrade-test: build
 	./test/smoke_upgrade.sh
+
+smoke-prune-test: build
+	./test/smoke_prune.sh
 
 smoke-reset-test: build
 	./test/smoke_reset.sh

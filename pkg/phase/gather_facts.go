@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta2"
+	"github.com/Mirantis/mcc/pkg/dtr"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 
@@ -23,6 +24,7 @@ import (
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts
 type GatherFacts struct {
 	Analytics
+	Dtr bool
 }
 
 // Title for the phase
@@ -56,6 +58,27 @@ func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
 			log.Infof("%s: UCP is not installed", swarmLeader.Address)
 		}
 		conf.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
+	}
+	if p.Dtr {
+		// If we intend to configure DTR as well, gather facts for DTR
+		conf.Spec.Dtr.Metadata = &api.DtrMetadata{
+			Installed:          false,
+			InstalledVersion:   "",
+			DtrLeaderReplicaID: "",
+		}
+		dtrLeader := conf.Spec.DtrLeader()
+		if dtrLeader.Metadata.EngineVersion != "" {
+			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
+			if err != nil {
+				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
+			}
+			conf.Spec.Dtr.Metadata = dtrMeta
+			if dtrMeta.Installed {
+				log.Infof("%s: DTR has version %s", dtrLeader.Address, dtrMeta.InstalledVersion)
+			} else {
+				log.Infof("%s: DTR is not installed", dtrLeader.Address)
+			}
+		}
 	}
 
 	return nil
@@ -94,6 +117,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	h.Metadata.EngineVersion = h.EngineVersion()
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
+	h.Metadata.LongHostname = h.Configurer.ResolveLongHostname()
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {
 		return err

@@ -121,3 +121,8 @@ func openFile(fileName string) (file *os.File, path string, err error) {
 	}
 	return file, fp, nil
 }
+
+// ContainsDtr returns true if the given ClusterConfig contains DTR nodes
+func ContainsDtr(config api.ClusterConfig) bool {
+	return len(config.Spec.Dtrs()) > 0
+}
