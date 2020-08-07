@@ -40,9 +40,9 @@ function downloadFootloose() {
 }
 
 echo -e "Creating footloose-cluster network..."
-docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
+docker network inspect footloose-cluster || docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
 
-downloadFootloose
+[ -f footloose ] || downloadFootloose
 
 envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 

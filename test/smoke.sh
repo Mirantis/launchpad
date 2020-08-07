@@ -46,14 +46,13 @@ function downloadTools() {
     OS=$(uname)
     echo -e "Downloading tools for test..."
     if [ "$OS" == "Darwin" ]; then
-        curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-darwin-x86_64.tar.gz > ./footloose.tar.gz
-        tar -xvf footloose.tar.gz
+        [ -f footloose ] || (curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-darwin-x86_64.tar.gz > ./footloose.tar.gz && tar -xvf footloose.tar.gz)
 
-        curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/darwin/amd64/kubectl > ./kubectl
+        [ -f kubectl ] || curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/darwin/amd64/kubectl > ./kubectl
     else
-        curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
+        [ -f footloose ] || curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
 
-        curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
+        [ -f kubectl ] || curl -L https://storage.googleapis.com/kubernetes-release/release/v1.18.0/bin/linux/amd64/kubectl > ./kubectl
     fi
 }
 
@@ -63,7 +62,7 @@ ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 
 envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 echo -e "Creating footloose-cluster network..."
-docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
+docker network inspect footloose-cluster || docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
 
 downloadTools
 
