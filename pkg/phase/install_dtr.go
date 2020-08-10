@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/dtr"
-	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
@@ -55,15 +54,6 @@ func (p *InstallDtr) Run(config *api.ClusterConfig) (err error) {
 	if config.Spec.Dtr.ReplicaConfig == "sequential" {
 		log.Debugf("Configuring DTR replica ids to be sequential")
 		installFlags = append(installFlags, fmt.Sprintf("--replica-id %s", dtr.SequentialReplicaID(1)))
-	}
-
-	if licenseFilePath := config.Spec.Dtr.LicenseFilePath; licenseFilePath != "" {
-		log.Debugf("Installing DTR with licenseFilePath: %s", licenseFilePath)
-		licenseFlag, err := util.SetupLicenseFile(config.Spec.Dtr.LicenseFilePath)
-		if err != nil {
-			return fmt.Errorf("error while reading license file %s: %v", licenseFilePath, err)
-		}
-		installFlags = append(installFlags, licenseFlag)
 	}
 
 	// Configure the ucpFlags from existing UcpConfig

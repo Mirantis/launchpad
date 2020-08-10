@@ -22,7 +22,6 @@ spec:
     configData: |-
       [scheduling_configuration]
         default_node_orchestrator = "kubernetes"
-        enable_admin_ucp_scheduling = true
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
