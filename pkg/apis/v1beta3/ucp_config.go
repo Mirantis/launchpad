@@ -15,6 +15,12 @@ type UcpConfig struct {
 	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string    `yaml:"configData,omitempty"`
 	LicenseFilePath string    `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
+	CACertPath      string    `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
+	CertPath        string    `yaml:"certPath,omitempty" validate:"omitempty,file"`
+	KeyPath         string    `yaml:"keyPath,omitempty" validate:"omitempty,file"`
+	CACertData      string    `yaml:"caCertData,omitempty"`
+	CertData        string    `yaml:"certData,omitempty"`
+	KeyData         string    `yaml:"keyData,omitempty"`
 	Cloud           *UcpCloud `yaml:"cloud,omitempty"`
 
 	Metadata *UcpMetadata `yaml:"-"`
@@ -57,6 +63,30 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 		raw.Cloud.ConfigData = string(cloudConfigData)
+	}
+
+	if raw.CACertPath != "" {
+		caCertData, err := util.LoadExternalFile(raw.CACertPath)
+		if err != nil {
+			return err
+		}
+		raw.CACertData = string(caCertData)
+	}
+
+	if raw.CertPath != "" {
+		certData, err := util.LoadExternalFile(raw.CertPath)
+		if err != nil {
+			return err
+		}
+		raw.CertData = string(certData)
+	}
+
+	if raw.KeyPath != "" {
+		keyData, err := util.LoadExternalFile(raw.KeyPath)
+		if err != nil {
+			return err
+		}
+		raw.KeyData = string(keyData)
 	}
 
 	*c = UcpConfig(raw)
