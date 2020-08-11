@@ -69,7 +69,7 @@ chmod +x ./footloose
 
 # cleanup any existing cluster
 envsubst < footloose-dtr.yaml.tpl > footloose.yaml
-./footloose delete && docker volume prune
+./footloose delete && docker volume prune -f
 
 envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 ./footloose create
