@@ -22,7 +22,7 @@ spec:
 `)
 	// go's YAML marshal does not add the --- header
 	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   engine:
     installURLLinux: http://get.example.com/
@@ -54,7 +54,7 @@ spec:
 `)
 	// go's YAML marshal does not add the --- header
 	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   engine:
     version: 1.2.3

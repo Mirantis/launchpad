@@ -69,7 +69,7 @@ resource "hcloud_server" "worker" {
 output "ucp_cluster" {
     value = {
         apiVersion = "launchpad.mirantis.com/v1beta3"
-        kind = "UCP"
+        kind = "DockerEnterprise"
         spec = {
             hosts = [
                 for host in concat(hcloud_server.master, hcloud_server.worker) : {
