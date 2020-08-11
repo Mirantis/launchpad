@@ -60,13 +60,18 @@ cd test
 rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 
-envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 echo -e "Creating footloose-cluster network..."
 docker network inspect footloose-cluster || docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
 
 downloadTools
 
 chmod +x ./footloose
+
+# cleanup any existing cluster
+envsubst < footloose-dtr.yaml.tpl > footloose.yaml
+./footloose delete && docker volume prune -f
+
+envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 ./footloose create
 
 export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
