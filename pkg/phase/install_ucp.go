@@ -188,10 +188,5 @@ func cleanupUcp(host *api.Host) error {
 		return err
 	}
 
-	// should this somehow keep track if it was created by launchpad?
-	if host.Role == "manager" {
-		host.Exec(host.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
-	}
-
 	return nil
 }
