@@ -43,6 +43,9 @@ docker network inspect footloose-cluster || docker network create footloose-clus
 
 [-f footloose] || downloadFootloose
 
+# cleanup any existing cluster
+envsubst < footloose-dtr.yaml.tpl > footloose.yaml
+./footloose delete && docker volume prune
 envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 
 chmod +x ./footloose

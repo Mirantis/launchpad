@@ -60,6 +60,10 @@ cd test
 rm -f ./id_rsa_launchpad
 ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
 
+# cleanup any existing cluster
+envsubst < footloose-dtr.yaml.tpl > footloose.yaml
+./footloose delete && docker volume prune
+
 envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 echo -e "Creating footloose-cluster network..."
 docker network inspect footloose-cluster || docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
