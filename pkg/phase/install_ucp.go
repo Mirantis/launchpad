@@ -128,7 +128,6 @@ func (p *InstallUCP) installCertificates(config *api.ClusterConfig) error {
 			}
 		}
 
-		log.Debugf("running the inspect thing")
 		dir, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
 		if err != nil {
 			return err
