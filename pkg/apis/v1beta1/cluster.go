@@ -52,6 +52,7 @@ func MigrateToV1Beta3(data *[]byte) error {
 		}
 	}
 
+	plain["kind"] = "DockerEnterprise"
 	plain["apiVersion"] = "launchpad.mirantis.com/v1beta3"
 
 	out, err := yaml.Marshal(&plain)

@@ -1,5 +1,5 @@
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 metadata:
   name: $CLUSTER_NAME
 spec:

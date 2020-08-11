@@ -21,6 +21,7 @@ func MigrateToV1Beta3(data *[]byte) error {
 		return fmt.Errorf("dtr requires apiVersion >= launchpad.mirantis.com/v1beta3")
 	}
 
+	plain["kind"] = "DockerEnterprise"
 	plain["apiVersion"] = "launchpad.mirantis.com/v1beta3"
 	log.Debugf("migrated configuration from v1beta2 to v1beta3")
 

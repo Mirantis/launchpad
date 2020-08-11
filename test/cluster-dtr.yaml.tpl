@@ -1,5 +1,5 @@
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 metadata:
   name: $CLUSTER_NAME
 spec:
@@ -38,7 +38,7 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
-      - --san $UCP_MANAGER_IP 
+      - --san $UCP_MANAGER_IP
   engine:
     version: $ENGINE_VERSION
   dtr:

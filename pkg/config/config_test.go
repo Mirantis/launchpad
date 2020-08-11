@@ -15,7 +15,7 @@ import (
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
 apiVersion: "launchpad.mirantis.com/v1beta3"
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
 `
@@ -29,7 +29,7 @@ spec:
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "512.1.2.3"
@@ -44,7 +44,7 @@ spec:
 func TestHostAddressValidationWithValidIP(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "10.10.10.10"
@@ -58,7 +58,7 @@ spec:
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1-2-foo"
@@ -73,7 +73,7 @@ spec:
 func TestHostAddressValidationWithValidHostname(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "foo.example.com"
@@ -88,7 +88,7 @@ spec:
 func TestHostSshPortValidation(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -106,7 +106,7 @@ spec:
 func TestHostSshKeyValidation(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -124,7 +124,7 @@ spec:
 func TestHostRoleValidation(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
   - address: "1.2.3.4"
@@ -141,7 +141,7 @@ spec:
 func TestHostWithComplexEngineConfig(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
   - address: "1.2.3.4"
@@ -232,7 +232,7 @@ spec:
 func TestHostWinRMCACertPathValidation(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -250,7 +250,7 @@ spec:
 func TestHostWinRMCertPathValidation(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -268,7 +268,7 @@ spec:
 func TestHostWinRMKeyPathValidation(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -286,7 +286,7 @@ spec:
 func TestHostSSHDefaults(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -302,7 +302,7 @@ spec:
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -326,7 +326,7 @@ func TestValidationWithDtrRole(t *testing.T) {
 	t.Run("the role is not ucp, worker or dtr", func(t *testing.T) {
 		data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
@@ -340,7 +340,7 @@ spec:
 	t.Run("the role is dtr", func(t *testing.T) {
 		data := `
 apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"

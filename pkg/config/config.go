@@ -32,7 +32,7 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 		return c, err
 	}
 
-	if cv.Kind != "UCP" {
+	if cv.Kind != "UCP" && cv.Kind != "DockerEnterprise" {
 		return c, fmt.Errorf("Unknown kind: %s", cv.Kind)
 	}
 
