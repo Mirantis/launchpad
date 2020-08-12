@@ -66,8 +66,8 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if c.ImageRepo == constant.ImageRepo && c.UseNewImageRepo(v) {
-		c.ImageRepo = constant.ImageRepoNew
+	if c.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
+		c.ImageRepo = constant.ImageRepoLegacy
 	}
 
 	*c = UcpConfig(raw)
@@ -82,14 +82,14 @@ func NewUcpConfig() UcpConfig {
 	}
 }
 
-func (c *UcpConfig) UseNewImageRepo(v *version.Version) bool {
+func (c *UcpConfig) UseLegacyImageRepo(v *version.Version) bool {
 	// >=3.1.15 || >=3.2.8 || >=3.3.2 is "mirantis"
 
 	c1, _ := version.NewConstraint("< 3.2, >= 3.1.15")
 	c2, _ := version.NewConstraint("> 3.1, < 3.3, >= 3.2.8")
 	c3, _ := version.NewConstraint("> 3.3, < 3.4, >= 3.3.2")
 	c4, _ := version.NewConstraint(">= 3.4")
-	return c1.Check(v) || c2.Check(v) || c3.Check(v) || c4.Check(v)
+	return !(c1.Check(v) || c2.Check(v) || c3.Check(v) || c4.Check(v))
 }
 
 // GetBootstrapperImage combines the bootstrapper image name based on user given config
