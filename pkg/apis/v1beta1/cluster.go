@@ -1,6 +1,8 @@
 package v1beta1
 
 import (
+	"fmt"
+
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -50,6 +52,10 @@ func MigrateToV1Beta3(data *[]byte) error {
 				log.Debugf("migrated v1beta1 host user '%s' to v1beta3 ssh[user]", v)
 			}
 		}
+	}
+
+	if plain["kind"] == "DockerEnterprise" {
+		return fmt.Errorf("kind: DockerEnterprise is only available in version >= 0.13")
 	}
 
 	plain["kind"] = "DockerEnterprise"
