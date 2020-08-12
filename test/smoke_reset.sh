@@ -44,9 +44,14 @@ docker network inspect footloose-cluster || docker network create footloose-clus
 
 [ -f footloose ] || downloadFootloose
 
-envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 
 chmod +x ./footloose
+
+# cleanup any existing cluster
+envsubst < footloose-dtr.yaml.tpl > footloose.yaml
+./footloose delete && docker volume prune -f
+
+envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
 ./footloose create
 
 export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
