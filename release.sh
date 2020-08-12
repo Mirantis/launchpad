@@ -7,7 +7,7 @@ if [ -z "${TAG_NAME}" ]; then
   exit 1
 fi
 
-declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-linux-x64")
+declare -a binaries=("launchpad-darwin-x64" "launchpad-signed-win-x64.exe" "launchpad-linux-x64")
 
 mkdir -p tmp.sha256
 pushd bin
