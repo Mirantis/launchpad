@@ -83,8 +83,8 @@ func NewUcpConfig() UcpConfig {
 	}
 }
 
+// UseLegacyImageRepo returns true if the version number does not satisfy >=3.1.15 || >=3.2.8 || >=3.3.2
 func (c *UcpConfig) UseLegacyImageRepo(v *version.Version) bool {
-	// >=3.1.15 || >=3.2.8 || >=3.3.2 is "mirantis"
 
 	// Strip out anything after -, seems like go-version thinks
 	// 3.1.16-rc1 does not satisfy >= 3.1.15  (nor >= 3.1.15-a)
