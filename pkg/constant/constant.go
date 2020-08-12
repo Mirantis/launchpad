@@ -2,7 +2,9 @@ package constant
 
 const (
 	// ImageRepo is the default image repo to use
-	ImageRepo = "docker.io/docker"
+	ImageRepo = "docker.io/mirantis"
+	// ImageRepoLegacy is the default image repo to use for older versions
+	ImageRepoLegacy = "docker.io/docker"
 	// UCPVersion is the default UCP version to use
 	UCPVersion = "3.3.1"
 	// DTRVersion is the default DTR version to use
