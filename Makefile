@@ -40,6 +40,13 @@ build-all: builder
 	GOOS=windows GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-win-x64.exe main.go
 	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 main.go
 
+sign-windows: build-all
+	if ! which osslsigncode ; then
+		sudo apt-get install -y osslsigncode
+	fi
+	echo -n "${WIN_PKCS12} | base64 -D > windows.pkcs12
+	osslsigncode sign -pkcs12 windows.pkcs12 -pass "${WIN_PKCS12_PASSWD}" -i https://mirantis.com -n "Launchpad" -in ./bin/launchpad-win-x64.exe -out ./bin/launchpad-signed-win-x64.exe
+
 release: build-all
 	./release.sh
 
