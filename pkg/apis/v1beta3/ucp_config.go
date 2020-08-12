@@ -67,8 +67,8 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if c.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
-		c.ImageRepo = constant.ImageRepoLegacy
+	if raw.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
+		raw.ImageRepo = constant.ImageRepoLegacy
 	}
 
 	*c = UcpConfig(raw)

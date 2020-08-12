@@ -3,6 +3,7 @@ package v1beta3
 import (
 	"testing"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
@@ -53,4 +54,25 @@ func TestUcpConfig_UseLegacyImageRepo(t *testing.T) {
 		v, _ := version.NewVersion(vs)
 		require.False(t, cfg.UseLegacyImageRepo(v), "should be false for %s", vs)
 	}
+}
+
+func TestUcpConfig_LegacyDefaultVersionRepo(t *testing.T) {
+	cfg := UcpConfig{}
+	err := yaml.Unmarshal([]byte("version: 3.2.1"), &cfg)
+	require.NoError(t, err)
+	require.Equal(t, constant.ImageRepoLegacy, cfg.ImageRepo)
+}
+
+func TestUcpConfig_ModernDefaultVersionRepo(t *testing.T) {
+	cfg := UcpConfig{}
+	err := yaml.Unmarshal([]byte("version: 3.2.8"), &cfg)
+	require.NoError(t, err)
+	require.Equal(t, constant.ImageRepo, cfg.ImageRepo)
+}
+
+func TestUcpConfig_CustomRepo(t *testing.T) {
+	cfg := UcpConfig{}
+	err := yaml.Unmarshal([]byte("version: 3.2.7\nimageRepo: foo.foo/foo"), &cfg)
+	require.NoError(t, err)
+	require.Equal(t, "foo.foo/foo", cfg.ImageRepo)
 }
