@@ -40,3 +40,15 @@ spec:
 `)
 	require.EqualError(t, MigrateToV1Beta3(&b2), "dtr requires apiVersion >= launchpad.mirantis.com/v1beta3")
 }
+
+func TestMigrationToV1Beta3WithDockerEnterprise(t *testing.T) {
+	b2 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1beta2"
+kind: DockerEnterprise
+spec:
+  hosts:
+    - address: "10.0.0.1"
+      role: "manager"
+`)
+	require.EqualError(t, MigrateToV1Beta3(&b2), "kind: DockerEnterprise only available in version >= 0.13")
+}
