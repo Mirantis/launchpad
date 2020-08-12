@@ -50,5 +50,5 @@ spec:
     - address: "10.0.0.1"
       role: "manager"
 `)
-	require.EqualError(t, MigrateToV1Beta3(&b2), "kind: DockerEnterprise only available in version >= 0.13")
+	require.EqualError(t, MigrateToV1Beta3(&b2), "kind: DockerEnterprise is only available in version >= 0.13")
 }
