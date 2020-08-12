@@ -2,9 +2,12 @@ package v1beta3
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/util"
+
+	"github.com/hashicorp/go-version"
 )
 
 // UcpConfig has all the bits needed to configure UCP during installation
@@ -87,6 +90,15 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 		raw.KeyData = string(keyData)
+  }
+  
+  v, err := version.NewVersion(raw.Version)
+	if err != nil {
+		return err
+	}
+
+	if raw.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
+		raw.ImageRepo = constant.ImageRepoLegacy
 	}
 
 	*c = UcpConfig(raw)
@@ -99,6 +111,26 @@ func NewUcpConfig() UcpConfig {
 		Version:   constant.UCPVersion,
 		ImageRepo: constant.ImageRepo,
 	}
+}
+
+// UseLegacyImageRepo returns true if the version number does not satisfy >=3.1.15 || >=3.2.8 || >=3.3.2
+func (c *UcpConfig) UseLegacyImageRepo(v *version.Version) bool {
+
+	// Strip out anything after -, seems like go-version thinks
+	// 3.1.16-rc1 does not satisfy >= 3.1.15  (nor >= 3.1.15-a)
+	vs := v.String()
+	var v2 *version.Version
+	if strings.Contains(vs, "-") {
+		v2, _ = version.NewVersion(vs[0:strings.Index(vs, "-")])
+	} else {
+		v2 = v
+	}
+
+	c1, _ := version.NewConstraint("< 3.2, >= 3.1.15")
+	c2, _ := version.NewConstraint("> 3.1, < 3.3, >= 3.2.8")
+	c3, _ := version.NewConstraint("> 3.3, < 3.4, >= 3.3.2")
+	c4, _ := version.NewConstraint(">= 3.4")
+	return !(c1.Check(v2) || c2.Check(v2) || c3.Check(v2) || c4.Check(v2))
 }
 
 // GetBootstrapperImage combines the bootstrapper image name based on user given config

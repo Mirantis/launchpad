@@ -23,7 +23,7 @@ func NewApplyCommand() *cli.Command {
 			},
 			&cli.BoolFlag{
 				Name:  "prune",
-				Usage: "Automatically remove nodes that are not anymore part of cluster config yaml",
+				Usage: "Automatically remove nodes that are no longer a part of cluster config yaml",
 				Value: false,
 			},
 		},

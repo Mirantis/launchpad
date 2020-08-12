@@ -17,7 +17,7 @@ spec:
 `)
 	// go's YAML marshal does not add the --- header
 	b3 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
   - address: 10.0.0.1

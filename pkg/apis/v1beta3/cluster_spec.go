@@ -66,9 +66,9 @@ func (c *ClusterSpec) WebURLs() *WebUrls {
 	}
 
 	ucpAddress = fmt.Sprintf("https://%s", ucpAddress)
-	var dtrAddress string
-	if len(c.Dtrs()) > 0 {
-		dtrAddress = c.buildDtrWebURL()
+	dtrAddress := c.dtrWebURL()
+	if dtrAddress != "" {
+		dtrAddress = fmt.Sprintf("https://%s", c.dtrWebURL())
 	}
 
 	return &WebUrls{
@@ -140,31 +140,29 @@ func (c *ClusterSpec) DtrLeader() *Host {
 
 // IsCustomImageRepo checks if the config is using a custom image repo
 func IsCustomImageRepo(imageRepo string) bool {
-	return imageRepo != constant.ImageRepo
+	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
-// buildDtrWebURL returns a URL based on the DtrLeaderAddress or whether the
+// dtrWebURL returns an address based on the DtrLeaderAddress or whether the
 // user has provided the --dtr-external-url flag
-func (c *ClusterSpec) buildDtrWebURL() string {
+func (c *ClusterSpec) dtrWebURL() string {
 	// Default to using the --dtr-external-url if it's set
 	dtrAddress := util.GetInstallFlagValue(c.Dtr.InstallFlags, "--dtr-external-url")
 	if dtrAddress != "" {
-		return fmt.Sprintf("https://%s", dtrAddress)
-	}
-	// If for some reason we don't have DTR metadata return the
-	// first DTR roles address
-	if c.Dtr.Metadata == nil {
-		for _, h := range c.Hosts {
-			if h.Role == "dtr" {
-
-				return fmt.Sprintf("https://%s", h.Address)
-			}
-		}
+		return dtrAddress
 	}
 	// Otherwise, use DtrLeaderAddress
-	if c.Dtr.Metadata.DtrLeaderAddress != "" {
-		return fmt.Sprintf("https://%s", c.Dtr.Metadata.DtrLeaderAddress)
+	if c.Dtr.Metadata != nil {
+		if c.Dtr.Metadata.DtrLeaderAddress != "" {
+			return c.Dtr.Metadata.DtrLeaderAddress
+		}
 	}
-	// If we still can't find a host, return nothing
-	return ""
+	// If we still can't find an address iterate the host roles for a value
+	for _, h := range c.Hosts {
+		if h.Role == "dtr" {
+			dtrAddress = h.Address
+			break
+		}
+	}
+	return dtrAddress
 }

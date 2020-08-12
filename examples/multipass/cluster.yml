@@ -1,5 +1,5 @@
 apiVersion: "launchpad.mirantis.com/v1beta3"
-kind: UCP
+kind: DockerEnterprise
 spec:
   hosts:
     - address: "192.168.64.10"
