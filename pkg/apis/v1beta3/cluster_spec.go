@@ -140,7 +140,7 @@ func (c *ClusterSpec) DtrLeader() *Host {
 
 // IsCustomImageRepo checks if the config is using a custom image repo
 func IsCustomImageRepo(imageRepo string) bool {
-	return imageRepo != constant.ImageRepo
+	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
 // dtrWebURL returns an address based on the DtrLeaderAddress or whether the
