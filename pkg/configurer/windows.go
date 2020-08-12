@@ -55,8 +55,7 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
 func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) error {
-	output, err := c.Host.ExecWithOutput("docker system prune --volumes --all -f")
-	log.Debugf("output of prune: %s", output)
+	err := c.Host.Exec("docker system prune --volumes --all -f")
 	if err != nil {
 		return err
 	}
