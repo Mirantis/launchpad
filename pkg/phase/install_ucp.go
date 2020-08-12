@@ -46,6 +46,15 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 
 	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
 	installFlags := config.Spec.Ucp.InstallFlags
+
+	if config.Spec.Ucp.CACertData != "" && config.Spec.Ucp.CertData != "" && config.Spec.Ucp.KeyData != "" {
+		err := p.installCertificates(config)
+		if err != nil {
+			return err
+		}
+		installFlags = append(installFlags, " --external-server-cert")
+	}
+
 	if config.Spec.Ucp.ConfigData != "" {
 		defer func() {
 			err := swarmLeader.Execf("sudo docker config rm %s", configName)
@@ -105,6 +114,45 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	return nil
 }
 
+// installCertificates installs user supplied UCP certificates
+func (p *InstallUCP) installCertificates(config *api.ClusterConfig) error {
+	log.Infof("Installing UCP certificates")
+	managers := config.Spec.Managers()
+	err := managers.ParallelEach(func(h *api.Host) error {
+		err := h.ExecCmd(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"), "", false, false)
+		if err != nil {
+			log.Infof("%s: creating ucp-controller-server-certs volume", h.Address)
+			err := h.ExecCmd(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"), "", false, false)
+			if err != nil {
+				return err
+			}
+		}
+
+		dir, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
+		if err != nil {
+			return err
+		}
+
+		log.Infof("%s: installing certificate files to %s", h.Address, dir)
+		err = h.Configurer.WriteFile(fmt.Sprintf("%s/ca.pem", dir), config.Spec.Ucp.CACertData, "0600")
+		if err != nil {
+			return err
+		}
+		err = h.Configurer.WriteFile(fmt.Sprintf("%s/cert.pem", dir), config.Spec.Ucp.CertData, "0600")
+		if err != nil {
+			return err
+		}
+		err = h.Configurer.WriteFile(fmt.Sprintf("%s/key.pem", dir), config.Spec.Ucp.KeyData, "0600")
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return err
+}
+
 func applyCloudConfig(config *api.ClusterConfig) error {
 	configData := config.Spec.Ucp.Cloud.ConfigData
 	provider := config.Spec.Ucp.Cloud.Provider
@@ -139,5 +187,6 @@ func cleanupUcp(host *api.Host) error {
 	if err := host.Exec(host.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
 		return err
 	}
+
 	return nil
 }

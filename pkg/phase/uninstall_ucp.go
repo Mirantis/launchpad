@@ -39,5 +39,16 @@ func (p *UninstallUCP) Run(config *api.ClusterConfig) error {
 		return NewError("Failed to run UCP uninstaller")
 	}
 
+	if config.Spec.Ucp.CertData != "" {
+		managers := config.Spec.Managers()
+		managers.ParallelEach(func(h *api.Host) error {
+			log.Infof("%s: removing ucp-controller-server-certs volume", h.Address)
+			err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
+			if err != nil {
+				log.Errorf("%s: failed to remove the volume", h.Address)
+			}
+			return nil
+		})
+	}
 	return nil
 }
