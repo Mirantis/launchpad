@@ -41,7 +41,7 @@ function downloadFootloose() {
 echo -e "Creating footloose-cluster network..."
 docker network inspect footloose-cluster || docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
 
-[-f footloose] || downloadFootloose
+[ -f footloose ] || downloadFootloose
 
 chmod +x ./footloose
 
