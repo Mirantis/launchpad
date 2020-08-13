@@ -200,7 +200,6 @@ pipeline {
           string(credentialsId: "launchpad-win-certificate", variable: "WIN_PKCS12"),
           string(credentialsId: "launchpad-win-certificate-passwd", variable: "WIN_PKCS12_PASSWD"),
         ]) {
-          sh "make sign-windows"
           sh "make release"
         }
       }
