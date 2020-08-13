@@ -7,7 +7,14 @@ if [ -z "${TAG_NAME}" ]; then
   exit 1
 fi
 
-declare -a binaries=("launchpad-darwin-x64" "launchpad-signed-win-x64.exe" "launchpad-linux-x64")
+echo "Signing windows binary"
+command -v osslsigncode || sudo apt-get install -y osslsigncode
+echo -n "${WIN_PKCS12}" | base64 -D > windows.pkcs12
+osslsigncode sign -pkcs12 windows.pkcs12 -pass "${WIN_PKCS12_PASSWD}" -i https://mirantis.com -n "Launchpad" -in ./bin/launchpad-win-x64.exe -out ./bin/launchpad-signed-win-x64.exe
+rm -f windows.pkcs12
+mv ./bin/launchpad-signed-win-x64.exe ./bin/launchpad-win-x64.exe
+
+declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-linux-x64")
 
 mkdir -p tmp.sha256
 pushd bin
