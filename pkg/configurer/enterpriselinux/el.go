@@ -27,6 +27,7 @@ func (c *Configurer) InstallBasePackages() error {
 	if err != nil {
 		return err
 	}
+
 	return c.Host.Exec("sudo yum install -y curl socat iptables")
 }
 
@@ -52,5 +53,13 @@ func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.SELinuxEnabled() {
 		c.Host.DaemonConfig["selinux-enabled"] = true
 	}
+
+	if c.Host.Configurer.FileExist("/etc/yum.repos.d/redhat-rhui-client-config.repo") {
+		err := c.Host.Exec("(yum install -y rh-amazon-rhui-client && yum-config-manager --enable rhel-7-server-rhui-extras-rpms) || true")
+		if err != nil {
+			return err
+		}
+	}
+
 	return c.LinuxConfigurer.InstallEngine(engineConfig)
 }
