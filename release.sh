@@ -9,7 +9,7 @@ fi
 
 echo "Signing windows binary"
 command -v osslsigncode || sudo apt-get install -y osslsigncode
-echo -n "${WIN_PKCS12}" | base64 -D > windows.pkcs12
+echo -n "${WIN_PKCS12}" | base64 -d > windows.pkcs12
 osslsigncode sign -pkcs12 windows.pkcs12 -pass "${WIN_PKCS12_PASSWD}" -i https://mirantis.com -n "Launchpad" -in ./bin/launchpad-win-x64.exe -out ./bin/launchpad-signed-win-x64.exe
 rm -f windows.pkcs12
 mv ./bin/launchpad-signed-win-x64.exe ./bin/launchpad-win-x64.exe
