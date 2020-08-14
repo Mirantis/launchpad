@@ -183,6 +183,14 @@ func (c *LinuxConfigurer) AuthenticateDocker(user, pass, imageRepo string) error
 
 // WriteFile writes file to host with given contents. Do not use for large files.
 func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string) error {
+	if data == "" {
+		return fmt.Errorf("empty content in WriteFile to %s", path)
+	}
+
+	if path == "" {
+		return fmt.Errorf("empty path in WriteFile")
+	}
+
 	tempFile, err := c.Host.ExecWithOutput("mktemp")
 	if err != nil {
 		return err
