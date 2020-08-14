@@ -5,8 +5,8 @@ set -e
 FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-footloose.yaml.tpl}
 CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-cluster.yaml.tpl}
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
-export UCP_VERSION=${UCP_VERSION:-"3.3.0"}
-export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/docker"}
+export UCP_VERSION=${UCP_VERSION:-"3.3.2"}
+export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/mirantis"}
 export DTR_VERSION=${DTR_VERSION:-"2.8.1"}
 export DTR_IMAGE_REPO=${DTR_IMAGE_REPO:-"docker.io/docker"}
 export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.8"}
