@@ -62,7 +62,7 @@ if ! ../bin/launchpad --debug apply ; then
   exit 1
 fi
 
-export UCP_VERSION=${UCP_UPGRADE_VERSION:-"3.3.1"}
+export UCP_VERSION=${UCP_UPGRADE_VERSION:-"3.3.2"}
 export ENGINE_VERSION=${ENGINE_UPGRADE_VERSION:-"19.03.8"}
 export DTR_VERSION=${DTR_UPGRADE_VERSION:"2.8.1"}
 envsubst < cluster.yaml.tpl > cluster.yaml

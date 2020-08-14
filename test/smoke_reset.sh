@@ -44,7 +44,6 @@ docker network inspect footloose-cluster || docker network create footloose-clus
 
 [ -f footloose ] || downloadFootloose
 
-
 chmod +x ./footloose
 
 # cleanup any existing cluster
