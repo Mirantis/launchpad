@@ -48,7 +48,7 @@ lint: builder
 	$(GO) golint -set_exit_status ./...
 
 smoke-test: build
-	./test/smoke.sh
+	./test/smoke_apply.sh
 
 smoke-upgrade-test: build
 	./test/smoke_upgrade.sh
@@ -58,3 +58,5 @@ smoke-prune-test: build
 
 smoke-reset-test: build
 	./test/smoke_reset.sh
+smoke-cleanup: clean
+	./test/smoke_cleanup.sh
