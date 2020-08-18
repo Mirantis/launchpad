@@ -21,7 +21,10 @@ pipeline {
         }
         stage("Build: linux") {
           agent any
-          steps { sh "make build GOOS=linux" }
+          steps {
+            sh "make build GOOS=linux"
+            stash name: "launchpad-linux", includes: "bin/launchpad"
+          }
         }
       }
     }
@@ -40,6 +43,7 @@ pipeline {
                 PRESERVE_CLUSTER = "true"
               }
               steps {
+                unstash name: "launchpad-linux"
                 sh "make smoke-test"
               }
             }
@@ -81,6 +85,12 @@ pipeline {
               }
             }
           }
+          post {
+            cleanup {
+              sh "make smoke-cleanup"
+              deleteDir
+            }
+          }
         }
         stage("Ubuntu 18.04: apply catfish") {
           agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
@@ -91,7 +101,9 @@ pipeline {
             REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
           }
           steps {
+            unstash name: "launchpad-linux"
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-cleanup"
           }
         }
         stage("Ubuntu 16.04") {
@@ -99,6 +111,7 @@ pipeline {
           stages {
             stage("Ubuntu 16.04: apply") {
               steps {
+                unstash name: "launchpad-linux"
                 sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04 PRESERVE_CLUSTER=true"
               }
             }
@@ -112,7 +125,9 @@ pipeline {
         stage("CentOS 7: apply") {
           agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
           steps {
+            unstash name: "launchpad-linux"
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/centos7"
+            sh "make smoke-cleanup"
           }
         }
         stage("CentOS 8") {
@@ -120,6 +135,7 @@ pipeline {
           stages {
             stage("CentOS 8: apply") {
               steps {
+                unstash name: "launchpad-linux"
                 sh "make smoke-test PRESERVE_CLUSTER=true LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
               }
             }
@@ -127,6 +143,12 @@ pipeline {
               steps {
                 sh "make smoke-reset-test REUSE_CLUSTER=true LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
               }
+            }
+          }
+          post {
+            cleanup {
+              sh "make smoke-cleanup"
+              deleteDir
             }
           }
         }
