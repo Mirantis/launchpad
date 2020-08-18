@@ -22,6 +22,7 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	-e GOARCH \
 	-e GOEXE \
 	$(BUILDER_IMAGE)
+gosrc = $(wildcard *.go */*.go */*/*.go */*/*/*.go)
 
 clean:
 	sudo rm -f bin/launchpad
@@ -32,8 +33,11 @@ builder:
 unit-test: builder
 	$(GO) go test -v ./...
 
-build: clean builder
+$(TARGET): $(gosrc)
+	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
 	GOOS=${GOOS} $(GO) go build $(BUILD_FLAGS) -o $(TARGET) main.go
+
+build: $(TARGET)
 
 build-all: builder
 	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 main.go
@@ -58,5 +62,6 @@ smoke-prune-test: build
 
 smoke-reset-test: build
 	./test/smoke_reset.sh
+
 smoke-cleanup: clean
 	./test/smoke_cleanup.sh
