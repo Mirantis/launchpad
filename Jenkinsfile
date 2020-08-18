@@ -81,12 +81,6 @@ pipeline {
               }
             }
           }
-          post {
-            cleanup {
-              sh "make smoke-cleanup"
-              deleteDir()
-            }
-          }
         }
         stage("Ubuntu 18.04: apply catfish") {
           agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
@@ -135,12 +129,6 @@ pipeline {
               steps {
                 sh "make smoke-reset-test REUSE_CLUSTER=true LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
               }
-            }
-          }
-          post {
-            cleanup {
-              sh "make smoke-cleanup"
-              deleteDir()
             }
           }
         }
