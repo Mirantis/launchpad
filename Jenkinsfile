@@ -43,6 +43,7 @@ pipeline {
                 PRESERVE_CLUSTER = "true"
               }
               steps {
+                sh "mkdir -p bin"
                 dir("bin") {
                   unstash name: "launchpad-linux"
                 }
@@ -103,6 +104,7 @@ pipeline {
             REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
           }
           steps {
+            sh "mkdir -p bin"
             dir("bin") {
               unstash name: "launchpad-linux"
             }
@@ -115,6 +117,7 @@ pipeline {
           stages {
             stage("Ubuntu 16.04: apply") {
               steps {
+                sh "mkdir -p bin"
                 dir("bin") {
                   unstash name: "launchpad-linux"
                 }
@@ -131,6 +134,7 @@ pipeline {
         stage("CentOS 7: apply") {
           agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
           steps {
+            sh "mkdir -p bin"
             dir("bin") {
               unstash name: "launchpad-linux"
             }
@@ -143,6 +147,7 @@ pipeline {
           stages {
             stage("CentOS 8: apply") {
               steps {
+                sh "mkdir -p bin"
                 dir("bin") {
                   unstash name: "launchpad-linux"
                 }
