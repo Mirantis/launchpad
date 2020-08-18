@@ -88,7 +88,7 @@ pipeline {
           post {
             cleanup {
               sh "make smoke-cleanup"
-              deleteDir
+              deleteDir()
             }
           }
         }
@@ -148,7 +148,7 @@ pipeline {
           post {
             cleanup {
               sh "make smoke-cleanup"
-              deleteDir
+              deleteDir()
             }
           }
         }
