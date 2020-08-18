@@ -92,7 +92,6 @@ pipeline {
           }
           steps {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-            sh "make smoke-cleanup"
           }
         }
         stage("Ubuntu 16.04") {
@@ -114,7 +113,6 @@ pipeline {
           agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
           steps {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/centos7"
-            sh "make smoke-cleanup"
           }
         }
         stage("CentOS 8") {
