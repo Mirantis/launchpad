@@ -20,7 +20,7 @@ pipeline {
           steps { sh "make build GOOS=linux" }
         }
         stage("Build: darwin") {
-          agent any
+          agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
           steps { sh "make build GOOS=darwin" }
         }
       }
