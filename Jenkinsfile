@@ -15,20 +15,20 @@ pipeline {
           agent any
           steps { sh "make build GOOS=windows" }
         }
+        stage("Build: darwin") {
+          agent any
+          steps { sh "make build GOOS=darwin" }
+        }
         stage("Build: linux") {
           agent any
           steps { sh "make build GOOS=linux" }
-        }
-        stage("Build: darwin") {
-          agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
-          steps { sh "make build GOOS=darwin" }
         }
       }
     }
     stage("Smoke test") {
       parallel {
         stage("Ubuntu 18.04 with DTR") {
-          agent { node { label 'amd64 && ubuntu-1804 && overlay2 && big' } }
+          agent { node { label 'amd64 && ubuntu-1804 && overlay2 && mem' } }
           stages {
             stage("Ubuntu 18.04 with DTR: apply") {
               environment {
@@ -83,7 +83,7 @@ pipeline {
           }
         }
         stage("Ubuntu 18.04: apply catfish") {
-          agent { node { label 'amd64 && ubuntu-1804 && overlay2 && big' } }
+          agent { node { label 'amd64 && ubuntu-1804 && overlay2' } }
           environment {
             UCP_IMAGE_REPO = "docker.io/dockereng"
             UCP_VERSION = "3.4.0-tp6"
