@@ -108,7 +108,9 @@ pipeline {
             CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
           }
           steps {
-            sh "make smoke-upgrade-test"
+            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+              sh "make smoke-upgrade-test"
+            }
           }
         }
         stage("Ubuntu 18.04 with DTR: prune") {
