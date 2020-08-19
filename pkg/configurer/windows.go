@@ -201,7 +201,7 @@ func (c *WindowsConfigurer) UpdateEnvironment() error {
 
 // CleanupEnvironment removes environment variable configuration
 func (c *WindowsConfigurer) CleanupEnvironment() error {
-	for k, _ := range c.Host.Environment {
+	for k := range c.Host.Environment {
 		c.Host.ExecCmd(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'User')"`, escape.Quote(k)), "", false, false)
 		c.Host.ExecCmd(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'Machine')"`, escape.Quote(k)), "", false, false)
 	}

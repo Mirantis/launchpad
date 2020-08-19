@@ -251,7 +251,7 @@ func (c *LinuxConfigurer) UpdateEnvironment() error {
 
 // CleanupEnvironment removes environment variable configuration
 func (c *LinuxConfigurer) CleanupEnvironment() error {
-	for k, _ := range c.Host.Environment {
+	for k := range c.Host.Environment {
 		err := c.LineIntoFile("/etc/environment", fmt.Sprintf("^%s=", k), "")
 		if err != nil {
 			return err
