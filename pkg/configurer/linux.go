@@ -249,6 +249,18 @@ func (c *LinuxConfigurer) UpdateEnvironment() error {
 	return c.ConfigureDockerProxy()
 }
 
+// CleanupEnvironment removes environment variable configuration
+func (c *LinuxConfigurer) CleanupEnvironment() error {
+	for k, _ := range c.Host.Environment {
+		err := c.LineIntoFile("/etc/environment", fmt.Sprintf("^%s=", k), "")
+		if err != nil {
+			return err
+		}
+	}
+	// remove empty lines
+	return c.Host.ExecCmd(`sudo sed -i '/^$/d' /etc/environment`, "", false, false)
+}
+
 // ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables
 func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 	proxyenvs := make(map[string]string)

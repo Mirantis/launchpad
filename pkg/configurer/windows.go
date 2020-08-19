@@ -198,3 +198,12 @@ func (c *WindowsConfigurer) UpdateEnvironment() error {
 	}
 	return nil
 }
+
+// CleanupEnvironment removes environment variable configuration
+func (c *WindowsConfigurer) CleanupEnvironment() error {
+	for k, v := range c.Host.Environment {
+		c.Host.ExecCmd(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'User')"`, escape.Quote(k), escape.Quote(v)), "", false, false)
+		c.Host.ExecCmd(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'Machine')"`, escape.Quote(k), escape.Quote(v)), "", false, false)
+	}
+	return nil
+}

@@ -47,6 +47,7 @@ func Reset(configFile string) error {
 	phaseManager.AddPhase(&phase.UninstallUCP{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.UninstallEngine{})
+	phaseManager.AddPhase(&phase.CleanUp{})
 	phaseManager.AddPhase(&phase.Disconnect{})
 
 	phaseErr := phaseManager.Run()

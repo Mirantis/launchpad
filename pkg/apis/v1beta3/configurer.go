@@ -13,6 +13,7 @@ type HostConfigurer interface {
 	SELinuxEnabled() bool
 	InstallBasePackages() error
 	UpdateEnvironment() error
+	CleanupEnvironment() error
 	InstallEngine(engineConfig *EngineConfig) error
 	UninstallEngine(engineConfig *EngineConfig) error
 	DockerCommandf(template string, args ...interface{}) string
