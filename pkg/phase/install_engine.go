@@ -67,7 +67,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 	}
 
 	workers := []*api.Host{}
-	for _, h := range c.Spec.Workers() {
+	for _, h := range c.Spec.WorkersAndDtrs() {
 		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Spec.Engine.Version {
 			workers = append(workers, h)
 		}
