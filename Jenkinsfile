@@ -22,7 +22,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
+            sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
           }
         }
         stage("Ubuntu 18.04: apply") {
@@ -32,7 +32,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("Ubuntu 18.04 with DTR: apply") {
@@ -47,7 +47,7 @@ pipeline {
             CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
           }
           steps {
-            sh "make smoke-test"
+            sh "make smoke-apply-test"
           }
         }
         stage("Ubuntu 18.04: apply v1beta1") {
@@ -57,7 +57,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-test CONFIG_TEMPLATE=v1beta1_cluster.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_cluster.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("Ubuntu 18.04: apply catfish") {
@@ -73,7 +73,7 @@ pipeline {
             REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
           }
           steps {
-            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("CentOS 7: apply") {
@@ -108,7 +108,9 @@ pipeline {
             CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
           }
           steps {
-            sh "make smoke-upgrade-test"
+            catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+              sh "make smoke-upgrade-test"
+            }
           }
         }
         stage("Ubuntu 18.04 with DTR: prune") {
@@ -124,23 +126,6 @@ pipeline {
           }
           steps {
             sh "make smoke-prune-test"
-          }
-        }
-        stage("Ubuntu 18.04: with docker credentials") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          environment {
-            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
-            UCP_IMAGE_REPO = "docker.io/dockereng"
-            REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
-          }
-          steps {
-            sh "make smoke-test"
           }
         }
         stage("Ubuntu 18.04: reset") {
