@@ -65,7 +65,7 @@ fi
 
 cat cluster.yaml
 
-../bin/launchpad --debug reset
+../bin/launchpad --debug reset --force
 result=$?
 
 cleanup
