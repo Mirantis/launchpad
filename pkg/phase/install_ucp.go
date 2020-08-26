@@ -105,11 +105,10 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 		return NewError("Failed to run UCP installer")
 	}
 
-	ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
+	err = ucp.CollectUcpFacts(swarmLeader, config.Spec.Ucp.Metadata)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
-	config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil
 }

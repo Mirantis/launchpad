@@ -50,6 +50,8 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type rawUcpConfig UcpConfig
 	config := NewUcpConfig()
 	raw := rawUcpConfig(config)
+	raw.Metadata = &UcpMetadata{}
+
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}

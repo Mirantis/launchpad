@@ -39,21 +39,16 @@ func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
 		return err
 	}
 	// Gather UCP related facts
-	conf.Spec.Ucp.Metadata = &api.UcpMetadata{
-		ClusterID:        "",
-		Installed:        false,
-		InstalledVersion: "",
-	}
+
 	swarmLeader := conf.Spec.SwarmLeader()
 	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
-		ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
+		err := ucp.CollectUcpFacts(swarmLeader, conf.Spec.Ucp.Metadata)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 		}
-		conf.Spec.Ucp.Metadata = ucpMeta
-		if ucpMeta.Installed {
-			log.Infof("%s: UCP has version %s", swarmLeader.Address, ucpMeta.InstalledVersion)
+		if conf.Spec.Ucp.Metadata.Installed {
+			log.Infof("%s: UCP has version %s", swarmLeader.Address, conf.Spec.Ucp.Metadata.InstalledVersion)
 		} else {
 			log.Infof("%s: UCP is not installed", swarmLeader.Address)
 		}
