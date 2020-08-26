@@ -38,12 +38,12 @@ func (p *InitSwarm) Run(config *api.ClusterConfig) error {
 	if err != nil {
 		return NewError("failed to get swarm manager join-token")
 	}
-	config.ManagerJoinToken = mgrToken
+	config.Spec.Ucp.Metadata.ManagerJoinToken = mgrToken
 
 	workerToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token worker -q"))
 	if err != nil {
 		return NewError("failed to get swarm worker join-token")
 	}
-	config.WorkerJoinToken = workerToken
+	config.Spec.Ucp.Metadata.WorkerJoinToken = workerToken
 	return nil
 }

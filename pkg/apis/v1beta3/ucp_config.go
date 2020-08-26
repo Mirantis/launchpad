@@ -34,6 +34,8 @@ type UcpMetadata struct {
 	Installed        bool
 	InstalledVersion string
 	ClusterID        string
+	ManagerJoinToken string
+	WorkerJoinToken  string
 }
 
 // UcpCloud has the cloud provider configuration
@@ -90,9 +92,9 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 		raw.KeyData = string(keyData)
-  }
-  
-  v, err := version.NewVersion(raw.Version)
+	}
+
+	v, err := version.NewVersion(raw.Version)
 	if err != nil {
 		return err
 	}
