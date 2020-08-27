@@ -34,6 +34,7 @@ type UcpMetadata struct {
 	Installed        bool
 	InstalledVersion string
 	ClusterID        string
+	VXLAN            bool
 	ManagerJoinToken string
 	WorkerJoinToken  string
 }
