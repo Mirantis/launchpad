@@ -88,6 +88,7 @@ func (c *ClusterSpec) WebURLs() *WebUrls {
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type yclusterspec ClusterSpec
 	yc := (*yclusterspec)(c)
+	c.Metadata = ClusterSpecMetadata{}
 	c.Engine = EngineConfig{}
 	c.Ucp = NewUcpConfig()
 
