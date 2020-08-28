@@ -61,7 +61,7 @@ func (p *ValidateFacts) validateUCPVersionJump(conf *api.ClusterConfig) error {
 
 		// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
 		if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-			return fmt.Errorf("can't upgrade UCP directly from %s to %s - need to upgrade to %d.%d first.", installedUCP.String(), targetUCP.String(), installedSegments[0], installedSegments[1]+1)
+			return fmt.Errorf("can't upgrade UCP directly from %s to %s - need to upgrade to %d.%d first", installedUCP.String(), targetUCP.String(), installedSegments[0], installedSegments[1]+1)
 		}
 	}
 
@@ -89,7 +89,7 @@ func (p *ValidateFacts) validateDTRVersionJump(conf *api.ClusterConfig) error {
 
 		// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
 		if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-			return fmt.Errorf("can't upgrade DTR directly from %s to %s - need to upgrade to %d.%d first.", installedDTR.String(), targetDTR.String(), installedSegments[0], installedSegments[1]+1)
+			return fmt.Errorf("can't upgrade DTR directly from %s to %s - need to upgrade to %d.%d first", installedDTR.String(), targetDTR.String(), installedSegments[0], installedSegments[1]+1)
 		}
 	}
 
