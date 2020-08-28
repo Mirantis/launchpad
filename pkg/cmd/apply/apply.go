@@ -86,8 +86,8 @@ func Apply(configFile string, prune bool) error {
 	if prune {
 		phaseManager.AddPhase(&phase.RemoveNodes{})
 	}
-	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.After{})
+	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.Info{})
 
 	if err = phaseManager.Run(); err != nil {
