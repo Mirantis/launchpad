@@ -6,6 +6,7 @@ import (
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 
 	"github.com/hashicorp/go-version"
+	log "github.com/sirupsen/logrus"
 )
 
 // ValidateFacts phase implementation to validate facts from config and collected metadata
@@ -21,11 +22,19 @@ func (p *ValidateFacts) Title() string {
 // Run collect all the facts from hosts in parallel
 func (p *ValidateFacts) Run(conf *api.ClusterConfig) error {
 	if err := p.validateUCPVersionJump(conf); err != nil {
-		return err
+		if conf.Spec.Metadata.Force {
+			log.Warnf("%s - continuing anyway because --force given", err.Error())
+		} else {
+			return err
+		}
 	}
 
 	if err := p.validateDTRVersionJump(conf); err != nil {
-		return err
+		if conf.Spec.Metadata.Force {
+			log.Warnf("%s - continuing anyway because --force given", err.Error())
+		} else {
+			return err
+		}
 	}
 
 	return nil
