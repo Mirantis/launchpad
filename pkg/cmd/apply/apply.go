@@ -62,6 +62,7 @@ func Apply(configFile string, prune bool) error {
 	phaseManager := phase.NewManager(&clusterConfig)
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
+	phaseManager.AddPhase(&phase.ValidateFacts{})
 	phaseManager.AddPhase(&phase.ValidateHosts{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.PrepareHost{})
