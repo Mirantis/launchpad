@@ -60,6 +60,8 @@ type Host struct {
 	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
+	Before           []string          `yaml:"before,omitempty" default:"[]"`
+	After            []string          `yaml:"after,omitempty" default:"[]"`
 
 	WinRM *WinRM `yaml:"winRM,omitempty"`
 	SSH   *SSH   `yaml:"ssh,omitempty"`

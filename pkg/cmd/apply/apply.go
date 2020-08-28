@@ -64,6 +64,7 @@ func Apply(configFile string, prune bool) error {
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
 	phaseManager.AddPhase(&phase.ValidateHosts{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
+	phaseManager.AddPhase(&phase.Before{})
 	phaseManager.AddPhase(&phase.PrepareHost{})
 	phaseManager.AddPhase(&phase.InstallEngine{})
 	phaseManager.AddPhase(&phase.PullImages{})
@@ -86,6 +87,7 @@ func Apply(configFile string, prune bool) error {
 		phaseManager.AddPhase(&phase.RemoveNodes{})
 	}
 	phaseManager.AddPhase(&phase.Disconnect{})
+	phaseManager.AddPhase(&phase.After{})
 	phaseManager.AddPhase(&phase.Info{})
 
 	if err = phaseManager.Run(); err != nil {
