@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ClusterSpecMetadata contains spec level metadata
 type ClusterSpecMetadata struct {
 	Force bool
 }
