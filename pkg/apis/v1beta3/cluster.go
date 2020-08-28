@@ -7,12 +7,10 @@ type ClusterMeta struct {
 
 // ClusterConfig describes cluster.yaml configuration
 type ClusterConfig struct {
-	APIVersion       string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1beta3"`
-	Kind             string       `yaml:"kind" validate:"eq=DockerEnterprise"`
-	Metadata         *ClusterMeta `yaml:"metadata"`
-	Spec             *ClusterSpec `yaml:"spec"`
-	ManagerJoinToken string       `yaml:"-"`
-	WorkerJoinToken  string       `yaml:"-"`
+	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1beta3"`
+	Kind       string       `yaml:"kind" validate:"eq=DockerEnterprise"`
+	Metadata   *ClusterMeta `yaml:"metadata"`
+	Spec       *ClusterSpec `yaml:"spec"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

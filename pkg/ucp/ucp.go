@@ -32,20 +32,21 @@ type Credentials struct {
 // CollectUcpFacts gathers the current status of installed UCP setup
 // Currently we only need to know the existing version and whether UCP is installed or not.
 // In future we probably need more.
-func CollectUcpFacts(swarmLeader *api.Host) (*api.UcpMetadata, error) {
+func CollectUcpFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
 	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{ index .Config.Labels "com.docker.ucp.version"}}' ucp-proxy`))
 	if err != nil {
 		// We need to check the output to check if the container does not exist
 		if strings.Contains(output, "No such object") {
-			return &api.UcpMetadata{Installed: false}, nil
+			ucpMeta.Installed = false
+			ucpMeta.InstalledVersion = ""
+			return nil
 		}
-		return nil, err
+		return err
 	}
-	ucpMeta := &api.UcpMetadata{
-		Installed:        true,
-		InstalledVersion: output,
-	}
-	return ucpMeta, nil
+	ucpMeta.Installed = true
+	ucpMeta.InstalledVersion = output
+
+	return nil
 }
 
 // GetClientBundle fetches the client bundle from UCP

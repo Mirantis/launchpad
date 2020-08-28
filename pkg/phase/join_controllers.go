@@ -27,7 +27,7 @@ func (p *JoinManagers) Run(config *api.ClusterConfig) error {
 			log.Infof("%s: already a swarm node", h.Address)
 			continue
 		}
-		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", config.ManagerJoinToken, swarmLeader.SwarmAddress())
+		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", config.Spec.Ucp.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as manager", h.Address)
 		err := h.ExecCmd(joinCmd, "", true, true)
 		if err != nil {
