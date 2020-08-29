@@ -75,6 +75,7 @@ SUPPORT:
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
+			cmd.ContainerCloudCommand(),
 			versionCmd,
 		},
 	}
