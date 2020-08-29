@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"net/url"
+	"path"
 	"strings"
 )
 
@@ -16,4 +17,13 @@ func ResolveURL(serverURL string) (*url.URL, error) {
 		return nil, err
 	}
 	return url, nil
+}
+
+// Gets the file name from an URL
+func GetFileFromURL(serverURL string) (string, error) {
+	u, err := ResolveURL(serverURL)
+	if err != nil {
+		return "", err
+	}
+	return path.Base(u.Path), nil
 }
