@@ -138,6 +138,20 @@ func (h *Host) ExecWithOutput(cmd string) (string, error) {
 	return h.Connection.ExecWithOutput(cmd)
 }
 
+// ExecAll execs a slice of commands on the host
+func (h *Host) ExecAll(cmds []string) error {
+	for _, cmd := range cmds {
+		log.Infof("%s: Executing: %s", h.Address, cmd)
+		output, err := h.ExecWithOutput(cmd)
+		if err != nil {
+			log.Errorf("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+			return err
+		}
+		log.Infof("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+	}
+	return nil
+}
+
 func trimOutput(output []byte) string {
 	if len(output) > 0 {
 		return strings.TrimSpace(string(output))
