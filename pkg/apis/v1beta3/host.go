@@ -147,7 +147,9 @@ func (h *Host) ExecAll(cmds []string) error {
 			log.Errorf("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
 			return err
 		}
-		log.Infof("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+		if strings.TrimSpace(output) != "" {
+			log.Infof("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+		}
 	}
 	return nil
 }
