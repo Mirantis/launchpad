@@ -9,12 +9,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ClusterSpecMetadata contains spec level metadata
+type ClusterSpecMetadata struct {
+	Force bool
+}
+
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
 	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
 	Ucp    UcpConfig    `yaml:"ucp"`
 	Dtr    DtrConfig    `yaml:"dtr"`
 	Engine EngineConfig `yaml:"engine"`
+
+	Metadata ClusterSpecMetadata `yaml:"-"`
 }
 
 // WebUrls holds admin web url strings for different products
@@ -81,6 +88,7 @@ func (c *ClusterSpec) WebURLs() *WebUrls {
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type yclusterspec ClusterSpec
 	yc := (*yclusterspec)(c)
+	c.Metadata = ClusterSpecMetadata{}
 	c.Engine = EngineConfig{}
 	c.Ucp = NewUcpConfig()
 
