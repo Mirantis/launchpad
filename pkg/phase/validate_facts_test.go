@@ -20,7 +20,7 @@ func TestValidateFactsUCPVersionJumpFail(t *testing.T) {
 			},
 		},
 	}
-	require.EqualError(t, phase.validateUCPVersionJump(config), "can't upgrade UCP directly from 3.1.1 to 3.3.3-tp9 - need to upgrade to 3.2 first")
+	require.EqualError(t, phase.validateUCPVersionJump(config), "can't upgrade UCP directly from 3.1.1 to 3.3.3 - need to upgrade to 3.2 first")
 }
 
 func TestValidateFactsUCPVersionJumpDowngradeFail(t *testing.T) {
@@ -30,13 +30,13 @@ func TestValidateFactsUCPVersionJumpDowngradeFail(t *testing.T) {
 			Ucp: api.UcpConfig{
 				Metadata: &api.UcpMetadata{
 					Installed:        true,
-					InstalledVersion: "3.3.3-tp9",
+					InstalledVersion: "3.3.3",
 				},
 				Version: "3.2.8",
 			},
 		},
 	}
-	require.EqualError(t, phase.validateUCPVersionJump(config), "can't downgrade UCP 3.3.3-tp9 to 3.2.8")
+	require.EqualError(t, phase.validateUCPVersionJump(config), "can't downgrade UCP 3.3.3 to 3.2.8")
 }
 
 func TestValidateFactsUCPVersionJumpSuccess(t *testing.T) {
@@ -49,6 +49,23 @@ func TestValidateFactsUCPVersionJumpSuccess(t *testing.T) {
 					InstalledVersion: "3.1.1",
 				},
 				Version: "3.2.8",
+			},
+		},
+	}
+	require.NoError(t, phase.validateUCPVersionJump(config))
+}
+
+// The server reports version as 3.3.3 even when 3.3.3-tp10 is installed
+func TestValidateFactsUCPVersionJumpSuccessBug(t *testing.T) {
+	phase := ValidateFacts{}
+	config := &api.ClusterConfig{
+		Spec: &api.ClusterSpec{
+			Ucp: api.UcpConfig{
+				Metadata: &api.UcpMetadata{
+					Installed:        true,
+					InstalledVersion: "3.3.3",
+				},
+				Version: "3.3.3-tp10",
 			},
 		},
 	}
@@ -97,6 +114,23 @@ func TestValidateFactsDTRVersionJumpSuccess(t *testing.T) {
 					InstalledVersion: "2.6.8",
 				},
 				Version: "2.7.1",
+			},
+		},
+	}
+	require.NoError(t, phase.validateDTRVersionJump(config))
+}
+
+// The server reports version as 3.3.3 even when 3.3.3-tp10 is installed
+func TestValidateFactsDTRVersionJumpSuccessBug(t *testing.T) {
+	phase := ValidateFacts{}
+	config := &api.ClusterConfig{
+		Spec: &api.ClusterSpec{
+			Dtr: api.DtrConfig{
+				Metadata: &api.DtrMetadata{
+					Installed:        true,
+					InstalledVersion: "2.6.8",
+				},
+				Version: "2.6.8-beta1",
 			},
 		},
 	}

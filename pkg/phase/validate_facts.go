@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 
@@ -61,6 +62,11 @@ func (p *ValidateFacts) validateUCPVersionJump(conf *api.ClusterConfig) error {
 		if err != nil {
 			return err
 		}
+		// The server reports 3.3.3 even if you installed 3.3.3-tp10, this makes the following comparison
+		// complain that you can't downgrade, when you're just trying to apply.
+		if strings.Contains(conf.Spec.Ucp.Version, "-") {
+			targetUCP, _ = version.NewVersion(conf.Spec.Ucp.Version[0:strings.Index(conf.Spec.Ucp.Version, "-")])
+		}
 
 		if installedUCP.GreaterThan(targetUCP) {
 			return fmt.Errorf("can't downgrade UCP %s to %s", installedUCP.String(), targetUCP.String())
@@ -88,6 +94,11 @@ func (p *ValidateFacts) validateDTRVersionJump(conf *api.ClusterConfig) error {
 		targetDTR, err := version.NewVersion(conf.Spec.Dtr.Version)
 		if err != nil {
 			return err
+		}
+		// The server reports 3.3.3 even if you installed 3.3.3-tp10, this makes the following comparison
+		// complain that you can't downgrade, when you're just trying to apply.
+		if strings.Contains(conf.Spec.Dtr.Version, "-") {
+			targetDTR, _ = version.NewVersion(conf.Spec.Dtr.Version[0:strings.Index(conf.Spec.Dtr.Version, "-")])
 		}
 
 		if installedDTR.GreaterThan(targetDTR) {
