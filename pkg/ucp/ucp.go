@@ -33,17 +33,22 @@ type Credentials struct {
 // Currently we only need to know the existing version and whether UCP is installed or not.
 // In future we probably need more.
 func CollectUcpFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
-	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`ps --filter name=/ucp-controller --format {{.Image}}|cut -d: -f2|head -1`))
+	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Image}}' ucp-proxy`))
 	if err != nil {
-		if output == "" {
+		if strings.Contains(output, "No such object") {
 			ucpMeta.Installed = false
 			ucpMeta.InstalledVersion = ""
 			return nil
 		}
 		return err
 	}
+	vparts := strings.Split(output, ":")
+	if len(vparts) != 2 {
+		return fmt.Errorf("malformed version output: %s", output)
+	}
+
 	ucpMeta.Installed = true
-	ucpMeta.InstalledVersion = output
+	ucpMeta.InstalledVersion = vparts[1]
 
 	return nil
 }
