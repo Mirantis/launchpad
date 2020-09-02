@@ -2,8 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
@@ -31,10 +29,6 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run(conf *api.ClusterConfig) error {
-	if err := p.validateDataPlane(conf); err != nil {
-		return err
-	}
-
 	if err := p.validateHostFacts(conf); err != nil {
 		return p.formatErrors(conf)
 	}
@@ -92,65 +86,4 @@ func (p *ValidateHosts) validateHostnameUniqueness(conf *api.ClusterConfig) erro
 	}
 
 	return p.formatErrors(conf)
-}
-
-// validateDataPlane checks if the calico data plane would get changed (VXLAN <-> VPIP)
-func (p *ValidateHosts) validateDataPlane(conf *api.ClusterConfig) error {
-	log.Debug("validating data plane settings")
-
-	re := regexp.MustCompile(`^--calico-vxlan=?(.*)`)
-
-	hasTrue := false
-	hasFalse := false
-
-	for _, v := range conf.Spec.Ucp.InstallFlags {
-		match := re.FindStringSubmatch(v)
-		if len(match) == 2 {
-			if match[1] == "" {
-				hasTrue = true
-			} else {
-				b, err := strconv.ParseBool(match[1])
-				if err != nil {
-					return fmt.Errorf("invalid --calico-vxlan value %s", v)
-				}
-				if b {
-					hasTrue = true
-				} else {
-					hasFalse = true
-				}
-			}
-		}
-	}
-
-	// User has explicitly defined --calico-vxlan=false but there is a windows host in the config
-	if hasFalse {
-		if conf.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
-			return fmt.Errorf("calico IPIP can't be used on Windows")
-		}
-
-		log.Debug("no windows hosts found")
-	}
-
-	if !conf.Spec.Ucp.Metadata.Installed {
-		log.Debug("no existing UCP installation")
-		return nil
-	}
-
-	// User has explicitly defined --calico-vxlan=false but there is already a calico with vxlan
-	if conf.Spec.Ucp.Metadata.VXLAN {
-		log.Debug("ucp has been installed with calico + vxlan")
-		if hasFalse {
-			return fmt.Errorf("calico configured with VXLAN, can't automatically change to IPIP")
-		}
-	} else {
-		log.Debug("ucp has been installed with calico + vpip")
-		// User has explicitly defined --calico-vxlan=true but there is already a calico with ipip
-		if hasTrue {
-			return fmt.Errorf("calico configured with IPIP, can't automatically change to VXLAN")
-		}
-	}
-
-	log.Debug("data plane settings check passed")
-
-	return nil
 }
