@@ -33,10 +33,9 @@ type Credentials struct {
 // Currently we only need to know the existing version and whether UCP is installed or not.
 // In future we probably need more.
 func CollectUcpFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
-	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{ index .Config.Labels "com.docker.ucp.version"}}' ucp-proxy`))
+	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`docker ps --filter name=/ucp-controller --format {{.Image}}|cut -d: -f2|head -1`))
 	if err != nil {
-		// We need to check the output to check if the container does not exist
-		if strings.Contains(output, "No such object") {
+		if output == "" {
 			ucpMeta.Installed = false
 			ucpMeta.InstalledVersion = ""
 			return nil
