@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )
@@ -110,11 +111,21 @@ func ImagePull(host *api.Host, images []string) error {
 	for _, image := range images {
 		i := image // So we can safely pass i forward to pool without it getting mutated
 		wp.Submit(func() {
-			log.Infof("%s: pulling image %s", host.Address, i)
-			e := host.PullImage(i)
-			if e != nil {
-				log.Warnf("%s: failed to pull image %s", host.Address, i)
-			}
+			retry.Do(
+				func() error {
+					log.Infof("%s: pulling image %s", host.Address, i)
+					return host.PullImage(i)
+				},
+				retry.RetryIf(func(err error) bool {
+					return !(strings.Contains(err.Error(), "pull access") || strings.Contains(err.Error(), "manifest unknown"))
+				}),
+				retry.OnRetry(func(n uint, err error) {
+					if err != nil {
+						log.Warnf("%s: failed to pull image %s - retrying", host.Address, i)
+					}
+				}),
+				retry.Attempts(2),
+			)
 		})
 	}
 	return nil
