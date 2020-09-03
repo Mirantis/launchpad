@@ -8,9 +8,9 @@ const (
 	// UCPVersion is the default UCP version to use
 	UCPVersion = "3.3.2"
 	// DTRVersion is the default DTR version to use
-	DTRVersion = "2.8.1"
+	DTRVersion = "2.8.2"
 	// EngineVersion is the default engine version
-	EngineVersion = "19.03.8"
+	EngineVersion = "19.03.12"
 	// EngineChannel is the default engine channel
 	EngineChannel = "stable"
 	// EngineRepoURL is the default engine repo
