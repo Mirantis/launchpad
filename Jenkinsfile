@@ -68,8 +68,7 @@ pipeline {
           }
           environment {
             UCP_IMAGE_REPO = "docker.io/dockereng"
-            UCP_VERSION = "3.4.0-tp6"
-            ENGINE_VERSION = "19.03.11"
+            UCP_VERSION = "3.3.3-tp10"
             REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
           }
           steps {
