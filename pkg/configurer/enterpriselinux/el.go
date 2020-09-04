@@ -5,6 +5,8 @@ import (
 
 	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	"github.com/Mirantis/mcc/pkg/configurer"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Configurer is the EL family specific implementation of a host configurer
@@ -54,11 +56,14 @@ func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 		c.Host.DaemonConfig["selinux-enabled"] = true
 	}
 
-	if c.Host.Configurer.FileExist("/etc/yum.repos.d/redhat-rhui-client-config.repo") {
-		err := c.Host.Exec("(yum install -y rh-amazon-rhui-client && yum-config-manager --enable rhel-7-server-rhui-extras-rpms) || true")
-		if err != nil {
-			return err
+	if c.Host.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
+		if c.Host.Exec("sudo yum install -q -y rh-amazon-rhui-client") == nil {
+			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", c.Host.Address)
 		}
+	}
+
+	if c.Host.Exec("sudo yum-config-manager --enable rhel-7-server-rhui-extras-rpms && sudo yum makecache fast") == nil {
+		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", c.Host.Address)
 	}
 
 	return c.LinuxConfigurer.InstallEngine(engineConfig)
