@@ -1,4 +1,4 @@
-package v1beta3
+package api
 
 // ClusterMeta defines cluster metadata
 type ClusterMeta struct {

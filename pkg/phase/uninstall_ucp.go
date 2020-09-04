@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
