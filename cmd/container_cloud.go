@@ -73,12 +73,14 @@ func ContainerCloudCommand() *cli.Command {
 			}
 			releaseFile := getKaaSReleaseFilePath()
 			releasesBaseURL := getReleasesBaseURL(baseURL)
+			clusterReleasesDir := getClusterReleasesDir()
 			d := &containercloud.DownloadBootstrapBundle{
-				TargetDir:       targetDir,
-				Region:          region,
-				BaseURL:         baseURL,
-				ReleaseFile:     releaseFile,
-				ReleasesBaseURL: releasesBaseURL,
+				TargetDir:          targetDir,
+				Region:             region,
+				BaseURL:            baseURL,
+				ReleaseFile:        releaseFile,
+				ReleasesBaseURL:    releasesBaseURL,
+				ClusterReleasesDir: clusterReleasesDir,
 			}
 			err = d.Init()
 			if err != nil {
@@ -110,8 +112,8 @@ func getTargetDir() (dir string) {
 		log.Printf("Set target dir from CLI flag: %v\n", dir)
 		return dir
 	}
-	if dir = os.Getenv("TARGET_DIR"); dir != "" {
-		log.Printf("Set target dir from env var TARGET_DIR: %v\n", dir)
+	if dir = os.Getenv(constant.TargetDirEnvVar); dir != "" {
+		log.Printf("Set target dir from env var %s: %v\n", constant.TargetDirEnvVar, dir)
 		return dir
 	}
 	log.Printf("Set target dir to the default: %v\n", constant.DefaultTargetDir)
@@ -125,8 +127,8 @@ func getCDNRegion() string {
 		log.Printf("Using CDN region from CLI flag: %s\n", c)
 		return c
 	}
-	if c := os.Getenv("KAAS_CDN_REGION"); c != "" {
-		log.Printf("Using CDN region from KAAS_CDN_REGION env var: %s\n", c)
+	if c := os.Getenv(constant.KaaSCDNRegionEnvVar); c != "" {
+		log.Printf("Using CDN region from %s env var: %s\n", constant.KaaSCDNRegionEnvVar, c)
 		return c
 	}
 	log.Printf("Using CDN region from defaults: %s\n", constant.DefaultCDNRegion)
@@ -140,8 +142,8 @@ func getBaseURL() (string, error) {
 		log.Printf("Using base CDN URL from CLI flag: %s\n", c)
 		return c, nil
 	}
-	if c := os.Getenv("KAAS_CDN_BASE_URL"); c != "" {
-		log.Printf("Using base CDN URL from KAAS_CDN_BASE_URL env var: %s", c)
+	if c := os.Getenv(constant.KaaSCDNBaseURLEnvVar); c != "" {
+		log.Printf("Using base CDN URL from %s env var: %s", constant.KaaSCDNBaseURLEnvVar, c)
 		return c, nil
 	}
 	region := getCDNRegion()
@@ -165,11 +167,22 @@ func getReleasesBaseURL(baseUrl string) string {
 	if u := ctx.String("release-base-url"); u != "" {
 		return u
 	}
-	if u := os.Getenv("KAAS_RELEASES_BASE_URL"); u != "" {
+	if u := os.Getenv(constant.KaaSReleasesBaseURLEnvVar); u != "" {
 		return u
 	}
 	u := fmt.Sprintf("%s/%s", baseUrl, constant.DefaultReleasesPath)
 	return u
+}
+
+// Get the name of the directory that contains the ClusterRelease objects.
+func getClusterReleasesDir() string {
+	if s := ctx.String("cluster-releases-dir"); s != "" {
+		return s
+	}
+	if s := os.Getenv(constant.ClusterReleasesDirEnvVar); s != "" {
+		return s
+	}
+	return ""
 }
 
 // Get the path to the file that contains KaaSRelease. Use the cli flag or env var,
@@ -180,8 +193,8 @@ func getKaaSReleaseFilePath() string {
 		log.Printf("Setting release file path from CLI flag: %s\n", r)
 		return r
 	}
-	if r := os.Getenv("KAAS_RELEASE_YAML"); r != "" {
-		log.Printf("Setting release file path from env var KAAS_RELEASE_YAML: %s\n", r)
+	if r := os.Getenv(constant.KaaSReleasesYamlEnvVar); r != "" {
+		log.Printf("Setting release file path from env var %s: %s\n", constant.KaaSReleasesYamlEnvVar, r)
 		return r
 	}
 	log.Printf("No release file path given, will download the latest release\n")

@@ -93,3 +93,11 @@ func ExtractTarball(f, p string) error {
 	log.Printf("Extracted \"%s\" to dir \"%s\"\n", fp, p)
 	return nil
 }
+
+// Thin wrap the ioutil.WriteFile() call with compatible arguments.
+func WriteFile(f string, d []byte, m os.FileMode) error {
+	if err := ioutil.WriteFile(f, d, m); err != nil {
+		return err
+	}
+	return nil
+}
