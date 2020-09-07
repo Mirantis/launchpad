@@ -15,6 +15,20 @@ pipeline {
     }
     stage("Smoke test") {
       parallel {
+        stage("Ubuntu 18.04, local worker") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+            environment {
+              FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
+              CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
+            }
+            steps {
+              sh "make smoke-apply-test"
+            }
+          }
+        }
         stage("Ubuntu 18.04: apply & reset") {
           agent {
             node {
