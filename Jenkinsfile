@@ -70,13 +70,13 @@ pipeline {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
-            environment {
-              FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
-              CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
-            }
-            steps {
-              sh "make smoke-apply-test"
-            }
+          }
+          environment {
+            FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
+          }
+          steps {
+            sh "make smoke-apply-test"
           }
         }
         stage("CentOS 7: apply") {
