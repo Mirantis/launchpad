@@ -65,20 +65,6 @@ pipeline {
             sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
-        stage("Local worker") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          environment {
-            FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
-            CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
-          }
-          steps {
-            sh "make smoke-apply-test"
-          }
-        }
         stage("CentOS 7: apply") {
           agent {
               node {
