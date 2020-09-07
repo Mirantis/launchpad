@@ -2,6 +2,7 @@ package containercloud
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"runtime"
 
@@ -50,6 +51,9 @@ func (d *DownloadBootstrapBundle) Run() error {
 		return err
 	}
 	if err = d.extractBootstrapTarball(); err != nil {
+		return err
+	}
+	if err = d.writeBootstrapEnv(); err != nil {
 		return err
 	}
 	return nil
@@ -150,6 +154,20 @@ func (d *DownloadBootstrapBundle) downloadBootstrapTarball() error {
 func (d *DownloadBootstrapBundle) extractBootstrapTarball() error {
 	p := path.Join(d.TargetDir, d.BootstrapTarball)
 	if err := util.ExtractTarball(p, d.TargetDir); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Write env variable to the bootstrap.env file.
+func (d *DownloadBootstrapBundle) writeBootstrapEnv() error {
+	fpath := path.Join(d.TargetDir, constant.BootstrapEnvFile)
+	data := fmt.Sprintf("%s=%s\n", constant.KaaSReleasesYamlEnvVar, d.ReleaseFile)
+	data += fmt.Sprintf("%s=%s\n", constant.ClusterReleasesDirEnvVar, d.ClusterReleasesDir)
+	data += fmt.Sprintf("%s=%s\n", constant.KaaSCDNRegionEnvVar, d.Region)
+	rawData := []byte(data)
+	mode := os.FileMode(uint32(0644))
+	if err := util.WriteFile(fpath, rawData, mode); err != nil {
 		return err
 	}
 	return nil
