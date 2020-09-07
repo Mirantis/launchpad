@@ -15,20 +15,6 @@ pipeline {
     }
     stage("Smoke test") {
       parallel {
-        stage("Ubuntu 18.04, local worker") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-            environment {
-              FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
-              CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
-            }
-            steps {
-              sh "make smoke-apply-test"
-            }
-          }
-        }
         stage("Ubuntu 18.04: apply & reset") {
           agent {
             node {
@@ -77,6 +63,20 @@ pipeline {
           }
           steps {
             sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+          }
+        }
+        stage("Local worker") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+            environment {
+              FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
+              CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
+            }
+            steps {
+              sh "make smoke-apply-test"
+            }
           }
         }
         stage("CentOS 7: apply") {
