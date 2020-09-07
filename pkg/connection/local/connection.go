@@ -12,6 +12,7 @@ import (
 
 const hostname = "localhost"
 
+// Connection is a direct localhost connection
 type Connection struct{}
 
 // NewConnection returns a new connection
@@ -19,6 +20,7 @@ func NewConnection() *Connection {
 	return &Connection{}
 }
 
+// SetWindows on local connection does nothing
 func (c *Connection) SetWindows(bool) {}
 
 // IsWindows is true when SetWindows(true) has been used
