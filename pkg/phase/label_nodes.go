@@ -12,6 +12,7 @@ import (
 // LabelNodes phase implementation
 type LabelNodes struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -20,10 +21,10 @@ func (p *LabelNodes) Title() string {
 }
 
 // Run labels all nodes with launchpad label
-func (p *LabelNodes) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
+func (p *LabelNodes) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
 
-	err := p.labelCurrentNodes(config, swarmLeader)
+	err := p.labelCurrentNodes(p.config, swarmLeader)
 	if err != nil {
 		return err
 	}

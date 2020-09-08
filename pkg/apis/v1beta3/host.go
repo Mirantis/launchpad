@@ -53,6 +53,18 @@ func (errors *errors) String() string {
 	return "- " + strings.Join(errors.errors, "\n- ")
 }
 
+// BeforeAfter is the a child struct for the Hooks struct, containing sections for Before and After
+type BeforeAfter struct {
+	Before *[]string `yaml:"before" default:"[]"`
+	After  *[]string `yaml:"after" default:"[]"`
+}
+
+// Hooks is a list of hook-points
+type Hooks struct {
+	Apply *BeforeAfter `yaml:"apply" default:"{}"`
+	Reset *BeforeAfter `yaml:"reset" default:"{}"`
+}
+
 // Host contains all the needed details to work with hosts
 type Host struct {
 	Address          string            `yaml:"address" validate:"required,hostname|ip"`
@@ -60,8 +72,7 @@ type Host struct {
 	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
-	Before           []string          `yaml:"before,omitempty" default:"[]"`
-	After            []string          `yaml:"after,omitempty" default:"[]"`
+	Hooks            *Hooks            `yaml:"hooks" default:"{}"`
 
 	WinRM *WinRM `yaml:"winRM,omitempty"`
 	SSH   *SSH   `yaml:"ssh,omitempty"`

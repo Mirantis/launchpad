@@ -8,6 +8,7 @@ import (
 // Disconnect phase implementation
 type Disconnect struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -16,8 +17,8 @@ func (p *Disconnect) Title() string {
 }
 
 // Run disconnects from all the hosts
-func (p *Disconnect) Run(config *api.ClusterConfig) error {
-	return runParallelOnHosts(config.Spec.Hosts, config, p.disconnectHost)
+func (p *Disconnect) Run() error {
+	return runParallelOnHosts(p.config.Spec.Hosts, p.config, p.disconnectHost)
 }
 
 func (p *Disconnect) disconnectHost(host *api.Host, c *api.ClusterConfig) error {

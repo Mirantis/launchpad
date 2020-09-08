@@ -12,6 +12,7 @@ import (
 // PullImages phase implementation
 type PullImages struct {
 	Analytics
+	BasicPhase
 	Dtr bool
 }
 
@@ -24,22 +25,22 @@ func (p *PullImages) Title() string {
 }
 
 // Run pulls images in parallel across nodes via a workerpool of 5
-func (p *PullImages) Run(c *api.ClusterConfig) error {
-	imageRepo := c.Spec.Ucp.ImageRepo
+func (p *PullImages) Run() error {
+	imageRepo := p.config.Spec.Ucp.ImageRepo
 	product := "UCP"
 	if p.Dtr {
-		imageRepo = c.Spec.Dtr.ImageRepo
+		imageRepo = p.config.Spec.Dtr.ImageRepo
 		product = "DTR"
 	}
 
-	err := runParallelOnHosts(c.Spec.Hosts, c, func(h *api.Host, c *api.ClusterConfig) error {
+	err := runParallelOnHosts(p.config.Spec.Hosts, p.config, func(h *api.Host, c *api.ClusterConfig) error {
 		return h.AuthenticateDocker(imageRepo)
 	})
 
 	if err != nil {
 		return err
 	}
-	images, err := p.ListImages(c)
+	images, err := p.ListImages(p.config)
 	if err != nil {
 		return NewError(err.Error())
 	}
@@ -54,7 +55,7 @@ func (p *PullImages) Run(c *api.ClusterConfig) error {
 			images[index] = newImage
 		}
 		// In case of custom image repo, we need to pull and retag all the images on all hosts
-		return runParallelOnHosts(c.Spec.Hosts, c, func(h *api.Host, c *api.ClusterConfig) error {
+		return runParallelOnHosts(p.config.Spec.Hosts, p.config, func(h *api.Host, c *api.ClusterConfig) error {
 			err := ImagePull(h, images)
 			if err != nil {
 				return err
@@ -63,7 +64,7 @@ func (p *PullImages) Run(c *api.ClusterConfig) error {
 		})
 	}
 	// Normally we pull only on managers, let workers pull needed stuff on-demand
-	return runParallelOnHosts(c.Spec.Managers(), c, func(h *api.Host, c *api.ClusterConfig) error {
+	return runParallelOnHosts(p.config.Spec.Managers(), p.config, func(h *api.Host, c *api.ClusterConfig) error {
 		return ImagePull(h, images)
 	})
 }

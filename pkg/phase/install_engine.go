@@ -14,6 +14,7 @@ import (
 // InstallEngine phase implementation
 type InstallEngine struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -22,23 +23,23 @@ func (p *InstallEngine) Title() string {
 }
 
 // Run installs the engine on each host
-func (p *InstallEngine) Run(c *api.ClusterConfig) error {
+func (p *InstallEngine) Run() error {
 	p.EventProperties = map[string]interface{}{
-		"engine_version": c.Spec.Engine.Version,
+		"engine_version": p.config.Spec.Engine.Version,
 	}
-	err := p.upgradeEngines(c)
+	err := p.upgradeEngines(p.config)
 	if err != nil {
 		return err
 	}
 
 	newHosts := []*api.Host{}
-	for _, h := range c.Spec.Hosts {
+	for _, h := range p.config.Spec.Hosts {
 		if h.Metadata.EngineVersion == "" {
 			newHosts = append(newHosts, h)
 		}
 	}
 
-	return runParallelOnHosts(newHosts, c, p.installEngine)
+	return runParallelOnHosts(newHosts, p.config, p.installEngine)
 }
 
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers

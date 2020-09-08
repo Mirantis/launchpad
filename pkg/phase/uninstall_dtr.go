@@ -9,6 +9,7 @@ import (
 // UninstallDTR is the phase implementation for running DTR uninstall
 type UninstallDTR struct {
 	Analytics
+	BasicPhase
 }
 
 // Title prints the phase title
@@ -17,16 +18,16 @@ func (p *UninstallDTR) Title() string {
 }
 
 // Run an uninstall via CleanupDTRs
-func (p *UninstallDTR) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
-	if !config.Spec.Dtr.Metadata.Installed {
+func (p *UninstallDTR) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
+	if !p.config.Spec.Dtr.Metadata.Installed {
 		log.Infof("%s: DTR is not installed", swarmLeader.Address)
 		return nil
 	}
 
 	var dtrHosts []*api.Host
 
-	for _, h := range config.Spec.Hosts {
+	for _, h := range p.config.Spec.Hosts {
 		if h.Role == "dtr" {
 			dtrHosts = append(dtrHosts, h)
 		}

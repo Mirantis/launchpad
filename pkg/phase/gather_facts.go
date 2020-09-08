@@ -24,6 +24,7 @@ import (
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts
 type GatherFacts struct {
 	Analytics
+	BasicPhase
 	Dtr bool
 }
 
@@ -33,46 +34,46 @@ func (p *GatherFacts) Title() string {
 }
 
 // Run collect all the facts from hosts in parallel
-func (p *GatherFacts) Run(conf *api.ClusterConfig) error {
-	err := runParallelOnHosts(conf.Spec.Hosts, conf, p.investigateHost)
+func (p *GatherFacts) Run() error {
+	err := runParallelOnHosts(p.config.Spec.Hosts, p.config, p.investigateHost)
 	if err != nil {
 		return err
 	}
 	// Gather UCP related facts
-	conf.Spec.Ucp.Metadata = &api.UcpMetadata{
+	p.config.Spec.Ucp.Metadata = &api.UcpMetadata{
 		ClusterID:        "",
 		Installed:        false,
 		InstalledVersion: "",
 	}
-	swarmLeader := conf.Spec.SwarmLeader()
+	swarmLeader := p.config.Spec.SwarmLeader()
 	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
 		ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 		}
-		conf.Spec.Ucp.Metadata = ucpMeta
+		p.config.Spec.Ucp.Metadata = ucpMeta
 		if ucpMeta.Installed {
 			log.Infof("%s: UCP has version %s", swarmLeader.Address, ucpMeta.InstalledVersion)
 		} else {
 			log.Infof("%s: UCP is not installed", swarmLeader.Address)
 		}
-		conf.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
+		p.config.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
 	if p.Dtr {
 		// If we intend to configure DTR as well, gather facts for DTR
-		conf.Spec.Dtr.Metadata = &api.DtrMetadata{
+		p.config.Spec.Dtr.Metadata = &api.DtrMetadata{
 			Installed:          false,
 			InstalledVersion:   "",
 			DtrLeaderReplicaID: "",
 		}
-		dtrLeader := conf.Spec.DtrLeader()
+		dtrLeader := p.config.Spec.DtrLeader()
 		if dtrLeader.Metadata.EngineVersion != "" {
 			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
 			if err != nil {
 				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
 			}
-			conf.Spec.Dtr.Metadata = dtrMeta
+			p.config.Spec.Dtr.Metadata = dtrMeta
 			if dtrMeta.Installed {
 				log.Infof("%s: DTR has version %s", dtrLeader.Address, dtrMeta.InstalledVersion)
 			} else {

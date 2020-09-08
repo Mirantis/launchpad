@@ -12,6 +12,7 @@ import (
 // JoinDtrReplicas phase implementation
 type JoinDtrReplicas struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -20,12 +21,12 @@ func (p *JoinDtrReplicas) Title() string {
 }
 
 // Run joins all the workers nodes to swarm if not already part of it.
-func (p *JoinDtrReplicas) Run(config *api.ClusterConfig) error {
-	dtrLeader := config.Spec.DtrLeader()
-	ucpFlags := dtr.BuildUcpFlags(config)
+func (p *JoinDtrReplicas) Run() error {
+	dtrLeader := p.config.Spec.DtrLeader()
+	ucpFlags := dtr.BuildUcpFlags(p.config)
 	sequentialInt := 0
 
-	for _, d := range config.Spec.Dtrs() {
+	for _, d := range p.config.Spec.Dtrs() {
 		sequentialInt++
 		// Iterate through the Dtrs and determine which have DTR installed
 		// on them, if one is found which is not yet in the cluster, perform
@@ -42,9 +43,9 @@ func (p *JoinDtrReplicas) Run(config *api.ClusterConfig) error {
 		}
 		joinFlags := []string{
 			fmt.Sprintf("--ucp-node %s", d.Metadata.LongHostname),
-			fmt.Sprintf("--existing-replica-id %s", config.Spec.Dtr.Metadata.DtrLeaderReplicaID),
+			fmt.Sprintf("--existing-replica-id %s", p.config.Spec.Dtr.Metadata.DtrLeaderReplicaID),
 		}
-		if config.Spec.Dtr.ReplicaConfig == "sequential" {
+		if p.config.Spec.Dtr.ReplicaConfig == "sequential" {
 			// Assign the appropriate sequential replica value if set
 			builtSeqInt := dtr.SequentialReplicaID(sequentialInt)
 			log.Debugf("Joining replica with sequential replicaID: %s", builtSeqInt)
@@ -53,11 +54,11 @@ func (p *JoinDtrReplicas) Run(config *api.ClusterConfig) error {
 		joinFlags = append(joinFlags, ucpFlags...)
 		// We can't just append the installFlags to joinFlags because they
 		// differ, so we have to selectively pluck the ones that are shared
-		for _, f := range dtr.PluckSharedInstallFlags(config.Spec.Dtr.InstallFlags, dtr.SharedInstallJoinFlags) {
+		for _, f := range dtr.PluckSharedInstallFlags(p.config.Spec.Dtr.InstallFlags, dtr.SharedInstallJoinFlags) {
 			joinFlags = append(joinFlags, f)
 		}
 
-		joinCmd := dtrLeader.Configurer.DockerCommandf("run %s %s join %s", strings.Join(runFlags, " "), config.Spec.Dtr.GetBootstrapperImage(), strings.Join(joinFlags, " "))
+		joinCmd := dtrLeader.Configurer.DockerCommandf("run %s %s join %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.GetBootstrapperImage(), strings.Join(joinFlags, " "))
 		log.Debugf("%s: Joining DTR replica to cluster", d.Address)
 		err := dtrLeader.ExecCmd(joinCmd, "", true, false)
 		if err != nil {

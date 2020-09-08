@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +12,7 @@ import (
 // UpgradeUcp is the phase implementation for running the actual UCP upgrade container
 type UpgradeUcp struct {
 	Analytics
+	BasicPhase
 }
 
 // Title prints the phase title
@@ -21,18 +21,18 @@ func (p *UpgradeUcp) Title() string {
 }
 
 // Run the installer container
-func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
+func (p *UpgradeUcp) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
 
 	p.EventProperties = map[string]interface{}{
 		"upgraded": false,
 	}
 	// Check specified bootstrapper images version
-	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, config.Spec.Ucp.GetBootstrapperImage()))
+	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, p.config.Spec.Ucp.GetBootstrapperImage()))
 	if err != nil {
 		return NewError("Failed to check bootstrapper image version")
 	}
-	installedVersion := config.Spec.Ucp.Metadata.InstalledVersion
+	installedVersion := p.config.Spec.Ucp.Metadata.InstalledVersion
 	if bootstrapperVersion == installedVersion {
 		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
 		return nil
@@ -43,7 +43,7 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	if swarmLeader.Configurer.SELinuxEnabled() {
 		runFlags = append(runFlags, "--security-opt label=disable")
 	}
-	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s", strings.Join(runFlags, " "), config.Spec.Ucp.GetBootstrapperImage(), swarmClusterID)
+	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s", strings.Join(runFlags, " "), p.config.Spec.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
 	err = swarmLeader.ExecCmd(upgradeCmd, "", true, false)
 	if err != nil {
@@ -57,7 +57,7 @@ func (p *UpgradeUcp) Run(config *api.ClusterConfig) error {
 	p.EventProperties["upgraded"] = true
 	p.EventProperties["installed_version"] = installedVersion
 	p.EventProperties["upgraded_version"] = bootstrapperVersion
-	config.Spec.Ucp.Metadata = ucpMeta
+	p.config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil
 }

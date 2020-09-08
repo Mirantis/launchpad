@@ -7,6 +7,7 @@ import (
 	"path"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
+	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
@@ -64,7 +65,7 @@ func Apply(configFile string, prune bool) error {
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
 	phaseManager.AddPhase(&phase.ValidateHosts{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
-	phaseManager.AddPhase(&phase.Before{})
+	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }})
 	phaseManager.AddPhase(&phase.PrepareHost{})
 	phaseManager.AddPhase(&phase.InstallEngine{})
 	phaseManager.AddPhase(&phase.PullImages{})
@@ -86,7 +87,7 @@ func Apply(configFile string, prune bool) error {
 	if prune {
 		phaseManager.AddPhase(&phase.RemoveNodes{})
 	}
-	phaseManager.AddPhase(&phase.After{})
+	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }})
 	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.Info{})
 
