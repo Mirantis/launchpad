@@ -81,6 +81,12 @@ func ContainerCloudCommand() *cli.Command {
 				ReleaseFile:        releaseFile,
 				ReleasesBaseURL:    releasesBaseURL,
 				ClusterReleasesDir: clusterReleasesDir,
+			d := &containercloud.DownloadBootstrapBundle{
+				TargetDir:       targetDir,
+				Region:          region,
+				BaseURL:         baseURL,
+				ReleaseFile:     releaseFile,
+				ReleasesBaseURL: releasesBaseURL,
 			}
 			err = d.Init()
 			if err != nil {
