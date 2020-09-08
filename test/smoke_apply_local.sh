@@ -8,4 +8,4 @@ trap cleanup EXIT
 
 setup && downloadTools
 
-footloose ssh root@manager0 "cd /launchpad; bash test/smoke_apply.sh"
+footloose ssh root@manager0 "cd /launchpad; test/smoke_apply.sh"
