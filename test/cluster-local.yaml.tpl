@@ -7,9 +7,8 @@ spec:
     - address: "127.0.0.1"
       localhost: true
       role: "manager"
-    - address: "127.0.0.1"
+    - address: "172.17.0.3"
       ssh:
-        port: 9023
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "worker"
