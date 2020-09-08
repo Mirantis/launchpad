@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"testing"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/stretchr/testify/require"
 )
 

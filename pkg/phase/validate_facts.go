@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strconv"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
