@@ -168,7 +168,7 @@ pipeline {
             FOOTLOOSE_TEPLATE = "footloose-local.yaml.tpl"
           }
           steps {
-            sh "footloose ssh root@manager0 \"cd /launchpad; make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04\""
+            sh "make smoke-apply-test-localhost LINUX_IMAGE=quay.io/footloose/ubuntu18.04\""
           }
         }
         stage("Ubuntu 18.04 with DTR") {
