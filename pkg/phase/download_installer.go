@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )

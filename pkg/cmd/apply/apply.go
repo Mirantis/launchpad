@@ -7,7 +7,7 @@ import (
 	"path"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
