@@ -50,14 +50,13 @@ func (p *UpgradeUcp) Run() error {
 		return NewError("Failed to run UCP upgrade")
 	}
 
-	ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
+	err = ucp.CollectUcpFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
 	p.EventProperties["upgraded"] = true
 	p.EventProperties["installed_version"] = installedVersion
 	p.EventProperties["upgraded_version"] = bootstrapperVersion
-	p.config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil
 }

@@ -49,6 +49,7 @@ func Reset(configFile string) error {
 	phaseManager.AddPhase(&phase.UninstallUCP{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.UninstallEngine{})
+	phaseManager.AddPhase(&phase.CleanUp{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.After }})
 	phaseManager.AddPhase(&phase.Disconnect{})
 

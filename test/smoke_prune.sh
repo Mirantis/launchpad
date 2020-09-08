@@ -6,9 +6,7 @@ cd test
 . ./smoke.common.sh
 trap cleanup EXIT
 
-setup
-
-[ "${REUSE_CLUSTER}" = "" ] && ../bin/launchpad --debug apply
+[ "${REUSE_CLUSTER}" = "" ] && setup && ../bin/launchpad --debug apply
 
 # Remove a node from the cluster.yaml and run apply with --prune
 echo -e "Removing one DTR node from cluster.yaml..."

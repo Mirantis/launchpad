@@ -21,7 +21,7 @@ import (
 )
 
 // Apply ...
-func Apply(configFile string, prune bool) error {
+func Apply(configFile string, prune, force bool) error {
 	var (
 		logFile *os.File
 		err     error
@@ -59,10 +59,12 @@ func Apply(configFile string, prune bool) error {
 	}
 
 	dtr := config.ContainsDtr(clusterConfig)
+	clusterConfig.Spec.Metadata.Force = force
 
 	phaseManager := phase.NewManager(&clusterConfig)
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
+	phaseManager.AddPhase(&phase.ValidateFacts{})
 	phaseManager.AddPhase(&phase.ValidateHosts{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }})
