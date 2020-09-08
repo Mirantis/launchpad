@@ -14,6 +14,7 @@ import (
 // ValidateFacts phase implementation to validate facts from config and collected metadata
 type ValidateFacts struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -22,25 +23,25 @@ func (p *ValidateFacts) Title() string {
 }
 
 // Run collect all the facts from hosts in parallel
-func (p *ValidateFacts) Run(conf *api.ClusterConfig) error {
-	if err := p.validateUCPVersionJump(conf); err != nil {
-		if conf.Spec.Metadata.Force {
+func (p *ValidateFacts) Run() error {
+	if err := p.validateUCPVersionJump(p.config); err != nil {
+		if p.config.Spec.Metadata.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}
 	}
 
-	if err := p.validateDTRVersionJump(conf); err != nil {
-		if conf.Spec.Metadata.Force {
+	if err := p.validateDTRVersionJump(p.config); err != nil {
+		if p.config.Spec.Metadata.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}
 	}
 
-	if err := p.validateDataPlane(conf); err != nil {
-		if conf.Spec.Metadata.Force {
+	if err := p.validateDataPlane(p.config); err != nil {
+		if p.config.Spec.Metadata.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
 			return err
