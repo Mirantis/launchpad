@@ -8,7 +8,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/util"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"
