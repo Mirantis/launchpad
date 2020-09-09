@@ -14,7 +14,7 @@ downloadFootloose
 generateKey
 createCluster
 ./footloose status worker0 -o json
-export WORKER_IP=$(./footloose status worker0 -o json | grep "\"ip\":" | head -1 |cut -d\" -f4)
+export WORKER_IP=$(./footloose status worker0 -o json | grep "\"ip\": \"172" | head -1 |cut -d\" -f4)
 echo WORKER_IP=$WORKER_IP
 generateYaml
 
