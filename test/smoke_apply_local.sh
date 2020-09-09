@@ -6,6 +6,9 @@ cd test
 . ./smoke.common.sh
 trap cleanup EXIT
 
-setup && downloadTools
+downloadFootloose
+generateKey
+createCluster
+generateYaml
 
-./footloose ssh root@manager0 "cd /launchpad; REUSE_CLUSTER=true test/smoke_apply.sh"
+./footloose ssh root@manager0 "cd /launchpad/test; ../bin/launchpad --debug apply"
