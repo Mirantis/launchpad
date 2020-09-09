@@ -13,7 +13,7 @@ machines:
       source: /lib/modules
       destination: /lib/modules
     - type: bind
-      source: ..
+      source: $SMOKE_DIR
       destination: /launchpad
     - type: volume
       destination: /var/lib/containerd
