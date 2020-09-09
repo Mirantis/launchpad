@@ -38,7 +38,8 @@ func (c *Connection) Disconnect() {}
 
 // ExecCmd executes a command on the host
 func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
-	command := exec.Command(cmd)
+	command := c.command(cmd)
+
 	if stdin != "" {
 		if sensitiveCommand || len(stdin) > 256 {
 			log.Debugf("%s: writing %d bytes to command stdin", hostname, len(stdin))
@@ -69,9 +70,9 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 
 	for outputScanner.Scan() {
 		if streamStdout {
-			log.Infof("%s:  %s", hostname, outputScanner.Text())
+			log.Infof("%s: %s", hostname, outputScanner.Text())
 		} else {
-			log.Debugf("%s:  %s", hostname, outputScanner.Text())
+			log.Debugf("%s: %s", hostname, outputScanner.Text())
 		}
 	}
 
@@ -80,7 +81,7 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 
 // ExecWithOutput execs a command on the host and returns its output
 func (c *Connection) ExecWithOutput(cmd string) (string, error) {
-	command := exec.Command(cmd)
+	command := c.command(cmd)
 	output, err := command.CombinedOutput()
 	return trimOutput(output), err
 }
@@ -91,4 +92,12 @@ func trimOutput(output []byte) string {
 	}
 
 	return strings.TrimSpace(string(output))
+}
+
+func (c *Connection) command(cmd string) *exec.Cmd {
+	if c.IsWindows() {
+		return exec.Command(cmd)
+	}
+
+	return exec.Command("bash", "-c", "--", cmd)
 }
