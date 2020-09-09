@@ -7,7 +7,7 @@ spec:
     - address: "127.0.0.1"
       localhost: true
       role: "manager"
-    - address: "172.17.0.3"
+    - address: "$WORKER_IP"
       ssh:
         keyPath: "./id_rsa_launchpad"
         user: "root"
