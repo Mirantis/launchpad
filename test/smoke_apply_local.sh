@@ -2,11 +2,12 @@
 
 set -e
 
+export SMOKE_DIR="$( pwd -P )"
+
 cd test
 . ./smoke.common.sh
 trap cleanup EXIT
 
-export SMOKE_DIR="$( cd "$(dirname "$0")/.." >/dev/null 2>&1 ; pwd -P )"
 echo SMOKE_DIR=$SMOKE_DIR
 
 downloadFootloose
