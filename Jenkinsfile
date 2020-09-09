@@ -164,8 +164,8 @@ pipeline {
             }
           }
           environment {
-            CONFIG_TEPLATE = "cluster-local.yaml.tpl"
-            FOOTLOOSE_TEPLATE = "footloose-local.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
+            FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
           }
           steps {
             sh "make smoke-apply-test-localhost LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
