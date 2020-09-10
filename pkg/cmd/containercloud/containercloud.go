@@ -12,6 +12,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// DownloadBootstrapBundle provides parameters and functions to download
+// the bootstrap tarball and release manifests for the Container Cloud.
 type DownloadBootstrapBundle struct {
 	TargetDir          string
 	Region             string
@@ -24,8 +26,8 @@ type DownloadBootstrapBundle struct {
 	BootstrapTarball   string
 }
 
-// Initialize the downloader by assigning values based on the command flags and
-// creating necessary directories and paths.
+// Init initializes the downloader by assigning values based on the 
+// command flags and creating necessary directories and paths.
 func (d *DownloadBootstrapBundle) Init() error {
 	log.Infof("Initialized downloader, creating target directory.\n")
 	if err := d.ensureTargetDir(); err != nil {
@@ -35,6 +37,8 @@ func (d *DownloadBootstrapBundle) Init() error {
 	return nil
 }
 
+// Run detects the bootstrap bundle version and executes download and
+// extraction of the bundle.
 func (d *DownloadBootstrapBundle) Run() error {
 	var err error
 	if err = d.ensureLatestRelease(); err != nil {
@@ -86,11 +90,11 @@ func (d *DownloadBootstrapBundle) ensureLatestRelease() error {
 	log.Infof("Preparing to download the latest release.\n")
 	kaasReleaseFile := fmt.Sprintf("%s.yaml", constant.LatestKaaSRelease)
 	kaasReleasePath := path.Join(constant.KaaSReleasesPath, kaasReleaseFile)
-	kaasReleaseUrl := fmt.Sprintf("%s/%s", d.BaseURL, kaasReleasePath)
+	kaasReleaseURL := fmt.Sprintf("%s/%s", d.BaseURL, kaasReleasePath)
 	dir := path.Join(d.TargetDir, constant.KaaSReleasesPath)
 	log.Debugf("Using directory \"%s\" to download the release.\n", dir)
 	log.Infof("Downloading release \"%s\"...\n", constant.LatestKaaSRelease)
-	if err := util.DownloadFile(kaasReleaseUrl, dir); err != nil {
+	if err := util.DownloadFile(kaasReleaseURL, dir); err != nil {
 		return err
 	}
 	log.Infof("Download finished.\n")
@@ -99,9 +103,9 @@ func (d *DownloadBootstrapBundle) ensureLatestRelease() error {
 	for _, r := range constant.LatestClusterReleases {
 		clusterReleaseFile := fmt.Sprintf("%s.yaml", r)
 		clusterReleasePath := path.Join(constant.ClusterReleasesPath, clusterReleaseFile)
-		clusterReleaseUrl := fmt.Sprintf("%s/%s", d.BaseURL, clusterReleasePath)
+		clusterReleaseURL := fmt.Sprintf("%s/%s", d.BaseURL, clusterReleasePath)
 		log.Infof("Downloading cluster release \"%s\"...", r)
-		if err := util.DownloadFile(clusterReleaseUrl, dir); err != nil {
+		if err := util.DownloadFile(clusterReleaseURL, dir); err != nil {
 			return err
 		}
 		log.Infof("Download finished.\n")
@@ -196,11 +200,11 @@ func readBootstrapVersionFromFile(f string) (string, error) {
 	}
 	spec := cluster["spec"]
 	v := spec.(map[interface{}]interface{})["bootstrap"].(map[interface{}]interface{})["version"]
-	if version, ok := v.(string); ok {
-		return version, nil
-	} else {
-		return "", fmt.Errorf("Not a string in bootstrap version field: %v\n", version)
+	version, ok := v.(string) 
+	if !ok {
+		return "", fmt.Errorf("Not a string in bootstrap version field: %v", version)
 	}
+	return version, nil
 }
 
 // Get the operating system tag to use in the bootstrap URL.
@@ -212,7 +216,7 @@ func getOSTag() (string, error) {
 	case "linux":
 		return tag, nil
 	default:
-		err := fmt.Errorf("Unexpected operating system \"%s\", supported systems are \"darwin\", \"linux\".\n", tag)
+		err := fmt.Errorf("Unexpected operating system \"%s\", supported systems are \"darwin\", \"linux\"", tag)
 		return tag, err
 	}
 }

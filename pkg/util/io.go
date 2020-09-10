@@ -37,7 +37,7 @@ var LoadExternalFile = func(path string) ([]byte, error) {
 	return filedata, nil
 }
 
-// Download a file from the URL to directory, specified as arguments.
+// DownloadFile downloads a file from the URL to directory, specified as arguments.
 func DownloadFile(uri, dir string) (err error) {
 	if uri == "" {
 		return fmt.Errorf("Empty URL, can't continue")
@@ -53,7 +53,7 @@ func DownloadFile(uri, dir string) (err error) {
 	response, err := http.Get(uri)
 	log.Debugf("Got HTTP response from \"%s\": %s\n", uri, response.Status)
 	if response.StatusCode > 399 {
-		err = fmt.Errorf("Invalid server response for \"%s\": %s\n", uri, response.Status)
+		err = fmt.Errorf("Invalid server response for \"%s\": %s", uri, response.Status)
 		return err
 	}
 	if err != nil {
@@ -76,6 +76,8 @@ func DownloadFile(uri, dir string) (err error) {
 	return
 }
 
+// ExtractTarball function extracts a tarball file specified in the first
+// argument to the directory path, specified in the second argument.
 func ExtractTarball(f, p string) error {
 	fp, err := homedir.Expand(f)
 	if err != nil {
@@ -94,7 +96,7 @@ func ExtractTarball(f, p string) error {
 	return nil
 }
 
-// Thin wrap the ioutil.WriteFile() call with compatible arguments.
+// WriteFile is a thin wrapper for ioutil.WriteFile() call with compatible arguments.
 func WriteFile(f string, d []byte, m os.FileMode) error {
 	if err := ioutil.WriteFile(f, d, m); err != nil {
 		return err

@@ -149,28 +149,28 @@ func getBaseURL() (string, error) {
 	region := getCDNRegion()
 	switch region {
 	case "internal-ci":
-		return constant.InternalCdnBaseUrl, nil
+		return constant.InternalCdnBaseURL, nil
 	case "internal-eu":
-		return constant.InternalEuCdnBaseUrl, nil
+		return constant.InternalEuCdnBaseURL, nil
 	case "public-ci":
-		return constant.PublicCICdnBaseUrl, nil
+		return constant.PublicCICdnBaseURL, nil
 	case "public":
-		return constant.PublicCdnBaseUrl, nil
+		return constant.PublicCdnBaseURL, nil
 	default:
-		err := fmt.Errorf("Unknown CDN region: %s\n", region)
+		err := fmt.Errorf("Unknown CDN region: %s", region)
 		return "", err
 	}
 }
 
 // Get the base URL to download KaaSReleas and ClusterRelease files from.
-func getReleasesBaseURL(baseUrl string) string {
+func getReleasesBaseURL(baseURL string) string {
 	if u := ctx.String("release-base-url"); u != "" {
 		return u
 	}
 	if u := os.Getenv(constant.KaaSReleasesBaseURLEnvVar); u != "" {
 		return u
 	}
-	u := fmt.Sprintf("%s/%s", baseUrl, constant.DefaultReleasesPath)
+	u := fmt.Sprintf("%s/%s", baseURL, constant.DefaultReleasesPath)
 	return u
 }
 

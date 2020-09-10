@@ -19,7 +19,7 @@ func ResolveURL(serverURL string) (*url.URL, error) {
 	return url, nil
 }
 
-// Gets the file name from an URL
+// GetFileFromURL returns the last element (filename) from an URL's Path
 func GetFileFromURL(serverURL string) (string, error) {
 	u, err := ResolveURL(serverURL)
 	if err != nil {
