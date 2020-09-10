@@ -27,10 +27,11 @@ type DownloadBootstrapBundle struct {
 // Initialize the downloader by assigning values based on the command flags and
 // creating necessary directories and paths.
 func (d *DownloadBootstrapBundle) Init() error {
-	log.Printf("Initialized downloader, creating target directory.\n")
+	log.Infof("Initialized downloader, creating target directory.\n")
 	if err := d.ensureTargetDir(); err != nil {
 		return err
 	}
+	log.Debugf("Created target directory: %s", d.TargetDir)
 	return nil
 }
 
@@ -82,25 +83,28 @@ func (d *DownloadBootstrapBundle) ensureTargetDir() error {
 //   - cluster/
 //   - kaas/
 func (d *DownloadBootstrapBundle) ensureLatestRelease() error {
+	log.Infof("Preparing to download the latest release.\n")
 	kaasReleaseFile := fmt.Sprintf("%s.yaml", constant.LatestKaaSRelease)
 	kaasReleasePath := path.Join(constant.KaaSReleasesPath, kaasReleaseFile)
 	kaasReleaseUrl := fmt.Sprintf("%s/%s", d.BaseURL, kaasReleasePath)
 	dir := path.Join(d.TargetDir, constant.KaaSReleasesPath)
-	log.Printf("Downloading release \"%s\" to dir \"%s\"\n", kaasReleaseUrl, dir)
+	log.Debugf("Using directory \"%s\" to download the release.\n", dir)
+	log.Infof("Downloading release \"%s\"...\n", constant.LatestKaaSRelease)
 	if err := util.DownloadFile(kaasReleaseUrl, dir); err != nil {
 		return err
 	}
-	log.Printf("Downloaded file \"%s\" to dir \"%s\"\n", kaasReleaseFile, dir)
+	log.Infof("Download finished.\n")
+	dir = path.Join(d.TargetDir, constant.ClusterReleasesPath)
+	log.Debugf("Using directory \"%s\" to download the cluster releases.\n", dir)
 	for _, r := range constant.LatestClusterReleases {
 		clusterReleaseFile := fmt.Sprintf("%s.yaml", r)
 		clusterReleasePath := path.Join(constant.ClusterReleasesPath, clusterReleaseFile)
 		clusterReleaseUrl := fmt.Sprintf("%s/%s", d.BaseURL, clusterReleasePath)
-		dir := path.Join(d.TargetDir, constant.ClusterReleasesPath)
-		log.Printf("Downloading release \"%s\" to dir \"%s\"\n", clusterReleaseUrl, dir)
+		log.Infof("Downloading cluster release \"%s\"...", r)
 		if err := util.DownloadFile(clusterReleaseUrl, dir); err != nil {
 			return err
 		}
-		log.Printf("Downloaded file \"%s\" to dir \"%s\"\n", clusterReleaseFile, dir)
+		log.Infof("Download finished.\n")
 	}
 	return nil
 }
@@ -116,11 +120,12 @@ func (d *DownloadBootstrapBundle) getBootstrapVersion() (string, error) {
 		f := fmt.Sprintf("%s.yaml", constant.LatestKaaSRelease)
 		d.ReleaseFile = path.Join(d.TargetDir, constant.KaaSReleasesPath, f)
 	}
+	log.Debugf("Using release file \"%s\" to find bootstrap version.\n", d.ReleaseFile)
 	version, err := readBootstrapVersionFromFile(d.ReleaseFile)
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Using bootstrap version from file \"%s\": %s\n", d.ReleaseFile, version)
+	log.Infof("Found bootstrap version \"%s\".\n", version)
 	return version, nil
 }
 
@@ -137,25 +142,29 @@ func (d *DownloadBootstrapBundle) getBootstrapURL() (string, error) {
 	}
 	d.BootstrapTarball = fmt.Sprintf("bootstrap-%s-%s.tar.gz", osTag, d.BootstrapVersion)
 	url := fmt.Sprintf("%s/core/bin/%s", d.BaseURL, d.BootstrapTarball)
-	log.Printf("Using bootstrap URL: %s\n", url)
 	return url, nil
 }
 
 // Download the bootstrap tarball.
 // TODO(ogelbukh): verify the tarball (using md5sum, other means)
 func (d *DownloadBootstrapBundle) downloadBootstrapTarball() error {
+	log.Debugf("Bootstrap bundle URL: %s\n", d.BootstrapURL)
+	log.Infof("Downloading bootstrap bundle...\n")
 	if err := util.DownloadFile(d.BootstrapURL, d.TargetDir); err != nil {
 		return err
 	}
+	log.Infof("Bootstrap bundle download finished.\n")
 	return nil
 }
 
 // Extract the bootstrap tarball.
 func (d *DownloadBootstrapBundle) extractBootstrapTarball() error {
 	p := path.Join(d.TargetDir, d.BootstrapTarball)
+	log.Infof("Extracting bootstrap bundle to \"%s\" dir.\n", d.TargetDir)
 	if err := util.ExtractTarball(p, d.TargetDir); err != nil {
 		return err
 	}
+	log.Infof("Bootstrap bundle extracted.\n")
 	return nil
 }
 
@@ -188,10 +197,9 @@ func readBootstrapVersionFromFile(f string) (string, error) {
 	spec := cluster["spec"]
 	v := spec.(map[interface{}]interface{})["bootstrap"].(map[interface{}]interface{})["version"]
 	if version, ok := v.(string); ok {
-		log.Printf("Using bootstrap version \"%s\"\n", version)
 		return version, nil
 	} else {
-		return "", fmt.Errorf("Not string in bootstrap version field: %v\n", version)
+		return "", fmt.Errorf("Not a string in bootstrap version field: %v\n", version)
 	}
 }
 
@@ -204,7 +212,7 @@ func getOSTag() (string, error) {
 	case "linux":
 		return tag, nil
 	default:
-		err := fmt.Errorf("Unexpected system: %s\n", tag)
+		err := fmt.Errorf("Unexpected operating system \"%s\", supported systems are \"darwin\", \"linux\".\n", tag)
 		return tag, err
 	}
 }

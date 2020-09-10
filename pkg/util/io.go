@@ -90,7 +90,7 @@ func ExtractTarball(f, p string) error {
 	if err = cmd.Run(); err != nil {
 		return err
 	}
-	log.Printf("Extracted \"%s\" to dir \"%s\"\n", fp, p)
+	log.Debugf("Extracted \"%s\" to dir \"%s\"\n", fp, p)
 	return nil
 }
 
