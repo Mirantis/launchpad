@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
 	log "github.com/sirupsen/logrus"
 )
@@ -12,6 +11,7 @@ import (
 // UpgradeDtr is the phase implementation for running the actual DTR upgrade container
 type UpgradeDtr struct {
 	Analytics
+	BasicPhase
 }
 
 // Title prints the phase title
@@ -20,19 +20,19 @@ func (p *UpgradeDtr) Title() string {
 }
 
 // Run the upgrade container
-func (p *UpgradeDtr) Run(config *api.ClusterConfig) error {
-	dtrLeader := config.Spec.DtrLeader()
+func (p *UpgradeDtr) Run() error {
+	dtrLeader := p.config.Spec.DtrLeader()
 
 	p.EventProperties = map[string]interface{}{
 		"dtr_upgraded": false,
 	}
 
 	// Check specified bootstrapper images version
-	bootstrapperVersion, err := dtr.GetBootstrapVersion(dtrLeader, config)
+	bootstrapperVersion, err := dtr.GetBootstrapVersion(dtrLeader, p.config)
 	if err != nil {
 		return NewError("Failed to check DTR bootstrapper image version")
 	}
-	installedVersion := config.Spec.Dtr.Metadata.InstalledVersion
+	installedVersion := p.config.Spec.Dtr.Metadata.InstalledVersion
 	if bootstrapperVersion == installedVersion {
 		log.Infof("%s: DTR cluster already at version %s, not running upgrade", dtrLeader.Address, bootstrapperVersion)
 		return nil
@@ -44,15 +44,15 @@ func (p *UpgradeDtr) Run(config *api.ClusterConfig) error {
 		runFlags = append(runFlags, "--security-opt label=disable")
 	}
 	upgradeFlags := []string{
-		fmt.Sprintf("--existing-replica-id %s", config.Spec.Dtr.Metadata.DtrLeaderReplicaID),
+		fmt.Sprintf("--existing-replica-id %s", p.config.Spec.Dtr.Metadata.DtrLeaderReplicaID),
 	}
-	ucpFlags := dtr.BuildUcpFlags(config)
+	ucpFlags := dtr.BuildUcpFlags(p.config)
 	upgradeFlags = append(upgradeFlags, ucpFlags...)
-	for _, f := range dtr.PluckSharedInstallFlags(config.Spec.Dtr.InstallFlags, dtr.SharedInstallUpgradeFlags) {
+	for _, f := range dtr.PluckSharedInstallFlags(p.config.Spec.Dtr.InstallFlags, dtr.SharedInstallUpgradeFlags) {
 		upgradeFlags = append(upgradeFlags, f)
 	}
 
-	upgradeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s upgrade %s", strings.Join(runFlags, " "), config.Spec.Dtr.GetBootstrapperImage(), strings.Join(upgradeFlags, " "))
+	upgradeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s upgrade %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.GetBootstrapperImage(), strings.Join(upgradeFlags, " "))
 	log.Debug("Running DTR upgrade via bootstrapper")
 	err = dtrLeader.ExecCmd(upgradeCmd, "", true, false)
 	if err != nil {
@@ -74,7 +74,7 @@ func (p *UpgradeDtr) Run(config *api.ClusterConfig) error {
 	p.EventProperties["dtr_upgraded"] = true
 	p.EventProperties["dtr_installed_version"] = installedVersion
 	p.EventProperties["dtr_upgraded_version"] = bootstrapperVersion
-	config.Spec.Dtr.Metadata = dtrMeta
+	p.config.Spec.Dtr.Metadata = dtrMeta
 
 	return nil
 }

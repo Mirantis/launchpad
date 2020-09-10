@@ -7,6 +7,7 @@ import (
 // CleanUp phase implementation does all the prep work we need for the hosts
 type CleanUp struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -15,8 +16,8 @@ func (p *CleanUp) Title() string {
 }
 
 // Run does all the prep work on the hosts in parallel
-func (p *CleanUp) Run(config *api.ClusterConfig) error {
-	err := runParallelOnHosts(config.Spec.Hosts, config, p.cleanupEnv)
+func (p *CleanUp) Run() error {
+	err := runParallelOnHosts(p.config.Spec.Hosts, p.config, p.cleanupEnv)
 	if err != nil {
 		return err
 	}

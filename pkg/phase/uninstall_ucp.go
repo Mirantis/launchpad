@@ -12,6 +12,7 @@ import (
 // UninstallUCP is the phase implementation for running UCP uninstall
 type UninstallUCP struct {
 	Analytics
+	BasicPhase
 }
 
 // Title prints the phase title
@@ -20,14 +21,14 @@ func (p *UninstallUCP) Title() string {
 }
 
 // Run the installer container
-func (p *UninstallUCP) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
-	if !config.Spec.Ucp.Metadata.Installed {
+func (p *UninstallUCP) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
+	if !p.config.Spec.Ucp.Metadata.Installed {
 		log.Infof("%s: UCP is not installed, skipping", swarmLeader.Address)
 		return nil
 	}
 
-	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
+	image := fmt.Sprintf("%s/ucp:%s", p.config.Spec.Ucp.ImageRepo, p.config.Spec.Ucp.Version)
 	args := fmt.Sprintf("--id %s", swarm.ClusterID(swarmLeader))
 	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if swarmLeader.Configurer.SELinuxEnabled() {
@@ -39,8 +40,8 @@ func (p *UninstallUCP) Run(config *api.ClusterConfig) error {
 		return NewError("Failed to run UCP uninstaller")
 	}
 
-	if config.Spec.Ucp.CertData != "" {
-		managers := config.Spec.Managers()
+	if p.config.Spec.Ucp.CertData != "" {
+		managers := p.config.Spec.Managers()
 		managers.ParallelEach(func(h *api.Host) error {
 			log.Infof("%s: removing ucp-controller-server-certs volume", h.Address)
 			err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))

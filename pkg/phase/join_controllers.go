@@ -3,7 +3,6 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
@@ -11,6 +10,7 @@ import (
 // JoinManagers phase implementation
 type JoinManagers struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -19,15 +19,15 @@ func (p *JoinManagers) Title() string {
 }
 
 // Run joins the manager nodes into swarm
-func (p *JoinManagers) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
+func (p *JoinManagers) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
 
-	for _, h := range config.Spec.Managers() {
+	for _, h := range p.config.Spec.Managers() {
 		if swarm.IsSwarmNode(h) {
 			log.Infof("%s: already a swarm node", h.Address)
 			continue
 		}
-		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", config.Spec.Ucp.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
+		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.config.Spec.Ucp.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as manager", h.Address)
 		err := h.ExecCmd(joinCmd, "", true, true)
 		if err != nil {

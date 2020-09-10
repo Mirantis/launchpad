@@ -10,8 +10,64 @@ import (
 
 // Phase interface
 type Phase interface {
-	Run(config *api.ClusterConfig) error
+	Run() error
 	Title() string
+	Prepare(*api.ClusterConfig) error
+	ShouldRun() bool
+}
+
+// BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun
+type BasicPhase struct {
+	Phase
+
+	config *api.ClusterConfig
+}
+
+// HostSelectPhase is a phase where hosts are collected before running to see if it's necessary to run the phase at all in ShouldRun
+type HostSelectPhase struct {
+	Phase
+
+	config *api.ClusterConfig
+	hosts  api.Hosts
+}
+
+// Prepare rceives the cluster config and stores it to the phase's config field
+func (b *BasicPhase) Prepare(config *api.ClusterConfig) error {
+	b.config = config
+	return nil
+}
+
+// ShouldRun for BasicPhases is always true
+func (b *BasicPhase) ShouldRun() bool {
+	return true
+}
+
+// Title default implementation
+func (h *HostSelectPhase) Title() string {
+	return ""
+}
+
+// Run default implementation
+func (h *HostSelectPhase) Run() error {
+	return nil
+}
+
+// Prepare HostSelectPhase implementation which runs the supplied HostFilterFunc to populate the phase's hosts field
+func (h *HostSelectPhase) Prepare(config *api.ClusterConfig) error {
+	h.config = config
+	hosts := config.Spec.Hosts.Filter(h.HostFilterFunc)
+	h.hosts = hosts
+	return nil
+}
+
+// ShouldRun HostSelectPhase default implementation which returns true if there are hosts that matched the HostFilterFunc
+func (h *HostSelectPhase) ShouldRun() bool {
+	return len(h.hosts) > 0
+}
+
+// HostFilterFunc default implementation, matches all hosts
+func (h *HostSelectPhase) HostFilterFunc(host *api.Host) bool {
+	return true
 }
 
 // Eventable interface

@@ -53,6 +53,18 @@ func (errors *errors) String() string {
 	return "- " + strings.Join(errors.errors, "\n- ")
 }
 
+// BeforeAfter is the a child struct for the Hooks struct, containing sections for Before and After
+type BeforeAfter struct {
+	Before *[]string `yaml:"before" default:"[]"`
+	After  *[]string `yaml:"after" default:"[]"`
+}
+
+// Hooks is a list of hook-points
+type Hooks struct {
+	Apply *BeforeAfter `yaml:"apply" default:"{}"`
+	Reset *BeforeAfter `yaml:"reset" default:"{}"`
+}
+
 // Host contains all the needed details to work with hosts
 type Host struct {
 	Address          string            `yaml:"address" validate:"required,hostname|ip"`
@@ -60,6 +72,7 @@ type Host struct {
 	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
+	Hooks            *Hooks            `yaml:"hooks" default:"{}"`
 
 	WinRM *WinRM `yaml:"winRM,omitempty"`
 	SSH   *SSH   `yaml:"ssh,omitempty"`
@@ -134,6 +147,22 @@ func (h *Host) Execf(cmd string, args ...interface{}) error {
 // ExecWithOutput execs a command on the host and return output
 func (h *Host) ExecWithOutput(cmd string) (string, error) {
 	return h.Connection.ExecWithOutput(cmd)
+}
+
+// ExecAll execs a slice of commands on the host
+func (h *Host) ExecAll(cmds []string) error {
+	for _, cmd := range cmds {
+		log.Infof("%s: Executing: %s", h.Address, cmd)
+		output, err := h.ExecWithOutput(cmd)
+		if err != nil {
+			log.Errorf("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+			return err
+		}
+		if strings.TrimSpace(output) != "" {
+			log.Infof("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+		}
+	}
+	return nil
 }
 
 func trimOutput(output []byte) string {

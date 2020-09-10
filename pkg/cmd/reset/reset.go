@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -41,6 +42,7 @@ func Reset(configFile string) error {
 
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
+	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.Before }})
 	if dtr {
 		phaseManager.AddPhase(&phase.UninstallDTR{})
 	}
@@ -48,6 +50,7 @@ func Reset(configFile string) error {
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.UninstallEngine{})
 	phaseManager.AddPhase(&phase.CleanUp{})
+	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.After }})
 	phaseManager.AddPhase(&phase.Disconnect{})
 
 	phaseErr := phaseManager.Run()

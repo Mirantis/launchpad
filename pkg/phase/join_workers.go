@@ -13,6 +13,7 @@ import (
 // JoinWorkers phase implementation
 type JoinWorkers struct {
 	Analytics
+	BasicPhase
 	Dtr bool
 }
 
@@ -22,15 +23,15 @@ func (p *JoinWorkers) Title() string {
 }
 
 // Run joins all the workers nodes to swarm if not already part of it.
-func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
+func (p *JoinWorkers) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
 
 	var hosts api.Hosts
 	if p.Dtr {
 		// If dtr roles are detected, add them to the list of workers
-		hosts = config.Spec.WorkersAndDtrs()
+		hosts = p.config.Spec.WorkersAndDtrs()
 	} else {
-		hosts = config.Spec.Workers()
+		hosts = p.config.Spec.Workers()
 	}
 
 	for _, h := range hosts {
@@ -38,7 +39,7 @@ func (p *JoinWorkers) Run(config *api.ClusterConfig) error {
 			log.Infof("%s: already a swarm node", h.Address)
 			continue
 		}
-		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", config.Spec.Ucp.Metadata.WorkerJoinToken, swarmLeader.SwarmAddress())
+		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.config.Spec.Ucp.Metadata.WorkerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as worker", h.Address)
 		err := h.ExecCmd(joinCmd, "", true, true)
 		if err != nil {

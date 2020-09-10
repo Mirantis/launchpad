@@ -1,12 +1,13 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
 // Info shows information about the configured clusters
-type Info struct{}
+type Info struct {
+	BasicPhase
+}
 
 // Title for the phase
 func (p *Info) Title() string {
@@ -14,8 +15,8 @@ func (p *Info) Title() string {
 }
 
 // Run does the actual saving of the local state file
-func (p *Info) Run(config *api.ClusterConfig) error {
-	urls := config.Spec.WebURLs()
+func (p *Info) Run() error {
+	urls := p.config.Spec.WebURLs()
 	log.Info("Cluster is now configured.  You can access your admin UIs at:\n")
 	log.Infof("UCP cluster admin UI: %s", urls.Ucp)
 	if urls.Dtr != "" {
