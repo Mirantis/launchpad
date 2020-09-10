@@ -41,7 +41,7 @@ func (p *RunHooks) Title() string {
 func (p *RunHooks) Run() error {
 	return p.hosts.ParallelEach(func(h *api.Host) error {
 		if steps := p.StepListFunc(h); steps != nil {
-			return h.ExecAll(*p.StepListFunc(h))
+			return h.ExecAll(*steps)
 		}
 		return nil
 	})
