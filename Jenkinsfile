@@ -47,7 +47,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_cluster.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_launchpad.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("Ubuntu 18.04: apply 3.3.3-tp10") {
