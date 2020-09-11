@@ -5,7 +5,7 @@ type ClusterMeta struct {
 	Name string `yaml:"name" validate:"required"`
 }
 
-// ClusterConfig describes cluster.yaml configuration
+// ClusterConfig describes launchpad.yaml configuration
 type ClusterConfig struct {
 	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1beta3"`
 	Kind       string       `yaml:"kind" validate:"eq=DockerEnterprise"`

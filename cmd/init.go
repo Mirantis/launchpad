@@ -16,7 +16,7 @@ import (
 func NewInitCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "init",
-		Usage: "Initialize cluster.yaml file",
+		Usage: "Initialize launchpad.yaml file",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "kind",
@@ -27,7 +27,7 @@ func NewInitCommand() *cli.Command {
 			},
 			&cli.BoolFlag{
 				Name:    "dtr",
-				Usage:   "Init a cluster.yaml file for Docker Trusted Registry (DTR)",
+				Usage:   "Init a launchpad.yaml file for Docker Trusted Registry (DTR)",
 				Aliases: []string{"d"},
 				Value:   false,
 			},

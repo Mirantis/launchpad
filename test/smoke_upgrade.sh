@@ -17,6 +17,6 @@ export DTR_VERSION=${DTR_UPGRADE_VERSION:"2.8.2"}
 
 generateYaml
 
-cat cluster.yaml
+cat launchpad.yaml
 
 ../bin/launchpad --debug apply

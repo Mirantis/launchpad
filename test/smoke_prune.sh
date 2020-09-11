@@ -8,9 +8,9 @@ trap cleanup EXIT
 
 [ "${REUSE_CLUSTER}" = "" ] && setup && ../bin/launchpad --debug apply
 
-# Remove a node from the cluster.yaml and run apply with --prune
-echo -e "Removing one DTR node from cluster.yaml..."
-sed -i '25,30d' cluster.yaml
-cat cluster.yaml
+# Remove a node from the launchpad.yaml and run apply with --prune
+echo -e "Removing one DTR node from launchpad.yaml..."
+sed -i '25,30d' launchpad.yaml
+cat launchpad.yaml
 
 ../bin/launchpad --debug apply --prune
