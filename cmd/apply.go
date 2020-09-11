@@ -19,7 +19,7 @@ func NewApplyCommand() *cli.Command {
 				Name:    "config",
 				Usage:   "Path to cluster config yaml",
 				Aliases: []string{"c"},
-				Value:   "cluster.yaml",
+				Value:   "launchpad.yaml",
 			},
 			&cli.BoolFlag{
 				Name:  "prune",

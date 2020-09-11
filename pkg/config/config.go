@@ -65,7 +65,7 @@ func Validate(c *api.ClusterConfig) error {
 	return validator.Struct(c)
 }
 
-// ResolveClusterFile looks for the cluster.yaml file, based on the value.
+// ResolveClusterFile looks for the launchpad.yaml file, based on the value.
 // It returns the contents of this file as []byte if found,
 // or error if it didn't.
 func ResolveClusterFile(clusterFile string) ([]byte, error) {

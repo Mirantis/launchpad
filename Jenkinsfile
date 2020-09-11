@@ -47,7 +47,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_cluster.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_launchpad.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("Ubuntu 18.04: apply 3.3.3-tp10") {
@@ -135,7 +135,7 @@ pipeline {
             stage("VXLAN:false") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                CONFIG_TEMPLATE = "cluster-vxlan.yaml.tpl"
+                CONFIG_TEMPLATE = "launchpad-vxlan.yaml.tpl"
                 CALICO_VXLAN = "false"
                 PRESERVE_CLUSTER = "true"
               }
@@ -146,7 +146,7 @@ pipeline {
             stage("VXLAN:true") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                CONFIG_TEMPLATE = "cluster-vxlan.yaml.tpl"
+                CONFIG_TEMPLATE = "launchpad-vxlan.yaml.tpl"
                 CALICO_VXLAN = "true"
                 REUSE_CLUSTER = "true"
                 MUST_FAIL = "true"
@@ -182,7 +182,7 @@ pipeline {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+                CONFIG_TEMPLATE = "launchpad-dtr.yaml.tpl"
                 UCP_VERSION = "3.2.8"
                 IMAGE_REPO = "docker.io/mirantis"
                 DTR_VERSION = "2.7.8"
@@ -199,7 +199,7 @@ pipeline {
                 UCP_IMAGE_REPO = "docker.io/dockereng"
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+                CONFIG_TEMPLATE = "launchpad-dtr.yaml.tpl"
                 UCP_VERSION = "3.3.3-tp10"
                 REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
                 IMAGE_REPO = "docker.io/mirantis"

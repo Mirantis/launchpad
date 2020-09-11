@@ -9,6 +9,7 @@ import (
 // PrepareHost phase implementation does all the prep work we need for the hosts
 type PrepareHost struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -17,13 +18,13 @@ func (p *PrepareHost) Title() string {
 }
 
 // Run does all the prep work on the hosts in parallel
-func (p *PrepareHost) Run(config *api.ClusterConfig) error {
-	err := runParallelOnHosts(config.Spec.Hosts, config, p.installBasePackages)
+func (p *PrepareHost) Run() error {
+	err := runParallelOnHosts(p.config.Spec.Hosts, p.config, p.installBasePackages)
 	if err != nil {
 		return err
 	}
 
-	err = runParallelOnHosts(config.Spec.Hosts, config, p.updateEnvironment)
+	err = runParallelOnHosts(p.config.Spec.Hosts, p.config, p.updateEnvironment)
 	if err != nil {
 		return err
 	}

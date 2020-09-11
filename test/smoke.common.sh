@@ -1,7 +1,7 @@
 #!/bin/bash
 
 FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-"footloose.yaml.tpl"}
-CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-"cluster.yaml.tpl"}
+CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-"launchpad.yaml.tpl"}
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.3.2"}
 export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/mirantis"}
@@ -85,8 +85,8 @@ function createCluster() {
 
 function generateYaml() {
   export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-  envsubst < "${CONFIG_TEMPLATE}" > cluster.yaml
-  cat cluster.yaml
+  envsubst < "${CONFIG_TEMPLATE}" > launchpad.yaml
+  cat launchpad.yaml
 }
 
 function setup() {

@@ -6,14 +6,13 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/dtr"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/Mirantis/mcc/pkg/api"
 )
 
 // InstallDtr is the phase implementation for running the actual DTR installer
 // bootstrap
 type InstallDtr struct {
 	Analytics
+	BasicPhase
 }
 
 // Title prints the phase title
@@ -22,8 +21,8 @@ func (p *InstallDtr) Title() string {
 }
 
 // Run the installer container
-func (p *InstallDtr) Run(config *api.ClusterConfig) (err error) {
-	dtrLeader := config.Spec.DtrLeader()
+func (p *InstallDtr) Run() (err error) {
+	dtrLeader := p.config.Spec.DtrLeader()
 
 	defer func() {
 		if err != nil {
@@ -36,28 +35,28 @@ func (p *InstallDtr) Run(config *api.ClusterConfig) (err error) {
 	}()
 
 	p.EventProperties = map[string]interface{}{
-		"dtr_version": config.Spec.Dtr.Version,
+		"dtr_version": p.config.Spec.Dtr.Version,
 	}
 
-	if config.Spec.Dtr.Metadata.Installed {
-		log.Infof("%s: DTR already installed at version %s, not running installer", dtrLeader.Address, config.Spec.Dtr.Metadata.InstalledVersion)
+	if p.config.Spec.Dtr.Metadata.Installed {
+		log.Infof("%s: DTR already installed at version %s, not running installer", dtrLeader.Address, p.config.Spec.Dtr.Metadata.InstalledVersion)
 		return nil
 	}
 
-	image := config.Spec.Dtr.GetBootstrapperImage()
+	image := p.config.Spec.Dtr.GetBootstrapperImage()
 	runFlags := []string{"--rm", "-i"}
 	if dtrLeader.Configurer.SELinuxEnabled() {
 		runFlags = append(runFlags, "--security-opt label=disable")
 	}
-	installFlags := config.Spec.Dtr.InstallFlags
+	installFlags := p.config.Spec.Dtr.InstallFlags
 
-	if config.Spec.Dtr.ReplicaConfig == "sequential" {
+	if p.config.Spec.Dtr.ReplicaConfig == "sequential" {
 		log.Debugf("Configuring DTR replica ids to be sequential")
 		installFlags = append(installFlags, fmt.Sprintf("--replica-id %s", dtr.SequentialReplicaID(1)))
 	}
 
 	// Configure the ucpFlags from existing UcpConfig
-	ucpFlags := dtr.BuildUcpFlags(config)
+	ucpFlags := dtr.BuildUcpFlags(p.config)
 	// Conduct the install passing the --ucp-node flag for the host provided in
 	// dtrLeader.
 	ucpFlags = append(ucpFlags, fmt.Sprintf("--ucp-node %s", dtrLeader.Metadata.LongHostname))
@@ -73,6 +72,6 @@ func (p *InstallDtr) Run(config *api.ClusterConfig) (err error) {
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err)
 	}
-	config.Spec.Dtr.Metadata = dtrMeta
+	p.config.Spec.Dtr.Metadata = dtrMeta
 	return nil
 }
