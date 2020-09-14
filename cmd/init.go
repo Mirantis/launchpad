@@ -47,7 +47,7 @@ func NewInitCommand() *cli.Command {
 				}
 			}
 			clusterConfig := api.ClusterConfig{
-				APIVersion: "launchpad.mirantis.com/v1beta3",
+				APIVersion: "launchpad.mirantis.com/v1beta4",
 				Kind:       "DockerEnterprise",
 				Metadata: &api.ClusterMeta{
 					Name: "my-ucp-cluster",

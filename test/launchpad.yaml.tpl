@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/v1beta3
+apiVersion: launchpad.mirantis.com/v1beta4
 kind: DockerEnterprise
 metadata:
   name: $CLUSTER_NAME

@@ -12,6 +12,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/api/v1beta1"
 	"github.com/Mirantis/mcc/pkg/api/v1beta2"
+	"github.com/Mirantis/mcc/pkg/api/v1beta3"
 	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,11 +38,15 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta1" {
-		v1beta1.MigrateToV1Beta3(&data)
+		v1beta1.MigrateToCurrent(&data)
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta2" {
-		v1beta2.MigrateToV1Beta3(&data)
+		v1beta2.MigrateToCurrent(&data)
+	}
+
+	if cv.APIVersion == "launchpad.mirantis.com/v1beta3" {
+		v1beta3.MigrateToCurrent(&data)
 	}
 
 	err = yaml.Unmarshal(data, &c)

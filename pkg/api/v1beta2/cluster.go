@@ -7,8 +7,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// MigrateToV1Beta3 migrates an v1beta1 format configuration into v1beta3 format and replaces the contents of the supplied data byte slice
-func MigrateToV1Beta3(data *[]byte) error {
+// MigrateToCurrent migrates an v1beta1 format configuration into the current api format and replaces the contents of the supplied data byte slice
+func MigrateToCurrent(data *[]byte) error {
 	plain := make(map[string]interface{})
 	yaml.Unmarshal(*data, &plain)
 
@@ -25,8 +25,8 @@ func MigrateToV1Beta3(data *[]byte) error {
 		return fmt.Errorf("kind: DockerEnterprise is only available in version >= 0.13")
 	}
 	plain["kind"] = "DockerEnterprise"
-	plain["apiVersion"] = "launchpad.mirantis.com/v1beta3"
-	log.Debugf("migrated configuration from v1beta2 to v1beta3")
+	plain["apiVersion"] = "launchpad.mirantis.com/v1beta4"
+	log.Debugf("migrated configuration from v1beta2 to v1beta4")
 
 	out, err := yaml.Marshal(&plain)
 	if err != nil {
