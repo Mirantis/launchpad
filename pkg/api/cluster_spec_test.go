@@ -12,6 +12,7 @@ func TestUCPClusterSpecWebURLWithoutSan(t *testing.T) {
 			{Address: "192.168.1.2", Role: "manager"},
 		},
 		Ucp: UcpConfig{},
+		Dtr: &DtrConfig{},
 	}
 	expected := &WebUrls{
 		Ucp: "https://192.168.1.2",
@@ -29,6 +30,7 @@ func TestUCPClusterSpecWebURLWithSan(t *testing.T) {
 		Ucp: UcpConfig{
 			InstallFlags: []string{"--san=ucp.acme.com"},
 		},
+		Dtr: &DtrConfig{},
 	}
 	expected := &WebUrls{
 		Ucp: "https://ucp.acme.com",

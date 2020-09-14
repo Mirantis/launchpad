@@ -154,6 +154,10 @@ func IsCustomImageRepo(imageRepo string) bool {
 // dtrWebURL returns an address based on the DtrLeaderAddress or whether the
 // user has provided the --dtr-external-url flag
 func (c *ClusterSpec) dtrWebURL() string {
+	if c.Dtr == nil {
+		return ""
+	}
+
 	// Default to using the --dtr-external-url if it's set
 	dtrAddress := util.GetInstallFlagValue(c.Dtr.InstallFlags, "--dtr-external-url")
 	if dtrAddress != "" {
