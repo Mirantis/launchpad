@@ -71,7 +71,7 @@ spec:
 }
 
 func TestMigrationToCurrentWithDockerEnterprise(t *testing.T) {
-	b2 := []byte(`---
+	b1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: DockerEnterprise
 spec:
@@ -79,5 +79,21 @@ spec:
     - address: "10.0.0.1"
       role: "manager"
 `)
-	require.EqualError(t, MigrateToCurrent(&b2), "kind: DockerEnterprise is only available in version >= 0.13")
+	require.EqualError(t, MigrateToCurrent(&b1), "kind: DockerEnterprise is only available in version >= 0.13")
+}
+
+func TestMigrationToCurrentWithHooks(t *testing.T) {
+	b1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1beta1"
+kind: UCP
+spec:
+  hosts:
+    - address: "10.0.0.1"
+      hooks:
+        apply:
+          before:
+            - ls -al
+      role: "manager"
+`)
+	require.EqualError(t, MigrateToCurrent(&b1), "host hooks require apiVersion >= launchpad.mirantis.com/v1beta4")
 }

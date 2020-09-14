@@ -34,8 +34,15 @@ func MigrateToCurrent(data *[]byte) error {
 
 	for _, h := range hslice {
 		host := h.(map[interface{}]interface{})
+		_, hasHooks := host["hooks"]
+
+		if hasHooks {
+			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1beta4")
+		}
+
 		host["ssh"] = make(map[string]interface{})
 		ssh := host["ssh"].(map[string]interface{})
+
 		for k, v := range host {
 			switch k.(string) {
 			case "sshKeyPath":

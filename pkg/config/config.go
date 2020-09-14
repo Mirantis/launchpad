@@ -38,15 +38,24 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta1" {
-		v1beta1.MigrateToCurrent(&data)
+		err := v1beta1.MigrateToCurrent(&data)
+		if err != nil {
+			return c, err
+		}
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta2" {
-		v1beta2.MigrateToCurrent(&data)
+		err := v1beta2.MigrateToCurrent(&data)
+		if err != nil {
+			return c, err
+		}
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta3" {
-		v1beta3.MigrateToCurrent(&data)
+		err := v1beta3.MigrateToCurrent(&data)
+		if err != nil {
+			return c, err
+		}
 	}
 
 	err = yaml.Unmarshal(data, &c)
