@@ -97,3 +97,16 @@ spec:
 `)
 	require.EqualError(t, MigrateToCurrent(&b1), "host hooks require apiVersion >= launchpad.mirantis.com/v1")
 }
+
+func TestMigrationToCurrentWithLocalhost(t *testing.T) {
+	b1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1beta1"
+kind: UCP
+spec:
+  hosts:
+    - address: "10.0.0.1"
+      localhost: true
+      role: "manager"
+`)
+	require.EqualError(t, MigrateToCurrent(&b1), "localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
+}
