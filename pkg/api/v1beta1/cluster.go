@@ -7,8 +7,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// MigrateToV1Beta3 migrates an v1beta1 format configuration into v1beta3 format and replaces the contents of the supplied data byte slice
-func MigrateToV1Beta3(data *[]byte) error {
+// MigrateToCurrent migrates an v1beta1 format configuration into the current api format and replaces the contents of the supplied data byte slice
+func MigrateToCurrent(data *[]byte) error {
 	plain := make(map[string]interface{})
 	yaml.Unmarshal(*data, &plain)
 
@@ -34,8 +34,19 @@ func MigrateToV1Beta3(data *[]byte) error {
 
 	for _, h := range hslice {
 		host := h.(map[interface{}]interface{})
+		_, hasHooks := host["hooks"]
+		if hasHooks {
+			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
+		}
+
+		_, hasLocal := host["localhost"]
+		if hasLocal {
+			return fmt.Errorf("localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
+		}
+
 		host["ssh"] = make(map[string]interface{})
 		ssh := host["ssh"].(map[string]interface{})
+
 		for k, v := range host {
 			switch k.(string) {
 			case "sshKeyPath":
@@ -59,7 +70,8 @@ func MigrateToV1Beta3(data *[]byte) error {
 	}
 
 	plain["kind"] = "DockerEnterprise"
-	plain["apiVersion"] = "launchpad.mirantis.com/v1beta3"
+	plain["apiVersion"] = "launchpad.mirantis.com/v1"
+	log.Debugf("migrated v1beta1 configuration to v1")
 
 	out, err := yaml.Marshal(&plain)
 	if err != nil {

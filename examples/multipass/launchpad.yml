@@ -1,4 +1,4 @@
-apiVersion: "launchpad.mirantis.com/v1beta3"
+apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
 spec:
   hosts:

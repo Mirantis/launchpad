@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMigrationToV1Beta3Basic(t *testing.T) {
+func TestMigrationToCurrent(t *testing.T) {
 	b1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: UCP
@@ -21,7 +21,7 @@ spec:
       role: "manager"
 `)
 	// go's YAML marshal does not add the --- header
-	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
+	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1
 kind: DockerEnterprise
 spec:
   engine:
@@ -34,11 +34,11 @@ spec:
       port: 9022
       user: admin
 `)
-	require.NoError(t, MigrateToV1Beta3(&b1))
+	require.NoError(t, MigrateToCurrent(&b1))
 	require.Equal(t, b2, b1)
 }
 
-func TestMigrationToV1Beta3NoInstallURL(t *testing.T) {
+func TestMigrationToCurrentNoInstallURL(t *testing.T) {
 	b1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: UCP
@@ -53,7 +53,7 @@ spec:
       role: "manager"
 `)
 	// go's YAML marshal does not add the --- header
-	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
+	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1
 kind: DockerEnterprise
 spec:
   engine:
@@ -66,12 +66,12 @@ spec:
       port: 9022
       user: admin
 `)
-	require.NoError(t, MigrateToV1Beta3(&b1))
+	require.NoError(t, MigrateToCurrent(&b1))
 	require.Equal(t, b2, b1)
 }
 
-func TestMigrationToV1Beta3WithDockerEnterprise(t *testing.T) {
-	b2 := []byte(`---
+func TestMigrationToCurrentWithDockerEnterprise(t *testing.T) {
+	b1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1beta1"
 kind: DockerEnterprise
 spec:
@@ -79,5 +79,34 @@ spec:
     - address: "10.0.0.1"
       role: "manager"
 `)
-	require.EqualError(t, MigrateToV1Beta3(&b2), "kind: DockerEnterprise is only available in version >= 0.13")
+	require.EqualError(t, MigrateToCurrent(&b1), "kind: DockerEnterprise is only available in version >= 0.13")
+}
+
+func TestMigrationToCurrentWithHooks(t *testing.T) {
+	b1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1beta1"
+kind: UCP
+spec:
+  hosts:
+    - address: "10.0.0.1"
+      hooks:
+        apply:
+          before:
+            - ls -al
+      role: "manager"
+`)
+	require.EqualError(t, MigrateToCurrent(&b1), "host hooks require apiVersion >= launchpad.mirantis.com/v1")
+}
+
+func TestMigrationToCurrentWithLocalhost(t *testing.T) {
+	b1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1beta1"
+kind: UCP
+spec:
+  hosts:
+    - address: "10.0.0.1"
+      localhost: true
+      role: "manager"
+`)
+	require.EqualError(t, MigrateToCurrent(&b1), "localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
 }
