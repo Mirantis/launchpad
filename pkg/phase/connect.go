@@ -25,7 +25,9 @@ func (p *Connect) Run() error {
 func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 	proto := "SSH"
 
-	if host.WinRM != nil {
+	if host.Localhost {
+		proto = "Local"
+	} else if host.WinRM != nil {
 		proto = "WinRM"
 	}
 

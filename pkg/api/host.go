@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/connection"
+	"github.com/Mirantis/mcc/pkg/connection/local"
 	"github.com/creasty/defaults"
 
 	log "github.com/sirupsen/logrus"
@@ -74,8 +75,9 @@ type Host struct {
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
 
-	WinRM *WinRM `yaml:"winRM,omitempty"`
-	SSH   *SSH   `yaml:"ssh,omitempty"`
+	WinRM     *WinRM `yaml:"winRM,omitempty"`
+	SSH       *SSH   `yaml:"ssh,omitempty"`
+	Localhost bool   `yaml:"localhost,omitempty"`
 
 	Metadata   *HostMetadata  `yaml:"-"`
 	Configurer HostConfigurer `yaml:"-"`
@@ -95,7 +97,7 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if h.WinRM == nil && h.SSH == nil {
+	if h.WinRM == nil && h.SSH == nil && !h.Localhost {
 		h.SSH = DefaultSSH()
 	}
 
@@ -106,7 +108,9 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (h *Host) Connect() error {
 	var c connection.Connection
 
-	if h.WinRM == nil {
+	if h.Localhost {
+		c = local.NewConnection()
+	} else if h.WinRM == nil {
 		c = h.SSH.NewConnection(h.Address)
 	} else {
 		c = h.WinRM.NewConnection(h.Address)
