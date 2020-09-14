@@ -157,6 +157,20 @@ pipeline {
             }
           }
         }
+        stage("Ubuntu 18.04: local worker apply") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          environment {
+            CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
+            FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
+          }
+          steps {
+            sh "make smoke-apply-test-localhost LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+          }
+        }
         stage("Ubuntu 18.04 with DTR") {
           agent {
             node {
