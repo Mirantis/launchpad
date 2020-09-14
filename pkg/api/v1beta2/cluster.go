@@ -23,7 +23,7 @@ func MigrateToCurrent(data *[]byte) error {
 		_, hasHooks := host["hooks"]
 
 		if hasHooks {
-			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1beta4")
+			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
 		}
 	}
 
@@ -36,8 +36,8 @@ func MigrateToCurrent(data *[]byte) error {
 		return fmt.Errorf("kind: DockerEnterprise is only available in version >= 0.13")
 	}
 	plain["kind"] = "DockerEnterprise"
-	plain["apiVersion"] = "launchpad.mirantis.com/v1beta4"
-	log.Debugf("migrated configuration from v1beta2 to v1beta4")
+	plain["apiVersion"] = "launchpad.mirantis.com/v1"
+	log.Debugf("migrated configuration from v1beta2 to v1")
 
 	out, err := yaml.Marshal(&plain)
 	if err != nil {

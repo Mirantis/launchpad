@@ -37,7 +37,7 @@ func MigrateToCurrent(data *[]byte) error {
 		_, hasHooks := host["hooks"]
 
 		if hasHooks {
-			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1beta4")
+			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
 		}
 
 		host["ssh"] = make(map[string]interface{})
@@ -66,8 +66,8 @@ func MigrateToCurrent(data *[]byte) error {
 	}
 
 	plain["kind"] = "DockerEnterprise"
-	plain["apiVersion"] = "launchpad.mirantis.com/v1beta4"
-	log.Debugf("migrated v1beta1 configuration to v1beta4")
+	plain["apiVersion"] = "launchpad.mirantis.com/v1"
+	log.Debugf("migrated v1beta1 configuration to v1")
 
 	out, err := yaml.Marshal(&plain)
 	if err != nil {

@@ -21,7 +21,7 @@ spec:
       role: "manager"
 `)
 	// go's YAML marshal does not add the --- header
-	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta4
+	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1
 kind: DockerEnterprise
 spec:
   engine:
@@ -53,7 +53,7 @@ spec:
       role: "manager"
 `)
 	// go's YAML marshal does not add the --- header
-	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1beta4
+	b2 := []byte(`apiVersion: launchpad.mirantis.com/v1
 kind: DockerEnterprise
 spec:
   engine:
@@ -95,5 +95,5 @@ spec:
             - ls -al
       role: "manager"
 `)
-	require.EqualError(t, MigrateToCurrent(&b1), "host hooks require apiVersion >= launchpad.mirantis.com/v1beta4")
+	require.EqualError(t, MigrateToCurrent(&b1), "host hooks require apiVersion >= launchpad.mirantis.com/v1")
 }
