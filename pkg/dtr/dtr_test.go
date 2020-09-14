@@ -60,6 +60,7 @@ func TestBuildUcpFlags(t *testing.T) {
 					"--admin-password password1234",
 				},
 			},
+			Dtr: &api.DtrConfig{},
 		},
 	}
 

@@ -59,7 +59,7 @@ func TestValidateFactsDTRVersionJumpFail(t *testing.T) {
 	phase := ValidateFacts{}
 	config := &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			Dtr: api.DtrConfig{
+			Dtr: &api.DtrConfig{
 				Metadata: &api.DtrMetadata{
 					Installed:        true,
 					InstalledVersion: "2.6.4",
@@ -75,7 +75,7 @@ func TestValidateFactsDTRVersionJumpDowngradeFail(t *testing.T) {
 	phase := ValidateFacts{}
 	config := &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			Dtr: api.DtrConfig{
+			Dtr: &api.DtrConfig{
 				Metadata: &api.DtrMetadata{
 					Installed:        true,
 					InstalledVersion: "2.8.4",
@@ -91,7 +91,7 @@ func TestValidateFactsDTRVersionJumpSuccess(t *testing.T) {
 	phase := ValidateFacts{}
 	config := &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			Dtr: api.DtrConfig{
+			Dtr: &api.DtrConfig{
 				Metadata: &api.DtrMetadata{
 					Installed:        true,
 					InstalledVersion: "2.6.8",

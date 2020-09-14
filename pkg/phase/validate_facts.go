@@ -81,7 +81,7 @@ func (p *ValidateFacts) validateUCPVersionJump(conf *api.ClusterConfig) error {
 
 // validateDTRVersionJump validates DTR upgrade path
 func (p *ValidateFacts) validateDTRVersionJump(conf *api.ClusterConfig) error {
-	if conf.Spec.Dtr.Metadata != nil && conf.Spec.Dtr.Metadata.Installed && conf.Spec.Dtr.Metadata.InstalledVersion != "" {
+	if conf.Spec.Dtr != nil && conf.Spec.Dtr.Metadata != nil && conf.Spec.Dtr.Metadata.Installed && conf.Spec.Dtr.Metadata.InstalledVersion != "" {
 		installedDTR, err := version.NewVersion(conf.Spec.Dtr.Metadata.InstalledVersion)
 		if err != nil {
 			return err

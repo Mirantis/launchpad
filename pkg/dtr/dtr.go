@@ -156,6 +156,10 @@ func BuildUcpFlags(config *api.ClusterConfig) []string {
 
 // GetUcpURL builds the ucp url from the --san flag or from the swarmLeader
 func GetUcpURL(config *api.ClusterConfig) string {
+	if config.Spec.Dtr == nil {
+		return ""
+	}
+
 	dtrUcpURLFlag := util.GetInstallFlagValue(config.Spec.Dtr.InstallFlags, "--ucp-url")
 	if dtrUcpURLFlag != "" {
 		// If the --ucp-url flag has been set use that instead

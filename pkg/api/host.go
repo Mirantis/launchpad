@@ -70,9 +70,9 @@ type Host struct {
 	Address          string            `yaml:"address" validate:"required,hostname|ip"`
 	Role             string            `yaml:"role" validate:"oneof=manager worker dtr"`
 	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
-	DaemonConfig     GenericHash       `yaml:"engineConfig,flow" default:"{}"`
+	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
-	Hooks            *Hooks            `yaml:"hooks" default:"{}"`
+	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
 
 	WinRM *WinRM `yaml:"winRM,omitempty"`
 	SSH   *SSH   `yaml:"ssh,omitempty"`
