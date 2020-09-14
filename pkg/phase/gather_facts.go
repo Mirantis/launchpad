@@ -58,6 +58,10 @@ func (p *GatherFacts) Run() error {
 	}
 	if p.Dtr {
 		// If we intend to configure DTR as well, gather facts for DTR
+		if p.config.Spec.Dtr == nil {
+			p.config.Spec.Dtr = &api.DtrConfig{}
+		}
+
 		p.config.Spec.Dtr.Metadata = &api.DtrMetadata{
 			Installed:          false,
 			InstalledVersion:   "",
