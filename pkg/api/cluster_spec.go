@@ -17,9 +17,9 @@ type ClusterSpecMetadata struct {
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
 	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
-	Ucp    UcpConfig    `yaml:"ucp"`
-	Dtr    DtrConfig    `yaml:"dtr"`
-	Engine EngineConfig `yaml:"engine"`
+	Ucp    UcpConfig    `yaml:"ucp,omitempty"`
+	Dtr    *DtrConfig   `yaml:"dtr,omitempty"`
+	Engine EngineConfig `yaml:"engine,omitempty"`
 
 	Metadata ClusterSpecMetadata `yaml:"-"`
 }

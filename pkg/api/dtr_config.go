@@ -11,11 +11,11 @@ import (
 // DtrConfig has all the bits needed to configure DTR during installation
 type DtrConfig struct {
 	Version       string   `yaml:"version"`
-	ImageRepo     string   `yaml:"imageRepo"`
-	InstallFlags  []string `yaml:"installFlags,flow"`
+	ImageRepo     string   `yaml:"imageRepo,omitempty"`
+	InstallFlags  []string `yaml:"installFlags,flow,omitempty"`
 	ReplicaConfig string   `yaml:"replicaConfig,omitempty"  default:"random"`
 
-	Metadata *DtrMetadata
+	Metadata *DtrMetadata `yaml:"-"`
 }
 
 // DtrMetadata is metadata needed by DTR for configuration and is gathered at

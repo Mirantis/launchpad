@@ -22,7 +22,7 @@ func NewInitCommand() *cli.Command {
 				Name:    "kind",
 				Usage:   "What kind of cluster definition we'll create",
 				Aliases: []string{"k"},
-				Value:   "UCP",
+				Value:   "DockerEnterprise",
 				Hidden:  true, // We don't support anything else than UCP for now
 			},
 			&cli.BoolFlag{
@@ -38,9 +38,17 @@ func NewInitCommand() *cli.Command {
 				analytics.TrackEvent("Cluster Init Failed", nil)
 				return err
 			}
+
+			var dtrConfig *api.DtrConfig
+			if ctx.Bool("dtr") {
+				dtrConfig = &api.DtrConfig{
+					Version:       constant.DTRVersion,
+					ReplicaConfig: "sequential",
+				}
+			}
 			clusterConfig := api.ClusterConfig{
 				APIVersion: "launchpad.mirantis.com/v1beta3",
-				Kind:       "UCP",
+				Kind:       "DockerEnterprise",
 				Metadata: &api.ClusterMeta{
 					Name: "my-ucp-cluster",
 				},
@@ -51,10 +59,7 @@ func NewInitCommand() *cli.Command {
 					Ucp: api.UcpConfig{
 						Version: constant.UCPVersion,
 					},
-					Dtr: api.DtrConfig{
-						Version:       constant.DTRVersion,
-						ReplicaConfig: "sequential",
-					},
+					Dtr: dtrConfig,
 					Hosts: []*api.Host{
 						{
 							Address: "10.0.0.1",

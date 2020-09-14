@@ -79,7 +79,7 @@ func TestUCPClusterSpecWebURLWithNoDTRMetadata(t *testing.T) {
 			{Address: "192.168.1.3", Role: "dtr"},
 		},
 		Ucp: UcpConfig{},
-		Dtr: DtrConfig{},
+		Dtr: &DtrConfig{},
 	}
 	expected := &WebUrls{
 		Ucp: "https://192.168.1.2",
@@ -95,7 +95,7 @@ func TestUCPClusterSpecWebURLWithNoDTRHostRoleButConfig(t *testing.T) {
 			{Address: "192.168.1.2", Role: "manager"},
 		},
 		Ucp: UcpConfig{},
-		Dtr: DtrConfig{},
+		Dtr: &DtrConfig{},
 	}
 	expected := &WebUrls{
 		Ucp: "https://192.168.1.2",
@@ -112,7 +112,7 @@ func TestUCPClusterSpecWebURLWithDTRWebURLWithoutExternalURL(t *testing.T) {
 			{Address: "192.168.1.3", Role: "dtr"},
 		},
 		Ucp: UcpConfig{},
-		Dtr: DtrConfig{
+		Dtr: &DtrConfig{
 			Metadata: &DtrMetadata{
 				DtrLeaderAddress: "192.168.1.3",
 			},
@@ -135,7 +135,7 @@ func TestUCPClusterSpecWebURLWithDTRWebURLWithExternalURL(t *testing.T) {
 		Ucp: UcpConfig{
 			InstallFlags: []string{"--san=ucp.acme.com"},
 		},
-		Dtr: DtrConfig{
+		Dtr: &DtrConfig{
 			InstallFlags: []string{"--dtr-external-url dtr.acme.com"},
 		},
 	}
