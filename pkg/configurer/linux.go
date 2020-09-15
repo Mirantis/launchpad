@@ -137,6 +137,11 @@ func (c *LinuxConfigurer) DockerCommandf(template string, args ...interface{}) s
 
 // ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
 func (c *LinuxConfigurer) ValidateFacts() error {
+	err := c.Host.ExecCmd("ping -c 1 -w 1 -r localhost", "", false, false)
+	if err != nil {
+		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
+	}
+
 	localAddresses, err := c.getHostLocalAddresses()
 	if err != nil {
 		return fmt.Errorf("failed to find host local addresses: %w", err)
