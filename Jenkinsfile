@@ -50,21 +50,6 @@ pipeline {
             sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_launchpad.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
-        stage("Ubuntu 18.04: apply 3.3.3-tp10") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          environment {
-            UCP_IMAGE_REPO = "docker.io/dockereng"
-            UCP_VERSION = "3.3.3-tp10"
-            REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
-          }
-          steps {
-            sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-          }
-        }
         stage("CentOS 7: apply") {
           agent {
               node {
@@ -194,18 +179,16 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade UCP3.3 DTR2.8 ENG19.03.11") {
+            stage("Upgrade UCP3.3 DTR2.8 ENG19.03.12") {
               environment {
-                UCP_IMAGE_REPO = "docker.io/dockereng"
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
                 CONFIG_TEMPLATE = "launchpad-dtr.yaml.tpl"
-                UCP_VERSION = "3.3.3-tp10"
+                UCP_VERSION = "3.3.3"
                 REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
                 IMAGE_REPO = "docker.io/mirantis"
-                DTR_VERSION = "2.8.2"
-                DTR_IMAGE_REPO = "docker.io/mirantis"
-                ENGINE_VERSION = "19.03.11"
+                DTR_VERSION = "2.8.3"
+                ENGINE_VERSION = "19.03.12"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
