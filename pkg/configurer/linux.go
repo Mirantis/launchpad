@@ -286,7 +286,7 @@ func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 
 	content := "[Service]\n"
 	for k, v := range proxyenvs {
-		content += fmt.Sprintf(`Environment="%s=%s\n"`, escape.Quote(k), escape.Quote(v))
+		content += fmt.Sprintf("Environment=\"%s=%s\"\n", escape.Quote(k), escape.Quote(v))
 	}
 
 	return c.WriteFile(cfg, content, "0600")
