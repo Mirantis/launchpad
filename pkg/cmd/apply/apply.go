@@ -43,6 +43,7 @@ func Apply(configFile string, prune, force bool) error {
 		return err
 	}
 
+	log.Debugf("validating configuration")
 	if err = config.Validate(&clusterConfig); err != nil {
 		return err
 	}

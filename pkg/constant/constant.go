@@ -6,9 +6,9 @@ const (
 	// ImageRepoLegacy is the default image repo to use for older versions
 	ImageRepoLegacy = "docker.io/docker"
 	// UCPVersion is the default UCP version to use
-	UCPVersion = "3.3.2"
+	UCPVersion = "3.3.3"
 	// DTRVersion is the default DTR version to use
-	DTRVersion = "2.8.2"
+	DTRVersion = "2.8.3"
 	// EngineVersion is the default engine version
 	EngineVersion = "19.03.12"
 	// EngineChannel is the default engine channel
