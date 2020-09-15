@@ -76,7 +76,15 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func Validate(c *api.ClusterConfig) error {
 	validator := validator.New()
+	validator.RegisterStructValidation(requireManager, api.ClusterSpec{})
 	return validator.Struct(c)
+}
+
+func requireManager(sl validator.StructLevel) {
+	hosts := sl.Current().Interface().(api.ClusterSpec).Hosts
+	if hosts.Count(func(h *api.Host) bool { return h.Role == "manager" }) == 0 {
+		sl.ReportError(hosts, "Hosts", "", "manager required", "")
+	}
 }
 
 // ResolveClusterFile looks for the launchpad.yaml file, based on the value.
