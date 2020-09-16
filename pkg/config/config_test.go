@@ -12,6 +12,44 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestHostRequireManagerValidationPass(t *testing.T) {
+	data := `
+apiVersion: "launchpad.mirantis.com/v1"
+kind: DockerEnterprise
+spec:
+  hosts:
+	  - address: 10.0.0.1
+		  localhost: true
+		  role: manager
+	  - address: 10.0.0.2
+		  role: worker
+		  localhost: true
+`
+	c := loadYaml(t, data)
+	err := Validate(c)
+	require.NoError(t, err)
+}
+
+func TestHostRequireManagerValidationFail(t *testing.T) {
+	data := `
+apiVersion: "launchpad.mirantis.com/v1"
+kind: DockerEnterprise
+spec:
+  hosts:
+	  - address: 10.0.0.1
+		  role: worker
+		  localhost: true
+	  - address: 10.0.0.2
+		  role: worker
+		  localhost: true
+`
+	c := loadYaml(t, data)
+	err := Validate(c)
+	require.Error(t, err)
+
+	validateErrorField(t, err, "Hosts")
+}
+
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
 apiVersion: "launchpad.mirantis.com/v1"
@@ -331,6 +369,8 @@ spec:
   hosts:
     - address: "1.2.3.4"
 		  role: weirdrole
+    - address: "1.2.3.5"
+		  role: manager
 `
 		c := loadYaml(t, data)
 
@@ -345,6 +385,10 @@ spec:
   hosts:
     - address: "1.2.3.4"
 		  role: dtr
+		  winRM:
+		    user: User
+    - address: "1.2.3.5"
+		  role: manager
 		  winRM:
 		    user: User
 `
