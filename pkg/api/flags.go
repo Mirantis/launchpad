@@ -7,6 +7,7 @@ import (
 // Flags is a slice of strings with added functions to ease manipulating lists of command-line flags
 type Flags []string
 
+// Add adds a flag regardless if it exists already or not
 func (f *Flags) Add(s string) {
 	*f = append(*f, s)
 }
