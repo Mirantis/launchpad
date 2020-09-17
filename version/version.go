@@ -55,42 +55,34 @@ func (l *LaunchpadRelease) UpgradeMessage() string {
 	return ""
 }
 
-// NewLatestVersion initializes a new LaunchpadRelease instance which will self-populate in the background
-func NewLatestVersion() *LaunchpadRelease {
-	l := &LaunchpadRelease{}
-
+// GetLatest will populate the release information from Github launchpad repository latest releases
+func (l *LaunchpadRelease) GetLatest() {
 	if !IsProduction() {
-		return l
+		return
 	}
 
-	go func() {
-		l.mutex.Lock()
-		defer l.mutex.Unlock()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
-		//	if !IsProduction() {
-		//		return // do not check on dev builds
-		//	}
-		client := &http.Client{
-			Timeout: time.Second * 2,
-		}
+	client := &http.Client{
+		Timeout: time.Second * 2,
+	}
 
-		resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", GitHubRepo))
-		if err != nil {
-			return // ignore connection errors
-		}
+	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", GitHubRepo))
+	if err != nil {
+		return // ignore connection errors
+	}
 
-		if resp.Body != nil {
-			defer resp.Body.Close()
-		}
-		if resp.StatusCode != 200 {
-			return // ignore backend failures
-		}
-		body, readErr := ioutil.ReadAll(resp.Body)
-		if readErr != nil {
-			return // ignore reading errors
-		}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+	if resp.StatusCode != 200 {
+		return // ignore backend failures
+	}
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		return // ignore reading errors
+	}
 
-		json.Unmarshal(body, &l)
-	}()
-	return l
+	json.Unmarshal(body, &l)
 }

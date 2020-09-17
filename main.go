@@ -36,7 +36,7 @@ SUPPORT:
     https://github.com/Mirantis/launchpad/issues
 `, cli.AppHelpTemplate)
 
-	latest := version.NewLatestVersion()
+	latest := version.LaunchpadRelease{}
 
 	app := &cli.App{
 		Name:  "launchpad",
@@ -62,6 +62,7 @@ SUPPORT:
 			},
 		},
 		Before: func(ctx *cli.Context) error {
+			go func() { latest.GetLatest() }()
 			initLogger(ctx)
 			initAnalytics(ctx)
 			return nil
