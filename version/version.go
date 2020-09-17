@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-version"
@@ -27,51 +28,69 @@ func IsProduction() bool {
 	return Environment == "production"
 }
 
-type release struct {
-	Name    string `json:"name"`
+// LaunchpadRelease describes a launchpad release
+type LaunchpadRelease struct {
 	URL     string `json:"html_url"`
 	TagName string `json:"tag_name"`
+
+	mutex sync.Mutex `json:"-"`
 }
 
-// CheckForUpgrade detects if newer version is available
-func CheckForUpgrade() {
-	if !IsProduction() {
-		return // do not check on dev builds
-	}
-	client := &http.Client{
-		Timeout: time.Second * 2,
+func (l *LaunchpadRelease) UpgradeMessage() string {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	if l.TagName == "" {
+		return ""
 	}
 
-	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", GitHubRepo))
-	if err != nil {
-		return // ignore connection errors
-	}
-
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
-	if resp.StatusCode != 200 {
-		return // ignore backend failures
-	}
-	body, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return // ignore reading errors
-	}
-
-	latest := release{}
-	err = json.Unmarshal(body, &latest)
-	if err != nil {
-		return // ignore json parsing errors
-	}
 	current, err := version.NewVersion(Version)
-	remote, err := version.NewVersion(latest.TagName)
+	remote, err := version.NewVersion(l.TagName)
 	if err != nil {
-		return // ignore invalid versions
+		return "" // ignore invalid versions
 	}
 	if current.LessThan(remote) {
-		fmt.Println("")
-		fmt.Println(fmt.Sprintf("A new version (%s) of `launchpad` is available. Please visit %s to upgrade the tool.", latest.Name, latest.URL))
+		return fmt.Sprintf("A new version (%s) of `launchpad` is available. Please visit %s to upgrade the tool.", l.TagName, l.URL)
+	}
+	return ""
+}
 
+// NewLatestVersion initializes a new LaunchpadRelease instance which will self-populate in the background
+func NewLatestVersion() *LaunchpadRelease {
+	l := &LaunchpadRelease{}
+
+	if !IsProduction() {
+		return l
 	}
 
+	go func() {
+		l.mutex.Lock()
+		defer l.mutex.Unlock()
+
+		//	if !IsProduction() {
+		//		return // do not check on dev builds
+		//	}
+		client := &http.Client{
+			Timeout: time.Second * 2,
+		}
+
+		resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", GitHubRepo))
+		if err != nil {
+			return // ignore connection errors
+		}
+
+		if resp.Body != nil {
+			defer resp.Body.Close()
+		}
+		if resp.StatusCode != 200 {
+			return // ignore backend failures
+		}
+		body, readErr := ioutil.ReadAll(resp.Body)
+		if readErr != nil {
+			return // ignore reading errors
+		}
+
+		json.Unmarshal(body, &l)
+	}()
+	return l
 }

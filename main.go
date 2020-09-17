@@ -36,6 +36,8 @@ SUPPORT:
     https://github.com/Mirantis/launchpad/issues
 `, cli.AppHelpTemplate)
 
+	latest := version.NewLatestVersion()
+
 	app := &cli.App{
 		Name:  "launchpad",
 		Usage: "Mirantis Launchpad",
@@ -66,7 +68,11 @@ SUPPORT:
 		},
 		After: func(c *cli.Context) error {
 			closeAnalyticsClient()
-			version.CheckForUpgrade()
+			msg := latest.UpgradeMessage()
+			if msg != "" {
+				println()
+				println(msg)
+			}
 			return nil
 		},
 		Commands: []*cli.Command{
