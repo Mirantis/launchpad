@@ -20,7 +20,7 @@ const (
 // Environment variables designations for the Container Cloud bundle download
 const (
 	TargetDirEnvVar           = "TARGET_DIR"
-	KaaSReleasesYamlEnvVar    = "KAAS_RELEASES_YAML"
+	KaaSReleasesYamlEnvVar    = "KAAS_RELEASE_YAML"
 	ClusterReleasesDirEnvVar  = "CLUSTER_RELEASES_DIR"
 	KaaSCDNRegionEnvVar       = "KAAS_CDN_REGION"
 	KaaSCDNBaseURLEnvVar      = "KAAS_CDN_BASE_URL"
