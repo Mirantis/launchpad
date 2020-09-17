@@ -119,6 +119,16 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.LongHostname = h.Configurer.ResolveLongHostname()
+
+	if h.PrivateInterface == "" {
+		i, err := h.Configurer.ResolvePrivateInterface()
+		if err != nil {
+			return err
+		}
+		log.Infof("%s: detected private interface %s", h.Address, i)
+		h.PrivateInterface = i
+	}
+
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {
 		return err
