@@ -36,6 +36,7 @@ type LaunchpadRelease struct {
 	mutex sync.Mutex
 }
 
+// UpgradeMessage returns a friendly upgrade message (after the GetLatest has released the mutex) or an empty string if there is no upgrade available
 func (l *LaunchpadRelease) UpgradeMessage() string {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
