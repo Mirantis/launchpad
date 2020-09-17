@@ -33,7 +33,7 @@ type LaunchpadRelease struct {
 	URL     string `json:"html_url"`
 	TagName string `json:"tag_name"`
 
-	mutex sync.Mutex `json:"-"`
+	mutex sync.Mutex
 }
 
 func (l *LaunchpadRelease) UpgradeMessage() string {
