@@ -74,6 +74,7 @@ func (l *LaunchpadRelease) IsNewer() bool {
 	return current.LessThan(remote)
 }
 
+// AssetForHost returns a download asset for the current host OS+ARCH if available
 func (l *LaunchpadRelease) AssetForHost() *Asset {
 	for _, a := range l.Assets {
 		if a.IsForHost() {
