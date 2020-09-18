@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,6 +15,7 @@ import (
 // DownloadInstaller phase implementation does all the prep work we need for the hosts
 type DownloadInstaller struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -23,23 +24,23 @@ func (p *DownloadInstaller) Title() string {
 }
 
 // Run does all the prep work on the hosts in parallel
-func (p *DownloadInstaller) Run(config *api.ClusterConfig) error {
-	linuxScript, err := p.getScript(config.Spec.Engine.InstallURLLinux)
+func (p *DownloadInstaller) Run() error {
+	linuxScript, err := p.getScript(p.config.Spec.Engine.InstallURLLinux)
 	if err != nil {
 		return err
 	}
 
 	var winScript string
 
-	wincount := config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() })
+	wincount := p.config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() })
 	if wincount > 0 {
-		winScript, err = p.getScript(config.Spec.Engine.InstallURLWindows)
+		winScript, err = p.getScript(p.config.Spec.Engine.InstallURLWindows)
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, h := range config.Spec.Hosts {
+	for _, h := range p.config.Spec.Hosts {
 		if h.IsWindows() {
 			h.Metadata.EngineInstallScript = &winScript
 		} else {

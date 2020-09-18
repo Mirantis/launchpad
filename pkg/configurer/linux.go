@@ -8,7 +8,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/util"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"
@@ -249,6 +249,18 @@ func (c *LinuxConfigurer) UpdateEnvironment() error {
 	return c.ConfigureDockerProxy()
 }
 
+// CleanupEnvironment removes environment variable configuration
+func (c *LinuxConfigurer) CleanupEnvironment() error {
+	for k := range c.Host.Environment {
+		err := c.LineIntoFile("/etc/environment", fmt.Sprintf("^%s=", k), "")
+		if err != nil {
+			return err
+		}
+	}
+	// remove empty lines
+	return c.Host.ExecCmd(`sudo sed -i '/^$/d' /etc/environment`, "", false, false)
+}
+
 // ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables
 func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 	proxyenvs := make(map[string]string)
@@ -274,7 +286,7 @@ func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 
 	content := "[Service]\n"
 	for k, v := range proxyenvs {
-		content += fmt.Sprintf(`Environment="%s=%s\n"`, escape.Quote(k), escape.Quote(v))
+		content += fmt.Sprintf("Environment=\"%s=%s\"\n", escape.Quote(k), escape.Quote(v))
 	}
 
 	return c.WriteFile(cfg, content, "0600")

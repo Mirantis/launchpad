@@ -1,13 +1,14 @@
 package phase
 
 import (
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	log "github.com/sirupsen/logrus"
 )
 
 // UninstallEngine phase implementation
 type UninstallEngine struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -16,8 +17,8 @@ func (p *UninstallEngine) Title() string {
 }
 
 // Run installs the engine on each host
-func (p *UninstallEngine) Run(c *api.ClusterConfig) error {
-	return runParallelOnHosts(c.Spec.Hosts, c, p.uninstallEngine)
+func (p *UninstallEngine) Run() error {
+	return runParallelOnHosts(p.config.Spec.Hosts, p.config, p.uninstallEngine)
 }
 
 func (p *UninstallEngine) uninstallEngine(host *api.Host, c *api.ClusterConfig) error {

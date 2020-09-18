@@ -15,39 +15,29 @@ pipeline {
     }
     stage("Smoke test") {
       parallel {
-        stage("Ubuntu 16.04: apply") {
+        stage("Ubuntu 18.04: apply & reset") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
-          steps {
-            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
-          }
-        }
-        stage("Ubuntu 18.04: apply") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+          stages {
+            stage("Apply") {
+              environment {
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+              }
             }
-          }
-          steps {
-            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-          }
-        }
-        stage("Ubuntu 18.04 with DTR: apply") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            stage("Reset") {
+              environment {
+                REUSE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+              }
             }
-          }
-          environment {
-            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
-          }
-          steps {
-            sh "make smoke-test"
           }
         }
         stage("Ubuntu 18.04: apply v1beta1") {
@@ -57,23 +47,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-test CONFIG_TEMPLATE=v1beta1_cluster.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-          }
-        }
-        stage("Ubuntu 18.04: apply catfish") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          environment {
-            UCP_IMAGE_REPO = "docker.io/dockereng"
-            UCP_VERSION = "3.4.0-tp6"
-            ENGINE_VERSION = "19.03.11"
-            REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
-          }
-          steps {
-            sh "make smoke-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_launchpad.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("CentOS 7: apply") {
@@ -86,106 +60,145 @@ pipeline {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/centos7"
           }
         }
-        stage("CentOS 8: apply") {
+        stage("CentOS 8") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
-          steps {
-            sh "make smoke-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
+          stages {
+            stage("Apply") {
+              environment {
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
+              }
+            }
+            stage("Reset") {
+              environment {
+                REUSE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-reset-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
+              }
+            }
           }
         }
-        stage("Ubuntu 18.04: upgrade UCP 3.2 -> 3.3, DTR 2.7 -> 2.8") {
+        stage("Ubuntu 16.04") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          stages {
+            stage("Apply") {
+              environment {
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
+              }
+            }
+            stage("Reset") {
+              environment {
+                REUSE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
+              }
+            }
+          }
+        }
+        stage("UCP3.3.3 VXLAN switch") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          stages {
+            stage("VXLAN:false") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                CONFIG_TEMPLATE = "launchpad-vxlan.yaml.tpl"
+                CALICO_VXLAN = "false"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-test"
+              }
+            }
+            stage("VXLAN:true") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                CONFIG_TEMPLATE = "launchpad-vxlan.yaml.tpl"
+                CALICO_VXLAN = "true"
+                REUSE_CLUSTER = "true"
+                MUST_FAIL = "true"
+              }
+              steps {
+                sh "make smoke-test"
+              }
+            }
+          }
+        }
+        stage("Ubuntu 18.04: local worker apply") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           environment {
-            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
+            CONFIG_TEMPLATE = "cluster-local.yaml.tpl"
+            FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
           }
           steps {
-            sh "make smoke-upgrade-test"
+            sh "make smoke-apply-test-localhost LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
-        stage("Ubuntu 18.04 with DTR: prune") {
+        stage("Ubuntu 18.04 with DTR") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
-          environment {
-            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
-          }
-          steps {
-            sh "make smoke-prune-test"
-          }
-        }
-        stage("Ubuntu 18.04: with docker credentials") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+          stages {
+            stage("Install UCP3.2 DTR2.7 ENG19.03.8") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+                CONFIG_TEMPLATE = "launchpad-dtr.yaml.tpl"
+                UCP_VERSION = "3.2.8"
+                IMAGE_REPO = "docker.io/mirantis"
+                DTR_VERSION = "2.7.8"
+                DTR_IMAGE_REPO = "docker.io/mirantis"
+                ENGINE_VERSION = "19.03.8"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-test"
+              }
             }
-          }
-          environment {
-            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
-            UCP_IMAGE_REPO = "docker.io/dockereng"
-            REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
-          }
-          steps {
-            sh "make smoke-test"
-          }
-        }
-        stage("Ubuntu 18.04: reset") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            stage("Upgrade UCP3.3 DTR2.8 ENG19.03.12") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+                CONFIG_TEMPLATE = "launchpad-dtr.yaml.tpl"
+                UCP_VERSION = "3.3.3"
+                REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
+                IMAGE_REPO = "docker.io/mirantis"
+                DTR_VERSION = "2.8.3"
+                ENGINE_VERSION = "19.03.12"
+                REUSE_CLUSTER = "true"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-test"
+                sh "make smoke-prune-test"
+                sh "make smoke-reset-test"
+                sh "make smoke-cleanup"
+              }
             }
-          }
-          steps {
-            sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-          }
-        }
-        stage("Ubuntu 18.04 with DTR: reset") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          environment {
-            LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-            FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-            CONFIG_TEMPLATE = "cluster-dtr.yaml.tpl"
-          }
-          steps {
-            sh "make smoke-reset-test"
-          }
-        }
-        stage("Ubuntu 16.04: reset") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          steps {
-            sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
-          }
-        }
-        stage("CentOS 8: reset") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          steps {
-            sh "make smoke-reset-test LINUX_IMAGE=docker.io/jakolehm/footloose-centos8"
           }
         }
       }

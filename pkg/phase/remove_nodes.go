@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
@@ -20,6 +20,7 @@ import (
 // RemoveNodes phase implementation
 type RemoveNodes struct {
 	Analytics
+	BasicPhase
 }
 
 type isManaged struct {
@@ -53,10 +54,10 @@ func (p *RemoveNodes) Title() string {
 }
 
 // Run removes all nodes from swarm that are labeled and not part of the current config
-func (p *RemoveNodes) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
+func (p *RemoveNodes) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
 
-	nodeIDs, err := p.currentNodeIDs(config)
+	nodeIDs, err := p.currentNodeIDs(p.config)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func (p *RemoveNodes) Run(config *api.ClusterConfig) error {
 			if managed.dtr {
 				// Check to see if the config contains any left over DTR nodes,
 				// if it doesn't just call CleanupDtrs to remove
-				dtrs := config.Spec.Dtrs()
+				dtrs := p.config.Spec.Dtrs()
 				if len(dtrs) == 0 {
 					// All of the DTRs were removed from config, just remove
 					// them forcefully since we don't care about sustaining
@@ -91,14 +92,14 @@ func (p *RemoveNodes) Run(config *api.ClusterConfig) error {
 				// Using an httpClient, reach out to the UCP API to obtain the
 				// full list of running containers so replicaID associated with
 				// hostname can be determined
-				replicaID, err := p.getReplicaIDFromHostname(config, swarmLeader, hostname)
+				replicaID, err := p.getReplicaIDFromHostname(p.config, swarmLeader, hostname)
 				if err != nil {
 					return err
 				}
 				log.Debugf("Obtained replicaID: %s from node intending to be removed", replicaID)
 
 				// Use that hostname to issue a remove from bootstrap
-				err = p.removeDtrNode(config, replicaID)
+				err = p.removeDtrNode(p.config, replicaID)
 				if err != nil {
 					return err
 				}

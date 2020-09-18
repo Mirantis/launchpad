@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/urfave/cli/v2"
 )
 
@@ -16,18 +16,18 @@ import (
 func NewInitCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "init",
-		Usage: "Initialize cluster.yaml file",
+		Usage: "Initialize launchpad.yaml file",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "kind",
 				Usage:   "What kind of cluster definition we'll create",
 				Aliases: []string{"k"},
-				Value:   "UCP",
+				Value:   "DockerEnterprise",
 				Hidden:  true, // We don't support anything else than UCP for now
 			},
 			&cli.BoolFlag{
 				Name:    "dtr",
-				Usage:   "Init a cluster.yaml file for Docker Trusted Registry (DTR)",
+				Usage:   "Init a launchpad.yaml file for Docker Trusted Registry (DTR)",
 				Aliases: []string{"d"},
 				Value:   false,
 			},
@@ -38,9 +38,17 @@ func NewInitCommand() *cli.Command {
 				analytics.TrackEvent("Cluster Init Failed", nil)
 				return err
 			}
+
+			var dtrConfig *api.DtrConfig
+			if ctx.Bool("dtr") {
+				dtrConfig = &api.DtrConfig{
+					Version:       constant.DTRVersion,
+					ReplicaConfig: "sequential",
+				}
+			}
 			clusterConfig := api.ClusterConfig{
-				APIVersion: "launchpad.mirantis.com/v1beta3",
-				Kind:       "UCP",
+				APIVersion: "launchpad.mirantis.com/v1",
+				Kind:       "DockerEnterprise",
 				Metadata: &api.ClusterMeta{
 					Name: "my-ucp-cluster",
 				},
@@ -51,10 +59,7 @@ func NewInitCommand() *cli.Command {
 					Ucp: api.UcpConfig{
 						Version: constant.UCPVersion,
 					},
-					Dtr: api.DtrConfig{
-						Version:       constant.DTRVersion,
-						ReplicaConfig: "sequential",
-					},
+					Dtr: dtrConfig,
 					Hosts: []*api.Host{
 						{
 							Address: "10.0.0.1",
