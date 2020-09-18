@@ -74,23 +74,27 @@ SUPPORT:
 			},
 		},
 		Before: func(ctx *cli.Context) error {
-			go func() {
-				if (version.IsProduction() || ctx.Bool("enable-upgrade-check")) && !ctx.Bool("disable-upgrade-check") {
-					upgradeChan <- version.GetUpgrade()
-				} else {
-					upgradeChan <- nil
-				}
-			}()
+			if ctx.Command.Name != "download-upgrade" {
+				go func() {
+					if (version.IsProduction() || ctx.Bool("enable-upgrade-check")) && !ctx.Bool("disable-upgrade-check") {
+						upgradeChan <- version.GetUpgrade()
+					} else {
+						upgradeChan <- nil
+					}
+				}()
+			}
 
 			initLogger(ctx)
 			initAnalytics(ctx)
 			return nil
 		},
-		After: func(c *cli.Context) error {
+		After: func(ctx *cli.Context) error {
 			closeAnalyticsClient()
-			latest := <-upgradeChan
-			if latest != nil {
-				println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s to upgrade the tool.", latest.TagName, latest.URL))
+			if ctx.Command.Name != "download-upgrade" {
+				latest := <-upgradeChan
+				if latest != nil {
+					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-upgrade --replace` to upgrade the tool.", latest.TagName, latest.URL))
+				}
 			}
 			return nil
 		},
@@ -100,6 +104,7 @@ SUPPORT:
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
+			cmd.NewDownloadUpgradeCommand(),
 			versionCmd,
 		},
 	}
