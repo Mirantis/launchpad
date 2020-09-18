@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/go-version"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -32,19 +32,10 @@ func IsProduction() bool {
 type LaunchpadRelease struct {
 	URL     string `json:"html_url"`
 	TagName string `json:"tag_name"`
-
-	mutex sync.Mutex
 }
 
 // UpgradeMessage returns a friendly upgrade message (after the GetLatest has released the mutex) or an empty string if there is no upgrade available
 func (l *LaunchpadRelease) UpgradeMessage() string {
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
-	if l.TagName == "" {
-		return ""
-	}
-
 	current, err := version.NewVersion(Version)
 	remote, err := version.NewVersion(l.TagName)
 	if err != nil {
@@ -57,33 +48,51 @@ func (l *LaunchpadRelease) UpgradeMessage() string {
 }
 
 // GetLatest will populate the release information from Github launchpad repository latest releases
-func (l *LaunchpadRelease) GetLatest() {
-	if !IsProduction() {
-		return
-	}
-
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-
+func GetUpgrade() *LaunchpadRelease {
 	client := &http.Client{
 		Timeout: time.Second * 2,
 	}
 
+	log.Debugf("checking for launchpad upgrade")
 	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", GitHubRepo))
 	if err != nil {
-		return // ignore connection errors
+		log.Debugf("checking for launchpad upgrade failed: %s", err.Error())
+		return nil // ignore connection errors
 	}
 
 	if resp.Body != nil {
 		defer resp.Body.Close()
 	}
 	if resp.StatusCode != 200 {
-		return // ignore backend failures
+		log.Debugf("checking for launchpad upgrade returned http %d", resp.StatusCode)
+		return nil // ignore backend failures
 	}
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return // ignore reading errors
+		log.Debugf("checking for launchpad upgrade failed to read body: %s", err.Error())
+		return nil // ignore reading errors
 	}
 
-	json.Unmarshal(body, &l)
+	l := &LaunchpadRelease{}
+	err = json.Unmarshal(body, l)
+	if err != nil {
+		log.Debugf("checking for launchpad upgrade failed to unmarshal JSON: %s", err.Error())
+		return nil
+	}
+
+	log.Debugf("checking for launchpad upgrade returned: %+v", *l)
+
+	current, err := version.NewVersion(Version)
+	remote, err := version.NewVersion(l.TagName)
+	if err != nil {
+		log.Debugf("checking for launchpad upgrade invalid version: %s", err.Error())
+		return nil // ignore invalid versions
+	}
+
+	if current.LessThan(remote) {
+		log.Debugf("checking for launchpad upgrade found a new version %s", remote.String())
+		return l
+	}
+
+	return nil
 }

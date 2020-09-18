@@ -36,7 +36,7 @@ SUPPORT:
     https://github.com/Mirantis/launchpad/issues
 `, cli.AppHelpTemplate)
 
-	latest := version.LaunchpadRelease{}
+	upgradeChan := make(chan *version.LaunchpadRelease)
 
 	app := &cli.App{
 		Name:  "launchpad",
@@ -55,6 +55,18 @@ SUPPORT:
 				EnvVars: []string{"DISABLE_TELEMETRY"},
 			},
 			&cli.BoolFlag{
+				Name:    "disable-upgrade-check",
+				Usage:   "Disable upgrade check",
+				Aliases: []string{"u"},
+				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
+			},
+			&cli.BoolFlag{
+				Name:    "enable-upgrade-check",
+				Usage:   "Enable upgrade check",
+				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
+				Hidden:  true,
+			},
+			&cli.BoolFlag{
 				Name:    "accept-license",
 				Usage:   "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE",
 				Aliases: []string{"a"},
@@ -62,17 +74,23 @@ SUPPORT:
 			},
 		},
 		Before: func(ctx *cli.Context) error {
-			go func() { latest.GetLatest() }()
+			go func() {
+				if (version.IsProduction() || ctx.Bool("enable-upgrade-check")) && !ctx.Bool("disable-upgrade-check") {
+					upgradeChan <- version.GetUpgrade()
+				} else {
+					upgradeChan <- nil
+				}
+			}()
+
 			initLogger(ctx)
 			initAnalytics(ctx)
 			return nil
 		},
 		After: func(c *cli.Context) error {
 			closeAnalyticsClient()
-			msg := latest.UpgradeMessage()
-			if msg != "" {
-				println()
-				println(msg)
+			latest := <-upgradeChan
+			if latest != nil {
+				println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s to upgrade the tool.", latest.TagName, latest.URL))
 			}
 			return nil
 		},
@@ -90,7 +108,6 @@ SUPPORT:
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func initLogger(ctx *cli.Context) {
