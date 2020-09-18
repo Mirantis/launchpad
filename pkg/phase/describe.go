@@ -78,17 +78,31 @@ func (p *Describe) hostReport() {
 	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "INTERNAL_IP", "HOSTNAME", "ROLE", "OS", "ENGINE")
 
 	for _, h := range p.config.Spec.Hosts {
-		ev := h.Metadata.EngineVersion
-		if ev == "" {
-			ev = "n/a"
+		ev := "n/a"
+		os := "n/a"
+		ia := "n/a"
+		hn := "n/a"
+		if h.Metadata != nil {
+			if h.Metadata.EngineVersion != "" {
+				ev = h.Metadata.EngineVersion
+			}
+			if h.Metadata.Os != nil {
+				os = fmt.Sprintf("%s/%s", h.Metadata.Os.ID, h.Metadata.Os.Version)
+			}
+			if h.Metadata.InternalAddress != "" {
+				ia = h.Metadata.InternalAddress
+			}
+			if h.Metadata.Hostname != "" {
+				hn = h.Metadata.Hostname
+			}
 		}
 		fmt.Fprintf(w,
 			"%s\t%s\t%s\t%s\t%s\t%s\t\n",
 			h.Address,
-			h.Metadata.InternalAddress,
-			h.Metadata.Hostname,
+			ia,
+			hn,
 			h.Role,
-			fmt.Sprintf("%s/%s", h.Metadata.Os.ID, h.Metadata.Os.Version),
+			os,
 			ev,
 		)
 	}

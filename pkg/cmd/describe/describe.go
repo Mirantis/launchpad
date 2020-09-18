@@ -25,6 +25,7 @@ func Describe(configFile string, ucp, dtr bool) error {
 	log.Debugf("loaded cluster cfg: %+v", clusterConfig)
 
 	phaseManager := phase.NewManager(&clusterConfig)
+	phaseManager.IgnoreErrors = true
 
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})

@@ -86,6 +86,10 @@ func (p *GatherFacts) Run() error {
 }
 
 func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
+	if h.Connection == nil {
+		return fmt.Errorf("%s: not connected", h.Address)
+	}
+
 	log.Infof("%s: gathering host facts", h.Address)
 
 	os := &api.OsRelease{}
