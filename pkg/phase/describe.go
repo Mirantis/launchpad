@@ -10,9 +10,8 @@ import (
 type Describe struct {
 	BasicPhase
 
-	Ucp    bool
-	Dtr    bool
-	Engine bool
+	Ucp bool
+	Dtr bool
 }
 
 // Title for the phase
@@ -24,10 +23,8 @@ func (p *Describe) Title() string {
 func (p *Describe) Run() error {
 	if p.Ucp {
 		p.ucpReport()
-		fmt.Println()
 	} else if p.Dtr {
 		p.dtrReport()
-		fmt.Println()
 	} else {
 		p.hostReport()
 	}
@@ -78,16 +75,21 @@ func (p *Describe) hostReport() {
 	// minwidth, tabwidth, padding, padchar, flags
 	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "INTERNAL_IP", "HOSTNAME", "ROLE", "OS")
+	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "INTERNAL_IP", "HOSTNAME", "ROLE", "OS", "ENGINE")
 
 	for _, h := range p.config.Spec.Hosts {
+		ev := h.Metadata.EngineVersion
+		if ev == "" {
+			ev = "n/a"
+		}
 		fmt.Fprintf(w,
-			"%s\t%s\t%s\t%s\t%s\t\n",
+			"%s\t%s\t%s\t%s\t%s\t%s\t\n",
 			h.Address,
 			h.Metadata.InternalAddress,
 			h.Metadata.Hostname,
 			h.Role,
 			fmt.Sprintf("%s/%s", h.Metadata.Os.ID, h.Metadata.Os.Version),
+			ev,
 		)
 	}
 	w.Flush()
