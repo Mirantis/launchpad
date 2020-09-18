@@ -68,7 +68,7 @@ func (p *GatherFacts) Run() error {
 			DtrLeaderReplicaID: "",
 		}
 		dtrLeader := p.config.Spec.DtrLeader()
-		if dtrLeader.Metadata.EngineVersion != "" {
+		if dtrLeader != nil && dtrLeader.Metadata != nil && dtrLeader.Metadata.EngineVersion != "" {
 			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
 			if err != nil {
 				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())

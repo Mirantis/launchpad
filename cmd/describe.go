@@ -7,6 +7,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/cmd/describe"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // NewDescribeCommand creates new install command to be called from cli
@@ -19,13 +21,24 @@ func NewDescribeCommand() *cli.Command {
 				Name:    "config",
 				Usage:   "Path to cluster config yaml",
 				Aliases: []string{"c"},
-				Value:   "cluster.yaml",
+				Value:   "launchpad.yaml",
+			},
+			&cli.BoolFlag{
+				Name:  "ucp",
+				Usage: "Show UCP information",
+			},
+			&cli.BoolFlag{
+				Name:  "dtr",
+				Usage: "Show DTR information",
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			if !ctx.Bool("debug") {
+				log.SetLevel(log.FatalLevel)
+			}
 			start := time.Now()
 			analytics.TrackEvent("Cluster Describe Started", nil)
-			err := describe.Describe(ctx.String("config"))
+			err := describe.Describe(ctx.String("config"), ctx.Bool("ucp"), ctx.Bool("dtr"))
 			if err != nil {
 				analytics.TrackEvent("Cluster Describe Failed", nil)
 			} else {
