@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +15,7 @@ const configName string = "com.docker.ucp.config"
 // InstallUCP is the phase implementation for running the actual UCP installer container
 type InstallUCP struct {
 	Analytics
+	BasicPhase
 }
 
 // Title prints the phase title
@@ -23,8 +24,8 @@ func (p *InstallUCP) Title() string {
 }
 
 // Run the installer container
-func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
-	swarmLeader := config.Spec.SwarmLeader()
+func (p *InstallUCP) Run() (err error) {
+	swarmLeader := p.config.Spec.SwarmLeader()
 
 	defer func() {
 		if err != nil {
@@ -36,26 +37,26 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 	}()
 
 	p.EventProperties = map[string]interface{}{
-		"ucp_version": config.Spec.Ucp.Version,
+		"ucp_version": p.config.Spec.Ucp.Version,
 	}
 
-	if config.Spec.Ucp.Metadata.Installed {
-		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, config.Spec.Ucp.Metadata.InstalledVersion)
+	if p.config.Spec.Ucp.Metadata.Installed {
+		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, p.config.Spec.Ucp.Metadata.InstalledVersion)
 		return nil
 	}
 
-	image := fmt.Sprintf("%s/ucp:%s", config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
-	installFlags := config.Spec.Ucp.InstallFlags
+	image := fmt.Sprintf("%s/ucp:%s", p.config.Spec.Ucp.ImageRepo, p.config.Spec.Ucp.Version)
+	installFlags := p.config.Spec.Ucp.InstallFlags
 
-	if config.Spec.Ucp.CACertData != "" && config.Spec.Ucp.CertData != "" && config.Spec.Ucp.KeyData != "" {
-		err := p.installCertificates(config)
+	if p.config.Spec.Ucp.CACertData != "" && p.config.Spec.Ucp.CertData != "" && p.config.Spec.Ucp.KeyData != "" {
+		err := p.installCertificates(p.config)
 		if err != nil {
 			return err
 		}
 		installFlags = append(installFlags, " --external-server-cert")
 	}
 
-	if config.Spec.Ucp.ConfigData != "" {
+	if p.config.Spec.Ucp.ConfigData != "" {
 		defer func() {
 			err := swarmLeader.Execf("sudo docker config rm %s", configName)
 			if err != nil {
@@ -66,31 +67,31 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 		installFlags = append(installFlags, "--existing-config")
 		log.Info("Creating UCP configuration")
 		configCmd := swarmLeader.Configurer.DockerCommandf("config create %s -", configName)
-		err := swarmLeader.ExecCmd(configCmd, config.Spec.Ucp.ConfigData, false, false)
+		err := swarmLeader.ExecCmd(configCmd, p.config.Spec.Ucp.ConfigData, false, false)
 		if err != nil {
 			return err
 		}
 	}
 
-	if licenseFilePath := config.Spec.Ucp.LicenseFilePath; licenseFilePath != "" {
+	if licenseFilePath := p.config.Spec.Ucp.LicenseFilePath; licenseFilePath != "" {
 		log.Debugf("Installing UCP with LicenseFilePath: %s", licenseFilePath)
-		licenseFlag, err := util.SetupLicenseFile(config.Spec.Ucp.LicenseFilePath)
+		licenseFlag, err := util.SetupLicenseFile(p.config.Spec.Ucp.LicenseFilePath)
 		if err != nil {
 			return fmt.Errorf("error while reading license file %s: %v", licenseFilePath, err)
 		}
 		installFlags = append(installFlags, licenseFlag)
 	}
 
-	if config.Spec.Ucp.Cloud != nil {
-		if config.Spec.Ucp.Cloud.Provider != "" {
-			installFlags = append(installFlags, fmt.Sprintf("--cloud-provider %s", config.Spec.Ucp.Cloud.Provider))
+	if p.config.Spec.Ucp.Cloud != nil {
+		if p.config.Spec.Ucp.Cloud.Provider != "" {
+			installFlags = append(installFlags, fmt.Sprintf("--cloud-provider %s", p.config.Spec.Ucp.Cloud.Provider))
 		}
-		if config.Spec.Ucp.Cloud.ConfigData != "" {
-			applyCloudConfig(config)
+		if p.config.Spec.Ucp.Cloud.ConfigData != "" {
+			applyCloudConfig(p.config)
 		}
 	}
 
-	if api.IsCustomImageRepo(config.Spec.Ucp.ImageRepo) {
+	if api.IsCustomImageRepo(p.config.Spec.Ucp.ImageRepo) {
 		// In case of custom repo, don't let UCP check the images
 		installFlags = append(installFlags, "--pull never")
 	}
@@ -105,11 +106,10 @@ func (p *InstallUCP) Run(config *api.ClusterConfig) (err error) {
 		return NewError("Failed to run UCP installer")
 	}
 
-	ucpMeta, err := ucp.CollectUcpFacts(swarmLeader)
+	err = ucp.CollectUcpFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
 	}
-	config.Spec.Ucp.Metadata = ucpMeta
 
 	return nil
 }

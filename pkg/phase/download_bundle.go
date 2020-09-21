@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -21,6 +20,7 @@ import (
 // DownloadBundle phase downloads the client bundle to local storage
 type DownloadBundle struct {
 	Analytics
+	BasicPhase
 	Username string
 	Password string
 }
@@ -31,15 +31,15 @@ func (p *DownloadBundle) Title() string {
 }
 
 // Run collect all the facts from hosts in parallel
-func (p *DownloadBundle) Run(conf *api.ClusterConfig) error {
-	m := conf.Spec.Managers()[0]
+func (p *DownloadBundle) Run() error {
+	m := p.config.Spec.Managers()[0]
 
-	tlsConfig, err := ucp.GetTLSConfigFrom(m, conf.Spec.Ucp.ImageRepo, conf.Spec.Ucp.Version)
+	tlsConfig, err := ucp.GetTLSConfigFrom(m, p.config.Spec.Ucp.ImageRepo, p.config.Spec.Ucp.Version)
 	if err != nil {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	urls := conf.Spec.WebURLs()
+	urls := p.config.Spec.WebURLs()
 	url, err := util.ResolveURL(urls.Ucp)
 	if err != nil {
 		return fmt.Errorf("error while parsing URL: %w", err)
@@ -50,7 +50,7 @@ func (p *DownloadBundle) Run(conf *api.ClusterConfig) error {
 		return fmt.Errorf("failed to download admin bundle: %s", err)
 	}
 
-	bundleDir, err := p.getBundleDir(conf.Metadata.Name, p.Username)
+	bundleDir, err := p.getBundleDir(p.config.Metadata.Name, p.Username)
 	if err != nil {
 		return err
 	}

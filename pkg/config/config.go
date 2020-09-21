@@ -9,9 +9,10 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/Mirantis/mcc/pkg/apis/v1beta1"
-	"github.com/Mirantis/mcc/pkg/apis/v1beta2"
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/api/v1beta1"
+	"github.com/Mirantis/mcc/pkg/api/v1beta2"
+	"github.com/Mirantis/mcc/pkg/api/v1beta3"
 	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,11 +38,24 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta1" {
-		v1beta1.MigrateToV1Beta3(&data)
+		err := v1beta1.MigrateToCurrent(&data)
+		if err != nil {
+			return c, err
+		}
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta2" {
-		v1beta2.MigrateToV1Beta3(&data)
+		err := v1beta2.MigrateToCurrent(&data)
+		if err != nil {
+			return c, err
+		}
+	}
+
+	if cv.APIVersion == "launchpad.mirantis.com/v1beta3" {
+		err := v1beta3.MigrateToCurrent(&data)
+		if err != nil {
+			return c, err
+		}
 	}
 
 	err = yaml.Unmarshal(data, &c)
@@ -62,10 +76,18 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func Validate(c *api.ClusterConfig) error {
 	validator := validator.New()
+	validator.RegisterStructValidation(requireManager, api.ClusterSpec{})
 	return validator.Struct(c)
 }
 
-// ResolveClusterFile looks for the cluster.yaml file, based on the value.
+func requireManager(sl validator.StructLevel) {
+	hosts := sl.Current().Interface().(api.ClusterSpec).Hosts
+	if hosts.Count(func(h *api.Host) bool { return h.Role == "manager" }) == 0 {
+		sl.ReportError(hosts, "Hosts", "", "manager required", "")
+	}
+}
+
+// ResolveClusterFile looks for the launchpad.yaml file, based on the value.
 // It returns the contents of this file as []byte if found,
 // or error if it didn't.
 func ResolveClusterFile(clusterFile string) ([]byte, error) {

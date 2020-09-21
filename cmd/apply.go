@@ -19,12 +19,18 @@ func NewApplyCommand() *cli.Command {
 				Name:    "config",
 				Usage:   "Path to cluster config yaml",
 				Aliases: []string{"c"},
-				Value:   "cluster.yaml",
+				Value:   "launchpad.yaml",
 			},
 			&cli.BoolFlag{
 				Name:  "prune",
 				Usage: "Automatically remove nodes that are no longer a part of cluster config yaml",
 				Value: false,
+			},
+			&cli.BoolFlag{
+				Name:    "force",
+				Aliases: []string{"f"},
+				Usage:   "Allow continuing in some situations where prerequisite checks fail",
+				Value:   false,
 			},
 		},
 		Before: func(ctx *cli.Context) error {
@@ -36,7 +42,7 @@ func NewApplyCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
-			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"))
+			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"), ctx.Bool("force"))
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {

@@ -1,7 +1,7 @@
 package phase
 
 import (
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -9,6 +9,7 @@ import (
 // Connect connects to each of the hosts
 type Connect struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -17,14 +18,16 @@ func (p *Connect) Title() string {
 }
 
 // Run connects to all the hosts in parallel
-func (p *Connect) Run(config *api.ClusterConfig) error {
-	return runParallelOnHosts(config.Spec.Hosts, config, p.connectHost)
+func (p *Connect) Run() error {
+	return runParallelOnHosts(p.config.Spec.Hosts, p.config, p.connectHost)
 }
 
 func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 	proto := "SSH"
 
-	if host.WinRM != nil {
+	if host.Localhost {
+		proto = "Local"
+	} else if host.WinRM != nil {
 		proto = "WinRM"
 	}
 

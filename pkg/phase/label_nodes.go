@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
@@ -12,6 +12,7 @@ import (
 // LabelNodes phase implementation
 type LabelNodes struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -20,10 +21,10 @@ func (p *LabelNodes) Title() string {
 }
 
 // Run labels all nodes with launchpad label
-func (p *LabelNodes) Run(config *api.ClusterConfig) error {
-	swarmLeader := config.Spec.SwarmLeader()
+func (p *LabelNodes) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
 
-	err := p.labelCurrentNodes(config, swarmLeader)
+	err := p.labelCurrentNodes(p.config, swarmLeader)
 	if err != nil {
 		return err
 	}

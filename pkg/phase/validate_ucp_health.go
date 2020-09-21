@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
 	"github.com/Mirantis/mcc/pkg/pollutil"
 	"github.com/sirupsen/logrus"
@@ -13,6 +13,7 @@ import (
 // ValidateUcpHealth phase implementation
 type ValidateUcpHealth struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -23,10 +24,10 @@ func (p *ValidateUcpHealth) Title() string {
 // Run validates the health of UCP is sane before continuing with other
 // launchpad phases, should be used when installing products that depend
 // on UCP, such as DTR
-func (p *ValidateUcpHealth) Run(c *api.ClusterConfig) error {
+func (p *ValidateUcpHealth) Run() error {
 	// Issue a health check to the UCP san host until we receive an 'ok' status
-	ucpURL := dtr.GetUcpURL(c)
-	swarmLeader := c.Spec.SwarmLeader()
+	ucpURL := dtr.GetUcpURL(p.config)
+	swarmLeader := p.config.Spec.SwarmLeader()
 
 	pollConfig := pollutil.InfoPollfConfig("Performing health check against UCP: %s", ucpURL)
 	pollConfig.NumRetries = 5

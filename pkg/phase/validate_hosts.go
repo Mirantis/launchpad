@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -20,6 +20,7 @@ import (
 // ValidateHosts phase implementation to collect facts (OS, version etc.) from hosts
 type ValidateHosts struct {
 	Analytics
+	BasicPhase
 }
 
 // Title for the phase
@@ -28,16 +29,16 @@ func (p *ValidateHosts) Title() string {
 }
 
 // Run collect all the facts from hosts in parallel
-func (p *ValidateHosts) Run(conf *api.ClusterConfig) error {
-	if err := p.validateHostFacts(conf); err != nil {
-		return p.formatErrors(conf)
+func (p *ValidateHosts) Run() error {
+	if err := p.validateHostFacts(p.config); err != nil {
+		return p.formatErrors(p.config)
 	}
 
-	if err := p.validateHostnameUniqueness(conf); err != nil {
-		return p.formatErrors(conf)
+	if err := p.validateHostnameUniqueness(p.config); err != nil {
+		return p.formatErrors(p.config)
 	}
 
-	return p.formatErrors(conf)
+	return p.formatErrors(p.config)
 }
 
 func (p *ValidateHosts) formatErrors(conf *api.ClusterConfig) error {

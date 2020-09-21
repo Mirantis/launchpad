@@ -3,75 +3,20 @@
 set -e
 
 cd test
-rm -f ./id_rsa_launchpad
-ssh-keygen -t rsa -f ./id_rsa_launchpad -N ""
+. ./smoke.common.sh
+trap cleanup EXIT
 
-FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-footloose.yaml.tpl}
-CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-cluster.yaml.tpl}
-export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
-export UCP_VERSION=${UCP_VERSION:-"3.2.6"}
-export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/mirantis"} # LP should switch this to docker
-export DTR_VERSION=${DTR_VERSION:-"2.7.7"}
-export DTR_IMAGE_REPO=${DTR_IMAGE_REPO:-"docker.io/docker"}
-export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.5"}
-export CLUSTER_NAME=$BUILD_TAG
-export DISABLE_TELEMETRY="true"
-export ACCEPT_LICENSE="true"
+setup
 
-function cleanup {
-  echo -e "Cleaning up..."
-  ./footloose delete
-  docker volume prune -f
-  docker network rm footloose-cluster 2> /dev/null
-  ## Clean the local state
-  rm -rf ~/.mirantis-launchpad/cluster/$CLUSTER_NAME
-}
+[ "${REUSE_CLUSTER}" = "" ] && ../bin/launchpad --debug apply
 
-function downloadFootloose() {
-  echo -e "Downloading tools for test..."
-  OS=$(uname)
-  if [ "$OS" == "Darwin" ]; then
-      curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-darwin-x86_64.tar.gz > ./footloose.tar.gz
-      tar -xvf footloose.tar.gz
-  else
-      curl -L https://github.com/weaveworks/footloose/releases/download/0.6.3/footloose-0.6.3-linux-x86_64 > ./footloose
-  fi
-}
+export UCP_VERSION=${UCP_UPGRADE_VERSION:-"3.3.3"}
+export UCP_IMAGE_REPO=${UCP_UPGRADE_IMAGE_REPO:-"docker.io/mirantis"}
+export ENGINE_VERSION=${ENGINE_UPGRADE_VERSION:-"19.03.12"}
+export DTR_VERSION=${DTR_UPGRADE_VERSION:"2.8.3"}
 
-echo -e "Creating footloose-cluster network..."
-docker network inspect footloose-cluster || docker network create footloose-cluster --subnet 172.16.86.0/24 --gateway 172.16.86.1 --attachable 2> /dev/null
+generateYaml
 
-[ -f footloose ] || downloadFootloose
-
-chmod +x ./footloose
-
-# cleanup any existing cluster
-envsubst < footloose-dtr.yaml.tpl > footloose.yaml
-./footloose delete && docker volume prune -f
-
-envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
-./footloose create
-
-export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-envsubst < "${CONFIG_TEMPLATE}" > cluster.yaml
-cat cluster.yaml
-
-set +e
-if ! ../bin/launchpad --debug apply ; then
-  cleanup
-  exit 1
-fi
-
-export UCP_VERSION=${UCP_UPGRADE_VERSION:-"3.3.2"}
-export ENGINE_VERSION=${ENGINE_UPGRADE_VERSION:-"19.03.8"}
-export DTR_VERSION=${DTR_UPGRADE_VERSION:"2.8.1"}
-envsubst < cluster.yaml.tpl > cluster.yaml
-envsubst < footloose.yaml.tpl > footloose.yaml
-cat cluster.yaml
+cat launchpad.yaml
 
 ../bin/launchpad --debug apply
-result=$?
-
-cleanup
-
-exit $result

@@ -32,7 +32,7 @@ func NewDownloadBundleCommand() *cli.Command {
 				Name:    "config",
 				Usage:   "Path to cluster config yaml",
 				Aliases: []string{"c"},
-				Value:   "cluster.yaml",
+				Value:   "launchpad.yaml",
 			},
 		},
 		Action: func(ctx *cli.Context) error {

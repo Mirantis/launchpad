@@ -3,8 +3,10 @@ package enterpriselinux
 import (
 	"fmt"
 
-	api "github.com/Mirantis/mcc/pkg/apis/v1beta3"
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/configurer"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Configurer is the EL family specific implementation of a host configurer
@@ -27,6 +29,7 @@ func (c *Configurer) InstallBasePackages() error {
 	if err != nil {
 		return err
 	}
+
 	return c.Host.Exec("sudo yum install -y curl socat iptables")
 }
 
@@ -52,5 +55,16 @@ func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.SELinuxEnabled() {
 		c.Host.DaemonConfig["selinux-enabled"] = true
 	}
+
+	if c.Host.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
+		if c.Host.Exec("sudo yum install -q -y rh-amazon-rhui-client") == nil {
+			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", c.Host.Address)
+		}
+	}
+
+	if c.Host.Exec("sudo yum-config-manager --enable rhel-7-server-rhui-extras-rpms && sudo yum makecache fast") == nil {
+		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", c.Host.Address)
+	}
+
 	return c.LinuxConfigurer.InstallEngine(engineConfig)
 }
