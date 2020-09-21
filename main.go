@@ -36,8 +36,9 @@ func main() {
 		Description: `Generates a shell auto-completion script.
 
    Typical locations for the generated output are:
-   	- Bash: /etc/bash_completion.d/launchpad
-   	- Zsh: /usr/local/share/zsh/site-functions/_launchpad`,
+    - Bash: /etc/bash_completion.d/launchpad
+    - Zsh: /usr/local/share/zsh/site-functions/_launchpad
+    - Fish: ~/.config/fish/completions/launchpad.fish`,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "shell",
@@ -53,6 +54,12 @@ func main() {
 				fmt.Print(completion.BashTemplate())
 			case "zsh":
 				fmt.Print(completion.ZshTemplate())
+			case "fish":
+				t, err := ctx.App.ToFishCompletion()
+				if err != nil {
+					return err
+				}
+				fmt.Print(t)
 			default:
 				return fmt.Errorf("no completion script available for %s", ctx.String("shell"))
 			}
