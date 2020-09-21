@@ -86,8 +86,8 @@ func (c *ClusterSpec) WebURLs() *WebUrls {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type clusterSpec ClusterSpec
-	yc := (*clusterSpec)(c)
+	type spec ClusterSpec
+	yc := (*spec)(c)
 	c.Metadata = ClusterSpecMetadata{}
 	c.Engine = EngineConfig{}
 	c.Ucp = NewUcpConfig()
