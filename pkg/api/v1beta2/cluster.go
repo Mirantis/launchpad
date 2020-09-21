@@ -31,6 +31,19 @@ func MigrateToCurrent(data *[]byte) error {
 		}
 	}
 
+	eint := plain["spec"].(map[interface{}]interface{})["engine"]
+	if eint != nil {
+		engine := eint.(map[interface{}]interface{})
+		if len(engine) > 0 {
+			installURL := engine["installURL"]
+			if installURL != nil {
+				engine["installURLLinux"] = installURL
+				delete(engine, "installURL")
+				log.Debugf("migrated v1beta1 engine[installURL] to v1beta3 engine[installURLLinux]")
+			}
+		}
+	}
+
 	dtr := plain["spec"].(map[interface{}]interface{})["dtr"]
 	if dtr != nil {
 		return fmt.Errorf("dtr requires apiVersion >= launchpad.mirantis.com/v1beta3")
