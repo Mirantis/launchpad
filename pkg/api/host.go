@@ -90,8 +90,8 @@ type Host struct {
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
 
-	type yhost Host
-	yh := (*yhost)(h)
+	type host Host
+	yh := (*host)(h)
 
 	if err := unmarshal(yh); err != nil {
 		return err

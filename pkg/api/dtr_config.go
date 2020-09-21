@@ -29,9 +29,9 @@ type DtrMetadata struct {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *DtrConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawDtrConfig DtrConfig
+	type dtrConfig DtrConfig
 	config := NewDtrConfig()
-	raw := rawDtrConfig(config)
+	raw := dtrConfig(config)
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}

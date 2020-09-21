@@ -48,9 +48,9 @@ type UcpCloud struct {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawUcpConfig UcpConfig
+	type ucpConfig UcpConfig
 	config := NewUcpConfig()
-	raw := rawUcpConfig(config)
+	raw := ucpConfig(config)
 	raw.Metadata = &UcpMetadata{}
 
 	if err := unmarshal(&raw); err != nil {
