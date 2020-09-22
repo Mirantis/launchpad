@@ -9,11 +9,14 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"
+	"github.com/hashicorp/go-version"
 )
 
 // WindowsConfigurer is a generic windows host configurer
 type WindowsConfigurer struct {
 	Host *api.Host
+
+	PowerShellVersion *version.Version
 }
 
 // InstallEngine install Docker EE engine on Windows
@@ -120,9 +123,20 @@ func (c *WindowsConfigurer) DockerCommandf(template string, args ...interface{})
 
 // ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
 func (c *WindowsConfigurer) ValidateFacts() error {
-	// TODO How to validate private address to be node local address?
+	if !c.validateLocal("localhost") {
+		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
+	}
+
+	if !c.validateLocal(c.Host.Metadata.InternalAddress) {
+		return fmt.Errorf("discovered private address %s does not seem to be a node local address. Make sure you've set correct 'privateInterface' for the host in config", c.Host.Metadata.InternalAddress)
+	}
 
 	return nil
+}
+
+func (c *WindowsConfigurer) validateLocal(address string) bool {
+	err := c.Host.ExecCmd(fmt.Sprintf(`powershell "$ips=[System.Net.Dns]::GetHostAddresses(\"%s\"); Get-NetIPAddress -IPAddress $ips"`, address), "", false, false)
+	return err == nil
 }
 
 // CheckPrivilege returns an error if the user does not have admin access to the host
