@@ -3,6 +3,7 @@ package local
 import (
 	"bufio"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -100,4 +101,26 @@ func (c *Connection) command(cmd string) *exec.Cmd {
 	}
 
 	return exec.Command("bash", "-c", "--", cmd)
+}
+
+// WriteFileLarge copies a larger file to the host.
+func (c *Connection) WriteFileLarge(src, dst string) error {
+	stat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	log.Infof("%s: copying %d bytes to %s", hostname, stat.Size(), dst)
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	defer out.Close()
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(out, in)
+	return err
 }

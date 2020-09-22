@@ -13,6 +13,7 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/creasty/defaults v1.3.0
 	github.com/denisbrodbeck/machineid v1.0.1
+	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/gammazero/deque v0.0.0-20200310222745-50fa758af896 // indirect
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/go-playground/validator/v10 v10.3.0
@@ -26,6 +27,8 @@ require (
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/shiena/ansicolor v0.0.0-20151119151921-a422bbe96644
 	github.com/sirupsen/logrus v1.6.0

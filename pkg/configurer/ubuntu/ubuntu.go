@@ -17,7 +17,7 @@ func (c *Configurer) InstallBasePackages() error {
 	if err != nil {
 		return err
 	}
-	return c.Host.Exec("sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl apt-utils socat")
+	return c.Host.Exec("sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl apt-utils socat openssh-client")
 }
 
 // UninstallEngine uninstalls docker-ee engine

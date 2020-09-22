@@ -8,4 +8,5 @@ type Connection interface {
 	ExecWithOutput(cmd string) (string, error)
 	IsWindows() bool
 	SetWindows(bool)
+	WriteFileLarge(string, string) error
 }

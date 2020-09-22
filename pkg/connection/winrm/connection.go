@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/masterzen/winrm"
+	"github.com/packer-community/winrmcp/winrmcp"
 )
 
 // Connection describes a WinRM connection with its configuration options
@@ -28,10 +30,36 @@ type Connection struct {
 	KeyPath       string
 	TLSServerName string
 
-	caCert []byte
-	key    []byte
-	cert   []byte
-	client *winrm.Client
+	caCert  []byte
+	key     []byte
+	cert    []byte
+	client  *winrm.Client
+	winrmcp *winrmcp.Winrmcp
+}
+
+func (c *Connection) initWinrmcp() error {
+	if c.winrmcp != nil {
+		return nil
+	}
+
+	w, err := winrmcp.New(c.Address, &winrmcp.Config{
+		Auth: winrmcp.Auth{
+			User:     c.User,
+			Password: c.Password,
+		},
+		Https:                 c.UseHTTPS,
+		Insecure:              c.Insecure,
+		TLSServerName:         c.TLSServerName,
+		CACertBytes:           c.cert,
+		MaxOperationsPerShell: 5,
+	})
+
+	if err != nil {
+		return err
+	}
+
+	c.winrmcp = w
+	return nil
 }
 
 // SetWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
@@ -192,4 +220,24 @@ func (c *Connection) ExecWithOutput(cmd string) (string, error) {
 	}
 
 	return strings.TrimSpace(outWriter.String()), nil
+}
+
+// WriteFileLarge copies a larger file to the host.
+// Use instead of configurer.WriteFile when it seems appropriate
+func (c *Connection) WriteFileLarge(src, dst string) error {
+	if err := c.initWinrmcp(); err != nil {
+		return err
+	}
+	stat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	log.Infof("%s: copying %d bytes to %s", c.Address, stat.Size(), dst)
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	return c.winrmcp.Write(dst, in)
 }

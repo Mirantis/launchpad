@@ -6,7 +6,9 @@ import (
 	"io"
 	"net"
 	"os"
+	"path"
 	"strings"
+	"sync"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -173,4 +175,45 @@ func trimOutput(output []byte) string {
 	}
 
 	return strings.TrimSpace(string(output))
+}
+
+// WriteFileLarge copies a larger file to the host.
+// Use instead of configurer.WriteFile when it seems appropriate
+func (c *Connection) WriteFileLarge(src, dst string) error {
+	stat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	log.Infof("%s: copying %d bytes to %s", c.Address, stat.Size(), dst)
+
+	base := path.Base(dst)
+	dir := path.Dir(dst)
+
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	session, err := c.client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		hostIn, _ := session.StdinPipe()
+		defer hostIn.Close()
+		fmt.Fprintf(hostIn, "C0664 %d %s\n", stat.Size(), base)
+		io.Copy(hostIn, in)
+		fmt.Fprint(hostIn, "\x00")
+		wg.Done()
+	}()
+
+	err = session.Run(fmt.Sprintf("/usr/bin/scp -t %s/", dir))
+	wg.Wait()
+	return err
 }
