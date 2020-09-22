@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/Mirantis/mcc/cmd"
 	"github.com/Mirantis/mcc/pkg/analytics"
+	"github.com/Mirantis/mcc/pkg/completion"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/version"
 	log "github.com/sirupsen/logrus"
@@ -28,6 +30,44 @@ func main() {
 		},
 	}
 
+	completionCmd := &cli.Command{
+		Name:   "completion",
+		Hidden: true,
+		Description: `Generates a shell auto-completion script.
+
+   Typical locations for the generated output are:
+    - Bash: /etc/bash_completion.d/launchpad
+    - Zsh: /usr/local/share/zsh/site-functions/_launchpad
+    - Fish: ~/.config/fish/completions/launchpad.fish`,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "shell",
+				Usage:   "Shell to generate the script for",
+				Value:   "bash",
+				Aliases: []string{"s"},
+				EnvVars: []string{"SHELL"},
+			},
+		},
+		Action: func(ctx *cli.Context) error {
+			switch path.Base(ctx.String("shell")) {
+			case "bash":
+				fmt.Print(completion.BashTemplate())
+			case "zsh":
+				fmt.Print(completion.ZshTemplate())
+			case "fish":
+				t, err := ctx.App.ToFishCompletion()
+				if err != nil {
+					return err
+				}
+				fmt.Print(t)
+			default:
+				return fmt.Errorf("no completion script available for %s", ctx.String("shell"))
+			}
+
+			return nil
+		},
+	}
+
 	cli.AppHelpTemplate = fmt.Sprintf(`%s
 GETTING STARTED:
     https://github.com/Mirantis/launchpad/blob/master/docs/getting-started.md
@@ -39,8 +79,9 @@ SUPPORT:
 	upgradeChan := make(chan *version.LaunchpadRelease)
 
 	app := &cli.App{
-		Name:  "launchpad",
-		Usage: "Mirantis Launchpad",
+		Name:                 "launchpad",
+		Usage:                "Mirantis Launchpad",
+		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",
@@ -105,6 +146,7 @@ SUPPORT:
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
 			cmd.NewDownloadUpgradeCommand(),
+			completionCmd,
 			versionCmd,
 		},
 	}
