@@ -16,18 +16,20 @@ func MigrateToCurrent(data *[]byte) error {
 		return nil
 	}
 
-	hosts := plain["spec"].(map[interface{}]interface{})["hosts"]
-	hslice := hosts.([]interface{})
-	for _, h := range hslice {
-		host := h.(map[interface{}]interface{})
-		_, hasHooks := host["hooks"]
-		if hasHooks {
-			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
-		}
+	hosts, ok := plain["spec"].(map[interface{}]interface{})["hosts"]
+	if ok {
+		hslice := hosts.([]interface{})
+		for _, h := range hslice {
+			host := h.(map[interface{}]interface{})
+			_, hasHooks := host["hooks"]
+			if hasHooks {
+				return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
+			}
 
-		_, hasLocal := host["localhost"]
-		if hasLocal {
-			return fmt.Errorf("localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
+			_, hasLocal := host["localhost"]
+			if hasLocal {
+				return fmt.Errorf("localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
+			}
 		}
 	}
 
