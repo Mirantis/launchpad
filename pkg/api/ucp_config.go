@@ -14,7 +14,7 @@ import (
 type UcpConfig struct {
 	Version         string    `yaml:"version"`
 	ImageRepo       string    `yaml:"imageRepo,omitempty"`
-	InstallFlags    []string  `yaml:"installFlags,omitempty,flow"`
+	InstallFlags    Flags     `yaml:"installFlags,omitempty,flow"`
 	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string    `yaml:"configData,omitempty"`
 	LicenseFilePath string    `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`

@@ -10,6 +10,41 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func TestUcpConfigFlags(t *testing.T) {
+	cfg := UcpConfig{}
+	err := yaml.Unmarshal([]byte("installFlags:\n  - --admin-username=foofoo\n  - --san foo\n  - --ucp-insecure-tls"), &cfg)
+	require.NoError(t, err)
+	require.Equal(t, "--ucp-insecure-tls", cfg.InstallFlags[2])
+	require.Equal(t, 0, cfg.InstallFlags.Index("--admin-username"))
+	require.Equal(t, 1, cfg.InstallFlags.Index("--san"))
+	require.Equal(t, 2, cfg.InstallFlags.Index("--ucp-insecure-tls"))
+	require.True(t, cfg.InstallFlags.Include("--san"))
+
+	cfg.InstallFlags.Delete("--san")
+	require.Equal(t, 1, cfg.InstallFlags.Index("--ucp-insecure-tls"))
+	require.False(t, cfg.InstallFlags.Include("--san"))
+
+	cfg.InstallFlags.AddOrReplace("--san 10.0.0.1")
+	require.Equal(t, 2, cfg.InstallFlags.Index("--san"))
+	require.Equal(t, "--san 10.0.0.1", cfg.InstallFlags.Get("--san"))
+	require.Equal(t, "10.0.0.1", cfg.InstallFlags.GetValue("--san"))
+	require.Equal(t, "foofoo", cfg.InstallFlags.GetValue("--admin-username"))
+
+	require.Len(t, cfg.InstallFlags, 3)
+	cfg.InstallFlags.AddOrReplace("--admin-password=barbar")
+	require.Equal(t, 3, cfg.InstallFlags.Index("--admin-password"))
+	require.Equal(t, "barbar", cfg.InstallFlags.GetValue("--admin-password"))
+
+	require.Len(t, cfg.InstallFlags, 4)
+	cfg.InstallFlags.AddUnlessExist("--admin-password=borbor")
+	require.Len(t, cfg.InstallFlags, 4)
+	require.Equal(t, "barbar", cfg.InstallFlags.GetValue("--admin-password"))
+
+	cfg.InstallFlags.AddUnlessExist("--help")
+	require.Len(t, cfg.InstallFlags, 5)
+	require.True(t, cfg.InstallFlags.Include("--help"))
+}
+
 func TestUcpConfig_YAML_ConfigData(t *testing.T) {
 	cfg := UcpConfig{}
 	err := yaml.Unmarshal([]byte("configData: abcd"), &cfg)
