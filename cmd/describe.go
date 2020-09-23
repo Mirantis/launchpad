@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
@@ -11,11 +13,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// NewDescribeCommand creates new install command to be called from cli
+var reports = []string{"hosts", "dtr", "ucp"}
+
+func reportIsKnown(n string) bool {
+	for _, v := range reports {
+		if v == n {
+			return true
+		}
+	}
+	return false
+}
+
+// NewDescribeCommand creates new describe command to be called from cli
 func NewDescribeCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "describe",
-		Usage: "Display cluster status",
+		Name:      "describe",
+		Usage:     "Display cluster status",
+		ArgsUsage: fmt.Sprintf("<%s>", strings.Join(reports, "|")),
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "config",
@@ -23,22 +37,22 @@ func NewDescribeCommand() *cli.Command {
 				Aliases: []string{"c"},
 				Value:   "launchpad.yaml",
 			},
-			&cli.BoolFlag{
-				Name:  "ucp",
-				Usage: "Show UCP information",
-			},
-			&cli.BoolFlag{
-				Name:  "dtr",
-				Usage: "Show DTR information",
-			},
 		},
 		Action: func(ctx *cli.Context) error {
+			report := ctx.Args().First()
+			if report == "" {
+				return fmt.Errorf("missing report name argument")
+			}
+			if !reportIsKnown(report) {
+				return fmt.Errorf("unknown report %s - must be one of %s", report, strings.Join(reports, ","))
+			}
+
 			if !ctx.Bool("debug") {
 				log.SetLevel(log.FatalLevel)
 			}
 			start := time.Now()
 			analytics.TrackEvent("Cluster Describe Started", nil)
-			err := describe.Describe(ctx.String("config"), ctx.Bool("ucp"), ctx.Bool("dtr"))
+			err := describe.Describe(ctx.String("config"), report)
 			if err != nil {
 				analytics.TrackEvent("Cluster Describe Failed", nil)
 			} else {
