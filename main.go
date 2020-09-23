@@ -102,12 +102,6 @@ SUPPORT:
 				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
 			},
 			&cli.BoolFlag{
-				Name:    "enable-upgrade-check",
-				Usage:   "Enable upgrade check",
-				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
-				Hidden:  true,
-			},
-			&cli.BoolFlag{
 				Name:    "accept-license",
 				Usage:   "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE",
 				Aliases: []string{"a"},
@@ -115,15 +109,13 @@ SUPPORT:
 			},
 		},
 		Before: func(ctx *cli.Context) error {
-			if ctx.Command.Name != "download-upgrade" {
-				go func() {
-					if (version.IsProduction() || ctx.Bool("enable-upgrade-check")) && !ctx.Bool("disable-upgrade-check") {
-						upgradeChan <- version.GetUpgrade()
-					} else {
-						upgradeChan <- nil
-					}
-				}()
-			}
+			go func() {
+				if ctx.Command.Name != "download-launchpad" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
+					upgradeChan <- version.GetUpgrade()
+				} else {
+					upgradeChan <- nil
+				}
+			}()
 
 			initLogger(ctx)
 			initAnalytics(ctx)
@@ -131,10 +123,10 @@ SUPPORT:
 		},
 		After: func(ctx *cli.Context) error {
 			closeAnalyticsClient()
-			if ctx.Command.Name != "download-upgrade" {
+			if ctx.Command.Name != "download-launchpad" {
 				latest := <-upgradeChan
 				if latest != nil {
-					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-upgrade --replace` to upgrade the tool.", latest.TagName, latest.URL))
+					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-launchpad` to upgrade the tool.", latest.TagName, latest.URL))
 				}
 			}
 			return nil
@@ -145,7 +137,7 @@ SUPPORT:
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
-			cmd.NewDownloadUpgradeCommand(),
+			cmd.NewDownloadLaunchpadCommand(),
 			completionCmd,
 			versionCmd,
 		},
