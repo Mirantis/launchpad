@@ -110,7 +110,7 @@ SUPPORT:
 		},
 		Before: func(ctx *cli.Context) error {
 			go func() {
-				if ctx.Command.Name != "download-upgrade" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
+				if ctx.Command.Name != "download-launchpad" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
 					upgradeChan <- version.GetUpgrade()
 				} else {
 					upgradeChan <- nil
@@ -123,10 +123,10 @@ SUPPORT:
 		},
 		After: func(ctx *cli.Context) error {
 			closeAnalyticsClient()
-			if ctx.Command.Name != "download-upgrade" {
+			if ctx.Command.Name != "download-launchpad" {
 				latest := <-upgradeChan
 				if latest != nil {
-					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-upgrade --replace` to upgrade the tool.", latest.TagName, latest.URL))
+					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-launchpad` to upgrade the tool.", latest.TagName, latest.URL))
 				}
 			}
 			return nil
@@ -137,7 +137,7 @@ SUPPORT:
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
-			cmd.NewDownloadUpgradeCommand(),
+			cmd.NewDownloadLaunchpadCommand(),
 			completionCmd,
 			versionCmd,
 		},
