@@ -15,8 +15,8 @@ type EngineConfig struct {
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml
 func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type yEngineConfig EngineConfig
-	yc := (*yEngineConfig)(c)
+	type engineConfig EngineConfig
+	yc := (*engineConfig)(c)
 
 	if err := unmarshal(yc); err != nil {
 		return err

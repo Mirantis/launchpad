@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-version"
@@ -28,16 +30,64 @@ func IsProduction() bool {
 	return Environment == "production"
 }
 
+// Asset describes a github release asset
+type Asset struct {
+	Name string `json:"name"`
+	URL  string `json:"browser_download_url"`
+}
+
+// IsForHost returns true if the asset is for the current host os+arch
+func (a *Asset) IsForHost() bool {
+	if strings.HasSuffix(a.Name, ".sha256") {
+		return false
+	}
+
+	os := runtime.GOOS
+	if os == "windows" {
+		os = "win"
+	}
+
+	arch := runtime.GOARCH
+	if arch == "amd64" {
+		arch = "x64"
+	}
+
+	parts := strings.Split(strings.TrimSuffix(a.Name, ".exe"), "-")
+	return parts[1] == os && parts[2] == arch
+}
+
 // LaunchpadRelease describes a launchpad release
 type LaunchpadRelease struct {
-	URL     string `json:"html_url"`
-	TagName string `json:"tag_name"`
+	URL     string  `json:"html_url"`
+	TagName string  `json:"tag_name"`
+	Assets  []Asset `json:"assets"`
+}
+
+// IsNewer returns true if the LaunchpadRelease instance is newer than the current version
+func (l *LaunchpadRelease) IsNewer() bool {
+	current, _ := version.NewVersion(Version)
+	remote, err := version.NewVersion(l.TagName)
+	if err != nil {
+		return false // ignore invalid versions
+	}
+
+	return current.LessThan(remote)
+}
+
+// AssetForHost returns a download asset for the current host OS+ARCH if available
+func (l *LaunchpadRelease) AssetForHost() *Asset {
+	for _, a := range l.Assets {
+		if a.IsForHost() {
+			return &a
+		}
+	}
+	return nil
 }
 
 // GetLatest returns a LaunchpadRelease instance for the latest release
-func GetLatest() *LaunchpadRelease {
+func GetLatest(timeout time.Duration) *LaunchpadRelease {
 	client := &http.Client{
-		Timeout: time.Second * 2,
+		Timeout: timeout,
 	}
 
 	baseMsg := "getting launchpad release information"
@@ -75,20 +125,12 @@ func GetLatest() *LaunchpadRelease {
 // GetUpgrade will return a LaunchpadRelease instance for the latest release if it's newer than the current version
 func GetUpgrade() *LaunchpadRelease {
 	log.Debugf("checking for a launchpad upgrade")
-	l := GetLatest()
+	l := GetLatest(time.Second * 2)
 	if l == nil {
 		return nil
 	}
 
-	current, err := version.NewVersion(Version)
-	remote, err := version.NewVersion(l.TagName)
-	if err != nil {
-		log.Debugf("checking for a launchpad upgrade invalid version: %s", err.Error())
-		return nil // ignore invalid versions
-	}
-
-	if current.LessThan(remote) {
-		log.Debugf("checking for a launchpad upgrade found a new version %s", remote.String())
+	if l.IsNewer() {
 		return l
 	}
 

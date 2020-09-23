@@ -10,10 +10,10 @@ import (
 
 // DtrConfig has all the bits needed to configure DTR during installation
 type DtrConfig struct {
-	Version       string   `yaml:"version"`
-	ImageRepo     string   `yaml:"imageRepo,omitempty"`
-	InstallFlags  []string `yaml:"installFlags,flow,omitempty"`
-	ReplicaConfig string   `yaml:"replicaConfig,omitempty"  default:"random"`
+	Version       string `yaml:"version"`
+	ImageRepo     string `yaml:"imageRepo,omitempty"`
+	InstallFlags  Flags  `yaml:"installFlags,flow,omitempty"`
+	ReplicaConfig string `yaml:"replicaConfig,omitempty"  default:"random"`
 
 	Metadata *DtrMetadata `yaml:"-"`
 }
@@ -29,9 +29,9 @@ type DtrMetadata struct {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *DtrConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawDtrConfig DtrConfig
+	type dtr DtrConfig
 	config := NewDtrConfig()
-	raw := rawDtrConfig(config)
+	raw := dtr(config)
 	if err := unmarshal(&raw); err != nil {
 		return err
 	}

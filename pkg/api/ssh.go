@@ -17,8 +17,8 @@ type SSH struct {
 func (s *SSH) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(s)
 
-	type ySSH SSH
-	ys := (*ySSH)(s)
+	type ssh SSH
+	ys := (*ssh)(s)
 
 	if err := unmarshal(ys); err != nil {
 		return err

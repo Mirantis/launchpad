@@ -58,7 +58,7 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 		}
 	}
 
-	err = yaml.Unmarshal(data, &c)
+	err = yaml.UnmarshalStrict(data, &c)
 	if err != nil {
 		return c, err
 	}

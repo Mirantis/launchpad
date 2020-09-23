@@ -16,23 +16,38 @@ func MigrateToCurrent(data *[]byte) error {
 		return nil
 	}
 
-	hosts := plain["spec"].(map[interface{}]interface{})["hosts"]
-	hslice := hosts.([]interface{})
-	for _, h := range hslice {
-		host := h.(map[interface{}]interface{})
-		_, hasHooks := host["hooks"]
-		if hasHooks {
-			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
-		}
+	hosts, ok := plain["spec"].(map[interface{}]interface{})["hosts"]
+	if ok {
+		hslice := hosts.([]interface{})
+		for _, h := range hslice {
+			host := h.(map[interface{}]interface{})
+			_, hasHooks := host["hooks"]
+			if hasHooks {
+				return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
+			}
 
-		_, hasLocal := host["localhost"]
-		if hasLocal {
-			return fmt.Errorf("localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
+			_, hasLocal := host["localhost"]
+			if hasLocal {
+				return fmt.Errorf("localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
+			}
 		}
 	}
 
-	dtr := plain["spec"].(map[interface{}]interface{})["dtr"]
-	if dtr != nil {
+	eint, ok := plain["spec"].(map[interface{}]interface{})["engine"]
+	if ok {
+		engine := eint.(map[interface{}]interface{})
+		if len(engine) > 0 {
+			installURL := engine["installURL"]
+			if installURL != nil {
+				engine["installURLLinux"] = installURL
+				delete(engine, "installURL")
+				log.Debugf("migrated v1beta1 engine[installURL] to v1beta3 engine[installURLLinux]")
+			}
+		}
+	}
+
+	_, ok = plain["spec"].(map[interface{}]interface{})["dtr"]
+	if ok {
 		return fmt.Errorf("dtr requires apiVersion >= launchpad.mirantis.com/v1beta3")
 	}
 

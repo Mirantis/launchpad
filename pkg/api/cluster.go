@@ -20,8 +20,8 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	c.Spec = &ClusterSpec{}
 
-	type yclusterconfig ClusterConfig
-	yc := (*yclusterconfig)(c)
+	type spec ClusterConfig
+	yc := (*spec)(c)
 
 	if err := unmarshal(yc); err != nil {
 		return err

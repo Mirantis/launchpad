@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -142,4 +143,70 @@ func TestValidateFactsValidateDataPlane(t *testing.T) {
 	// Test with meta-vxlan: false, --calico-vxlan false
 	conf.Spec.Ucp.Metadata.VXLAN = false
 	require.NoError(t, phase.validateDataPlane(conf))
+}
+
+func TestValidateFactsPopulateSan(t *testing.T) {
+	phase := ValidateFacts{}
+	conf := &api.ClusterConfig{
+		Spec: &api.ClusterSpec{
+			Hosts: api.Hosts{
+				&api.Host{Address: "10.0.0.1", Role: "manager"},
+				&api.Host{Address: "10.0.0.2", Role: "manager"},
+				&api.Host{Address: "10.0.0.3", Role: "worker"},
+			},
+			Ucp: api.UcpConfig{
+				Metadata: &api.UcpMetadata{},
+				InstallFlags: api.Flags{
+					"--foo",
+				},
+			},
+		},
+	}
+	phase.Prepare(conf)
+	phase.Run()
+	var sans []string
+
+	for _, v := range conf.Spec.Ucp.InstallFlags {
+		if strings.HasPrefix(v, "--san") {
+			sans = append(sans, v)
+		}
+	}
+
+	require.Len(t, conf.Spec.Ucp.InstallFlags, 3)
+	require.Len(t, sans, 2)
+
+	require.Equal(t, "--san=10.0.0.1", sans[0])
+	require.Equal(t, "--san=10.0.0.2", sans[1])
+}
+
+func TestValidateFactsDontPopulateSan(t *testing.T) {
+	phase := ValidateFacts{}
+	conf := &api.ClusterConfig{
+		Spec: &api.ClusterSpec{
+			Hosts: api.Hosts{
+				&api.Host{Address: "10.0.0.1", Role: "manager"},
+				&api.Host{Address: "10.0.0.2", Role: "manager"},
+				&api.Host{Address: "10.0.0.3", Role: "worker"},
+			},
+			Ucp: api.UcpConfig{
+				Metadata: &api.UcpMetadata{},
+				InstallFlags: api.Flags{
+					"--foo",
+					"--san foofoo",
+				},
+			},
+		},
+	}
+	phase.Prepare(conf)
+	phase.Run()
+	var sans []string
+
+	for _, v := range conf.Spec.Ucp.InstallFlags {
+		if strings.HasPrefix(v, "--san") {
+			sans = append(sans, v)
+		}
+	}
+
+	require.Len(t, sans, 1)
+	require.Equal(t, "--san foofoo", sans[0])
 }

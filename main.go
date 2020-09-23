@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/Mirantis/mcc/cmd"
 	"github.com/Mirantis/mcc/pkg/analytics"
+	"github.com/Mirantis/mcc/pkg/completion"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/version"
 	log "github.com/sirupsen/logrus"
@@ -28,6 +30,44 @@ func main() {
 		},
 	}
 
+	completionCmd := &cli.Command{
+		Name:   "completion",
+		Hidden: true,
+		Description: `Generates a shell auto-completion script.
+
+   Typical locations for the generated output are:
+    - Bash: /etc/bash_completion.d/launchpad
+    - Zsh: /usr/local/share/zsh/site-functions/_launchpad
+    - Fish: ~/.config/fish/completions/launchpad.fish`,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "shell",
+				Usage:   "Shell to generate the script for",
+				Value:   "bash",
+				Aliases: []string{"s"},
+				EnvVars: []string{"SHELL"},
+			},
+		},
+		Action: func(ctx *cli.Context) error {
+			switch path.Base(ctx.String("shell")) {
+			case "bash":
+				fmt.Print(completion.BashTemplate())
+			case "zsh":
+				fmt.Print(completion.ZshTemplate())
+			case "fish":
+				t, err := ctx.App.ToFishCompletion()
+				if err != nil {
+					return err
+				}
+				fmt.Print(t)
+			default:
+				return fmt.Errorf("no completion script available for %s", ctx.String("shell"))
+			}
+
+			return nil
+		},
+	}
+
 	cli.AppHelpTemplate = fmt.Sprintf(`%s
 GETTING STARTED:
     https://github.com/Mirantis/launchpad/blob/master/docs/getting-started.md
@@ -39,8 +79,9 @@ SUPPORT:
 	upgradeChan := make(chan *version.LaunchpadRelease)
 
 	app := &cli.App{
-		Name:  "launchpad",
-		Usage: "Mirantis Launchpad",
+		Name:                 "launchpad",
+		Usage:                "Mirantis Launchpad",
+		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",
@@ -61,12 +102,6 @@ SUPPORT:
 				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
 			},
 			&cli.BoolFlag{
-				Name:    "enable-upgrade-check",
-				Usage:   "Enable upgrade check",
-				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
-				Hidden:  true,
-			},
-			&cli.BoolFlag{
 				Name:    "accept-license",
 				Usage:   "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE",
 				Aliases: []string{"a"},
@@ -75,7 +110,7 @@ SUPPORT:
 		},
 		Before: func(ctx *cli.Context) error {
 			go func() {
-				if (version.IsProduction() || ctx.Bool("enable-upgrade-check")) && !ctx.Bool("disable-upgrade-check") {
+				if ctx.Command.Name != "download-upgrade" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
 					upgradeChan <- version.GetUpgrade()
 				} else {
 					upgradeChan <- nil
@@ -86,11 +121,13 @@ SUPPORT:
 			initAnalytics(ctx)
 			return nil
 		},
-		After: func(c *cli.Context) error {
+		After: func(ctx *cli.Context) error {
 			closeAnalyticsClient()
-			latest := <-upgradeChan
-			if latest != nil {
-				println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s to upgrade the tool.", latest.TagName, latest.URL))
+			if ctx.Command.Name != "download-upgrade" {
+				latest := <-upgradeChan
+				if latest != nil {
+					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-upgrade --replace` to upgrade the tool.", latest.TagName, latest.URL))
+				}
 			}
 			return nil
 		},
@@ -100,6 +137,8 @@ SUPPORT:
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
+			cmd.NewDownloadUpgradeCommand(),
+			completionCmd,
 			versionCmd,
 		},
 	}

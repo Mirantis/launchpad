@@ -8,6 +8,7 @@ type HostConfigurer interface {
 	CheckPrivilege() error
 	ResolveHostname() string
 	ResolveLongHostname() string
+	ResolvePrivateInterface() (string, error)
 	ResolveInternalIP() (string, error)
 	IsContainerized() bool
 	SELinuxEnabled() bool

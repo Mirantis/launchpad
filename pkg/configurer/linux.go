@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/util"
@@ -137,6 +138,11 @@ func (c *LinuxConfigurer) DockerCommandf(template string, args ...interface{}) s
 
 // ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
 func (c *LinuxConfigurer) ValidateFacts() error {
+	err := c.Host.ExecCmd("ping -c 1 -w 1 -r localhost", "", false, false)
+	if err != nil {
+		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
+	}
+
 	localAddresses, err := c.getHostLocalAddresses()
 	if err != nil {
 		return fmt.Errorf("failed to find host local addresses: %w", err)
@@ -290,4 +296,19 @@ func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 	}
 
 	return c.WriteFile(cfg, content, "0600")
+}
+
+// ResolvePrivateInterface tries to find a private network interface
+func (c *LinuxConfigurer) ResolvePrivateInterface() (string, error) {
+	output, err := c.Host.ExecWithOutput(`(ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`)
+	if err == nil {
+		re := regexp.MustCompile(`\bdev (\w+)`)
+		match := re.FindSubmatch([]byte(output))
+		if len(match) > 0 {
+			return string(match[1]), nil
+		}
+		err = fmt.Errorf("can't find 'dev' in output")
+	}
+
+	return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually (%s)", err.Error())
 }
