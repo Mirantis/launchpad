@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -192,4 +193,10 @@ func (c *Connection) ExecWithOutput(cmd string) (string, error) {
 	}
 
 	return strings.TrimSpace(outWriter.String()), nil
+}
+
+// ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
+func (c *Connection) ExecInteractive() error {
+	_, err := c.client.RunWithInput("cmd", os.Stdout, os.Stderr, os.Stdin)
+	return err
 }

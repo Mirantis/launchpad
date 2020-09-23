@@ -19,6 +19,7 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/google/go-cmp v0.4.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect

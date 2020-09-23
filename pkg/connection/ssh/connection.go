@@ -174,3 +174,28 @@ func trimOutput(output []byte) string {
 
 	return strings.TrimSpace(string(output))
 }
+
+// ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
+func (c *Connection) ExecInteractive() error {
+	session, err := c.client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	modes := ssh.TerminalModes{}
+	err = session.RequestPty("xterm", 80, 40, modes)
+	if err != nil {
+		return err
+	}
+
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+	session.Stdin = os.Stdin
+
+	if err := session.Start("/bin/bash"); err != nil {
+		return err
+	}
+
+	return session.Wait()
+}

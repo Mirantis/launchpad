@@ -73,6 +73,7 @@ SUPPORT:
 			cmd.NewApplyCommand(),
 			cmd.RegisterCommand(),
 			cmd.NewDownloadBundleCommand(),
+			cmd.NewExecCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
 			versionCmd,

@@ -3,6 +3,7 @@ package local
 import (
 	"bufio"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -100,4 +101,16 @@ func (c *Connection) command(cmd string) *exec.Cmd {
 	}
 
 	return exec.Command("bash", "-c", "--", cmd)
+}
+
+// ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
+func (c *Connection) ExecInteractive() error {
+	command := c.command("bash -s")
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
+	command.Stdin = os.Stdin
+
+	command.Start()
+
+	return command.Wait()
 }
