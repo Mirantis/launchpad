@@ -85,11 +85,11 @@ func (l *LaunchpadRelease) AssetForHost() *Asset {
 	return nil
 }
 
-type Tag struct {
+type tag struct {
 	Name string `json:"name"`
 }
 
-func LatestTag(timeout time.Duration) string {
+func latestTag(timeout time.Duration) string {
 	client := &http.Client{
 		Timeout: timeout,
 	}
@@ -115,7 +115,7 @@ func LatestTag(timeout time.Duration) string {
 		return "" // ignore reading errors
 	}
 
-	var tags []Tag
+	var tags []tag
 	err = json.Unmarshal(body, &tags)
 	if err != nil {
 		log.Debugf("%s failed to unmarshal JSON: %s", baseMsg, err.Error())
@@ -149,8 +149,8 @@ func LatestTag(timeout time.Duration) string {
 
 // GetLatest returns a LaunchpadRelease instance for the latest release
 func GetLatest(timeout time.Duration) *LaunchpadRelease {
-	latestTag := LatestTag(timeout)
-	if latestTag == "" {
+	tag := latestTag(timeout)
+	if tag == "" {
 		return nil
 	}
 
@@ -158,9 +158,9 @@ func GetLatest(timeout time.Duration) *LaunchpadRelease {
 		Timeout: timeout,
 	}
 
-	baseMsg := fmt.Sprintf("getting launchpad release information for version %s", latestTag)
+	baseMsg := fmt.Sprintf("getting launchpad release information for version %s", tag)
 	log.Debugf(baseMsg)
-	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", GitHubRepo, latestTag))
+	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", GitHubRepo, tag))
 	if err != nil {
 		log.Debugf("%s failed: %s", baseMsg, err.Error())
 		return nil // ignore connection errors
