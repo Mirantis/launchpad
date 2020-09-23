@@ -76,6 +76,8 @@ SUPPORT:
     https://github.com/Mirantis/launchpad/issues
 `, cli.AppHelpTemplate)
 
+	upgradeChan := make(chan *version.LaunchpadRelease)
+
 	app := &cli.App{
 		Name:                 "launchpad",
 		Usage:                "Mirantis Launchpad",
@@ -94,6 +96,18 @@ SUPPORT:
 				EnvVars: []string{"DISABLE_TELEMETRY"},
 			},
 			&cli.BoolFlag{
+				Name:    "disable-upgrade-check",
+				Usage:   "Disable upgrade check",
+				Aliases: []string{"u"},
+				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
+			},
+			&cli.BoolFlag{
+				Name:    "enable-upgrade-check",
+				Usage:   "Enable upgrade check",
+				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
+				Hidden:  true,
+			},
+			&cli.BoolFlag{
 				Name:    "accept-license",
 				Usage:   "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE",
 				Aliases: []string{"a"},
@@ -101,13 +115,28 @@ SUPPORT:
 			},
 		},
 		Before: func(ctx *cli.Context) error {
+			if ctx.Command.Name != "download-upgrade" {
+				go func() {
+					if (version.IsProduction() || ctx.Bool("enable-upgrade-check")) && !ctx.Bool("disable-upgrade-check") {
+						upgradeChan <- version.GetUpgrade()
+					} else {
+						upgradeChan <- nil
+					}
+				}()
+			}
+
 			initLogger(ctx)
 			initAnalytics(ctx)
 			return nil
 		},
-		After: func(c *cli.Context) error {
+		After: func(ctx *cli.Context) error {
 			closeAnalyticsClient()
-			version.CheckForUpgrade()
+			if ctx.Command.Name != "download-upgrade" {
+				latest := <-upgradeChan
+				if latest != nil {
+					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-upgrade --replace` to upgrade the tool.", latest.TagName, latest.URL))
+				}
+			}
 			return nil
 		},
 		Commands: []*cli.Command{
@@ -116,6 +145,7 @@ SUPPORT:
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
+			cmd.NewDownloadUpgradeCommand(),
 			completionCmd,
 			versionCmd,
 		},
@@ -125,7 +155,6 @@ SUPPORT:
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func initLogger(ctx *cli.Context) {
