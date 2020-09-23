@@ -32,7 +32,7 @@ func NewDownloadUpgradeCommand() *cli.Command {
 			}
 			asset := latest.AssetForHost()
 			if asset == nil {
-				return fmt.Errorf("No download available for the curret host OS + architecture")
+				return fmt.Errorf("No download available for the current host OS + architecture")
 			}
 
 			req, err := http.NewRequest("GET", asset.URL, nil)
