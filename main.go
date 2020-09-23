@@ -134,6 +134,7 @@ SUPPORT:
 		Commands: []*cli.Command{
 			cmd.NewApplyCommand(),
 			cmd.RegisterCommand(),
+			cmd.NewDescribeCommand(),
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),

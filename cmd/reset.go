@@ -13,7 +13,7 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// NewResetCommand creates new install command to be called from cli
+// NewResetCommand creates new reset command to be called from cli
 func NewResetCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "reset",

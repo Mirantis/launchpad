@@ -6,5 +6,10 @@ cd test
 . ./smoke.common.sh
 trap cleanup EXIT
 
-[ "${REUSE_CLUSTER}" = "" ] && setup && ../bin/launchpad --debug apply
+setup
+
+[ "${REUSE_CLUSTER}" = "" ] && ../bin/launchpad --debug apply
 ../bin/launchpad --debug reset --force
+../bin/launchpad describe hosts
+../bin/launchpad describe ucp
+../bin/launchpad describe dtr

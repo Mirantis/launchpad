@@ -40,6 +40,7 @@ func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 			}
 			return err
 		},
+		retry.Attempts(6),
 	)
 	if err != nil {
 		log.Errorf("%s: failed to open connection", host.Address)

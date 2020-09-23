@@ -19,3 +19,6 @@ echo WORKER_IP=$WORKER_IP
 generateYaml
 
 ./footloose ssh root@manager0 "cd /launchpad/test; DISABLE_TELEMETRY=true ACCEPT_LICENSE=true ../bin/launchpad --debug apply"
+./footloose ssh root@manager0 "cd /launchpad/test; DISABLE_TELEMETRY=true ACCEPT_LICENSE=true ../bin/launchpad describe hosts"
+./footloose ssh root@manager0 "cd /launchpad/test; DISABLE_TELEMETRY=true ACCEPT_LICENSE=true ../bin/launchpad describe ucp"
+./footloose ssh root@manager0 "cd /launchpad/test; DISABLE_TELEMETRY=true ACCEPT_LICENSE=true ../bin/launchpad describe dtr"

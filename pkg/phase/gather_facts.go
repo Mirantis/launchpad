@@ -68,7 +68,7 @@ func (p *GatherFacts) Run() error {
 			DtrLeaderReplicaID: "",
 		}
 		dtrLeader := p.config.Spec.DtrLeader()
-		if dtrLeader.Metadata.EngineVersion != "" {
+		if dtrLeader != nil && dtrLeader.Metadata != nil && dtrLeader.Metadata.EngineVersion != "" {
 			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
 			if err != nil {
 				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
@@ -86,6 +86,10 @@ func (p *GatherFacts) Run() error {
 }
 
 func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
+	if h.Connection == nil {
+		return fmt.Errorf("%s: not connected", h.Address)
+	}
+
 	log.Infof("%s: gathering host facts", h.Address)
 
 	os := &api.OsRelease{}
