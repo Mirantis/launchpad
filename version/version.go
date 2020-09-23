@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -84,15 +85,82 @@ func (l *LaunchpadRelease) AssetForHost() *Asset {
 	return nil
 }
 
-// GetLatest returns a LaunchpadRelease instance for the latest release
-func GetLatest(timeout time.Duration) *LaunchpadRelease {
+type Tag struct {
+	Name string `json:"name"`
+}
+
+func LatestTag(timeout time.Duration) string {
 	client := &http.Client{
 		Timeout: timeout,
 	}
 
-	baseMsg := "getting launchpad release information"
+	baseMsg := "getting launchpad tag list"
 	log.Debugf(baseMsg)
-	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", GitHubRepo))
+	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/tags", GitHubRepo))
+	if err != nil {
+		log.Debugf("%s failed: %s", baseMsg, err.Error())
+		return "" // ignore connection errors
+	}
+
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+	if resp.StatusCode != 200 {
+		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
+		return "" // ignore backend failures
+	}
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Debugf("%s failed to read body: %s", baseMsg, err.Error())
+		return "" // ignore reading errors
+	}
+
+	var tags []Tag
+	err = json.Unmarshal(body, &tags)
+	if err != nil {
+		log.Debugf("%s failed to unmarshal JSON: %s", baseMsg, err.Error())
+		return ""
+	}
+
+	versions := make([]*version.Version, len(tags))
+	idx := 0
+	for _, v := range tags {
+		version, err := version.NewVersion(v.Name)
+		if err == nil {
+			versions[idx] = version
+			idx++
+		}
+	}
+	sort.Sort(version.Collection(versions))
+
+	if strings.Contains(Version, "-") {
+		// Current is pre, assume pre is wanted as latest
+		return versions[0].String()
+	}
+
+	for i := len(versions) - 1; i >= 0; i-- {
+		if !strings.Contains(versions[i].String(), "-") {
+			return versions[i].String()
+		}
+	}
+
+	return ""
+}
+
+// GetLatest returns a LaunchpadRelease instance for the latest release
+func GetLatest(timeout time.Duration) *LaunchpadRelease {
+	latestTag := LatestTag(timeout)
+	if latestTag == "" {
+		return nil
+	}
+
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
+	baseMsg := fmt.Sprintf("getting launchpad release information for version %s", latestTag)
+	log.Debugf(baseMsg)
+	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", GitHubRepo, latestTag))
 	if err != nil {
 		log.Debugf("%s failed: %s", baseMsg, err.Error())
 		return nil // ignore connection errors
