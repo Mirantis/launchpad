@@ -221,3 +221,15 @@ func (c *WindowsConfigurer) CleanupEnvironment() error {
 	}
 	return nil
 }
+
+// ResolvePrivateInterface tries to find a private network interface
+func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
+	output, err := c.Host.ExecWithOutput(`powershell "(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`)
+	if err != nil || output == "" {
+		output, err = c.Host.ExecWithOutput(`powershell "(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`)
+	}
+	if err != nil || output == "" {
+		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually")
+	}
+	return strings.TrimSpace(output), nil
+}
