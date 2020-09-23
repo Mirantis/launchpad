@@ -13,7 +13,7 @@ echo -e "Removing one DTR node from launchpad.yaml..."
 sed -i '25,30d' launchpad.yaml
 cat launchpad.yaml
 
-../bin/launchpad describe
+../bin/launchpad describe hosts
 ../bin/launchpad --debug apply --prune
 ../bin/launchpad describe hosts
 ../bin/launchpad describe ucp
