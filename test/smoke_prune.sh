@@ -15,6 +15,6 @@ cat launchpad.yaml
 
 ../bin/launchpad describe
 ../bin/launchpad --debug apply --prune
-../bin/launchpad describe
-../bin/launchpad describe --ucp
-../bin/launchpad describe --dtr
+../bin/launchpad describe hosts
+../bin/launchpad describe ucp
+../bin/launchpad describe dtr

@@ -24,6 +24,6 @@ generateYaml
 cat launchpad.yaml
 
 ../bin/launchpad --debug apply
-../bin/launchpad describe
-../bin/launchpad describe --ucp
-../bin/launchpad describe --dtr
+../bin/launchpad describe hosts
+../bin/launchpad describe ucp
+../bin/launchpad describe dtr

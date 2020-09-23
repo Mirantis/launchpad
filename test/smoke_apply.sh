@@ -38,6 +38,6 @@ popd
 docker ps
 docker ps --filter name=dtr
 ./kubectl get pods --all-namespaces
-../bin/launchpad describe
-../bin/launchpad describe --ucp
-../bin/launchpad describe --dtr
+../bin/launchpad describe hosts
+../bin/launchpad describe ucp
+../bin/launchpad describe dtr
