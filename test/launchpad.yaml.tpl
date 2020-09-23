@@ -25,6 +25,5 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
-      - --san $UCP_MANAGER_IP
   engine:
     version: $ENGINE_VERSION

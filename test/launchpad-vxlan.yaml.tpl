@@ -25,7 +25,6 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
-      - --san $UCP_MANAGER_IP
       - --calico-vxlan=$CALICO_VXLAN
   engine:
     version: $ENGINE_VERSION

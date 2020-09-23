@@ -16,8 +16,8 @@ func MigrateToCurrent(data *[]byte) error {
 		return nil
 	}
 
-	eint := plain["spec"].(map[interface{}]interface{})["engine"]
-	if eint != nil {
+	eint, ok := plain["spec"].(map[interface{}]interface{})["engine"]
+	if ok {
 		engine := eint.(map[interface{}]interface{})
 		if len(engine) > 0 {
 			installURL := engine["installURL"]
@@ -29,38 +29,40 @@ func MigrateToCurrent(data *[]byte) error {
 		}
 	}
 
-	hosts := plain["spec"].(map[interface{}]interface{})["hosts"]
-	hslice := hosts.([]interface{})
+	hosts, ok := plain["spec"].(map[interface{}]interface{})["hosts"]
+	if ok {
+		hslice := hosts.([]interface{})
 
-	for _, h := range hslice {
-		host := h.(map[interface{}]interface{})
-		_, hasHooks := host["hooks"]
-		if hasHooks {
-			return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
-		}
+		for _, h := range hslice {
+			host := h.(map[interface{}]interface{})
+			_, hasHooks := host["hooks"]
+			if hasHooks {
+				return fmt.Errorf("host hooks require apiVersion >= launchpad.mirantis.com/v1")
+			}
 
-		_, hasLocal := host["localhost"]
-		if hasLocal {
-			return fmt.Errorf("localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
-		}
+			_, hasLocal := host["localhost"]
+			if hasLocal {
+				return fmt.Errorf("localhost connection requires apiVersion >= launchpad.mirantis.com/v1")
+			}
 
-		host["ssh"] = make(map[string]interface{})
-		ssh := host["ssh"].(map[string]interface{})
+			host["ssh"] = make(map[string]interface{})
+			ssh := host["ssh"].(map[string]interface{})
 
-		for k, v := range host {
-			switch k.(string) {
-			case "sshKeyPath":
-				ssh["keyPath"] = v
-				delete(host, k)
-				log.Debugf("migrated v1beta1 host sshKeyPath '%s' to v1beta3 ssh[keyPath]", v)
-			case "sshPort":
-				ssh["port"] = v
-				delete(host, k)
-				log.Debugf("migrated v1beta1 host sshPort '%d' to v1beta3 ssh[port]", v)
-			case "user":
-				ssh["user"] = v
-				delete(host, k)
-				log.Debugf("migrated v1beta1 host user '%s' to v1beta3 ssh[user]", v)
+			for k, v := range host {
+				switch k.(string) {
+				case "sshKeyPath":
+					ssh["keyPath"] = v
+					delete(host, k)
+					log.Debugf("migrated v1beta1 host sshKeyPath '%s' to v1beta3 ssh[keyPath]", v)
+				case "sshPort":
+					ssh["port"] = v
+					delete(host, k)
+					log.Debugf("migrated v1beta1 host sshPort '%d' to v1beta3 ssh[port]", v)
+				case "user":
+					ssh["user"] = v
+					delete(host, k)
+					log.Debugf("migrated v1beta1 host user '%s' to v1beta3 ssh[user]", v)
+				}
 			}
 		}
 	}

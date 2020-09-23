@@ -70,7 +70,7 @@ type Hooks struct {
 type Host struct {
 	Address          string            `yaml:"address" validate:"required,hostname|ip"`
 	Role             string            `yaml:"role" validate:"oneof=manager worker dtr"`
-	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
@@ -90,8 +90,8 @@ type Host struct {
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
 
-	type yhost Host
-	yh := (*yhost)(h)
+	type host Host
+	yh := (*host)(h)
 
 	if err := unmarshal(yh); err != nil {
 		return err
