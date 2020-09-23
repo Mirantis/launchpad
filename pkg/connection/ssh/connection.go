@@ -179,15 +179,14 @@ func trimOutput(output []byte) string {
 
 // WriteFileLarge copies a larger file to the host.
 // Use instead of configurer.WriteFile when it seems appropriate
-func (c *Connection) WriteFileLarge(src, dst string) error {
+func (c *Connection) WriteFileLarge(src, dstdir string) error {
 	stat, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
-	log.Infof("%s: copying %d bytes to %s", c.Address, stat.Size(), dst)
+	base := path.Base(src)
 
-	base := path.Base(dst)
-	dir := path.Dir(dst)
+	log.Infof("%s: copying %d bytes to %s/%s", c.Address, stat.Size(), dstdir, base)
 
 	in, err := os.Open(src)
 	if err != nil {
@@ -213,7 +212,8 @@ func (c *Connection) WriteFileLarge(src, dst string) error {
 		wg.Done()
 	}()
 
-	err = session.Run(fmt.Sprintf("/usr/bin/scp -t %s/", dir))
+	err = session.Run(fmt.Sprintf("/usr/bin/scp -t %s/", dstdir))
 	wg.Wait()
+	log.Debugf("%s: completed file copy", c.Address)
 	return err
 }

@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
-	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4 // indirect
+	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/alessio/shellescape v1.2.2
 	github.com/avast/retry-go v2.6.0+incompatible
@@ -13,22 +13,21 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/creasty/defaults v1.3.0
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/dylanmei/iso8601 v0.1.0 // indirect
 	github.com/gammazero/deque v0.0.0-20200310222745-50fa758af896 // indirect
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/google/go-cmp v0.4.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
+	github.com/jbrekelmans/winrm v0.0.0-20200115090151-fa6b0f5938fa
+	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
-	github.com/masterzen/winrm v0.0.0-20200612141538-f6f9b2959811
+	github.com/masterzen/winrm v0.0.0-20200612141538-f6f9b2959811 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
-	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
 	github.com/segmentio/backo-go v0.0.0-20200129164019-23eae7c10bd3 // indirect
 	github.com/shiena/ansicolor v0.0.0-20151119151921-a422bbe96644
 	github.com/sirupsen/logrus v1.6.0

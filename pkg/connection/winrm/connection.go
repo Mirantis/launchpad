@@ -2,18 +2,22 @@ package winrm
 
 import (
 	"bufio"
-	"bytes"
+	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
+	"path"
 	"strings"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/masterzen/winrm"
-	"github.com/packer-community/winrmcp/winrmcp"
+	"github.com/Azure/go-ntlmssp"
+	"github.com/jbrekelmans/winrm"
+	"github.com/kballard/go-shellquote"
 )
 
 // Connection describes a WinRM connection with its configuration options
@@ -30,36 +34,12 @@ type Connection struct {
 	KeyPath       string
 	TLSServerName string
 
-	caCert  []byte
-	key     []byte
-	cert    []byte
-	client  *winrm.Client
-	winrmcp *winrmcp.Winrmcp
-}
+	caCert []byte
+	key    []byte
+	cert   []byte
+	client *winrm.Client
 
-func (c *Connection) initWinrmcp() error {
-	if c.winrmcp != nil {
-		return nil
-	}
-
-	w, err := winrmcp.New(c.Address, &winrmcp.Config{
-		Auth: winrmcp.Auth{
-			User:     c.User,
-			Password: c.Password,
-		},
-		Https:                 c.UseHTTPS,
-		Insecure:              c.Insecure,
-		TLSServerName:         c.TLSServerName,
-		CACertBytes:           c.cert,
-		MaxOperationsPerShell: 5,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	c.winrmcp = w
-	return nil
+	shell *winrm.Shell
 }
 
 // SetWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
@@ -108,29 +88,49 @@ func (c *Connection) Connect() error {
 		return fmt.Errorf("%s: failed to load certificates: %s", c.Address, err)
 	}
 
-	endpoint := &winrm.Endpoint{
-		Host:          c.Address,
-		Port:          c.Port,
-		HTTPS:         c.UseHTTPS,
-		Insecure:      c.Insecure,
-		CACert:        c.caCert,
-		Cert:          c.cert,
-		Key:           c.key,
-		TLSServerName: c.TLSServerName,
-		Timeout:       60 * time.Second,
+	tlsConfig := &tls.Config{
+		ServerName:         c.TLSServerName,
+		InsecureSkipVerify: c.Insecure,
 	}
 
-	client, err := winrm.NewClient(endpoint, c.User, c.Password)
+	if len(c.caCert) > 0 {
+		caCertPool := x509.NewCertPool()
+		caCertPool.AppendCertsFromPEM(c.caCert)
+	}
+
+	if len(c.cert) > 0 {
+		cert, err := tls.LoadX509KeyPair(string(c.cert), string(c.key))
+		if err != nil {
+			return err
+		}
+		tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
+	}
+
+	var tlsTransport *http.Transport
+	if c.UseHTTPS {
+		tlsTransport = &http.Transport{
+			MaxConnsPerHost: 300,
+			TLSClientConfig: tlsConfig,
+		}
+	}
+
+	httpClient := &http.Client{}
+
+	if c.UseNTLM {
+		httpClient.Transport = &ntlmssp.Negotiator{
+			RoundTripper: tlsTransport,
+		}
+	} else {
+		httpClient.Transport = tlsTransport
+	}
+
+	maxEnvelopeSize := 500 * 1000
+	client, err := winrm.NewClient(context.Background(), c.UseHTTPS, c.Address, c.Port, c.User, c.Password, httpClient, &maxEnvelopeSize)
 	if err != nil {
 		return err
 	}
+
 	c.client = client
-
-	_, err = client.CreateShell()
-
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -146,15 +146,22 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	if err != nil {
 		return err
 	}
+	defer shell.Close()
 
 	if !sensitiveCommand {
 		log.Debugf("%s: executing command: %s", c.Address, cmd)
 	}
 
-	command, err := shell.Execute(cmd)
+	cmdParts, err := shellquote.Split(cmd)
+	log.Debugf("split result: %+v", cmdParts)
 	if err != nil {
 		return err
 	}
+	command, err := shell.StartCommand(cmdParts[0], cmdParts[1:], false, false)
+	if err != nil {
+		return err
+	}
+	defer command.Signal()
 
 	if stdin != "" {
 		if sensitiveCommand || len(stdin) > 256 {
@@ -162,32 +169,26 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 		} else {
 			log.Debugf("%s: writing %d bytes to command stdin: %s", c.Address, len(stdin), stdin)
 		}
-
-		go func() {
-			command.Stdin.Write([]byte(stdin))
-			command.Stdin.Close()
-		}()
-	} else {
-		command.Stdin.Close()
+		go func() { command.SendInput([]byte(stdin), true) }()
 	}
 
 	multiReader := io.MultiReader(command.Stdout, command.Stderr)
 	outputScanner := bufio.NewScanner(multiReader)
 
-	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s:  %s", c.Address, outputScanner.Text())
-		} else {
-			log.Debugf("%s:  %s", c.Address, outputScanner.Text())
+	go func() {
+		for outputScanner.Scan() {
+			if streamStdout {
+				log.Infof("%s:  %s", c.Address, outputScanner.Text())
+			} else {
+				log.Debugf("%s:  %s", c.Address, outputScanner.Text())
+			}
 		}
-	}
-	if err := outputScanner.Err(); err != nil {
-		log.Errorf("%s:  %s", c.Address, err.Error())
-	}
+		if err := outputScanner.Err(); err != nil {
+			log.Errorf("%s: %s", c.Address, err.Error())
+		}
+	}()
 
 	command.Wait()
-	command.Close()
-	shell.Close()
 
 	if command.ExitCode() > 0 {
 		return fmt.Errorf("%s: command failed", c.Address)
@@ -202,42 +203,53 @@ func (c *Connection) ExecWithOutput(cmd string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer shell.Close()
 
-	command, err := shell.Execute(cmd)
+	cmdParts, err := shellquote.Split(cmd)
 	if err != nil {
 		return "", err
 	}
+	command, err := shell.StartCommand(cmdParts[0], cmdParts[1:], false, false)
+	if err != nil {
+		return "", err
+	}
+	defer command.Signal()
 
-	var outWriter, errWriter bytes.Buffer
-	go io.Copy(&outWriter, command.Stdout)
-	go io.Copy(&errWriter, command.Stderr)
-
+	multiReader := io.MultiReader(command.Stdout, command.Stderr)
 	command.Wait()
-	shell.Close()
+
+	var output []byte
+	_, err = multiReader.Read(output)
 
 	if command.ExitCode() > 0 {
-		return "", fmt.Errorf("%s: command failed (%d): %s", c.Address, command.ExitCode(), errWriter.String())
+		return string(output), fmt.Errorf("%s: command failed", c.Address)
 	}
 
-	return strings.TrimSpace(outWriter.String()), nil
+	return strings.TrimSpace(string(output)), nil
 }
 
 // WriteFileLarge copies a larger file to the host.
 // Use instead of configurer.WriteFile when it seems appropriate
-func (c *Connection) WriteFileLarge(src, dst string) error {
-	if err := c.initWinrmcp(); err != nil {
-		return err
-	}
+func (c *Connection) WriteFileLarge(src, dstdir string) error {
+	base := path.Base(src)
 	stat, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
-	log.Infof("%s: copying %d bytes to %s", c.Address, stat.Size(), dst)
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
+	log.Infof("%s: copying %d bytes to %s/%s", c.Address, stat.Size(), dstdir, base)
 
-	return c.winrmcp.Write(dst, in)
+	shells := make([]*winrm.Shell, 1)
+	shells[0], err = c.client.CreateShell()
+	if err != nil {
+		return fmt.Errorf("%s: error while creating shell: %s", c.Address, err.Error())
+	}
+	defer func() {
+		err := shells[0].Close()
+		if err != nil {
+			log.Errorf("%s: error while closing shell: %s", c.Address, err.Error())
+		}
+	}()
+
+	copier, err := winrm.NewFileTreeCopier(shells, dstdir, src)
+	return copier.Run()
 }

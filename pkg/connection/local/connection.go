@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 	"strings"
 
@@ -104,19 +105,20 @@ func (c *Connection) command(cmd string) *exec.Cmd {
 }
 
 // WriteFileLarge copies a larger file to the host.
-func (c *Connection) WriteFileLarge(src, dst string) error {
+func (c *Connection) WriteFileLarge(src, dstdir string) error {
+	base := path.Base(src)
 	stat, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
-	log.Infof("%s: copying %d bytes to %s", hostname, stat.Size(), dst)
+	log.Infof("%s: copying %d bytes to %s/%s", hostname, stat.Size(), dstdir, base)
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
 
-	out, err := os.Create(dst)
+	out, err := os.Create(path.Join(dstdir, base))
 	defer out.Close()
 	if err != nil {
 		return err
