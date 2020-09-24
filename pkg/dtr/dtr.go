@@ -147,10 +147,26 @@ func GetBootstrapVersion(dtrHost *api.Host, config *api.ClusterConfig) (string, 
 // BuildUcpFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
 func BuildUcpFlags(config *api.ClusterConfig) []string {
+	var ucp_user string
+	var ucp_pass string
+
+	if config.Spec.Dtr != nil {
+		ucp_user = config.Spec.Dtr.InstallFlags.GetValue("--ucp-username")
+		ucp_pass = config.Spec.Dtr.InstallFlags.GetValue("--ucp-password")
+	}
+
+	if ucp_user == "" {
+		ucp_user = config.Spec.Ucp.InstallFlags.GetValue("--admin-username")
+	}
+
+	if ucp_pass == "" {
+		ucp_pass = config.Spec.Ucp.InstallFlags.GetValue("--admin-password")
+	}
+
 	return []string{
-		fmt.Sprintf("--ucp-url %s", ucpURLHost(config)),
-		fmt.Sprintf("--ucp-username %s", config.Spec.Ucp.InstallFlags.GetValue("--admin-username")),
-		fmt.Sprintf("--ucp-password '%s'", config.Spec.Ucp.InstallFlags.GetValue("--admin-password")),
+		fmt.Sprintf("--ucp-url=\"%s\"", ucpURLHost(config)),
+		fmt.Sprintf("--ucp-username=\"%s\"", ucp_user),
+		fmt.Sprintf("--ucp-password=\"%s\"", ucp_pass),
 	}
 }
 
