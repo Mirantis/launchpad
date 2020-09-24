@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -224,4 +225,34 @@ func (c *ClusterSpec) DtrLeader() *Host {
 // IsCustomImageRepo checks if the config is using a custom image repo
 func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
+}
+
+func (c *ClusterSpec) CheckUCPHealth(h *Host) error {
+	u, err := c.UcpURL()
+	if err != nil {
+		return err
+	}
+	hp := strings.SplitN(u.Host, ":", 2)
+	if len(hp) == 2 {
+		u.Host = fmt.Sprintf("%s:%s", "localhost", hp[1])
+	} else {
+		u.Host = "localhost"
+	}
+	u.Path = "/_ping"
+
+	return retry.Do(
+		func() error {
+			log.Infof("%s: waiting for UCP to become healthy", h.Address)
+			output, err := h.ExecWithOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" %s`, u))
+			log.Debugf("%s: ucp health check response code: %s, expected 200", h.Address, output)
+			if err != nil {
+				return err
+			}
+			if output != "200" {
+				return fmt.Errorf("%s: ucp health check unexpected response code %s", h.Address, output)
+			}
+			return nil
+		},
+		retry.Attempts(12), // last attempt should wait ~7min
+	)
 }
