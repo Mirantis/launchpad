@@ -38,3 +38,9 @@ func TestFlags(t *testing.T) {
 	require.Len(t, flags, 5)
 	require.True(t, flags.Include("--help"))
 }
+
+func TestFlagsWithQuotes(t *testing.T) {
+	flags := Flags{"--admin-username \"foofoo\"", "--admin-password=\"foobar\""}
+	require.Equal(t, "foofoo", flags.GetValue("--admin-username"))
+	require.Equal(t, "foobar", flags.GetValue("--admin-password"))
+}

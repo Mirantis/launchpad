@@ -1,6 +1,7 @@
 package api
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -73,7 +74,13 @@ func (f Flags) GetValue(s string) string {
 		return ""
 	}
 
-	return fl[idx+1:]
+	val := fl[idx+1:]
+	s, err := strconv.Unquote(val)
+	if err == nil {
+		return s
+	}
+
+	return val
 }
 
 // Delete removes a matching flag from the list

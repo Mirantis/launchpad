@@ -44,9 +44,13 @@ func (p *Describe) ucpReport() {
 
 	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
 	uv := p.config.Spec.Ucp.Metadata.InstalledVersion
-	urls := p.config.Spec.WebURLs()
+	ucpurl := "n/a"
+	url, err := p.config.Spec.UcpURL()
+	if err != nil {
+		ucpurl = url.String()
+	}
 
-	fmt.Fprintf(w, "%s\t%s\t\n", uv, urls.Ucp)
+	fmt.Fprintf(w, "%s\t%s\t\n", uv, ucpurl)
 	w.Flush()
 }
 
@@ -63,9 +67,13 @@ func (p *Describe) dtrReport() {
 
 	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
 	uv := p.config.Spec.Dtr.Metadata.InstalledVersion
-	urls := p.config.Spec.WebURLs()
+	dtrurl := "n/a"
+	url, err := p.config.Spec.DtrURL()
+	if err != nil {
+		dtrurl = url.String()
+	}
 
-	fmt.Fprintf(w, "%s\t%s\t\n", uv, urls.Dtr)
+	fmt.Fprintf(w, "%s\t%s\t\n", uv, dtrurl)
 	w.Flush()
 }
 

@@ -147,37 +147,33 @@ func GetBootstrapVersion(dtrHost *api.Host, config *api.ClusterConfig) (string, 
 // BuildUcpFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
 func BuildUcpFlags(config *api.ClusterConfig) []string {
+	var ucpUser string
+	var ucpPass string
+
+	if config.Spec.Dtr != nil {
+		ucpUser = config.Spec.Dtr.InstallFlags.GetValue("--ucp-username")
+		ucpPass = config.Spec.Dtr.InstallFlags.GetValue("--ucp-password")
+	}
+
+	if ucpUser == "" {
+		ucpUser = config.Spec.Ucp.InstallFlags.GetValue("--admin-username")
+	}
+
+	if ucpPass == "" {
+		ucpPass = config.Spec.Ucp.InstallFlags.GetValue("--admin-password")
+	}
+
 	return []string{
-		fmt.Sprintf("--ucp-url %s", GetUcpURL(config)),
-		fmt.Sprintf("--ucp-username %s", util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--admin-username")),
-		fmt.Sprintf("--ucp-password '%s'", util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--admin-password")),
+		fmt.Sprintf("--ucp-url=\"%s\"", ucpURLHost(config)),
+		fmt.Sprintf("--ucp-username=\"%s\"", ucpUser),
+		fmt.Sprintf("--ucp-password=\"%s\"", ucpPass),
 	}
 }
 
-// GetUcpURL builds the ucp url from the --san flag or from the swarmLeader
-func GetUcpURL(config *api.ClusterConfig) string {
-	if config.Spec.Dtr == nil {
-		return ""
-	}
-
-	dtrUcpURLFlag := util.GetInstallFlagValue(config.Spec.Dtr.InstallFlags, "--ucp-url")
-	if dtrUcpURLFlag != "" {
-		// If the --ucp-url flag has been set use that instead
-		return dtrUcpURLFlag
-	}
-
-	sanFlag := util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--san")
-	if sanFlag != "" {
-		// If a san value has been provided by the user, use that as ucp-url
-		return sanFlag
-	}
-	// Else get the swarmLeader address and append the set --controller-port if
-	// it's non-default
-	controllerPort := util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--controller-port")
-	if controllerPort == "" {
-		controllerPort = "443"
-	}
-	return fmt.Sprintf("%s:%s", config.Spec.SwarmLeader().Address, controllerPort)
+func ucpURLHost(config *api.ClusterConfig) string {
+	url, _ := config.Spec.UcpURL()
+	// url.Host will be host:port when a port has been set
+	return url.Host
 }
 
 // Destroy is functionally equivalent to a DTR destroy and is intended to
