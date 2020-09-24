@@ -227,6 +227,7 @@ func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
+// CheckUCPHealth will check ucp health on a host and return an error if it failed
 func (c *ClusterSpec) CheckUCPHealth(h *Host) error {
 	u, err := c.UcpURL()
 	if err != nil {
