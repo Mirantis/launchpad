@@ -30,23 +30,3 @@ func GenerateImageMap(images []string, customImageRepo string) map[string]string
 	}
 	return imageMap
 }
-
-// GetInstallFlagValue gets a specific install flag value from a given slice of
-// installFlags strings
-func GetInstallFlagValue(installFlags []string, name string) string {
-	for _, flag := range installFlags {
-		if strings.HasPrefix(flag, fmt.Sprintf("%s=", name)) {
-			values := strings.SplitN(flag, "=", 2)
-			if values[1] != "" {
-				return values[1]
-			}
-		}
-		if strings.HasPrefix(flag, fmt.Sprintf("%s ", name)) {
-			values := strings.SplitN(flag, " ", 2)
-			if values[1] != "" {
-				return values[1]
-			}
-		}
-	}
-	return ""
-}

@@ -22,16 +22,3 @@ func TestGenerateImageMap(t *testing.T) {
 		require.Equal(t, expectedImageMap, actual)
 	})
 }
-
-func TestGetInstallFlagValue(t *testing.T) {
-
-	t.Run("Flag value strings are properly obtained from a list of install flags", func(t *testing.T) {
-		installFlags := []string{
-			"--overlay-subnet 10.0.0.0/24",
-			"--replica-id 123456789012",
-		}
-		expected := "10.0.0.0/24"
-		actual := GetInstallFlagValue(installFlags, "--overlay-subnet")
-		require.Equal(t, expected, actual)
-	})
-}

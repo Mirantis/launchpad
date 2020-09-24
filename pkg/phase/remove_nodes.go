@@ -227,14 +227,13 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, swarmL
 			TLSClientConfig: tlsConfig,
 		},
 	}
-	urls := config.Spec.WebURLs()
-	ucpURL, err := util.ResolveURL(urls.Ucp)
+	ucpURL, err := config.Spec.UcpURL()
 	if err != nil {
 		return "", err
 	}
 
 	// Get a UCP token
-	token, err := ucp.GetUCPToken(client, ucpURL, util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--admin-username"), util.GetInstallFlagValue((config.Spec.Ucp.InstallFlags), "--admin-password"))
+	token, err := ucp.GetUCPToken(client, ucpURL, config.Spec.Ucp.InstallFlags.GetValue("--admin-username"), config.Spec.Ucp.InstallFlags.GetValue("--admin-password"))
 	if err != nil {
 		return "", fmt.Errorf("Failed to get auth token: %s", err)
 	}
