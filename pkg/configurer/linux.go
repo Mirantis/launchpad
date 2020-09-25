@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/util"
@@ -311,4 +312,19 @@ func (c *LinuxConfigurer) ResolvePrivateInterface() (string, error) {
 	}
 
 	return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually (%s)", err.Error())
+}
+
+// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
+func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
+	log.Debugf("%s: requesting %s", c.Host.Address, url)
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))
+	if err != nil {
+		return -1, err
+	}
+	status, err := strconv.Atoi(output)
+	if err != nil {
+		return -1, fmt.Errorf("%s: invalid response: %s", c.Host.Address, err.Error())
+	}
+
+	return status, nil
 }

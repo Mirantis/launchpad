@@ -23,6 +23,11 @@ func (p *UpgradeDtr) Title() string {
 func (p *UpgradeDtr) Run() error {
 	dtrLeader := p.config.Spec.DtrLeader()
 
+	err := p.config.Spec.CheckUCPHealthRemote(dtrLeader)
+	if err != nil {
+		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
+	}
+
 	p.EventProperties = map[string]interface{}{
 		"dtr_upgraded": false,
 	}

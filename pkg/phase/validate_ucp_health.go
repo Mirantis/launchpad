@@ -17,5 +17,5 @@ func (p *ValidateUcpHealth) Title() string {
 func (p *ValidateUcpHealth) Run() error {
 	// Issue a health check to the UCP san host until we receive an 'ok' status
 	swarmLeader := p.config.Spec.SwarmLeader()
-	return p.config.Spec.CheckUCPHealth(swarmLeader)
+	return p.config.Spec.CheckUCPHealthLocal(swarmLeader)
 }

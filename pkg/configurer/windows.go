@@ -3,6 +3,7 @@ package configurer
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -232,4 +233,18 @@ func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
 		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually")
 	}
 	return strings.TrimSpace(output), nil
+}
+
+// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
+func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
+	log.Debugf("%s: requesting %s", c.Host.Address, url)
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "[int][System.Net.WebRequest]::Create('%s').GetResponse().StatusCode"`, url))
+	if err != nil {
+		return -1, err
+	}
+	status, err := strconv.Atoi(output)
+	if err != nil {
+		return -1, fmt.Errorf("%s: invalid response: %s", c.Host.Address, err.Error())
+	}
+	return status, nil
 }

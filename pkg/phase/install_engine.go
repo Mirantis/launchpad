@@ -52,7 +52,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 				return err
 			}
 			if c.Spec.Ucp.Metadata.Installed {
-				err := c.Spec.CheckUCPHealth(h)
+				err := c.Spec.CheckUCPHealthLocal(h)
 				if err != nil {
 					return err
 				}
