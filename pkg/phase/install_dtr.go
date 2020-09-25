@@ -21,8 +21,13 @@ func (p *InstallDtr) Title() string {
 }
 
 // Run the installer container
-func (p *InstallDtr) Run() (err error) {
+func (p *InstallDtr) Run() error {
 	dtrLeader := p.config.Spec.DtrLeader()
+
+	err := p.config.Spec.CheckUCPHealthRemote(dtrLeader)
+	if err != nil {
+		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
+	}
 
 	defer func() {
 		if err != nil {

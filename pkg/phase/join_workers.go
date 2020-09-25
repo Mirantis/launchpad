@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
@@ -14,7 +13,6 @@ import (
 type JoinWorkers struct {
 	Analytics
 	BasicPhase
-	Dtr bool
 }
 
 // Title for the phase
@@ -26,13 +24,7 @@ func (p *JoinWorkers) Title() string {
 func (p *JoinWorkers) Run() error {
 	swarmLeader := p.config.Spec.SwarmLeader()
 
-	var hosts api.Hosts
-	if p.Dtr {
-		// If dtr roles are detected, add them to the list of workers
-		hosts = p.config.Spec.WorkersAndDtrs()
-	} else {
-		hosts = p.config.Spec.Workers()
-	}
+	hosts := p.config.Spec.WorkersAndDtrs()
 
 	for _, h := range hosts {
 		if swarm.IsSwarmNode(h) {

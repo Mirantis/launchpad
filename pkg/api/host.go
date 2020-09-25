@@ -238,3 +238,18 @@ func (h *Host) EngineVersion() string {
 
 	return version
 }
+
+// CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected
+func (h *Host) CheckHTTPStatus(url string, expected int) error {
+	status, err := h.Configurer.HTTPStatus(url)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("%s: response code: %d, expected %d", h.Address, status, expected)
+	if status != expected {
+		return fmt.Errorf("%s: unexpected response code %d", h.Address, status)
+	}
+
+	return nil
+}
