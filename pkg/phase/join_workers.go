@@ -13,7 +13,6 @@ import (
 type JoinWorkers struct {
 	Analytics
 	BasicPhase
-	Dtr bool
 }
 
 // Title for the phase

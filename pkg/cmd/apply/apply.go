@@ -76,7 +76,7 @@ func Apply(configFile string, prune, force bool) error {
 	phaseManager.AddPhase(&phase.InstallUCP{})
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
-	phaseManager.AddPhase(&phase.JoinWorkers{Dtr: dtr})
+	phaseManager.AddPhase(&phase.JoinWorkers{})
 	// If the clusterConfig contains any of the DTR role then install and
 	// upgrade DTR on those specific host roles
 	if dtr {
