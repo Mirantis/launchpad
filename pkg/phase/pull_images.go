@@ -138,7 +138,7 @@ func RetagImages(host *api.Host, imageMap map[string]string) error {
 	for dockerImage, realImage := range imageMap {
 		retagCmd := host.Configurer.DockerCommandf("tag %s %s", realImage, dockerImage)
 		log.Debugf("%s: retag %s --> %s", host.Address, realImage, dockerImage)
-		_, err := host.ExecWithOutput(retagCmd)
+		err := host.Exec(retagCmd)
 		if err != nil {
 			return err
 		}

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/dtr"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -59,7 +60,7 @@ func (p *UpgradeDtr) Run() error {
 
 	upgradeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s upgrade %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.GetBootstrapperImage(), strings.Join(upgradeFlags, " "))
 	log.Debug("Running DTR upgrade via bootstrapper")
-	err = dtrLeader.ExecCmd(upgradeCmd, "", true, false)
+	err = dtrLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
 		return NewError("Failed to run DTR upgrade")
 	}

@@ -147,7 +147,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 }
 
 func (p *GatherFacts) isWindows(h *api.Host) bool {
-	return h.ExecCmd("cmd /c exit 0", "", false, false) == nil
+	return h.Exec("cmd /c exit 0") == nil
 }
 
 // ResolveWindowsOsRelease ...

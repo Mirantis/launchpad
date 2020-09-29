@@ -6,11 +6,11 @@ import (
 	"io"
 	"net"
 	"os"
-	"strings"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	util "github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -81,15 +81,16 @@ func (c *Connection) Connect() error {
 	return nil
 }
 
-// ExecCmd executes a command on the host
-func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
+// Exec executes a command on the host
+func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
+	o := exec.Build(opts...)
 	session, err := c.client.NewSession()
 	if err != nil {
 		return err
 	}
 	defer session.Close()
 
-	if stdin == "" && !c.isWindows {
+	if o.Stdin == "" && !c.isWindows {
 		// FIXME not requesting a pty for commands with stdin input for now,
 		// as it appears the pipe doesn't get closed with stdinpipe.Close()
 		modes := ssh.TerminalModes{}
@@ -113,24 +114,18 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 		return err
 	}
 
-	if !sensitiveCommand {
-		log.Debugf("%s: executing command: %s", c.Address, cmd)
-	}
+	o.LogCmd(c.Address, cmd)
 
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
 
-	if stdin != "" {
-		if sensitiveCommand || len(stdin) > 256 {
-			log.Debugf("%s: writing %d bytes to command stdin", c.Address, len(stdin))
-		} else {
-			log.Debugf("%s: writing %d bytes to command stdin: %s", c.Address, len(stdin), stdin)
-		}
+	if o.Stdin != "" {
+		o.LogStdin(c.Address)
 
 		go func() {
 			defer stdinPipe.Close()
-			io.WriteString(stdinPipe, stdin)
+			io.WriteString(stdinPipe, o.Stdin)
 		}()
 	}
 
@@ -138,39 +133,12 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	outputScanner := bufio.NewScanner(multiReader)
 
 	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s:  %s", c.Address, outputScanner.Text())
-		} else {
-			log.Debugf("%s:  %s", c.Address, outputScanner.Text())
-		}
+		o.AddOutput(c.Address, outputScanner.Text()+"\n")
 	}
+
 	if err := outputScanner.Err(); err != nil {
-		log.Errorf("%s:  %s", c.Address, err.Error())
+		o.LogErrorf("%s:  %s", c.Address, err.Error())
 	}
 
 	return session.Wait()
-}
-
-// ExecWithOutput execs a command on the host and returns its output
-func (c *Connection) ExecWithOutput(cmd string) (string, error) {
-	session, err := c.client.NewSession()
-	if err != nil {
-		return "", err
-	}
-	defer session.Close()
-
-	output, err := session.CombinedOutput(cmd)
-	if err != nil {
-		return trimOutput(output), err
-	}
-
-	return trimOutput(output), nil
-}
-
-func trimOutput(output []byte) string {
-	if len(output) == 0 {
-		return ""
-	}
-
-	return strings.TrimSpace(string(output))
 }

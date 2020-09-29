@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/dtr"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -68,7 +69,7 @@ func (p *InstallDtr) Run() error {
 
 	installFlags = append(installFlags, ucpFlags...)
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = dtrLeader.ExecCmd(installCmd, "", true, true)
+	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.HideCommand())
 	if err != nil {
 		return NewError("Failed to run DTR installer")
 	}
