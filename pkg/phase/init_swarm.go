@@ -35,7 +35,7 @@ func (p *InitSwarm) Run() error {
 		log.Infof("%s: swarm already initialized", swarmLeader.Address)
 	}
 
-	mgrToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"))
+	mgrToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"), exec.HideOutput())
 	if err != nil {
 		return NewError("failed to get swarm manager join-token")
 	}
