@@ -3,6 +3,7 @@ package configurer
 import (
 	"encoding/json"
 	"fmt"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -48,8 +49,17 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 		return nil
 	}
 
-	installer := "install.ps1"
-	c.WriteFile(installer, *c.Host.Metadata.EngineInstallScript, "0600")
+	pwd, err := c.Host.ExecWithOutput("echo %cd%")
+	if err != nil {
+		return err
+	}
+	base := path.Base(c.Host.Metadata.EngineInstallScript)
+	installer := pwd + "\\" + base
+	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, pwd)
+	if err != nil {
+		log.Errorf("failed: %s", err.Error())
+		return err
+	}
 
 	defer c.Host.Exec(fmt.Sprintf("del %s", installer))
 
@@ -66,8 +76,13 @@ func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) erro
 		return err
 	}
 
-	uninstaller := "uninstall.ps1"
-	c.WriteFile(uninstaller, *c.Host.Metadata.EngineInstallScript, "0600")
+	pwd, err := c.Host.ExecWithOutput("echo %cd%")
+	if err != nil {
+		return err
+	}
+	base := path.Base(c.Host.Metadata.EngineInstallScript)
+	uninstaller := pwd + "\\" + base
+	c.Host.Connection.WriteFileLarge(uninstaller, c.Host.Metadata.EngineInstallScript)
 
 	defer c.Host.Exec(fmt.Sprintf("del %s", uninstaller))
 

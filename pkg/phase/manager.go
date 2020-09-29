@@ -76,6 +76,7 @@ func (m *Manager) Run() error {
 			if err != nil && !m.IgnoreErrors {
 				return err
 			}
+			defer phase.CleanUp()
 		}
 	}
 

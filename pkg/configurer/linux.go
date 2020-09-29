@@ -47,9 +47,21 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
-	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash -s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
-	err := c.Host.Exec(cmd, exec.Stdin(*c.Host.Metadata.EngineInstallScript))
+	pwd, err := c.Host.ExecWithOutput("pwd")
 	if err != nil {
+		return err
+	}
+	base := path.Base(c.Host.Metadata.EngineInstallScript)
+	installer := pwd + "/" + base
+	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, pwd)
+	if err != nil {
+		log.Errorf("failed: %s", err.Error())
+		return err
+	}
+
+	defer c.Host.Exec(fmt.Sprintf("rm -f '%s'", installer))
+	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash %s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version, installer)
+	if err := c.Host.Exec(cmd); err != nil {
 		return err
 	}
 

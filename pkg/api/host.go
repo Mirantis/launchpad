@@ -28,7 +28,7 @@ type HostMetadata struct {
 	InternalAddress     string
 	EngineVersion       string
 	Os                  *OsRelease
-	EngineInstallScript *string
+	EngineInstallScript string
 }
 
 type errors struct {

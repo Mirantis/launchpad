@@ -68,6 +68,19 @@ func Apply(configFile string, prune, force bool) error {
 	phaseManager.AddPhase(&phase.ValidateFacts{})
 	phaseManager.AddPhase(&phase.ValidateHosts{})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
+
+	defer func() {
+		// remove temporary files
+		for _, h := range clusterConfig.Spec.Hosts {
+			if h.Metadata != nil && h.Metadata.EngineInstallScript != "" {
+				_, err := os.Stat(h.Metadata.EngineInstallScript)
+				if err == nil {
+					os.Remove(h.Metadata.EngineInstallScript)
+				}
+			}
+		}
+	}()
+
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }})
 	phaseManager.AddPhase(&phase.PrepareHost{})
 	phaseManager.AddPhase(&phase.InstallEngine{})
