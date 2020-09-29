@@ -44,11 +44,23 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 		}
 	}
 
+	cv = Version{}
+	err = yaml.Unmarshal(data, &cv)
+	if err != nil {
+		return c, err
+	}
+
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta2" {
 		err := v1beta2.Migrate(&data)
 		if err != nil {
 			return c, err
 		}
+	}
+
+	cv = Version{}
+	err = yaml.Unmarshal(data, &cv)
+	if err != nil {
+		return c, err
 	}
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta3" {

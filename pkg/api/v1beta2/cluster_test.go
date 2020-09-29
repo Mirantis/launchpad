@@ -11,6 +11,8 @@ func TestMigration(t *testing.T) {
 apiVersion: "launchpad.mirantis.com/v1beta2"
 kind: UCP
 spec:
+  engine:
+    installURL: http://get.example.com/
   hosts:
     - address: "10.0.0.1"
       role: "manager"
@@ -19,6 +21,8 @@ spec:
 	b3 := []byte(`apiVersion: launchpad.mirantis.com/v1beta3
 kind: DockerEnterprise
 spec:
+  engine:
+    installURLLinux: http://get.example.com/
   hosts:
   - address: 10.0.0.1
     role: manager

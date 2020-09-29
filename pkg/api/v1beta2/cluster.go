@@ -28,6 +28,12 @@ func Migrate(data *[]byte) error {
 	}
 
 	plain["apiVersion"] = "launchpad.mirantis.com/v1beta3"
+
+	if plain["kind"] == "UCP" {
+		plain["kind"] = "DockerEnterprise"
+		log.Debugf("migrated v1beta2 kind: UCP to v1beta3 kind: DockerEnterprise")
+	}
+
 	log.Debugf("migrated configuration from v1beta2 to v1beta3")
 
 	out, err := yaml.Marshal(&plain)
