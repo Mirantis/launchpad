@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"
@@ -49,7 +50,7 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 	installer := "install.ps1"
 	c.WriteFile(installer, *c.Host.Metadata.EngineInstallScript, "0600")
 
-	defer c.Host.Execf("del %s", installer)
+	defer c.Host.Exec(fmt.Sprintf("del %s", installer))
 
 	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, installer)
 	return c.Host.Exec(installCommand)
@@ -59,7 +60,7 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
 func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) error {
-	err := c.Host.Exec("docker system prune --volumes --all -f")
+	err := c.Host.Exec(c.DockerCommandf("system prune --volumes --all -f"))
 	if err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) erro
 	uninstaller := "uninstall.ps1"
 	c.WriteFile(uninstaller, *c.Host.Metadata.EngineInstallScript, "0600")
 
-	defer c.Host.Execf("del %s", uninstaller)
+	defer c.Host.Exec(fmt.Sprintf("del %s", uninstaller))
 
 	uninstallCommand := fmt.Sprintf("powershell -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", uninstaller)
 	return c.Host.Exec(uninstallCommand)
@@ -136,7 +137,7 @@ func (c *WindowsConfigurer) ValidateFacts() error {
 }
 
 func (c *WindowsConfigurer) validateLocal(address string) bool {
-	err := c.Host.ExecCmd(fmt.Sprintf(`powershell "$ips=[System.Net.Dns]::GetHostAddresses(\"%s\"); Get-NetIPAddress -IPAddress $ips"`, address), "", false, false)
+	err := c.Host.Exec(fmt.Sprintf(`powershell "$ips=[System.Net.Dns]::GetHostAddresses(\"%s\"); Get-NetIPAddress -IPAddress $ips"`, address))
 	return err == nil
 }
 
@@ -144,7 +145,7 @@ func (c *WindowsConfigurer) validateLocal(address string) bool {
 func (c *WindowsConfigurer) CheckPrivilege() error {
 	privCheck := "$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Host 'User has admin privileges'; exit 0; } else { Write-Host 'User does not have admin privileges'; exit 1 }"
 
-	if c.Host.ExecCmd("powershell.exe", privCheck, false, false) != nil {
+	if c.Host.Exec("powershell.exe", exec.Stdin(privCheck)) != nil {
 		return fmt.Errorf("user does not have administrator rights on the host")
 	}
 
@@ -154,8 +155,7 @@ func (c *WindowsConfigurer) CheckPrivilege() error {
 // AuthenticateDocker performs a docker login on the host
 func (c *WindowsConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	_, err := c.Host.ExecWithOutput(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo))
-	return err
+	return c.Host.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.HideCommand())
 }
 
 // WriteFile writes file to host with given contents. Do not use for large files.
@@ -175,12 +175,12 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 	}
 	defer c.Host.ExecWithOutput(fmt.Sprintf("del \"%s\"", tempFile))
 
-	err = c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "$Input | Out-File -FilePath \"%s\""`, tempFile), data, false, false)
+	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "$Input | Out-File -FilePath \"%s\""`, tempFile), exec.Stdin(data))
 	if err != nil {
 		return err
 	}
 
-	err = c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "Move-Item -Force -Path \"%s\" -Destination \"%s\""`, tempFile, path), "", false, false)
+	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "Move-Item -Force -Path \"%s\" -Destination \"%s\""`, tempFile, path))
 	if err != nil {
 		return err
 	}
@@ -195,18 +195,18 @@ func (c *WindowsConfigurer) ReadFile(path string) (string, error) {
 
 // DeleteFile deletes a file from the host.
 func (c *WindowsConfigurer) DeleteFile(path string) error {
-	return c.Host.ExecCmd(fmt.Sprintf(`del /f "%s"`, path), "", false, false)
+	return c.Host.Exec(fmt.Sprintf(`del /f "%s"`, path))
 }
 
 // FileExist checks if a file exists on the host
 func (c *WindowsConfigurer) FileExist(path string) bool {
-	return c.Host.ExecCmd(fmt.Sprintf(`powershell -Command "if (!(Test-Path -Path \"%s\")) { exit 1 }"`, path), "", false, false) == nil
+	return c.Host.Exec(fmt.Sprintf(`powershell -Command "if (!(Test-Path -Path \"%s\")) { exit 1 }"`, path)) == nil
 }
 
 // UpdateEnvironment updates the hosts's environment variables
 func (c *WindowsConfigurer) UpdateEnvironment() error {
 	for k, v := range c.Host.Environment {
-		err := c.Host.ExecCmd(fmt.Sprintf(`setx %s %s`, escape.Quote(k), escape.Quote(v)), "", false, false)
+		err := c.Host.Exec(fmt.Sprintf(`setx %s %s`, escape.Quote(k), escape.Quote(v)))
 		if err != nil {
 			return err
 		}
@@ -217,8 +217,8 @@ func (c *WindowsConfigurer) UpdateEnvironment() error {
 // CleanupEnvironment removes environment variable configuration
 func (c *WindowsConfigurer) CleanupEnvironment() error {
 	for k := range c.Host.Environment {
-		c.Host.ExecCmd(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'User')"`, escape.Quote(k)), "", false, false)
-		c.Host.ExecCmd(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'Machine')"`, escape.Quote(k)), "", false, false)
+		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'User')"`, escape.Quote(k)))
+		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'Machine')"`, escape.Quote(k)))
 	}
 	return nil
 }

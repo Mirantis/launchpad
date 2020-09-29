@@ -10,6 +10,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -194,7 +195,7 @@ func (p *RemoveNodes) removeDtrNode(config *api.ClusterConfig, replicaID string)
 
 	removeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s remove %s", strings.Join(runFlags, " "), config.Spec.Dtr.GetBootstrapperImage(), strings.Join(removeFlags, " "))
 	log.Debugf("%s: Removing DTR replica %s from cluster", dtrLeader.Address, replicaID)
-	err := dtrLeader.ExecCmd(removeCmd, "", true, false)
+	err := dtrLeader.Exec(removeCmd, exec.StreamOutput())
 	if err != nil {
 		return NewError("Failed to run DTR remove")
 	}

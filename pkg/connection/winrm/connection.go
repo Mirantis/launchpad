@@ -2,14 +2,12 @@ package winrm
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
-	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/Mirantis/mcc/pkg/exec"
 
 	"github.com/masterzen/winrm"
 )
@@ -112,31 +110,26 @@ func (c *Connection) Disconnect() {
 	c.client = nil
 }
 
-// ExecCmd executes a command on the host
-func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
+// Exec executes a command on the host
+func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
+	o := exec.Build(opts...)
 	shell, err := c.client.CreateShell()
 	if err != nil {
 		return err
 	}
 
-	if !sensitiveCommand {
-		log.Debugf("%s: executing command: %s", c.Address, cmd)
-	}
+	o.LogCmd(c.Address, cmd)
 
 	command, err := shell.Execute(cmd)
 	if err != nil {
 		return err
 	}
 
-	if stdin != "" {
-		if sensitiveCommand || len(stdin) > 256 {
-			log.Debugf("%s: writing %d bytes to command stdin", c.Address, len(stdin))
-		} else {
-			log.Debugf("%s: writing %d bytes to command stdin: %s", c.Address, len(stdin), stdin)
-		}
+	if o.Stdin != "" {
+		o.LogStdin(c.Address)
 
 		go func() {
-			command.Stdin.Write([]byte(stdin))
+			command.Stdin.Write([]byte(o.Stdin))
 			command.Stdin.Close()
 		}()
 	} else {
@@ -147,14 +140,11 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	outputScanner := bufio.NewScanner(multiReader)
 
 	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s:  %s", c.Address, outputScanner.Text())
-		} else {
-			log.Debugf("%s:  %s", c.Address, outputScanner.Text())
-		}
+		o.AddOutput(c.Address, outputScanner.Text()+"\n")
 	}
+
 	if err := outputScanner.Err(); err != nil {
-		log.Errorf("%s:  %s", c.Address, err.Error())
+		o.LogErrorf("%s:  %s", c.Address, err.Error())
 	}
 
 	command.Wait()
@@ -166,30 +156,4 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 
 	return nil
-}
-
-// ExecWithOutput executes a command on the host and returns its output
-func (c *Connection) ExecWithOutput(cmd string) (string, error) {
-	shell, err := c.client.CreateShell()
-	if err != nil {
-		return "", err
-	}
-
-	command, err := shell.Execute(cmd)
-	if err != nil {
-		return "", err
-	}
-
-	var outWriter, errWriter bytes.Buffer
-	go io.Copy(&outWriter, command.Stdout)
-	go io.Copy(&errWriter, command.Stderr)
-
-	command.Wait()
-	shell.Close()
-
-	if command.ExitCode() > 0 {
-		return "", fmt.Errorf("%s: command failed (%d): %s", c.Address, command.ExitCode(), errWriter.String())
-	}
-
-	return strings.TrimSpace(outWriter.String()), nil
 }

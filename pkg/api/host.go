@@ -7,6 +7,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/connection"
 	"github.com/Mirantis/mcc/pkg/connection/local"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/creasty/defaults"
 
 	log "github.com/sirupsen/logrus"
@@ -133,24 +134,17 @@ func (h *Host) Disconnect() {
 	}
 }
 
-// ExecCmd a command on the host piping stdin and streams the logs
-func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
-	return h.Connection.ExecCmd(cmd, stdin, streamStdout, sensitiveCommand)
+// Exec a command on the host
+func (h *Host) Exec(cmd string, opts ...exec.Option) error {
+	return h.Connection.Exec(cmd, opts...)
 }
 
-// Exec a command on the host and streams the logs
-func (h *Host) Exec(cmd string) error {
-	return h.ExecCmd(cmd, "", false, false)
-}
-
-// Execf a printf-formatted command on the host and streams the logs
-func (h *Host) Execf(cmd string, args ...interface{}) error {
-	return h.Exec(fmt.Sprintf(cmd, args...))
-}
-
-// ExecWithOutput execs a command on the host and return output
-func (h *Host) ExecWithOutput(cmd string) (string, error) {
-	return h.Connection.ExecWithOutput(cmd)
+// ExecWithOutput execs a command on the host and returns output
+func (h *Host) ExecWithOutput(cmd string, opts ...exec.Option) (string, error) {
+	var output string
+	opts = append(opts, exec.Output(&output))
+	err := h.Exec(cmd, opts...)
+	return strings.TrimSpace(output), err
 }
 
 // ExecAll execs a slice of commands on the host
