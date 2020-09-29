@@ -186,7 +186,6 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		}
 		return h.Configurer.AuthenticateDocker(user, pass, imageRepo)
 	}
-	log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
 	return nil
 }
 
