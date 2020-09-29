@@ -78,6 +78,8 @@ func (o *Options) AddOutput(prefix, s string) {
 		o.LogInfof(msg)
 	} else if o.LogDebug {
 		o.LogDebugf(msg)
+	} else {
+		o.LogDebugf("%s: [REDACTED] (%d bytes)", prefix, len(s))
 	}
 }
 
