@@ -135,6 +135,7 @@ func (p *DownloadInstaller) readFile(path string) (string, error) {
 	return string(data), err
 }
 
+// CleanUp removes the temporary files from local filesystem
 func (p *DownloadInstaller) CleanUp() {
 	if p.winPath != "" {
 		removeIfExist(p.winPath)
