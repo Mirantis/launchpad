@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/dtr"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,8 +22,13 @@ func (p *InstallDtr) Title() string {
 }
 
 // Run the installer container
-func (p *InstallDtr) Run() (err error) {
+func (p *InstallDtr) Run() error {
 	dtrLeader := p.config.Spec.DtrLeader()
+
+	err := p.config.Spec.CheckUCPHealthRemote(dtrLeader)
+	if err != nil {
+		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
+	}
 
 	defer func() {
 		if err != nil {
@@ -63,7 +69,7 @@ func (p *InstallDtr) Run() (err error) {
 
 	installFlags = append(installFlags, ucpFlags...)
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = dtrLeader.ExecCmd(installCmd, "", true, true)
+	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.HideCommand())
 	if err != nil {
 		return NewError("Failed to run DTR installer")
 	}

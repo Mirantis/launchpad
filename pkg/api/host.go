@@ -7,6 +7,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/connection"
 	"github.com/Mirantis/mcc/pkg/connection/local"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/creasty/defaults"
 
 	log "github.com/sirupsen/logrus"
@@ -70,7 +71,7 @@ type Hooks struct {
 type Host struct {
 	Address          string            `yaml:"address" validate:"required,hostname|ip"`
 	Role             string            `yaml:"role" validate:"oneof=manager worker dtr"`
-	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
@@ -90,8 +91,8 @@ type Host struct {
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
 
-	type yhost Host
-	yh := (*yhost)(h)
+	type host Host
+	yh := (*host)(h)
 
 	if err := unmarshal(yh); err != nil {
 		return err
@@ -133,24 +134,17 @@ func (h *Host) Disconnect() {
 	}
 }
 
-// ExecCmd a command on the host piping stdin and streams the logs
-func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
-	return h.Connection.ExecCmd(cmd, stdin, streamStdout, sensitiveCommand)
+// Exec a command on the host
+func (h *Host) Exec(cmd string, opts ...exec.Option) error {
+	return h.Connection.Exec(cmd, opts...)
 }
 
-// Exec a command on the host and streams the logs
-func (h *Host) Exec(cmd string) error {
-	return h.ExecCmd(cmd, "", false, false)
-}
-
-// Execf a printf-formatted command on the host and streams the logs
-func (h *Host) Execf(cmd string, args ...interface{}) error {
-	return h.Exec(fmt.Sprintf(cmd, args...))
-}
-
-// ExecWithOutput execs a command on the host and return output
-func (h *Host) ExecWithOutput(cmd string) (string, error) {
-	return h.Connection.ExecWithOutput(cmd)
+// ExecWithOutput execs a command on the host and returns output
+func (h *Host) ExecWithOutput(cmd string, opts ...exec.Option) (string, error) {
+	var output string
+	opts = append(opts, exec.Output(&output))
+	err := h.Exec(cmd, opts...)
+	return strings.TrimSpace(output), err
 }
 
 // ExecAll execs a slice of commands on the host
@@ -192,7 +186,6 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		}
 		return h.Configurer.AuthenticateDocker(user, pass, imageRepo)
 	}
-	log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
 	return nil
 }
 
@@ -237,4 +230,19 @@ func (h *Host) EngineVersion() string {
 	}
 
 	return version
+}
+
+// CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected
+func (h *Host) CheckHTTPStatus(url string, expected int) error {
+	status, err := h.Configurer.HTTPStatus(url)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("%s: response code: %d, expected %d", h.Address, status, expected)
+	if status != expected {
+		return fmt.Errorf("%s: unexpected response code %d", h.Address, status)
+	}
+
+	return nil
 }

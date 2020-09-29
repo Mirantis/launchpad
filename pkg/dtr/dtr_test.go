@@ -67,9 +67,9 @@ func TestBuildUcpFlags(t *testing.T) {
 	t.Run("UCP flags are built when --san is provided", func(t *testing.T) {
 		actual := BuildUcpFlags(config)
 		expected := []string{
-			"--ucp-url ucp.acme.com",
-			"--ucp-username admin",
-			"--ucp-password 'password1234'",
+			"--ucp-url=\"ucp.acme.com\"",
+			"--ucp-username=\"admin\"",
+			"--ucp-password=\"password1234\"",
 		}
 		sort.Strings(actual)
 		sort.Strings(expected)

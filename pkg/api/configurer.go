@@ -8,6 +8,7 @@ type HostConfigurer interface {
 	CheckPrivilege() error
 	ResolveHostname() string
 	ResolveLongHostname() string
+	ResolvePrivateInterface() (string, error)
 	ResolveInternalIP() (string, error)
 	IsContainerized() bool
 	SELinuxEnabled() bool
@@ -24,6 +25,7 @@ type HostConfigurer interface {
 	ReadFile(path string) (string, error)
 	DeleteFile(path string) error
 	FileExist(path string) bool
+	HTTPStatus(url string) (int, error)
 }
 
 // HostConfigurerBuilder defines the builder function signature

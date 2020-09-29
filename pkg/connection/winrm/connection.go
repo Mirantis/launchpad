@@ -11,13 +11,13 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/Mirantis/mcc/pkg/exec"
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/jbrekelmans/winrm"
 	"github.com/kballard/go-shellquote"
+	log "github.com/sirupsen/logrus"
 )
 
 // Connection describes a WinRM connection with its configuration options
@@ -140,20 +140,18 @@ func (c *Connection) Disconnect() {
 	c.client = nil
 }
 
-// ExecCmd executes a command on the host
-func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
+// Exec executes a command on the host
+func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
+	o := exec.Build(opts...)
 	shell, err := c.client.CreateShell()
 	if err != nil {
 		return err
 	}
 	defer shell.Close()
 
-	if !sensitiveCommand {
-		log.Debugf("%s: executing command: %s", c.Address, cmd)
-	}
+	o.LogCmd(c.Address, cmd)
 
 	cmdParts, err := shellquote.Split(cmd)
-	log.Debugf("split result: %+v", cmdParts)
 	if err != nil {
 		return err
 	}
@@ -163,30 +161,22 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 	defer command.Signal()
 
-	if stdin != "" {
-		if sensitiveCommand || len(stdin) > 256 {
-			log.Debugf("%s: writing %d bytes to command stdin", c.Address, len(stdin))
-		} else {
-			log.Debugf("%s: writing %d bytes to command stdin: %s", c.Address, len(stdin), stdin)
-		}
-		go func() { command.SendInput([]byte(stdin), true) }()
+	if o.Stdin != "" {
+		o.LogStdin(c.Address)
+
+		go func() { command.SendInput([]byte(o.Stdin), true) }()
 	}
 
 	multiReader := io.MultiReader(command.Stdout, command.Stderr)
 	outputScanner := bufio.NewScanner(multiReader)
 
-	go func() {
-		for outputScanner.Scan() {
-			if streamStdout {
-				log.Infof("%s:  %s", c.Address, outputScanner.Text())
-			} else {
-				log.Debugf("%s:  %s", c.Address, outputScanner.Text())
-			}
-		}
-		if err := outputScanner.Err(); err != nil {
-			log.Errorf("%s: %s", c.Address, err.Error())
-		}
-	}()
+	for outputScanner.Scan() {
+		o.AddOutput(c.Address, outputScanner.Text()+"\n")
+	}
+
+	if err := outputScanner.Err(); err != nil {
+		o.LogErrorf("%s:  %s", c.Address, err.Error())
+	}
 
 	command.Wait()
 
@@ -195,37 +185,6 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	}
 
 	return nil
-}
-
-// ExecWithOutput executes a command on the host and returns its output
-func (c *Connection) ExecWithOutput(cmd string) (string, error) {
-	shell, err := c.client.CreateShell()
-	if err != nil {
-		return "", err
-	}
-	defer shell.Close()
-
-	cmdParts, err := shellquote.Split(cmd)
-	if err != nil {
-		return "", err
-	}
-	command, err := shell.StartCommand(cmdParts[0], cmdParts[1:], false, false)
-	if err != nil {
-		return "", err
-	}
-	defer command.Signal()
-
-	multiReader := io.MultiReader(command.Stdout, command.Stderr)
-	command.Wait()
-
-	var output []byte
-	_, err = multiReader.Read(output)
-
-	if command.ExitCode() > 0 {
-		return string(output), fmt.Errorf("%s: command failed", c.Address)
-	}
-
-	return strings.TrimSpace(string(output)), nil
 }
 
 // WriteFileLarge copies a larger file to the host.

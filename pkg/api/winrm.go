@@ -24,8 +24,8 @@ type WinRM struct {
 func (w *WinRM) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(w)
 
-	type yWinRM WinRM
-	yw := (*yWinRM)(w)
+	type winRM WinRM
+	yw := (*winRM)(w)
 
 	if err := unmarshal(yw); err != nil {
 		return err

@@ -68,7 +68,7 @@ func (p *GatherFacts) Run() error {
 			DtrLeaderReplicaID: "",
 		}
 		dtrLeader := p.config.Spec.DtrLeader()
-		if dtrLeader.Metadata.EngineVersion != "" {
+		if dtrLeader != nil && dtrLeader.Metadata != nil && dtrLeader.Metadata.EngineVersion != "" {
 			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
 			if err != nil {
 				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
@@ -86,6 +86,10 @@ func (p *GatherFacts) Run() error {
 }
 
 func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
+	if h.Connection == nil {
+		return fmt.Errorf("%s: not connected", h.Address)
+	}
+
 	log.Infof("%s: gathering host facts", h.Address)
 
 	os := &api.OsRelease{}
@@ -119,6 +123,16 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.LongHostname = h.Configurer.ResolveLongHostname()
+
+	if h.PrivateInterface == "" {
+		i, err := h.Configurer.ResolvePrivateInterface()
+		if err != nil {
+			return err
+		}
+		log.Infof("%s: detected private interface %s", h.Address, i)
+		h.PrivateInterface = i
+	}
+
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {
 		return err
@@ -133,7 +147,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 }
 
 func (p *GatherFacts) isWindows(h *api.Host) bool {
-	return h.ExecCmd("cmd /c exit 0", "", false, false) == nil
+	return h.Exec("cmd /c exit 0") == nil
 }
 
 // ResolveWindowsOsRelease ...

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
@@ -14,7 +14,6 @@ import (
 type JoinWorkers struct {
 	Analytics
 	BasicPhase
-	Dtr bool
 }
 
 // Title for the phase
@@ -26,13 +25,7 @@ func (p *JoinWorkers) Title() string {
 func (p *JoinWorkers) Run() error {
 	swarmLeader := p.config.Spec.SwarmLeader()
 
-	var hosts api.Hosts
-	if p.Dtr {
-		// If dtr roles are detected, add them to the list of workers
-		hosts = p.config.Spec.WorkersAndDtrs()
-	} else {
-		hosts = p.config.Spec.Workers()
-	}
+	hosts := p.config.Spec.WorkersAndDtrs()
 
 	for _, h := range hosts {
 		if swarm.IsSwarmNode(h) {
@@ -41,7 +34,7 @@ func (p *JoinWorkers) Run() error {
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.config.Spec.Ucp.Metadata.WorkerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as worker", h.Address)
-		err := h.ExecCmd(joinCmd, "", true, true)
+		err := h.Exec(joinCmd, exec.Redact(p.config.Spec.Ucp.Metadata.WorkerJoinToken))
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
 		}

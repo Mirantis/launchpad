@@ -2,7 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -22,8 +21,12 @@ func (p *ValidateFacts) Title() string {
 	return "Validate Facts"
 }
 
-// Run collect all the facts from hosts in parallel
+// Run validate configuration facts
 func (p *ValidateFacts) Run() error {
+	if !p.config.Spec.Ucp.InstallFlags.Include("--san") {
+		p.populateSan()
+	}
+
 	if err := p.validateUCPVersionJump(p.config); err != nil {
 		if p.config.Spec.Metadata.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
@@ -49,6 +52,15 @@ func (p *ValidateFacts) Run() error {
 	}
 
 	return nil
+}
+
+func (p *ValidateFacts) populateSan() {
+	mgrs := p.config.Spec.Managers()
+	for _, h := range mgrs {
+		f := fmt.Sprintf("--san=%s", h.Address)
+		p.config.Spec.Ucp.InstallFlags.Add(f)
+		log.Warnf("%s: added manager node's public address to ucp installFlag SANs: %s", h.Address, f)
+	}
 }
 
 // validateDTRVersionJump validates UCP upgrade path
@@ -111,32 +123,25 @@ func (p *ValidateFacts) validateDTRVersionJump(conf *api.ClusterConfig) error {
 func (p *ValidateFacts) validateDataPlane(conf *api.ClusterConfig) error {
 	log.Debug("validating data plane settings")
 
-	re := regexp.MustCompile(`^--calico-vxlan=?(.*)`)
+	idx := conf.Spec.Ucp.InstallFlags.Index("--calico-vxlan")
+	if idx < 0 {
+		return nil
+	}
 
-	hasTrue := false
-	hasFalse := false
-
-	for _, v := range conf.Spec.Ucp.InstallFlags {
-		match := re.FindStringSubmatch(v)
-		if len(match) == 2 {
-			if match[1] == "" {
-				hasTrue = true
-			} else {
-				b, err := strconv.ParseBool(match[1])
-				if err != nil {
-					return fmt.Errorf("invalid --calico-vxlan value %s", v)
-				}
-				if b {
-					hasTrue = true
-				} else {
-					hasFalse = true
-				}
-			}
+	val := conf.Spec.Ucp.InstallFlags.GetValue("--calico-vxlan")
+	var valB bool
+	if val == "" {
+		valB = true
+	} else {
+		v, err := strconv.ParseBool(val)
+		if err != nil {
+			return err
 		}
+		valB = v
 	}
 
 	// User has explicitly defined --calico-vxlan=false but there is a windows host in the config
-	if hasFalse {
+	if !valB {
 		if conf.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
 			return fmt.Errorf("calico IPIP can't be used on Windows")
 		}
@@ -152,13 +157,13 @@ func (p *ValidateFacts) validateDataPlane(conf *api.ClusterConfig) error {
 	// User has explicitly defined --calico-vxlan=false but there is already a calico with vxlan
 	if conf.Spec.Ucp.Metadata.VXLAN {
 		log.Debug("ucp has been installed with calico + vxlan")
-		if hasFalse {
+		if !valB {
 			return fmt.Errorf("calico configured with VXLAN, can't automatically change to IPIP")
 		}
 	} else {
 		log.Debug("ucp has been installed with calico + vpip")
 		// User has explicitly defined --calico-vxlan=true but there is already a calico with ipip
-		if hasTrue {
+		if valB {
 			return fmt.Errorf("calico configured with IPIP, can't automatically change to VXLAN")
 		}
 	}

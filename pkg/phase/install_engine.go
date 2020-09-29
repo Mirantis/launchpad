@@ -52,12 +52,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 				return err
 			}
 			if c.Spec.Ucp.Metadata.Installed {
-				err = retry.Do( // wait for ucp api to be healthy if UCP is already installed before engine upgrade
-					func() error {
-						return h.Exec("curl -k -f https://localhost/_ping")
-					},
-					retry.Attempts(12), // last attempt should wait ~7min, should be long enough
-				)
+				err := c.Spec.CheckUCPHealthLocal(h)
 				if err != nil {
 					return err
 				}

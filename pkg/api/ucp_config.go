@@ -14,7 +14,7 @@ import (
 type UcpConfig struct {
 	Version         string    `yaml:"version"`
 	ImageRepo       string    `yaml:"imageRepo,omitempty"`
-	InstallFlags    []string  `yaml:"installFlags,omitempty,flow"`
+	InstallFlags    Flags     `yaml:"installFlags,omitempty,flow"`
 	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string    `yaml:"configData,omitempty"`
 	LicenseFilePath string    `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
@@ -48,9 +48,9 @@ type UcpCloud struct {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type rawUcpConfig UcpConfig
+	type ucp UcpConfig
 	config := NewUcpConfig()
-	raw := rawUcpConfig(config)
+	raw := ucp(config)
 	raw.Metadata = &UcpMetadata{}
 
 	if err := unmarshal(&raw); err != nil {

@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/util"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -45,7 +48,7 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 		return nil
 	}
 	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash -s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
-	err := c.Host.ExecCmd(cmd, *c.Host.Metadata.EngineInstallScript, false, false)
+	err := c.Host.Exec(cmd, exec.Stdin(*c.Host.Metadata.EngineInstallScript))
 	if err != nil {
 		return err
 	}
@@ -137,6 +140,11 @@ func (c *LinuxConfigurer) DockerCommandf(template string, args ...interface{}) s
 
 // ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
 func (c *LinuxConfigurer) ValidateFacts() error {
+	err := c.Host.Exec("ping -c 1 -w 1 -r localhost")
+	if err != nil {
+		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
+	}
+
 	localAddresses, err := c.getHostLocalAddresses()
 	if err != nil {
 		return fmt.Errorf("failed to find host local addresses: %w", err)
@@ -151,7 +159,7 @@ func (c *LinuxConfigurer) ValidateFacts() error {
 
 // CheckPrivilege returns an error if the user does not have passwordless sudo enabled
 func (c *LinuxConfigurer) CheckPrivilege() error {
-	if c.Host.ExecCmd("sudo -n true", "", false, false) != nil {
+	if c.Host.Exec("sudo -n true") != nil {
 		return fmt.Errorf("user does not have passwordless sudo access")
 	}
 
@@ -178,7 +186,7 @@ func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
 
 // AuthenticateDocker performs a docker login on the host
 func (c *LinuxConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
-	return c.Host.ExecCmd(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), pass, false, true)
+	return c.Host.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.Redact(fmt.Sprintf("(?:%s|%s)", regexp.QuoteMeta(user), regexp.QuoteMeta(pass))))
 }
 
 // WriteFile writes file to host with given contents. Do not use for large files.
@@ -196,7 +204,7 @@ func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string
 		return err
 	}
 
-	err = c.Host.ExecCmd(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), data, false, true)
+	err = c.Host.Exec(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), exec.Stdin(data))
 	if err != nil {
 		return err
 	}
@@ -210,19 +218,19 @@ func (c *LinuxConfigurer) ReadFile(path string) (string, error) {
 
 // DeleteFile deletes a file from the host.
 func (c *LinuxConfigurer) DeleteFile(path string) error {
-	return c.Host.ExecCmd(fmt.Sprintf(`sudo rm -f "%s"`, path), "", false, false)
+	return c.Host.Exec(fmt.Sprintf(`sudo rm -f "%s"`, path))
 }
 
 // FileExist checks if a file exists on the host
 func (c *LinuxConfigurer) FileExist(path string) bool {
-	return c.Host.ExecCmd(fmt.Sprintf(`sudo test -e "%s"`, path), "", false, false) == nil
+	return c.Host.Exec(fmt.Sprintf(`sudo test -e "%s"`, path)) == nil
 }
 
 // LineIntoFile tries to find a matching line in a file and replace it with a new entry
 // TODO refactor this into go because it's too magical.
 func (c *LinuxConfigurer) LineIntoFile(path, matcher, newLine string) error {
 	if c.FileExist(path) {
-		err := c.Host.ExecCmd(fmt.Sprintf(`file=%s; match=%s; line=%s; sudo grep -q "${match}" "$file" && sudo sed -i "/${match}/c ${line}" "$file" || (echo "$line" | sudo tee -a "$file" > /dev/null)`, escape.Quote(path), escape.Quote(matcher), escape.Quote(newLine)), "", false, true)
+		err := c.Host.Exec(fmt.Sprintf(`file=%s; match=%s; line=%s; sudo grep -q "${match}" "$file" && sudo sed -i "/${match}/c ${line}" "$file" || (echo "$line" | sudo tee -a "$file" > /dev/null)`, escape.Quote(path), escape.Quote(matcher), escape.Quote(newLine)))
 		if err != nil {
 			return err
 		}
@@ -241,7 +249,7 @@ func (c *LinuxConfigurer) UpdateEnvironment() error {
 	}
 
 	// Update current environment from the /etc/environment
-	err := c.Host.ExecCmd(`while read -r pair; do if [[ $pair == ?* && $pair != \#* ]]; then export "$pair" || exit 2; fi; done < /etc/environment`, "", false, false)
+	err := c.Host.Exec(`while read -r pair; do if [[ $pair == ?* && $pair != \#* ]]; then export "$pair" || exit 2; fi; done < /etc/environment`)
 	if err != nil {
 		return err
 	}
@@ -258,7 +266,7 @@ func (c *LinuxConfigurer) CleanupEnvironment() error {
 		}
 	}
 	// remove empty lines
-	return c.Host.ExecCmd(`sudo sed -i '/^$/d' /etc/environment`, "", false, false)
+	return c.Host.Exec(`sudo sed -i '/^$/d' /etc/environment`)
 }
 
 // ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables
@@ -279,7 +287,7 @@ func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 	dir := "/etc/systemd/system/docker.service.d"
 	cfg := path.Join(dir, "http-proxy.conf")
 
-	err := c.Host.ExecCmd(fmt.Sprintf("sudo mkdir -p %s", dir), "", false, false)
+	err := c.Host.Exec(fmt.Sprintf("sudo mkdir -p %s", dir))
 	if err != nil {
 		return err
 	}
@@ -290,4 +298,34 @@ func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 	}
 
 	return c.WriteFile(cfg, content, "0600")
+}
+
+// ResolvePrivateInterface tries to find a private network interface
+func (c *LinuxConfigurer) ResolvePrivateInterface() (string, error) {
+	output, err := c.Host.ExecWithOutput(`(ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`)
+	if err == nil {
+		re := regexp.MustCompile(`\bdev (\w+)`)
+		match := re.FindSubmatch([]byte(output))
+		if len(match) > 0 {
+			return string(match[1]), nil
+		}
+		err = fmt.Errorf("can't find 'dev' in output")
+	}
+
+	return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually (%s)", err.Error())
+}
+
+// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
+func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
+	log.Debugf("%s: requesting %s", c.Host.Address, url)
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))
+	if err != nil {
+		return -1, err
+	}
+	status, err := strconv.Atoi(output)
+	if err != nil {
+		return -1, fmt.Errorf("%s: invalid response: %s", c.Host.Address, err.Error())
+	}
+
+	return status, nil
 }

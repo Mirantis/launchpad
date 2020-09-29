@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-version"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -27,51 +30,109 @@ func IsProduction() bool {
 	return Environment == "production"
 }
 
-type release struct {
-	Name    string `json:"name"`
-	URL     string `json:"html_url"`
-	TagName string `json:"tag_name"`
+// Asset describes a github release asset
+type Asset struct {
+	Name string `json:"name"`
+	URL  string `json:"browser_download_url"`
 }
 
-// CheckForUpgrade detects if newer version is available
-func CheckForUpgrade() {
-	if !IsProduction() {
-		return // do not check on dev builds
-	}
-	client := &http.Client{
-		Timeout: time.Second * 2,
+// IsForHost returns true if the asset is for the current host os+arch
+func (a *Asset) IsForHost() bool {
+	if strings.HasSuffix(a.Name, ".sha256") {
+		return false
 	}
 
+	os := runtime.GOOS
+	if os == "windows" {
+		os = "win"
+	}
+
+	arch := runtime.GOARCH
+	if arch == "amd64" {
+		arch = "x64"
+	}
+
+	parts := strings.Split(strings.TrimSuffix(a.Name, ".exe"), "-")
+	return parts[1] == os && parts[2] == arch
+}
+
+// LaunchpadRelease describes a launchpad release
+type LaunchpadRelease struct {
+	URL     string  `json:"html_url"`
+	TagName string  `json:"tag_name"`
+	Assets  []Asset `json:"assets"`
+}
+
+// IsNewer returns true if the LaunchpadRelease instance is newer than the current version
+func (l *LaunchpadRelease) IsNewer() bool {
+	current, _ := version.NewVersion(Version)
+	remote, err := version.NewVersion(l.TagName)
+	if err != nil {
+		return false // ignore invalid versions
+	}
+
+	return current.LessThan(remote)
+}
+
+// AssetForHost returns a download asset for the current host OS+ARCH if available
+func (l *LaunchpadRelease) AssetForHost() *Asset {
+	for _, a := range l.Assets {
+		if a.IsForHost() {
+			return &a
+		}
+	}
+	return nil
+}
+
+// GetLatest returns a LaunchpadRelease instance for the latest release
+func GetLatest(timeout time.Duration) *LaunchpadRelease {
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
+	baseMsg := "getting launchpad release information"
+	log.Debugf(baseMsg)
 	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", GitHubRepo))
 	if err != nil {
-		return // ignore connection errors
+		log.Debugf("%s failed: %s", baseMsg, err.Error())
+		return nil // ignore connection errors
 	}
 
 	if resp.Body != nil {
 		defer resp.Body.Close()
 	}
 	if resp.StatusCode != 200 {
-		return // ignore backend failures
+		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
+		return nil // ignore backend failures
 	}
 	body, readErr := ioutil.ReadAll(resp.Body)
 	if readErr != nil {
-		return // ignore reading errors
+		log.Debugf("%s failed to read body: %s", baseMsg, err.Error())
+		return nil // ignore reading errors
 	}
 
-	latest := release{}
-	err = json.Unmarshal(body, &latest)
+	l := &LaunchpadRelease{}
+	err = json.Unmarshal(body, l)
 	if err != nil {
-		return // ignore json parsing errors
-	}
-	current, err := version.NewVersion(Version)
-	remote, err := version.NewVersion(latest.TagName)
-	if err != nil {
-		return // ignore invalid versions
-	}
-	if current.LessThan(remote) {
-		fmt.Println("")
-		fmt.Println(fmt.Sprintf("A new version (%s) of `launchpad` is available. Please visit %s to upgrade the tool.", latest.Name, latest.URL))
-
+		log.Debugf("%s failed to unmarshal JSON: %s", baseMsg, err.Error())
+		return nil
 	}
 
+	log.Debugf("%s returned: %+v", baseMsg, *l)
+	return l
+}
+
+// GetUpgrade will return a LaunchpadRelease instance for the latest release if it's newer than the current version
+func GetUpgrade() *LaunchpadRelease {
+	log.Debugf("checking for a launchpad upgrade")
+	l := GetLatest(time.Second * 2)
+	if l == nil {
+		return nil
+	}
+
+	if l.IsNewer() {
+		return l
+	}
+
+	return nil
 }

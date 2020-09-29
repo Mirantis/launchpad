@@ -40,6 +40,7 @@ func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 			}
 			return err
 		},
+		retry.Attempts(6),
 	)
 	if err != nil {
 		log.Errorf("%s: failed to open connection", host.Address)
@@ -53,7 +54,7 @@ func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 func (p *Connect) testConnection(h *api.Host) error {
 	log.Infof("%s: testing connection", h.Address)
 
-	if err := h.ExecCmd("echo", "", false, false); err != nil {
+	if err := h.Exec("echo"); err != nil {
 		return err
 	}
 

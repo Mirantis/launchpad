@@ -6,7 +6,7 @@ spec:
       ssh:
         port: 9022
         user: "root"
-      role: "worker"
+      role: "manager"
       engineConfig: &linuxEngineConfig
         debug: true
         log-opts:

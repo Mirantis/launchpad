@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	log "github.com/sirupsen/logrus"
@@ -45,7 +46,7 @@ func (p *UpgradeUcp) Run() error {
 	}
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s", strings.Join(runFlags, " "), p.config.Spec.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
-	err = swarmLeader.ExecCmd(upgradeCmd, "", true, false)
+	err = swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
 		return NewError("Failed to run UCP upgrade")
 	}
