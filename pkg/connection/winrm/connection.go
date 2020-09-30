@@ -155,6 +155,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	if err != nil {
 		return err
 	}
+
 	command, err := shell.StartCommand(cmdParts[0], cmdParts[1:], false, false)
 	if err != nil {
 		return err
@@ -170,13 +171,15 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	multiReader := io.MultiReader(command.Stdout, command.Stderr)
 	outputScanner := bufio.NewScanner(multiReader)
 
-	for outputScanner.Scan() {
-		o.AddOutput(c.Address, outputScanner.Text()+"\n")
-	}
+	go func() {
+		for outputScanner.Scan() {
+			o.AddOutput(c.Address, outputScanner.Text()+"\n")
+		}
 
-	if err := outputScanner.Err(); err != nil {
-		o.LogErrorf("%s:  %s", c.Address, err.Error())
-	}
+		if err := outputScanner.Err(); err != nil {
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+	}()
 
 	command.Wait()
 
