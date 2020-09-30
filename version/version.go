@@ -96,7 +96,7 @@ func latestTag(timeout time.Duration) string {
 
 	baseMsg := "getting launchpad tag list"
 	log.Debugf(baseMsg)
-	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/tags", GitHubRepo))
+	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/tags?per_page=20&page=1", GitHubRepo))
 	if err != nil {
 		log.Debugf("%s failed: %s", baseMsg, err.Error())
 		return "" // ignore connection errors
