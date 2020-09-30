@@ -16,7 +16,6 @@ import (
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/jbrekelmans/winrm"
-	"github.com/kballard/go-shellquote"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -151,12 +150,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 
 	o.LogCmd(c.Address, cmd)
 
-	cmdParts, err := shellquote.Split(cmd)
-	if err != nil {
-		return err
-	}
-
-	command, err := shell.StartCommand(cmdParts[0], cmdParts[1:], false, false)
+	command, err := shell.StartCommand(cmd, nil, false, false)
 	if err != nil {
 		return err
 	}
