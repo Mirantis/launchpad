@@ -9,14 +9,11 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
-	"path"
 
 	"github.com/Mirantis/mcc/pkg/exec"
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/jbrekelmans/winrm"
-	log "github.com/sirupsen/logrus"
 )
 
 // Connection describes a WinRM connection with its configuration options
@@ -38,7 +35,7 @@ type Connection struct {
 	cert   []byte
 	client *winrm.Client
 
-	shell *winrm.Shell
+	shellpool *ShellPool
 }
 
 // SetWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
@@ -130,6 +127,7 @@ func (c *Connection) Connect() error {
 	}
 
 	c.client = client
+	c.shellpool = NewShellPool(client)
 
 	return nil
 }
@@ -137,16 +135,18 @@ func (c *Connection) Connect() error {
 // Disconnect closes the WinRM connection
 func (c *Connection) Disconnect() {
 	c.client = nil
+	c.shellpool = nil
 }
 
 // Exec executes a command on the host
 func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	o := exec.Build(opts...)
-	shell, err := c.client.CreateShell()
-	if err != nil {
-		return err
+	lease := c.shellpool.Get()
+	if lease == nil {
+		return fmt.Errorf("%s: failed to create a shell", c.Address)
 	}
-	defer shell.Close()
+	defer lease.Release()
+	shell := lease.shell
 
 	o.LogCmd(c.Address, cmd)
 
@@ -186,26 +186,6 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 
 // WriteFileLarge copies a larger file to the host.
 // Use instead of configurer.WriteFile when it seems appropriate
-func (c *Connection) WriteFileLarge(src, dstdir string) error {
-	base := path.Base(src)
-	stat, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	log.Infof("%s: copying %d bytes to %s/%s", c.Address, stat.Size(), dstdir, base)
-
-	shells := make([]*winrm.Shell, 1)
-	shells[0], err = c.client.CreateShell()
-	if err != nil {
-		return fmt.Errorf("%s: error while creating shell: %s", c.Address, err.Error())
-	}
-	defer func() {
-		err := shells[0].Close()
-		if err != nil {
-			log.Errorf("%s: error while closing shell: %s", c.Address, err.Error())
-		}
-	}()
-
-	copier, err := winrm.NewFileTreeCopier(shells, dstdir, src)
-	return copier.Run()
+func (c *Connection) WriteFileLarge(src, dst string) error {
+	return Upload(src, dst, c)
 }

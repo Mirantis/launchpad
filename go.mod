@@ -20,8 +20,8 @@ require (
 	github.com/google/go-cmp v0.4.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
 	github.com/jbrekelmans/winrm v0.0.0-20200115090151-fa6b0f5938fa
-	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/lithammer/shortuuid v3.0.0+incompatible
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
 	github.com/masterzen/winrm v0.0.0-20200612141538-f6f9b2959811 // indirect

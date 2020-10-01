@@ -54,8 +54,8 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 		return err
 	}
 	base := path.Base(c.Host.Metadata.EngineInstallScript)
-	installer := pwd + "\\" + base
-	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, pwd)
+	installer := pwd + "\\" + base + ".ps1"
+	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, installer)
 	if err != nil {
 		log.Errorf("failed: %s", err.Error())
 		return err
