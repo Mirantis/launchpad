@@ -81,8 +81,8 @@ func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) erro
 		return err
 	}
 	base := path.Base(c.Host.Metadata.EngineInstallScript)
-	uninstaller := pwd + "\\" + base
-	c.Host.Connection.WriteFileLarge(uninstaller, c.Host.Metadata.EngineInstallScript)
+	uninstaller := pwd + "\\" + base + ".ps1"
+	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, uninstaller)
 
 	defer c.Host.Exec(fmt.Sprintf("del %s", uninstaller))
 
