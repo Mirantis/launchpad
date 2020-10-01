@@ -23,6 +23,7 @@ import (
 const pipeHasEnded = "The pipe has been ended."
 const pipeIsBeingClosed = "The pipe is being closed."
 
+// Upload uploads a file to a host
 func Upload(src, dest string, c *Connection) error {
 	psCmd := winrm.FormatPowerShellScriptCommandLine(`
 		begin {
