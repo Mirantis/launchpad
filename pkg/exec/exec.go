@@ -73,13 +73,10 @@ func (o *Options) AddOutput(prefix, s string) {
 		*o.Output += s
 	}
 
-	msg := fmt.Sprintf("%s: %s", prefix, o.Redact(s))
 	if o.StreamOutput {
-		o.LogInfof(msg)
-	} else if o.LogDebug {
-		o.LogDebugf(msg)
+		log.Infof("%s: %s", prefix, o.Redact(s))
 	} else {
-		o.LogDebugf("%s: [REDACTED] (%d bytes)", prefix, len(s))
+		o.LogDebugf("%s: %s", prefix, o.Redact(s))
 	}
 }
 
