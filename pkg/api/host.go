@@ -189,6 +189,11 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 	return nil
 }
 
+// ImageExist returns true if a docker image exists on the host
+func (h *Host) ImageExist(name string) bool {
+	return h.Exec(h.Configurer.DockerCommandf("image inspect %s --format '{{.ID}}'", name)) == nil
+}
+
 // PullImage pulls the named docker image on the host
 func (h *Host) PullImage(name string) error {
 	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf("pull %s", name))
