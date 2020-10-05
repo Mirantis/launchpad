@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
-	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4
+	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4 // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/alessio/shellescape v1.2.2
 	github.com/avast/retry-go v2.6.0+incompatible
@@ -18,13 +18,13 @@ require (
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/google/go-cmp v0.4.1 // indirect
+	github.com/google/uuid v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
-	github.com/jbrekelmans/winrm v0.0.0-20200115090151-fa6b0f5938fa
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/lithammer/shortuuid v3.0.0+incompatible
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
-	github.com/masterzen/winrm v0.0.0-20200612141538-f6f9b2959811 // indirect
+	github.com/masterzen/winrm v0.0.0-20200612141538-f6f9b2959811
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0

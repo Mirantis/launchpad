@@ -4,8 +4,8 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/jbrekelmans/winrm"
 	"github.com/lithammer/shortuuid"
+	"github.com/masterzen/winrm"
 	log "github.com/sirupsen/logrus"
 )
 

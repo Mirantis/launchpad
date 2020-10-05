@@ -2,7 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
@@ -150,16 +149,12 @@ func (p *GatherFacts) isWindows(h *api.Host) bool {
 	return h.Exec("cmd /c exit 0") == nil
 }
 
-// ResolveWindowsOsRelease ...
+// ResolveWindowsOsRelease ... TODO: these belong to configurer
 func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
-	osName = strings.TrimSpace(osName)
 	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
-	osMajor = strings.TrimSpace(osMajor)
 	osMinor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMinorVersionNumber"`)
-	osMinor = strings.TrimSpace(osMinor)
 	osBuild, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentBuild"`)
-	osBuild = strings.TrimSpace(osBuild)
 
 	version := fmt.Sprintf("%s.%s.%s", osMajor, osMinor, osBuild)
 	osRelease := &api.OsRelease{

@@ -2,18 +2,17 @@ package winrm
 
 import (
 	"bufio"
-	"context"
-	"crypto/tls"
-	"crypto/x509"
+	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
-	"net/http"
+	"strings"
+	"sync"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/exec"
+	log "github.com/sirupsen/logrus"
 
-	"github.com/Azure/go-ntlmssp"
-	"github.com/jbrekelmans/winrm"
+	"github.com/masterzen/winrm"
 )
 
 // Connection describes a WinRM connection with its configuration options
@@ -84,44 +83,39 @@ func (c *Connection) Connect() error {
 		return fmt.Errorf("%s: failed to load certificates: %s", c.Address, err)
 	}
 
-	tlsConfig := &tls.Config{
-		ServerName:         c.TLSServerName,
-		InsecureSkipVerify: c.Insecure,
+	endpoint := &winrm.Endpoint{
+		Host:          c.Address,
+		Port:          c.Port,
+		HTTPS:         c.UseHTTPS,
+		Insecure:      c.Insecure,
+		TLSServerName: c.TLSServerName,
+		Timeout:       60 * time.Second,
 	}
 
 	if len(c.caCert) > 0 {
-		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM(c.caCert)
+		endpoint.CACert = c.caCert
 	}
 
 	if len(c.cert) > 0 {
-		cert, err := tls.LoadX509KeyPair(string(c.cert), string(c.key))
-		if err != nil {
-			return err
-		}
-		tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
+		endpoint.Cert = c.cert
 	}
 
-	var tlsTransport *http.Transport
-	if c.UseHTTPS {
-		tlsTransport = &http.Transport{
-			MaxConnsPerHost: 300,
-			TLSClientConfig: tlsConfig,
-		}
+	if len(c.key) > 0 {
+		endpoint.Key = c.key
 	}
 
-	httpClient := &http.Client{}
+	params := winrm.DefaultParameters
 
 	if c.UseNTLM {
-		httpClient.Transport = &ntlmssp.Negotiator{
-			RoundTripper: tlsTransport,
-		}
-	} else {
-		httpClient.Transport = tlsTransport
+		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
 
-	maxEnvelopeSize := 500 * 1000
-	client, err := winrm.NewClient(context.Background(), c.UseHTTPS, c.Address, c.Port, c.User, c.Password, httpClient, &maxEnvelopeSize)
+	// if c.UseHTTPS {
+	// 	params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientAuthRequest{} }
+	// }
+
+	client, err := winrm.NewClientWithParameters(endpoint, c.User, c.Password, params)
+
 	if err != nil {
 		return err
 	}
@@ -145,27 +139,36 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	if lease == nil {
 		return fmt.Errorf("%s: failed to create a shell", c.Address)
 	}
-	defer lease.Release()
 	shell := lease.shell
 
 	o.LogCmd(c.Address, cmd)
 
-	command, err := shell.StartCommand(cmd, nil, false, false)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	command, err := shell.Execute(cmd)
 	if err != nil {
 		return err
 	}
-	defer command.Signal()
 
 	if o.Stdin != "" {
 		o.LogStdin(c.Address)
-
-		go func() { command.SendInput([]byte(o.Stdin), true) }()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer command.Stdin.Close()
+			_, err := command.Stdin.Write([]byte(o.Stdin))
+			if err != nil {
+				log.Errorf("failed to send command stdin: %s", err.Error())
+			}
+			log.Tracef("%s: input loop exited", c.Address)
+		}()
 	}
 
-	multiReader := io.MultiReader(command.Stdout, command.Stderr)
-	outputScanner := bufio.NewScanner(multiReader)
-
 	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(command.Stdout)
+
 		for outputScanner.Scan() {
 			o.AddOutput(c.Address, outputScanner.Text()+"\n")
 		}
@@ -173,9 +176,39 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		if err := outputScanner.Err(); err != nil {
 			o.LogErrorf("%s:  %s", c.Address, err.Error())
 		}
+		command.Stdout.Close()
+		log.Tracef("%s: stdout loop exited", c.Address)
 	}()
 
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(command.Stderr)
+
+		for outputScanner.Scan() {
+			o.AddOutput(c.Address, outputScanner.Text()+"\n")
+		}
+
+		if err := outputScanner.Err(); err != nil {
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		command.Stdout.Close()
+		log.Tracef("%s: stderr loop exited", c.Address)
+	}()
+
+	log.Tracef("%s: waiting for command exit", c.Address)
+
 	command.Wait()
+	log.Tracef("%s: command exited", c.Address)
+
+	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	wg.Wait()
+	log.Tracef("%s: syncgroup done", c.Address)
+
+	err = command.Close()
+	if err != nil {
+		log.Warnf("%s: %s", c.Address, err.Error())
+	}
+	lease.Release()
 
 	if command.ExitCode() > 0 {
 		return fmt.Errorf("%s: command failed", c.Address)
@@ -188,4 +221,65 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 // Use instead of configurer.WriteFile when it seems appropriate
 func (c *Connection) WriteFileLarge(src, dst string) error {
 	return Upload(src, dst, c)
+}
+
+// from jbrekelmans/go-winrm/util.go PowerShellSingleQuotedStringLiteral
+func Escape(v string) string {
+	var sb strings.Builder
+	_, _ = sb.WriteRune('\'')
+	for _, rune := range v {
+		var esc string
+		switch rune {
+		case '\n':
+			esc = "`n"
+		case '\r':
+			esc = "`r"
+		case '\t':
+			esc = "`t"
+		case '\a':
+			esc = "`a"
+		case '\b':
+			esc = "`b"
+		case '\f':
+			esc = "`f"
+		case '\v':
+			esc = "`v"
+		case '"':
+			esc = "`\""
+		case '\'':
+			esc = "`'"
+		case '`':
+			esc = "``"
+		case '\x00':
+			esc = "`0"
+		default:
+			_, _ = sb.WriteRune(rune)
+			continue
+		}
+		_, _ = sb.WriteString(esc)
+	}
+	_, _ = sb.WriteRune('\'')
+	return sb.String()
+}
+
+func PSEncode(psCmd string) string {
+	// 2 byte chars to make PowerShell happy
+	wideCmd := ""
+	for _, b := range []byte(psCmd) {
+		wideCmd += string(b) + "\x00"
+	}
+
+	// Base64 encode the command
+	input := []uint8(wideCmd)
+	return base64.StdEncoding.EncodeToString(input)
+}
+
+// Powershell wraps a PowerShell script
+// and prepares it for execution by the winrm client
+func Powershell(psCmd string) string {
+	encodedCmd := PSEncode(psCmd)
+
+	log.Debugf("encoded powershell command: %s", psCmd)
+	// Create the powershell.exe command line to execute the script
+	return fmt.Sprintf("powershell.exe -NonInteractive -NoProfile -EncodedCommand %s", encodedCmd)
 }

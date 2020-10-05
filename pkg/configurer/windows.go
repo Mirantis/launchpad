@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/connection/winrm"
 	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 
-	escape "github.com/alessio/shellescape"
 	"github.com/hashicorp/go-version"
 )
 
@@ -57,13 +57,12 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 	installer := pwd + "\\" + base + ".ps1"
 	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, installer)
 	if err != nil {
-		log.Errorf("failed: %s", err.Error())
 		return err
 	}
 
 	defer c.Host.Exec(fmt.Sprintf("del %s", installer))
 
-	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, installer)
+	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, installer)
 	return c.Host.Exec(installCommand)
 }
 
@@ -83,10 +82,12 @@ func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) erro
 	base := path.Base(c.Host.Metadata.EngineInstallScript)
 	uninstaller := pwd + "\\" + base + ".ps1"
 	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, uninstaller)
-
+	if err != nil {
+		return err
+	}
 	defer c.Host.Exec(fmt.Sprintf("del %s", uninstaller))
 
-	uninstallCommand := fmt.Sprintf("powershell -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", uninstaller)
+	uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", uninstaller)
 	return c.Host.Exec(uninstallCommand)
 }
 
@@ -116,7 +117,7 @@ func (c *WindowsConfigurer) ResolveLongHostname() string {
 
 // ResolveInternalIP resolves internal ip from private interface
 func (c *WindowsConfigurer) ResolveInternalIP() (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell -Command "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias \"%s\").IPAddress"`, c.Host.PrivateInterface))
+	output, err := c.Host.ExecWithOutput(winrm.Powershell(fmt.Sprintf(`"(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, winrm.Escape(c.Host.PrivateInterface))))
 	if err != nil {
 		return c.Host.Address, err
 	}
@@ -153,15 +154,15 @@ func (c *WindowsConfigurer) ValidateFacts() error {
 }
 
 func (c *WindowsConfigurer) validateLocal(address string) bool {
-	err := c.Host.Exec(fmt.Sprintf(`powershell "$ips=[System.Net.Dns]::GetHostAddresses(\"%s\"); Get-NetIPAddress -IPAddress $ips"`, address))
+	err := c.Host.Exec(winrm.Powershell(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses(%s); Get-NetIPAddress -IPAddress $ips"`, winrm.Escape(address))))
 	return err == nil
 }
 
 // CheckPrivilege returns an error if the user does not have admin access to the host
 func (c *WindowsConfigurer) CheckPrivilege() error {
-	privCheck := "$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { Write-Host 'User has admin privileges'; exit 0; } else { Write-Host 'User does not have admin privileges'; exit 1 }"
+	privCheck := "\"$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if (!$currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { $host.SetShouldExit(1) }\""
 
-	if c.Host.Exec("powershell.exe", exec.Stdin(privCheck)) != nil {
+	if c.Host.Exec(winrm.Powershell(privCheck)) != nil {
 		return fmt.Errorf("user does not have administrator rights on the host")
 	}
 
@@ -222,7 +223,7 @@ func (c *WindowsConfigurer) FileExist(path string) bool {
 // UpdateEnvironment updates the hosts's environment variables
 func (c *WindowsConfigurer) UpdateEnvironment() error {
 	for k, v := range c.Host.Environment {
-		err := c.Host.Exec(fmt.Sprintf(`setx %s %s`, escape.Quote(k), escape.Quote(v)))
+		err := c.Host.Exec(fmt.Sprintf(`setx %s %s`, winrm.Escape(k), winrm.Escape(v)))
 		if err != nil {
 			return err
 		}
@@ -233,17 +234,17 @@ func (c *WindowsConfigurer) UpdateEnvironment() error {
 // CleanupEnvironment removes environment variable configuration
 func (c *WindowsConfigurer) CleanupEnvironment() error {
 	for k := range c.Host.Environment {
-		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'User')"`, escape.Quote(k)))
-		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable('%s', $null, 'Machine')"`, escape.Quote(k)))
+		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'User')"`, winrm.Escape(k)))
+		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')"`, winrm.Escape(k)))
 	}
 	return nil
 }
 
 // ResolvePrivateInterface tries to find a private network interface
 func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
-	output, err := c.Host.ExecWithOutput(`powershell "(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`)
+	output, err := c.Host.ExecWithOutput(winrm.Powershell(`"(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`))
 	if err != nil || output == "" {
-		output, err = c.Host.ExecWithOutput(`powershell "(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`)
+		output, err = c.Host.ExecWithOutput(winrm.Powershell(`"(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`))
 	}
 	if err != nil || output == "" {
 		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually")

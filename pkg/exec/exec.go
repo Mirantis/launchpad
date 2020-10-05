@@ -26,7 +26,7 @@ type Options struct {
 func (o *Options) LogCmd(prefix, cmd string) {
 	var msg string
 	if o.LogCommand {
-		msg = fmt.Sprintf("%s: executing `%s`", prefix, cmd)
+		msg = fmt.Sprintf("%s: executing `%s`", prefix, o.Redact(cmd))
 	} else {
 		msg = fmt.Sprintf("%s: executing [REDACTED]", prefix)
 	}
@@ -75,7 +75,7 @@ func (o *Options) AddOutput(prefix, s string) {
 
 	msg := fmt.Sprintf("%s: %s", prefix, o.Redact(s))
 	if o.StreamOutput {
-		o.LogInfof(msg)
+		log.Info(msg)
 	} else if o.LogDebug {
 		o.LogDebugf(msg)
 	} else {

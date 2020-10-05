@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jbrekelmans/winrm"
+	"github.com/masterzen/winrm"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,9 +25,9 @@ const pipeIsBeingClosed = "The pipe is being closed."
 
 // Upload uploads a file to a host
 func Upload(src, dest string, c *Connection) error {
-	psCmd := winrm.FormatPowerShellScriptCommandLine(`
+	psCmd := PSEncode(`
 		begin {
-			$path = ` + winrm.PowerShellSingleQuotedStringLiteral(dest) + `
+			$path = ` + Escape(dest) + `
 			$DebugPreference = "Continue"
 			$ErrorActionPreference = "Stop"
 			Set-StrictMode -Version 2
@@ -75,13 +75,18 @@ func Upload(src, dest string, c *Connection) error {
 	}
 	defer lease.Release()
 	shell := lease.shell
-	cmd, err := shell.StartCommand(psCmd[0], psCmd[1:], false, true)
+	log.Debugf("%s: running %s", c.Address, psCmd)
+	cmd, err := shell.Execute("powershell -EncodedCommand " + psCmd)
 	if err != nil {
 		return err
 	}
+
+	// Create a dummy request to get its length
+	dummy := winrm.NewSendInputRequest("dummydummydummy", "dummydummydummy", "dummydummysummy", []byte(""), false, winrm.DefaultParameters)
+	maxInput := len(dummy.String()) - 100
 	// Since we are passing data over a powershell pipe, we encode the data as lines of base64 (each line is terminated by a carriage return +
 	// line feed sequence, hence the -2)
-	bufferCapacity := (shell.Client().SendInputMax() - 2) / 4 * 3
+	bufferCapacity := (winrm.DefaultParameters.EnvelopeSize - maxInput) / 4 * 3
 	base64LineBufferCapacity := bufferCapacity/3*4 + 2
 	base64LineBuffer := make([]byte, base64LineBufferCapacity)
 	base64LineBuffer[base64LineBufferCapacity-2] = '\r'
@@ -104,7 +109,12 @@ func Upload(src, dest string, c *Connection) error {
 				ended = true
 				sha256DigestLocal = hex.EncodeToString(sha256DigestLocalObj.Sum(nil))
 			}
-			err := cmd.SendInput(base64LineBuffer, ended)
+			b, err := cmd.Stdin.Write(base64LineBuffer)
+			log.Debugf("%s: transfered %d bytes", c.Address, b)
+			if ended {
+				cmd.Stdin.Close()
+			}
+
 			bufferLength = 0
 			if err != nil {
 				return err
@@ -117,7 +127,7 @@ func Upload(src, dest string, c *Connection) error {
 		err = nil
 	}
 	if err != nil {
-		cmd.Signal()
+		cmd.Close()
 		return err
 	}
 	if !ended {
@@ -127,14 +137,15 @@ func Upload(src, dest string, c *Connection) error {
 		i := base64.StdEncoding.EncodedLen(bufferLength)
 		base64LineBuffer[i] = '\r'
 		base64LineBuffer[i+1] = '\n'
-		err = cmd.SendInput(base64LineBuffer[:i+2], true)
+		_, err = cmd.Stdin.Write(base64LineBuffer[:i+2])
 		if err != nil {
 			if !strings.Contains(err.Error(), pipeHasEnded) && !strings.Contains(err.Error(), pipeIsBeingClosed) {
-				cmd.Signal()
+				cmd.Close()
 				return err
 			}
 			// ignore pipe errors that results from passing true to cmd.SendInput
 		}
+		cmd.Stdin.Close()
 		ended = true
 		bytesSent += uint64(bufferLength)
 		bufferLength = 0
