@@ -100,6 +100,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		}
 		os = winOs
 	} else {
+		h.Connection.SetWindows(false)
 		linuxOs, err := p.resolveLinuxOsRelease(h)
 		if err != nil {
 			return err

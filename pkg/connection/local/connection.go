@@ -5,12 +5,10 @@ import (
 	"io"
 	"os"
 	osexec "os/exec"
-	"path"
 	"runtime"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/exec"
-	log "github.com/sirupsen/logrus"
 )
 
 const hostname = "localhost"
@@ -82,20 +80,14 @@ func (c *Connection) command(cmd string) *osexec.Cmd {
 }
 
 // WriteFileLarge copies a larger file to the host.
-func (c *Connection) WriteFileLarge(src, dstdir string) error {
-	base := path.Base(src)
-	stat, err := os.Stat(src)
-	if err != nil {
-		return err
-	}
-	log.Infof("%s: copying %d bytes to %s/%s", hostname, stat.Size(), dstdir, base)
+func (c *Connection) Upload(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer in.Close()
 
-	out, err := os.Create(path.Join(dstdir, base))
+	out, err := os.Create(dst)
 	defer out.Close()
 	if err != nil {
 		return err

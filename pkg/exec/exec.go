@@ -1,7 +1,6 @@
 package exec
 
 import (
-	"fmt"
 	"regexp"
 
 	log "github.com/sirupsen/logrus"
@@ -24,13 +23,11 @@ type Options struct {
 
 // LogCmd is for logging the command to be executed
 func (o *Options) LogCmd(prefix, cmd string) {
-	var msg string
 	if o.LogCommand {
-		msg = fmt.Sprintf("%s: executing `%s`", prefix, o.Redact(cmd))
+		log.Debugf("%s: executing `%s`", prefix, o.Redact(cmd))
 	} else {
-		msg = fmt.Sprintf("%s: executing [REDACTED]", prefix)
+		log.Debugf("%s: executing [REDACTED]", prefix)
 	}
-	log.Debugf(msg)
 }
 
 // LogStdin is for logging information about command stdin input
@@ -73,13 +70,10 @@ func (o *Options) AddOutput(prefix, s string) {
 		*o.Output += s
 	}
 
-	msg := fmt.Sprintf("%s: %s", prefix, o.Redact(s))
 	if o.StreamOutput {
-		log.Info(msg)
-	} else if o.LogDebug {
-		o.LogDebugf(msg)
+		log.Infof("%s: %s", prefix, o.Redact(s))
 	} else {
-		o.LogDebugf("%s: [REDACTED] (%d bytes)", prefix, len(s))
+		o.LogDebugf("%s: %s", prefix, o.Redact(s))
 	}
 }
 

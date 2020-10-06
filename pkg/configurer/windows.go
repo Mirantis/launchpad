@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
-	"github.com/Mirantis/mcc/pkg/connection/winrm"
 	"github.com/Mirantis/mcc/pkg/exec"
+	ps "github.com/Mirantis/mcc/pkg/powershell"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hashicorp/go-version"
@@ -63,14 +63,14 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 	}
 	base := path.Base(c.Host.Metadata.EngineInstallScript)
 	installer := pwd + "\\" + base + ".ps1"
-	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, installer)
+	err = c.Host.WriteFileLarge(c.Host.Metadata.EngineInstallScript, installer)
 	if err != nil {
 		return err
 	}
 
-	defer c.Host.Exec(fmt.Sprintf("del %s", installer))
+	defer c.DeleteFile(installer)
 
-	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, installer)
+	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, ps.DoubleQuote(installer))
 	return c.Host.Exec(installCommand)
 }
 
@@ -86,13 +86,13 @@ func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) erro
 	pwd := c.Pwd()
 	base := path.Base(c.Host.Metadata.EngineInstallScript)
 	uninstaller := pwd + "\\" + base + ".ps1"
-	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, uninstaller)
+	err = c.Host.WriteFileLarge(c.Host.Metadata.EngineInstallScript, uninstaller)
 	if err != nil {
 		return err
 	}
-	defer c.Host.Exec(fmt.Sprintf("del %s", uninstaller))
+	defer c.DeleteFile(uninstaller)
 
-	uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", uninstaller)
+	uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", ps.DoubleQuote(uninstaller))
 	return c.Host.Exec(uninstallCommand)
 }
 
@@ -122,7 +122,7 @@ func (c *WindowsConfigurer) ResolveLongHostname() string {
 
 // ResolveInternalIP resolves internal ip from private interface
 func (c *WindowsConfigurer) ResolveInternalIP() (string, error) {
-	output, err := c.Host.ExecWithOutput(winrm.Powershell(fmt.Sprintf(`"(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, winrm.Escape(c.Host.PrivateInterface))))
+	output, err := c.Host.ExecWithOutput(ps.Cmd(fmt.Sprintf(`"(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, ps.SingleQuote(c.Host.PrivateInterface))))
 	if err != nil {
 		return c.Host.Address, err
 	}
@@ -159,7 +159,7 @@ func (c *WindowsConfigurer) ValidateFacts() error {
 }
 
 func (c *WindowsConfigurer) validateLocal(address string) bool {
-	err := c.Host.Exec(winrm.Powershell(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses(%s); Get-NetIPAddress -IPAddress $ips"`, winrm.Escape(address))))
+	err := c.Host.Exec(ps.Cmd(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses(%s); Get-NetIPAddress -IPAddress $ips"`, ps.SingleQuote(address))))
 	return err == nil
 }
 
@@ -167,7 +167,7 @@ func (c *WindowsConfigurer) validateLocal(address string) bool {
 func (c *WindowsConfigurer) CheckPrivilege() error {
 	privCheck := "\"$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if (!$currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { $host.SetShouldExit(1) }\""
 
-	if c.Host.Exec(winrm.Powershell(privCheck)) != nil {
+	if c.Host.Exec(ps.Cmd(privCheck)) != nil {
 		return fmt.Errorf("user does not have administrator rights on the host")
 	}
 
@@ -197,12 +197,12 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 	}
 	defer c.Host.ExecWithOutput(fmt.Sprintf("del \"%s\"", tempFile))
 
-	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "$Input | Out-File -FilePath \"%s\""`, tempFile), exec.Stdin(data))
+	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "$Input | Out-File -FilePath %s"`, ps.SingleQuote(tempFile)), exec.Stdin(data))
 	if err != nil {
 		return err
 	}
 
-	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "Move-Item -Force -Path \"%s\" -Destination \"%s\""`, tempFile, path))
+	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "Move-Item -Force -Path %s -Destination %s"`, ps.SingleQuote(tempFile), ps.SingleQuote(path)))
 	if err != nil {
 		return err
 	}
@@ -212,12 +212,12 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 
 // ReadFile reads a files contents from the host.
 func (c *WindowsConfigurer) ReadFile(path string) (string, error) {
-	return c.Host.ExecWithOutput(fmt.Sprintf(`type "%s"`, path))
+	return c.Host.ExecWithOutput(fmt.Sprintf(`type %s`, ps.DoubleQuote(path)))
 }
 
 // DeleteFile deletes a file from the host.
 func (c *WindowsConfigurer) DeleteFile(path string) error {
-	return c.Host.Exec(fmt.Sprintf(`del /f "%s"`, path))
+	return c.Host.Exec(fmt.Sprintf(`del /f %s`, ps.DoubleQuote(path)))
 }
 
 // FileExist checks if a file exists on the host
@@ -228,7 +228,7 @@ func (c *WindowsConfigurer) FileExist(path string) bool {
 // UpdateEnvironment updates the hosts's environment variables
 func (c *WindowsConfigurer) UpdateEnvironment() error {
 	for k, v := range c.Host.Environment {
-		err := c.Host.Exec(fmt.Sprintf(`setx %s %s`, winrm.Escape(k), winrm.Escape(v)))
+		err := c.Host.Exec(fmt.Sprintf(`setx %s %s`, ps.DoubleQuote(k), ps.DoubleQuote(v)))
 		if err != nil {
 			return err
 		}
@@ -239,17 +239,17 @@ func (c *WindowsConfigurer) UpdateEnvironment() error {
 // CleanupEnvironment removes environment variable configuration
 func (c *WindowsConfigurer) CleanupEnvironment() error {
 	for k := range c.Host.Environment {
-		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'User')"`, winrm.Escape(k)))
-		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')"`, winrm.Escape(k)))
+		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'User')"`, ps.SingleQuote(k)))
+		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')"`, ps.SingleQuote(k)))
 	}
 	return nil
 }
 
 // ResolvePrivateInterface tries to find a private network interface
 func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
-	output, err := c.Host.ExecWithOutput(winrm.Powershell(`"(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`))
+	output, err := c.Host.ExecWithOutput(ps.Cmd(`"(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`))
 	if err != nil || output == "" {
-		output, err = c.Host.ExecWithOutput(winrm.Powershell(`"(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`))
+		output, err = c.Host.ExecWithOutput(ps.Cmd(`"(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`))
 	}
 	if err != nil || output == "" {
 		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually")
@@ -260,7 +260,7 @@ func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
 // HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
 func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
 	log.Debugf("%s: requesting %s", c.Host.Address, url)
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "[int][System.Net.WebRequest]::Create('%s').GetResponse().StatusCode"`, url))
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode"`, ps.SingleQuote(url)))
 	if err != nil {
 		return -1, err
 	}
@@ -269,4 +269,8 @@ func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
 		return -1, fmt.Errorf("%s: invalid response: %s", c.Host.Address, err.Error())
 	}
 	return status, nil
+}
+
+func (c *WindowsConfigurer) JoinPath(parts ...string) string {
+	return strings.Join(parts, "\\")
 }
