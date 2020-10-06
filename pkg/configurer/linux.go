@@ -47,13 +47,10 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
-	pwd, err := c.Host.ExecWithOutput("pwd")
-	if err != nil {
-		return err
-	}
+	pwd := c.Pwd()
 	base := path.Base(c.Host.Metadata.EngineInstallScript)
 	installer := pwd + "/" + base
-	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, pwd)
+	err := c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, pwd)
 	if err != nil {
 		log.Errorf("failed: %s", err.Error())
 		return err
@@ -340,4 +337,12 @@ func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
 	}
 
 	return status, nil
+}
+
+func (c *LinuxConfigurer) Pwd() string {
+	pwd, err := c.Host.ExecWithOutput("pwd")
+	if err != nil {
+		return ""
+	}
+	return pwd
 }

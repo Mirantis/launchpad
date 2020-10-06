@@ -2,18 +2,21 @@ package ssh
 
 import (
 	"bufio"
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net"
 	"os"
 	"path"
 	"sync"
+	"time"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 
 	"github.com/Mirantis/mcc/pkg/exec"
 	util "github.com/Mirantis/mcc/pkg/util"
+	"github.com/alessio/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -148,13 +151,15 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 // WriteFileLarge copies a larger file to the host.
 // Use instead of configurer.WriteFile when it seems appropriate
 func (c *Connection) WriteFileLarge(src, dstdir string) error {
+	startTime := time.Now()
+
 	stat, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
 	base := path.Base(src)
 
-	log.Infof("%s: copying %d bytes to %s/%s", c.Address, stat.Size(), dstdir, base)
+	log.Infof("%s: uploading %s to %s/%s", c.Address, util.FormatBytes(uint64(stat.Size())), dstdir, base)
 
 	in, err := os.Open(src)
 	if err != nil {
@@ -171,17 +176,31 @@ func (c *Connection) WriteFileLarge(src, dstdir string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
+	hostIn, err := session.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	gw, err := gzip.NewWriterLevel(hostIn, gzip.BestSpeed)
+	if err != nil {
+		return err
+	}
+
 	go func() {
-		hostIn, _ := session.StdinPipe()
-		defer hostIn.Close()
-		fmt.Fprintf(hostIn, "C0664 %d %s\n", stat.Size(), base)
-		io.Copy(hostIn, in)
-		fmt.Fprint(hostIn, "\x00")
-		wg.Done()
+		defer wg.Done()
+		defer gw.Close()
+		io.Copy(gw, in)
 	}()
 
-	err = session.Run(fmt.Sprintf("/usr/bin/scp -t %s/", dstdir))
+	err = session.Start(fmt.Sprintf(`gzip -d > %s`, shellescape.Quote(dstdir+"/"+base)))
+	if err != nil {
+		return err
+	}
 	wg.Wait()
-	log.Debugf("%s: completed file copy", c.Address)
+	hostIn.Close()
+	session.Wait()
+	duration := time.Since(startTime).Seconds()
+	speed := float64(stat.Size()) / duration
+	log.Debugf("%s: transfered %d bytes in %f seconds (%s/s)", c.Address, stat.Size(), duration, util.FormatBytes(uint64(speed)))
 	return err
 }

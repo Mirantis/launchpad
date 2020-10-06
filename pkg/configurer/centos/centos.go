@@ -17,7 +17,7 @@ func (c *Configurer) InstallBasePackages() error {
 	if err != nil {
 		return err
 	}
-	return c.Host.Exec("sudo yum install -y curl socat iptables openssh-clients iputils")
+	return c.Host.Exec("sudo yum install -y curl socat iptables iputils")
 }
 
 func resolveCentosConfigurer(h *api.Host) api.HostConfigurer {

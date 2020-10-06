@@ -10,10 +10,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/masterzen/winrm"
 	log "github.com/sirupsen/logrus"
 )
@@ -25,9 +28,16 @@ const pipeIsBeingClosed = "The pipe is being closed."
 
 // Upload uploads a file to a host
 func Upload(src, dest string, c *Connection) error {
+	base := path.Base(src)
+	unq, err := strconv.Unquote(dest)
+	if err != nil {
+		unq = dest
+	}
+	dst := unq + "\\" + base
 	psCmd := PSEncode(`
 		begin {
-			$path = ` + Escape(dest) + `
+			$path = "` + dst + `"
+			Remove-Item $path -ErrorAction Ignore
 			$DebugPreference = "Continue"
 			$ErrorActionPreference = "Stop"
 			Set-StrictMode -Version 2
@@ -55,8 +65,9 @@ func Upload(src, dest string, c *Connection) error {
 	sha256DigestLocal := ""
 	sha256DigestRemote := ""
 	srcSize := uint64(stat.Size())
-	log.Infof("%s: uploading %s to %s", c.Address, formatBytes(float64(srcSize)), dest)
+	log.Infof("%s: uploading %s to %s", c.Address, util.FormatBytes(srcSize), dst)
 	bytesSent := uint64(0)
+	realSent := uint64(0)
 	fdClosed := false
 	fd, err := os.Open(src)
 	if err != nil {
@@ -76,7 +87,7 @@ func Upload(src, dest string, c *Connection) error {
 	defer lease.Release()
 	shell := lease.shell
 	log.Debugf("%s: running %s", c.Address, psCmd)
-	cmd, err := shell.Execute("powershell -EncodedCommand " + psCmd)
+	cmd, err := shell.Execute("powershell -ExecutionPolicy Unrestricted -EncodedCommand " + psCmd)
 	if err != nil {
 		return err
 	}
@@ -94,7 +105,9 @@ func Upload(src, dest string, c *Connection) error {
 	buffer := make([]byte, bufferCapacity)
 	bufferLength := 0
 	ended := false
+
 	for {
+		lastStart := time.Now()
 		var n int
 		n, err = fd.Read(buffer)
 		bufferLength += n
@@ -110,7 +123,10 @@ func Upload(src, dest string, c *Connection) error {
 				sha256DigestLocal = hex.EncodeToString(sha256DigestLocalObj.Sum(nil))
 			}
 			b, err := cmd.Stdin.Write(base64LineBuffer)
-			log.Debugf("%s: transfered %d bytes", c.Address, b)
+			realSent += uint64(b)
+			chunkDuration := time.Since(lastStart).Seconds()
+			chunkSpeed := float64(b) / chunkDuration
+			log.Tracef("%s: transfered %d bytes in %f seconds (%s/s)", c.Address, b, chunkDuration, util.FormatBytes(uint64(chunkSpeed)))
 			if ended {
 				cmd.Stdin.Close()
 			}
@@ -148,6 +164,7 @@ func Upload(src, dest string, c *Connection) error {
 		cmd.Stdin.Close()
 		ended = true
 		bytesSent += uint64(bufferLength)
+		realSent += uint64(bufferLength)
 		bufferLength = 0
 	}
 	var wg sync.WaitGroup
@@ -183,7 +200,8 @@ func Upload(src, dest string, c *Connection) error {
 	wg.Wait()
 	duration := time.Since(startTime).Seconds()
 	speed := float64(bytesSent) / duration
-	log.Debugf("transfered %d bytes in %f seconds (%s/s)", bytesSent, duration, formatBytes(speed))
+	log.Tracef("%s: real sent bytes: %d (%f%% overhead)", c.Address, realSent, 100*(1.0-(float64(bytesSent)/float64(realSent))))
+	log.Debugf("%s: transfered %d bytes in %f seconds (%s/s)", c.Address, bytesSent, duration, util.FormatBytes(uint64(speed)))
 
 	if cmd.ExitCode() != 0 {
 		log.WithFields(log.Fields{
@@ -200,19 +218,4 @@ func Upload(src, dest string, c *Connection) error {
 	}
 
 	return nil
-}
-
-func formatBytes(bytes float64) string {
-	units := []string{
-		"bytes",
-		"KiB",
-		"MiB",
-		"GiB",
-	}
-	logBase1024 := 0
-	for bytes > 1024.0 && logBase1024 < len(units) {
-		bytes /= 1024.0
-		logBase1024++
-	}
-	return fmt.Sprintf("%.3f %s", bytes, units[logBase1024])
 }

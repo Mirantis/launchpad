@@ -23,6 +23,14 @@ type WindowsConfigurer struct {
 	PowerShellVersion *version.Version
 }
 
+func (c *WindowsConfigurer) Pwd() string {
+	pwd, err := c.Host.ExecWithOutput("echo %cd%")
+	if err != nil {
+		return ""
+	}
+	return pwd
+}
+
 // InstallEngine install Docker EE engine on Windows
 func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if len(c.Host.DaemonConfig) > 0 {
@@ -75,10 +83,7 @@ func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) erro
 		return err
 	}
 
-	pwd, err := c.Host.ExecWithOutput("echo %cd%")
-	if err != nil {
-		return err
-	}
+	pwd := c.Pwd()
 	base := path.Base(c.Host.Metadata.EngineInstallScript)
 	uninstaller := pwd + "\\" + base + ".ps1"
 	err = c.Host.Connection.WriteFileLarge(c.Host.Metadata.EngineInstallScript, uninstaller)
