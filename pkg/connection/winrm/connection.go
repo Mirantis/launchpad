@@ -138,6 +138,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		return fmt.Errorf("%s: failed to create a shell", c.Address)
 	}
 	shell := lease.shell
+	defer lease.Release()
 
 	o.LogCmd(c.Address, cmd)
 
@@ -206,7 +207,6 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	if err != nil {
 		log.Warnf("%s: %s", c.Address, err.Error())
 	}
-	lease.Release()
 
 	if command.ExitCode() > 0 {
 		return fmt.Errorf("%s: command failed", c.Address)
