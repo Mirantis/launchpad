@@ -23,6 +23,7 @@ type WindowsConfigurer struct {
 	PowerShellVersion *version.Version
 }
 
+// Pwd returns the current working directory
 func (c *WindowsConfigurer) Pwd() string {
 	pwd, err := c.Host.ExecWithOutput("echo %cd%")
 	if err != nil {
@@ -271,6 +272,7 @@ func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
 	return status, nil
 }
 
+// JoinPath joins a path
 func (c *WindowsConfigurer) JoinPath(parts ...string) string {
 	return strings.Join(parts, "\\")
 }

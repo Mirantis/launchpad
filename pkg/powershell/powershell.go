@@ -8,9 +8,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// PipeHasEnded string is used during the base64+sha265 upload process
 const PipeHasEnded = "The pipe has been ended."
+
+// PipeIsBeingClosed string is used during the base64+sha265 upload process
 const PipeIsBeingClosed = "The pipe is being closed."
 
+// UploadCmd generates a powershell script that acts as a small "stdin daemon" for file upload
 func UploadCmd(path string) string {
 	return EncodeCmd(`
 		begin {
@@ -37,6 +41,7 @@ func UploadCmd(path string) string {
 	`)
 }
 
+// EncodeCmd base64-encodes a string in a way that is accepted by PowerShell -EncodedCommand
 func EncodeCmd(psCmd string) string {
 	// 2 byte chars to make PowerShell happy
 	wideCmd := ""
@@ -49,8 +54,7 @@ func EncodeCmd(psCmd string) string {
 	return base64.StdEncoding.EncodeToString(input)
 }
 
-// Powershell wraps a PowerShell script
-// and prepares it for execution by the winrm client
+// Cmd builds a command-line for executing a complex command or script as an EncodedCommand through powershell
 func Cmd(psCmd string) string {
 	encodedCmd := EncodeCmd(psCmd)
 
@@ -59,6 +63,7 @@ func Cmd(psCmd string) string {
 	return fmt.Sprintf("powershell.exe -NonInteractive -NoProfile -EncodedCommand %s", encodedCmd)
 }
 
+// SingleQuote quotes and escapes a string in a format that is accepted by powershell scriptlets
 // from jbrekelmans/go-winrm/util.go PowerShellSingleQuotedStringLiteral
 func SingleQuote(v string) string {
 	var sb strings.Builder
@@ -98,7 +103,7 @@ func SingleQuote(v string) string {
 	return sb.String()
 }
 
-// from jbrekelmans/go-winrm/util.go PowerShellSingleQuotedStringLiteral
+// DoubleQuote escapes a string in a way that can be used as a windows file path
 func DoubleQuote(v string) string {
 	var sb strings.Builder
 	_, _ = sb.WriteRune('"')

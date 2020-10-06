@@ -340,6 +340,7 @@ func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
 	return status, nil
 }
 
+// Pwd returns the current working directory of the session
 func (c *LinuxConfigurer) Pwd() string {
 	pwd, err := c.Host.ExecWithOutput("pwd")
 	if err != nil {
@@ -348,6 +349,7 @@ func (c *LinuxConfigurer) Pwd() string {
 	return pwd
 }
 
+// JoinPath joins a path
 func (c *LinuxConfigurer) JoinPath(parts ...string) string {
 	return strings.Join(parts, "/")
 }

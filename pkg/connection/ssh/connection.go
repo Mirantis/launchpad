@@ -148,7 +148,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	return session.Wait()
 }
 
-// WriteFileLarge copies a larger file to the host.
+// Upload uploads a larger file to the host.
 // Use instead of configurer.WriteFile when it seems appropriate
 func (c *Connection) Upload(src, dst string) error {
 	if c.IsWindows() {

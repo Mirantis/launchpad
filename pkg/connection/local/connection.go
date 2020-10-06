@@ -79,7 +79,7 @@ func (c *Connection) command(cmd string) *osexec.Cmd {
 	return osexec.Command("bash", "-c", "--", cmd)
 }
 
-// WriteFileLarge copies a larger file to the host.
+// Upload copies a larger file to another path on the host.
 func (c *Connection) Upload(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
