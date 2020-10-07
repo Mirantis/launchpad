@@ -2,9 +2,15 @@ package phase
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/exec"
+
+	"crypto/rand"
 
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -30,6 +36,10 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run() error {
+	if err := p.validateHostConnection(p.config); err != nil {
+		return p.formatErrors(p.config)
+	}
+
 	if err := p.validateHostFacts(p.config); err != nil {
 		return p.formatErrors(p.config)
 	}
@@ -53,6 +63,58 @@ func (p *ValidateHosts) formatErrors(conf *api.ClusterConfig) error {
 	}
 
 	return nil
+}
+
+func (p *ValidateHosts) validateHostConnection(conf *api.ClusterConfig) error {
+	f, err := ioutil.TempFile("", "uploadTest")
+	if err != nil {
+		return err
+	}
+	defer os.Remove("uploadTest")
+
+	_, err = io.CopyN(f, rand.Reader, 1048576) // create an 1MB temp file full of random data
+	if err != nil {
+		return err
+	}
+	// TODO: validate content
+
+	err = p.config.Spec.Hosts.Each(func(h *api.Host) error {
+		log.Infof("%s: testing file upload", h.Address)
+		defer h.Configurer.DeleteFile("launchpad.test")
+		return h.WriteFileLarge(f.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(), "launchpad.test"))
+	})
+	if err != nil {
+		return err
+	}
+
+	err = p.config.Spec.Hosts.Each(func(h *api.Host) error {
+		fn := "launchpad.test"
+		testStr := "hello world!\n"
+		defer h.Configurer.DeleteFile(fn)
+		log.Infof("%s: testing stdin redirection", h.Address)
+		if h.IsWindows() {
+			err := h.Exec(fmt.Sprintf(`findstr "^" > %s`, fn), exec.Stdin(testStr))
+			if err != nil {
+				return err
+			}
+		} else {
+			err := h.Exec(fmt.Sprintf("cat > %s", fn), exec.Stdin(testStr))
+			if err != nil {
+				return err
+			}
+		}
+		content, err := h.Configurer.ReadFile("foo.txt")
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(content) != strings.TrimSpace(testStr) {
+			// Allow trailing linefeeds etc, mainly because windows is weird.
+			return fmt.Errorf("file write test content check mismatch")
+		}
+		return nil
+	})
+
+	return err
 }
 
 func (p *ValidateHosts) validateHostFacts(conf *api.ClusterConfig) error {
