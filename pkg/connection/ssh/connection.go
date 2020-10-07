@@ -6,7 +6,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"time"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -27,13 +26,10 @@ type Connection struct {
 	isWindows bool
 	knowOs    bool
 	client    *ssh.Client
-
-	done chan bool
 }
 
 // Disconnect closes the SSH connection
 func (c *Connection) Disconnect() {
-	c.done <- true
 	c.client.Close()
 }
 
@@ -84,22 +80,7 @@ func (c *Connection) Connect() error {
 		return err
 	}
 	c.client = client
-	go c.keepAlive()
 	return nil
-}
-
-func (c *Connection) keepAlive() {
-	t := time.NewTicker(time.Minute)
-	defer t.Stop()
-	for {
-		select {
-		case <-t.C:
-			log.Tracef("%s: sending ssh keepalive", c.Address)
-			_, _, _ = c.client.SendRequest("keepalive@launchpad", true, nil)
-		case <-c.done:
-			return
-		}
-	}
 }
 
 // Exec executes a command on the host
