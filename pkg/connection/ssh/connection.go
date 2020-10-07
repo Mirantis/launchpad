@@ -33,8 +33,8 @@ type Connection struct {
 
 // Disconnect closes the SSH connection
 func (c *Connection) Disconnect() {
-	c.client.Close()
 	c.done <- true
+	c.client.Close()
 }
 
 // SetWindows can be used to tell the SSH connection to consider the host to be running Windows
