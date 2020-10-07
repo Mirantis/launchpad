@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -26,11 +27,14 @@ type Connection struct {
 	isWindows bool
 	knowOs    bool
 	client    *ssh.Client
+
+	done chan bool
 }
 
 // Disconnect closes the SSH connection
 func (c *Connection) Disconnect() {
 	c.client.Close()
+	c.done <- true
 }
 
 // SetWindows can be used to tell the SSH connection to consider the host to be running Windows
@@ -80,8 +84,22 @@ func (c *Connection) Connect() error {
 		return err
 	}
 	c.client = client
-
+	go c.keepAlive()
 	return nil
+}
+
+func (c *Connection) keepAlive() {
+	t := time.NewTicker(time.Minute)
+	defer t.Stop()
+	for {
+		select {
+		case <-t.C:
+			log.Tracef("%s: sending ssh keepalive", c.Address)
+			_, _, _ = c.client.SendRequest("keepalive@launchpad", true, nil)
+		case <-c.done:
+			return
+		}
+	}
 }
 
 // Exec executes a command on the host
@@ -93,45 +111,33 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	}
 	defer session.Close()
 
-	if c.knowOs && !c.isWindows {
-		modes := ssh.TerminalModes{}
+	if len(o.Stdin) == 0 && c.knowOs && !c.isWindows {
+		// Only request a PTY when there's no STDIN data, because
+		// then you would need to send a CTRL-D after input to signal
+		// the end of text
+		modes := ssh.TerminalModes{ssh.ECHO: 0}
 		err = session.RequestPty("xterm", 80, 40, modes)
 		if err != nil {
 			return err
 		}
 	}
 
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := session.StderrPipe()
-	if err != nil {
-		return err
-	}
-
-	stdinPipe, err := session.StdinPipe()
-	if err != nil {
-		return err
-	}
-
 	o.LogCmd(c.Address, cmd)
 
-	if err := session.Start(cmd); err != nil {
-		return err
-	}
-
-	if o.Stdin != "" {
-		o.LogStdin(c.Address)
-
-		go func() {
-			defer stdinPipe.Close()
-			io.WriteString(stdinPipe, o.Stdin)
-		}()
-	}
+	stdin, _ := session.StdinPipe()
+	stdout, _ := session.StdoutPipe()
+	stderr, _ := session.StderrPipe()
 
 	multiReader := io.MultiReader(stdout, stderr)
 	outputScanner := bufio.NewScanner(multiReader)
+
+	err = session.Start(cmd)
+
+	if len(o.Stdin) > 0 {
+		o.LogStdin(c.Address)
+		io.WriteString(stdin, o.Stdin)
+	}
+	stdin.Close()
 
 	for outputScanner.Scan() {
 		text := outputScanner.Text()
@@ -145,6 +151,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		o.LogErrorf("%s: %s", c.Address, err.Error())
 	}
 
+	log.Tracef("%s: waiting for command exit", c.Address)
 	return session.Wait()
 }
 
