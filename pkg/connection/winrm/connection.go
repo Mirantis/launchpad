@@ -31,8 +31,6 @@ type Connection struct {
 	key    []byte
 	cert   []byte
 	client *winrm.Client
-
-	shellpool *ShellPool
 }
 
 // SetWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
@@ -108,9 +106,9 @@ func (c *Connection) Connect() error {
 		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
 	}
 
-	// if c.UseHTTPS {
-	// 	params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientAuthRequest{} }
-	// }
+	if c.UseHTTPS && len(c.cert) > 0 {
+		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientAuthRequest{} }
+	}
 
 	client, err := winrm.NewClientWithParameters(endpoint, c.User, c.Password, params)
 
@@ -119,7 +117,6 @@ func (c *Connection) Connect() error {
 	}
 
 	c.client = client
-	c.shellpool = NewShellPool(client)
 
 	return nil
 }
@@ -127,18 +124,16 @@ func (c *Connection) Connect() error {
 // Disconnect closes the WinRM connection
 func (c *Connection) Disconnect() {
 	c.client = nil
-	c.shellpool = nil
 }
 
 // Exec executes a command on the host
 func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	o := exec.Build(opts...)
-	lease := c.shellpool.Get()
-	if lease == nil {
-		return fmt.Errorf("%s: failed to create a shell", c.Address)
+	shell, err := c.client.CreateShell()
+	if err != nil {
+		return err
 	}
-	shell := lease.shell
-	defer lease.Release()
+	defer shell.Close()
 
 	o.LogCmd(c.Address, cmd)
 

@@ -46,12 +46,11 @@ func (c *Connection) Upload(src, dst string) error {
 			fdClosed = true
 		}
 	}()
-	lease := c.shellpool.Get()
-	if lease == nil {
-		return fmt.Errorf("failed to create a shell")
+	shell, err := c.client.CreateShell()
+	if err != nil {
+		return err
 	}
-	defer lease.Release()
-	shell := lease.shell
+	defer shell.Close()
 	log.Tracef("%s: running %s", c.Address, psCmd)
 	cmd, err := shell.Execute("powershell -ExecutionPolicy Unrestricted -EncodedCommand " + psCmd)
 	if err != nil {
