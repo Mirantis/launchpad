@@ -34,9 +34,6 @@ func (c *Connection) uploadLinux(src, dst string) error {
 	}
 	defer session.Close()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
 	hostIn, err := session.StdinPipe()
 	if err != nil {
 		return err
@@ -52,16 +49,11 @@ func (c *Connection) uploadLinux(src, dst string) error {
 		return err
 	}
 
-	go func() {
-		defer wg.Done()
-		defer gw.Close()
-		io.Copy(gw, in)
-	}()
-
-	wg.Wait()
+	io.Copy(gw, in)
+	gw.Close()
 	hostIn.Close()
-	session.Wait()
-	return err
+
+	return session.Wait()
 }
 
 func (c *Connection) uploadWindows(src, dst string) error {
