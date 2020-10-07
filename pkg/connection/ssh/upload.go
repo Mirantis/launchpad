@@ -47,16 +47,17 @@ func (c *Connection) uploadLinux(src, dst string) error {
 		return err
 	}
 
+	err = session.Start(fmt.Sprintf(`gzip -d > %s`, shellescape.Quote(dst)))
+	if err != nil {
+		return err
+	}
+
 	go func() {
 		defer wg.Done()
 		defer gw.Close()
 		io.Copy(gw, in)
 	}()
 
-	err = session.Start(fmt.Sprintf(`gzip -d > %s`, shellescape.Quote(dst)))
-	if err != nil {
-		return err
-	}
 	wg.Wait()
 	hostIn.Close()
 	session.Wait()
