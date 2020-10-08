@@ -161,7 +161,7 @@ func (p *GatherFacts) isWindows(h *api.Host) bool {
 	return h.Exec("cmd /c exit 0") == nil
 }
 
-// ResolveWindowsOsRelease ... TODO: these belong to configurer
+// ResolveWindowsOsRelease ... TODO: this implementation belongs somewhere else
 func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
 	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
