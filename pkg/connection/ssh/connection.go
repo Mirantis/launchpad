@@ -121,8 +121,8 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	stdin.Close()
 
 	var wg sync.WaitGroup
-	wg.Add(2)
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		outputScanner := bufio.NewScanner(stdout)
@@ -141,6 +141,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 
 	gotErrors := false
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		outputScanner := bufio.NewScanner(stderr)
