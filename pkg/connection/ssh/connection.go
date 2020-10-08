@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"sync"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -109,10 +110,9 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	stdout, _ := session.StdoutPipe()
 	stderr, _ := session.StderrPipe()
 
-	multiReader := io.MultiReader(stdout, stderr)
-	outputScanner := bufio.NewScanner(multiReader)
-
-	err = session.Start(cmd)
+	if err := session.Start(cmd); err != nil {
+		return err
+	}
 
 	if len(o.Stdin) > 0 {
 		o.LogStdin(c.Address)
@@ -120,20 +120,57 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	}
 	stdin.Close()
 
-	for outputScanner.Scan() {
-		text := outputScanner.Text()
-		stripped := stripansi.Strip(text)
-		if stripped != "" {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(stdout)
+
+		for outputScanner.Scan() {
+			text := outputScanner.Text()
+			stripped := stripansi.Strip(text)
 			o.AddOutput(c.Address, stripped+"\n")
 		}
-	}
 
-	if err := outputScanner.Err(); err != nil {
-		o.LogErrorf("%s: %s", c.Address, err.Error())
-	}
+		if err := outputScanner.Err(); err != nil {
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		log.Tracef("%s: stdout loop exited", c.Address)
+	}()
+
+	gotErrors := false
+
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(stderr)
+
+		for outputScanner.Scan() {
+			gotErrors = true
+			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
+		}
+
+		if err := outputScanner.Err(); err != nil {
+			gotErrors = true
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		log.Tracef("%s: stderr loop exited", c.Address)
+	}()
 
 	log.Tracef("%s: waiting for command exit", c.Address)
-	return session.Wait()
+	err = session.Wait()
+	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	wg.Wait()
+
+	if err != nil {
+		return err
+	}
+
+	if c.knowOs && c.isWindows && gotErrors {
+		return fmt.Errorf("command failed")
+	}
+
+	return nil
 }
 
 // Upload uploads a larger file to the host.

@@ -174,15 +174,19 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		log.Tracef("%s: stdout loop exited", c.Address)
 	}()
 
+	gotErrors := false
+
 	go func() {
 		defer wg.Done()
 		outputScanner := bufio.NewScanner(command.Stderr)
 
 		for outputScanner.Scan() {
-			o.AddOutput(c.Address, outputScanner.Text()+"\n")
+			gotErrors = true
+			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
 		}
 
 		if err := outputScanner.Err(); err != nil {
+			gotErrors = true
 			o.LogErrorf("%s:  %s", c.Address, err.Error())
 		}
 		command.Stdout.Close()
@@ -203,8 +207,8 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		log.Warnf("%s: %s", c.Address, err.Error())
 	}
 
-	if command.ExitCode() > 0 {
-		return fmt.Errorf("%s: command failed", c.Address)
+	if command.ExitCode() > 0 || gotErrors {
+		return fmt.Errorf("command failed")
 	}
 
 	return nil
