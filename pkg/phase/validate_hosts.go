@@ -27,6 +27,7 @@ import (
 type ValidateHosts struct {
 	Analytics
 	BasicPhase
+	Debug bool
 }
 
 // Title for the phase
@@ -36,8 +37,10 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run() error {
-	if err := p.validateHostConnection(p.config); err != nil {
-		return p.formatErrors(p.config)
+	if p.Debug {
+		if err := p.validateHostConnection(p.config); err != nil {
+			return p.formatErrors(p.config)
+		}
 	}
 
 	if err := p.validateHostFacts(p.config); err != nil {
