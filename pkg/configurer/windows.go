@@ -123,9 +123,9 @@ func (c *WindowsConfigurer) ResolveLongHostname() string {
 
 // ResolveInternalIP resolves internal ip from private interface
 func (c *WindowsConfigurer) ResolveInternalIP() (string, error) {
-	output, err := c.Host.ExecWithOutput(ps.Cmd(fmt.Sprintf(`"(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, ps.SingleQuote(c.Host.PrivateInterface))))
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, ps.SingleQuote(c.Host.PrivateInterface)))
 	if err != nil {
-		return c.Host.Address, err
+		return "", err
 	}
 	return strings.TrimSpace(output), nil
 }
@@ -248,9 +248,9 @@ func (c *WindowsConfigurer) CleanupEnvironment() error {
 
 // ResolvePrivateInterface tries to find a private network interface
 func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
-	output, err := c.Host.ExecWithOutput(ps.Cmd(`"(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`))
+	output, err := c.Host.ExecWithOutput(`powershell -Command "(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`)
 	if err != nil || output == "" {
-		output, err = c.Host.ExecWithOutput(ps.Cmd(`"(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`))
+		output, err = c.Host.ExecWithOutput(`powershell -Command "(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`)
 	}
 	if err != nil || output == "" {
 		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually")
@@ -267,7 +267,7 @@ func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
 	}
 	status, err := strconv.Atoi(output)
 	if err != nil {
-		return -1, fmt.Errorf("%s: invalid response: %s", c.Host.Address, err.Error())
+		return -1, fmt.Errorf("invalid response: %s", err.Error())
 	}
 	return status, nil
 }

@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"net"
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
@@ -119,7 +120,14 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 
-	h.Metadata.EngineVersion = h.EngineVersion()
+	version, err := h.EngineVersion()
+	if err != nil || version == "" {
+		log.Infof("%s: docker engine not installed", h.Address)
+	} else {
+		log.Infof("%s: is running docker engine version %s", h.Address, version)
+	}
+
+	h.Metadata.EngineVersion = version
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.LongHostname = h.Configurer.ResolveLongHostname()
@@ -129,13 +137,16 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		if err != nil {
 			return err
 		}
-		log.Infof("%s: detected private interface %s", h.Address, i)
+		log.Infof("%s: detected private interface '%s'", h.Address, i)
 		h.PrivateInterface = i
 	}
 
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: failed to resolve internal address: %s", h.Address, err.Error())
+	}
+	if net.ParseIP(a) == nil {
+		return fmt.Errorf("%s: failed to resolve internal address: invalid IP address: %q", h.Address, a)
 	}
 	h.Metadata.InternalAddress = a
 

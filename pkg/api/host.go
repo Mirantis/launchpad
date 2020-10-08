@@ -218,20 +218,13 @@ func (h *Host) IsWindows() bool {
 }
 
 // EngineVersion returns the current engine version installed on the host
-func (h *Host) EngineVersion() string {
+func (h *Host) EngineVersion() (string, error) {
 	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
-		log.Debugf("%s: failed to get docker engine version: %s: %s", h.Address, version, err)
-		return ""
+		return "", fmt.Errorf("failed to get docker engine version: %s", err.Error())
 	}
 
-	if version == "" {
-		log.Infof("%s: docker engine not installed", h.Address)
-	} else {
-		log.Infof("%s: is running docker engine version %s", h.Address, h.Metadata.EngineVersion)
-	}
-
-	return version
+	return version, nil
 }
 
 // CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected
