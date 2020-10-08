@@ -137,13 +137,12 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 
 	o.LogCmd(c.Address, cmd)
 
-	var wg sync.WaitGroup
-	wg.Add(2)
-
 	command, err := shell.Execute(cmd)
 	if err != nil {
 		return err
 	}
+
+	var wg sync.WaitGroup
 
 	if o.Stdin != "" {
 		o.LogStdin(c.Address)
@@ -159,6 +158,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		}()
 	}
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		outputScanner := bufio.NewScanner(command.Stdout)
@@ -176,6 +176,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 
 	gotErrors := false
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		outputScanner := bufio.NewScanner(command.Stderr)

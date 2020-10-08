@@ -172,9 +172,10 @@ func (c *Connection) uploadWindows(src, dst string) error {
 		bufferLength = 0
 	}
 	var wg sync.WaitGroup
-	wg.Add(2)
 	var stderr bytes.Buffer
 	var stdout bytes.Buffer
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		_, err = io.Copy(&stderr, hostErr)
@@ -182,6 +183,8 @@ func (c *Connection) uploadWindows(src, dst string) error {
 			log.Errorf("%s: %s", c.Address, err.Error())
 		}
 	}()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		scanner := bufio.NewScanner(hostOut)
