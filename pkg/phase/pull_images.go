@@ -91,9 +91,11 @@ func (p *PullImages) ListImages(config *api.ClusterConfig) ([]string, error) {
 		imageFlag = ""
 	}
 
-	err := manager.PullImage(image)
-	if err != nil {
-		return []string{}, err
+	if !manager.ImageExist(image) {
+		err := manager.PullImage(image)
+		if err != nil {
+			return []string{}, err
+		}
 	}
 	output, err := manager.ExecWithOutput(manager.Configurer.DockerCommandf("run --rm %s images %s", image, imageFlag))
 	if err != nil {
@@ -114,8 +116,12 @@ func ImagePull(host *api.Host, images []string) error {
 		wp.Submit(func() {
 			retry.Do(
 				func() error {
-					log.Infof("%s: pulling image %s", host.Address, i)
-					return host.PullImage(i)
+					if !host.ImageExist(i) {
+						log.Infof("%s: pulling image %s", host.Address, i)
+						return host.PullImage(i)
+					}
+					log.Infof("%s: image %s already exists", host.Address, i)
+					return nil
 				},
 				retry.RetryIf(func(err error) bool {
 					return !(strings.Contains(err.Error(), "pull access") || strings.Contains(err.Error(), "manifest unknown"))
