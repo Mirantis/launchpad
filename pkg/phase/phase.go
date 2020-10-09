@@ -14,6 +14,7 @@ type Phase interface {
 	Title() string
 	Prepare(*api.ClusterConfig) error
 	ShouldRun() bool
+	CleanUp()
 }
 
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun
@@ -41,6 +42,9 @@ func (b *BasicPhase) Prepare(config *api.ClusterConfig) error {
 func (b *BasicPhase) ShouldRun() bool {
 	return true
 }
+
+// CleanUp basic implementation
+func (b *BasicPhase) CleanUp() {}
 
 // Title default implementation
 func (h *HostSelectPhase) Title() string {

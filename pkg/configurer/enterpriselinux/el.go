@@ -30,7 +30,7 @@ func (c *Configurer) InstallBasePackages() error {
 		return err
 	}
 
-	return c.Host.Exec("sudo yum install -y curl socat iptables iputils")
+	return c.Host.Exec("sudo yum install -y curl socat iptables iputils gzip")
 }
 
 // UninstallEngine uninstalls docker-ee engine

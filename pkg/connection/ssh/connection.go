@@ -6,12 +6,14 @@ import (
 	"io"
 	"net"
 	"os"
+	"sync"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 
 	"github.com/Mirantis/mcc/pkg/exec"
-	util "github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/acarl005/stripansi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,6 +25,7 @@ type Connection struct {
 	KeyPath string
 
 	isWindows bool
+	knowOs    bool
 	client    *ssh.Client
 }
 
@@ -33,6 +36,7 @@ func (c *Connection) Disconnect() {
 
 // SetWindows can be used to tell the SSH connection to consider the host to be running Windows
 func (c *Connection) SetWindows(v bool) {
+	c.knowOs = true
 	c.isWindows = v
 }
 
@@ -77,7 +81,6 @@ func (c *Connection) Connect() error {
 		return err
 	}
 	c.client = client
-
 	return nil
 }
 
@@ -90,55 +93,92 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	}
 	defer session.Close()
 
-	if o.Stdin == "" && !c.isWindows {
-		// FIXME not requesting a pty for commands with stdin input for now,
-		// as it appears the pipe doesn't get closed with stdinpipe.Close()
-		modes := ssh.TerminalModes{}
+	if len(o.Stdin) == 0 && c.knowOs && !c.isWindows {
+		// Only request a PTY when there's no STDIN data, because
+		// then you would need to send a CTRL-D after input to signal
+		// the end of text
+		modes := ssh.TerminalModes{ssh.ECHO: 0}
 		err = session.RequestPty("xterm", 80, 40, modes)
 		if err != nil {
 			return err
 		}
 	}
 
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := session.StderrPipe()
-	if err != nil {
-		return err
-	}
-
-	stdinPipe, err := session.StdinPipe()
-	if err != nil {
-		return err
-	}
-
 	o.LogCmd(c.Address, cmd)
+
+	stdin, _ := session.StdinPipe()
+	stdout, _ := session.StdoutPipe()
+	stderr, _ := session.StderrPipe()
 
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
 
-	if o.Stdin != "" {
+	if len(o.Stdin) > 0 {
 		o.LogStdin(c.Address)
+		io.WriteString(stdin, o.Stdin)
+	}
+	stdin.Close()
 
-		go func() {
-			defer stdinPipe.Close()
-			io.WriteString(stdinPipe, o.Stdin)
-		}()
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(stdout)
+
+		for outputScanner.Scan() {
+			text := outputScanner.Text()
+			stripped := stripansi.Strip(text)
+			o.AddOutput(c.Address, stripped+"\n")
+		}
+
+		if err := outputScanner.Err(); err != nil {
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		log.Tracef("%s: stdout loop exited", c.Address)
+	}()
+
+	gotErrors := false
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(stderr)
+
+		for outputScanner.Scan() {
+			gotErrors = true
+			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
+		}
+
+		if err := outputScanner.Err(); err != nil {
+			gotErrors = true
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		log.Tracef("%s: stderr loop exited", c.Address)
+	}()
+
+	log.Tracef("%s: waiting for command exit", c.Address)
+	err = session.Wait()
+	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	wg.Wait()
+
+	if err != nil {
+		return err
 	}
 
-	multiReader := io.MultiReader(stdout, stderr)
-	outputScanner := bufio.NewScanner(multiReader)
-
-	for outputScanner.Scan() {
-		o.AddOutput(c.Address, outputScanner.Text()+"\n")
+	if c.knowOs && c.isWindows && gotErrors {
+		return fmt.Errorf("command failed (received output to stderr on windows)")
 	}
 
-	if err := outputScanner.Err(); err != nil {
-		o.LogErrorf("%s:  %s", c.Address, err.Error())
-	}
+	return nil
+}
 
-	return session.Wait()
+// Upload uploads a larger file to the host.
+// Use instead of configurer.WriteFile when it seems appropriate
+func (c *Connection) Upload(src, dst string) error {
+	if c.IsWindows() {
+		return c.uploadWindows(src, dst)
+	}
+	return c.uploadLinux(src, dst)
 }

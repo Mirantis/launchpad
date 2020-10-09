@@ -121,15 +121,18 @@ func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) erro
 		return err
 	}
 
-	currentVersion := host.EngineVersion()
+	currentVersion, err := host.EngineVersion()
+	if err != nil {
+		return fmt.Errorf("%s: failed to query engine version after installation: %s", host.Address, err.Error())
+	}
 
 	if !newInstall && currentVersion == prevVersion {
 		err = host.Configurer.RestartEngine()
 		if err != nil {
-			return NewError(fmt.Sprintf("%s: failed to restart engine", host.Address))
+			return fmt.Errorf("%s: failed to restart engine", host.Address)
 		}
 	}
 
-	log.Printf("%s: engine version %s installed", host.Address, c.Spec.Engine.Version)
+	log.Infof("%s: engine version %s installed", host.Address, c.Spec.Engine.Version)
 	return nil
 }

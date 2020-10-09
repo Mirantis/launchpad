@@ -3,6 +3,7 @@ package local
 import (
 	"bufio"
 	"io"
+	"os"
 	osexec "os/exec"
 	"runtime"
 	"strings"
@@ -76,4 +77,21 @@ func (c *Connection) command(cmd string) *osexec.Cmd {
 	}
 
 	return osexec.Command("bash", "-c", "--", cmd)
+}
+
+// Upload copies a larger file to another path on the host.
+func (c *Connection) Upload(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	defer out.Close()
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(out, in)
+	return err
 }

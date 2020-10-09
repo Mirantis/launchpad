@@ -152,7 +152,11 @@ SUPPORT:
 
 func initLogger(ctx *cli.Context) {
 	// Enable debug logging always, we'll setup hooks later to direct logs based on level
-	log.SetLevel(log.DebugLevel)
+	if version.IsProduction() {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.TraceLevel)
+	}
 	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
 
 	// Send logs with level >= INFO to stdout

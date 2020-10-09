@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/Mirantis/mcc/version"
 	"github.com/shiena/ansicolor"
 	log "github.com/sirupsen/logrus"
 )
@@ -55,6 +56,10 @@ func NewStdoutHook(debugEnabled bool) *FormatterWriterHook {
 
 	// Add debug level to stdout hook if set by user
 	if debugEnabled {
+		if !version.IsProduction() {
+			stdoutHook.LogLevels = append([]log.Level{log.TraceLevel}, stdoutHook.LogLevels...)
+		}
+
 		stdoutHook.LogLevels = append([]log.Level{log.DebugLevel}, stdoutHook.LogLevels...)
 	}
 

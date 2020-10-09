@@ -42,7 +42,7 @@ func NewApplyCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
-			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"), ctx.Bool("force"))
+			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"), ctx.Bool("force"), ctx.Bool("debug"))
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {

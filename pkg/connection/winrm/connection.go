@@ -3,11 +3,12 @@ package winrm
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"io/ioutil"
+	"sync"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/exec"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/masterzen/winrm"
 )
@@ -83,24 +84,39 @@ func (c *Connection) Connect() error {
 		Port:          c.Port,
 		HTTPS:         c.UseHTTPS,
 		Insecure:      c.Insecure,
-		CACert:        c.caCert,
-		Cert:          c.cert,
-		Key:           c.key,
 		TLSServerName: c.TLSServerName,
 		Timeout:       60 * time.Second,
 	}
 
-	client, err := winrm.NewClient(endpoint, c.User, c.Password)
+	if len(c.caCert) > 0 {
+		endpoint.CACert = c.caCert
+	}
+
+	if len(c.cert) > 0 {
+		endpoint.Cert = c.cert
+	}
+
+	if len(c.key) > 0 {
+		endpoint.Key = c.key
+	}
+
+	params := winrm.DefaultParameters
+
+	if c.UseNTLM {
+		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
+	}
+
+	if c.UseHTTPS && len(c.cert) > 0 {
+		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientAuthRequest{} }
+	}
+
+	client, err := winrm.NewClientWithParameters(endpoint, c.User, c.Password, params)
+
 	if err != nil {
 		return err
 	}
+
 	c.client = client
-
-	_, err = client.CreateShell()
-
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -117,6 +133,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	if err != nil {
 		return err
 	}
+	defer shell.Close()
 
 	o.LogCmd(c.Address, cmd)
 
@@ -125,34 +142,74 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		return err
 	}
 
+	var wg sync.WaitGroup
+
 	if o.Stdin != "" {
 		o.LogStdin(c.Address)
-
+		wg.Add(1)
 		go func() {
-			command.Stdin.Write([]byte(o.Stdin))
-			command.Stdin.Close()
+			defer wg.Done()
+			defer command.Stdin.Close()
+			_, err := command.Stdin.Write([]byte(o.Stdin))
+			if err != nil {
+				log.Errorf("failed to send command stdin: %s", err.Error())
+			}
+			log.Tracef("%s: input loop exited", c.Address)
 		}()
-	} else {
-		command.Stdin.Close()
 	}
 
-	multiReader := io.MultiReader(command.Stdout, command.Stderr)
-	outputScanner := bufio.NewScanner(multiReader)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(command.Stdout)
 
-	for outputScanner.Scan() {
-		o.AddOutput(c.Address, outputScanner.Text()+"\n")
-	}
+		for outputScanner.Scan() {
+			o.AddOutput(c.Address, outputScanner.Text()+"\n")
+		}
 
-	if err := outputScanner.Err(); err != nil {
-		o.LogErrorf("%s:  %s", c.Address, err.Error())
-	}
+		if err := outputScanner.Err(); err != nil {
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		command.Stdout.Close()
+		log.Tracef("%s: stdout loop exited", c.Address)
+	}()
+
+	gotErrors := false
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(command.Stderr)
+
+		for outputScanner.Scan() {
+			gotErrors = true
+			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
+		}
+
+		if err := outputScanner.Err(); err != nil {
+			gotErrors = true
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		command.Stdout.Close()
+		log.Tracef("%s: stderr loop exited", c.Address)
+	}()
+
+	log.Tracef("%s: waiting for command exit", c.Address)
 
 	command.Wait()
-	command.Close()
-	shell.Close()
+	log.Tracef("%s: command exited", c.Address)
 
-	if command.ExitCode() > 0 {
-		return fmt.Errorf("%s: command failed", c.Address)
+	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	wg.Wait()
+	log.Tracef("%s: syncgroup done", c.Address)
+
+	err = command.Close()
+	if err != nil {
+		log.Warnf("%s: %s", c.Address, err.Error())
+	}
+
+	if command.ExitCode() > 0 || gotErrors {
+		return fmt.Errorf("command failed")
 	}
 
 	return nil

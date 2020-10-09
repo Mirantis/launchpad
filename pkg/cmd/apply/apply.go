@@ -21,7 +21,7 @@ import (
 )
 
 // Apply ...
-func Apply(configFile string, prune, force bool) error {
+func Apply(configFile string, prune, force, debug bool) error {
 	var (
 		logFile *os.File
 		err     error
@@ -66,7 +66,7 @@ func Apply(configFile string, prune, force bool) error {
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
 	phaseManager.AddPhase(&phase.ValidateFacts{})
-	phaseManager.AddPhase(&phase.ValidateHosts{})
+	phaseManager.AddPhase(&phase.ValidateHosts{Debug: debug})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }})
 	phaseManager.AddPhase(&phase.PrepareHost{})

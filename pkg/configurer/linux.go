@@ -47,9 +47,18 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}
-	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash -s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
-	err := c.Host.Exec(cmd, exec.Stdin(*c.Host.Metadata.EngineInstallScript))
+	pwd := c.Pwd()
+	base := path.Base(c.Host.Metadata.EngineInstallScript)
+	installer := pwd + "/" + base
+	err := c.Host.WriteFileLarge(c.Host.Metadata.EngineInstallScript, installer)
 	if err != nil {
+		log.Errorf("failed: %s", err.Error())
+		return err
+	}
+	defer c.DeleteFile(installer)
+
+	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash %s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version, escape.Quote(installer))
+	if err := c.Host.Exec(cmd); err != nil {
 		return err
 	}
 
@@ -203,6 +212,7 @@ func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string
 	if err != nil {
 		return err
 	}
+	tempFile = escape.Quote(tempFile)
 
 	err = c.Host.Exec(fmt.Sprintf("cat > %s && (sudo install -D -m %s %s %s || (rm %s; exit 1))", tempFile, permissions, tempFile, path, tempFile), exec.Stdin(data))
 	if err != nil {
@@ -213,17 +223,17 @@ func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string
 
 // ReadFile reads a files contents from the host.
 func (c *LinuxConfigurer) ReadFile(path string) (string, error) {
-	return c.Host.ExecWithOutput(fmt.Sprintf("sudo cat \"%s\"", path))
+	return c.Host.ExecWithOutput(fmt.Sprintf("sudo cat %s", escape.Quote(path)))
 }
 
 // DeleteFile deletes a file from the host.
 func (c *LinuxConfigurer) DeleteFile(path string) error {
-	return c.Host.Exec(fmt.Sprintf(`sudo rm -f "%s"`, path))
+	return c.Host.Exec(fmt.Sprintf(`sudo rm -f %s`, escape.Quote(path)))
 }
 
 // FileExist checks if a file exists on the host
 func (c *LinuxConfigurer) FileExist(path string) bool {
-	return c.Host.Exec(fmt.Sprintf(`sudo test -e "%s"`, path)) == nil
+	return c.Host.Exec(fmt.Sprintf(`sudo test -e %s`, escape.Quote(path))) == nil
 }
 
 // LineIntoFile tries to find a matching line in a file and replace it with a new entry
@@ -328,4 +338,18 @@ func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
 	}
 
 	return status, nil
+}
+
+// Pwd returns the current working directory of the session
+func (c *LinuxConfigurer) Pwd() string {
+	pwd, err := c.Host.ExecWithOutput("pwd")
+	if err != nil {
+		return ""
+	}
+	return pwd
+}
+
+// JoinPath joins a path
+func (c *LinuxConfigurer) JoinPath(parts ...string) string {
+	return strings.Join(parts, "/")
 }
