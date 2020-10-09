@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/connection"
 	"github.com/Mirantis/mcc/pkg/connection/local"
 	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
 
 	log "github.com/sirupsen/logrus"
@@ -28,7 +30,7 @@ type HostMetadata struct {
 	InternalAddress     string
 	EngineVersion       string
 	Os                  *OsRelease
-	EngineInstallScript *string
+	EngineInstallScript string
 }
 
 type errors struct {
@@ -216,20 +218,13 @@ func (h *Host) IsWindows() bool {
 }
 
 // EngineVersion returns the current engine version installed on the host
-func (h *Host) EngineVersion() string {
+func (h *Host) EngineVersion() (string, error) {
 	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
-		log.Debugf("%s: failed to get docker engine version: %s: %s", h.Address, version, err)
-		return ""
+		return "", fmt.Errorf("failed to get docker engine version: %s", err.Error())
 	}
 
-	if version == "" {
-		log.Infof("%s: docker engine not installed", h.Address)
-	} else {
-		log.Infof("%s: is running docker engine version %s", h.Address, h.Metadata.EngineVersion)
-	}
-
-	return version
+	return version, nil
 }
 
 // CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected
@@ -243,6 +238,29 @@ func (h *Host) CheckHTTPStatus(url string, expected int) error {
 	if status != expected {
 		return fmt.Errorf("%s: unexpected response code %d", h.Address, status)
 	}
+
+	return nil
+}
+
+// WriteFileLarge copies a larger file to the host.
+// Use instead of configurer.WriteFile when it seems appropriate
+func (h *Host) WriteFileLarge(src, dst string) error {
+	startTime := time.Now()
+	stat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	size := stat.Size()
+
+	log.Infof("%s: uploading %s to %s", h.Address, util.FormatBytes(uint64(stat.Size())), dst)
+
+	if err := h.Connection.Upload(src, dst); err != nil {
+		return fmt.Errorf("%s: upload failed: %s", h.Address, err.Error())
+	}
+
+	duration := time.Since(startTime).Seconds()
+	speed := float64(size) / duration
+	log.Infof("%s: transfered %s in %f seconds (%s/s)", h.Address, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
 
 	return nil
 }

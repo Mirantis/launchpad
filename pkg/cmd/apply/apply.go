@@ -26,6 +26,7 @@ type Options struct {
 	Prune       bool
 	Force       bool
 	SkipCleanup bool
+	Debug       bool
 }
 
 // Apply ...
@@ -74,7 +75,7 @@ func Apply(opts *Options) error {
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
 	phaseManager.AddPhase(&phase.ValidateFacts{})
-	phaseManager.AddPhase(&phase.ValidateHosts{})
+	phaseManager.AddPhase(&phase.ValidateHosts{Debug: opts.Debug})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }})
 	phaseManager.AddPhase(&phase.PrepareHost{})

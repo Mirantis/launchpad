@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -16,6 +17,9 @@ import (
 type DownloadInstaller struct {
 	Analytics
 	BasicPhase
+
+	linuxPath string
+	winPath   string
 }
 
 // Title for the phase
@@ -29,22 +33,40 @@ func (p *DownloadInstaller) Run() error {
 	if err != nil {
 		return err
 	}
+	f, err := ioutil.TempFile("", "installerLinux")
+	if err != nil {
+		return err
+	}
 
-	var winScript string
+	_, err = f.WriteString(linuxScript)
+	if err != nil {
+		return err
+	}
+	p.linuxPath = f.Name()
 
 	wincount := p.config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() })
 	if wincount > 0 {
-		winScript, err = p.getScript(p.config.Spec.Engine.InstallURLWindows)
+		winScript, err := p.getScript(p.config.Spec.Engine.InstallURLWindows)
 		if err != nil {
 			return err
 		}
+		f, err := ioutil.TempFile("", "installerWindows")
+		if err != nil {
+			return err
+		}
+
+		_, err = f.WriteString(winScript)
+		if err != nil {
+			return err
+		}
+		p.winPath = f.Name()
 	}
 
 	for _, h := range p.config.Spec.Hosts {
 		if h.IsWindows() {
-			h.Metadata.EngineInstallScript = &winScript
+			h.Metadata.EngineInstallScript = p.winPath
 		} else {
-			h.Metadata.EngineInstallScript = &linuxScript
+			h.Metadata.EngineInstallScript = p.linuxPath
 		}
 	}
 
@@ -111,4 +133,21 @@ func (p *DownloadInstaller) readFile(path string) (string, error) {
 
 	data, err := util.LoadExternalFile(path)
 	return string(data), err
+}
+
+// CleanUp removes the temporary files from local filesystem
+func (p *DownloadInstaller) CleanUp() {
+	if p.winPath != "" {
+		removeIfExist(p.winPath)
+	}
+	if p.linuxPath != "" {
+		removeIfExist(p.linuxPath)
+	}
+}
+
+func removeIfExist(path string) {
+	_, err := os.Stat(path)
+	if err == nil {
+		os.Remove(path)
+	}
 }

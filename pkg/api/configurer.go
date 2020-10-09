@@ -26,6 +26,8 @@ type HostConfigurer interface {
 	DeleteFile(path string) error
 	FileExist(path string) bool
 	HTTPStatus(url string) (int, error)
+	Pwd() string
+	JoinPath(...string) string
 }
 
 // HostConfigurerBuilder defines the builder function signature

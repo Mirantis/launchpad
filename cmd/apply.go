@@ -53,6 +53,7 @@ func NewApplyCommand() *cli.Command {
 				Config:      ctx.String("config"),
 				Prune:       ctx.Bool("prune"),
 				Force:       ctx.Bool("force"),
+				Debug:       ctx.Bool("debug") || ctx.Bool("trace"),
 				SkipCleanup: ctx.Bool("disable-cleanup"),
 			})
 
