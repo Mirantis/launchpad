@@ -72,6 +72,8 @@ func Apply(opts *Options) error {
 	clusterConfig.Spec.Metadata.Force = opts.Force
 
 	phaseManager := phase.NewManager(&clusterConfig)
+	phaseManager.SkipCleanup = opts.SkipCleanup
+
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
 	phaseManager.AddPhase(&phase.ValidateFacts{})

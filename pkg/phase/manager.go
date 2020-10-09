@@ -15,6 +15,7 @@ type Manager struct {
 	phases       []Phase
 	config       *api.ClusterConfig
 	IgnoreErrors bool
+	SkipCleanup  bool
 }
 
 // NewManager constructs new phase manager
@@ -76,7 +77,9 @@ func (m *Manager) Run() error {
 			if err != nil && !m.IgnoreErrors {
 				return err
 			}
-			defer phase.CleanUp()
+			if !m.SkipCleanup {
+				defer phase.CleanUp()
+			}
 		}
 	}
 
