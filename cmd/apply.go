@@ -32,6 +32,12 @@ func NewApplyCommand() *cli.Command {
 				Usage:   "Allow continuing in some situations where prerequisite checks fail",
 				Value:   false,
 			},
+			&cli.BoolFlag{
+				Name:   "disable-cleanup",
+				Usage:  "Do not perform cleanup on failure",
+				Value:  false,
+				Hidden: true,
+			},
 		},
 		Before: func(ctx *cli.Context) error {
 			if !ctx.Bool("accept-license") {
@@ -42,7 +48,15 @@ func NewApplyCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
-			err := apply.Apply(ctx.String("config"), ctx.Bool("prune"), ctx.Bool("force"), ctx.Bool("debug"))
+
+			err := apply.Apply(&apply.Options{
+				Config:      ctx.String("config"),
+				Prune:       ctx.Bool("prune"),
+				Force:       ctx.Bool("force"),
+				Debug:       ctx.Bool("debug") || ctx.Bool("trace"),
+				SkipCleanup: ctx.Bool("disable-cleanup"),
+			})
+
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {

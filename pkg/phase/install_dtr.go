@@ -14,6 +14,7 @@ import (
 type InstallDtr struct {
 	Analytics
 	BasicPhase
+	SkipCleanup bool
 }
 
 // Title prints the phase title
@@ -30,15 +31,17 @@ func (p *InstallDtr) Run() error {
 		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
 	}
 
-	defer func() {
-		if err != nil {
-			log.Println("Cleaning-up")
-			if cleanupErr := dtr.Destroy(dtrLeader); cleanupErr != nil {
-				log.Warnln("Error while cleaning-up resources")
-				log.Debugf("Cleanup resources error: %s", err)
+	if !p.SkipCleanup {
+		defer func() {
+			if err != nil {
+				log.Println("Cleaning-up")
+				if cleanupErr := dtr.Destroy(dtrLeader); cleanupErr != nil {
+					log.Warnln("Error while cleaning-up resources")
+					log.Debugf("Cleanup resources error: %s", err)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	p.EventProperties = map[string]interface{}{
 		"dtr_version": p.config.Spec.Dtr.Version,

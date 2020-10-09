@@ -90,6 +90,13 @@ SUPPORT:
 				EnvVars: []string{"DEBUG"},
 			},
 			&cli.BoolFlag{
+				Name:    "trace",
+				Usage:   "Enable trace logging",
+				Aliases: []string{"dd"},
+				EnvVars: []string{"TRACE"},
+				Hidden:  true,
+			},
+			&cli.BoolFlag{
 				Name:    "disable-telemetry",
 				Usage:   "Disable telemetry",
 				Aliases: []string{"t"},
@@ -151,18 +158,18 @@ SUPPORT:
 }
 
 func initLogger(ctx *cli.Context) {
-	// Enable debug logging always, we'll setup hooks later to direct logs based on level
-	if version.IsProduction() {
-		log.SetLevel(log.DebugLevel)
-	} else {
+	if ctx.Bool("trace") {
 		log.SetLevel(log.TraceLevel)
+	} else {
+		log.SetLevel(log.DebugLevel)
 	}
+
 	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
 
 	// Send logs with level >= INFO to stdout
 
 	// stdout hook on by default of course
-	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug")))
+	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug") || ctx.Bool("trace")))
 }
 
 func initAnalytics(ctx *cli.Context) {
