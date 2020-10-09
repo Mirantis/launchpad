@@ -20,8 +20,16 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
+// Options for apply
+type Options struct {
+	Config      string
+	Prune       bool
+	Force       bool
+	SkipCleanup bool
+}
+
 // Apply ...
-func Apply(configFile string, prune, force bool) error {
+func Apply(opts *Options) error {
 	var (
 		logFile *os.File
 		err     error
@@ -34,7 +42,7 @@ func Apply(configFile string, prune, force bool) error {
 
 	}()
 
-	cfgData, err := config.ResolveClusterFile(configFile)
+	cfgData, err := config.ResolveClusterFile(opts.Config)
 	if err != nil {
 		return err
 	}
@@ -60,7 +68,7 @@ func Apply(configFile string, prune, force bool) error {
 	}
 
 	dtr := config.ContainsDtr(clusterConfig)
-	clusterConfig.Spec.Metadata.Force = force
+	clusterConfig.Spec.Metadata.Force = opts.Force
 
 	phaseManager := phase.NewManager(&clusterConfig)
 	phaseManager.AddPhase(&phase.Connect{})
@@ -73,7 +81,7 @@ func Apply(configFile string, prune, force bool) error {
 	phaseManager.AddPhase(&phase.InstallEngine{})
 	phaseManager.AddPhase(&phase.PullImages{})
 	phaseManager.AddPhase(&phase.InitSwarm{})
-	phaseManager.AddPhase(&phase.InstallUCP{})
+	phaseManager.AddPhase(&phase.InstallUCP{SkipCleanup: opts.SkipCleanup})
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
 	phaseManager.AddPhase(&phase.JoinWorkers{})
@@ -82,12 +90,12 @@ func Apply(configFile string, prune, force bool) error {
 	if dtr {
 		phaseManager.AddPhase(&phase.PullImages{Dtr: dtr})
 		phaseManager.AddPhase(&phase.ValidateUcpHealth{})
-		phaseManager.AddPhase(&phase.InstallDtr{})
+		phaseManager.AddPhase(&phase.InstallDtr{SkipCleanup: opts.SkipCleanup})
 		phaseManager.AddPhase(&phase.UpgradeDtr{})
 		phaseManager.AddPhase(&phase.JoinDtrReplicas{})
 	}
 	phaseManager.AddPhase(&phase.LabelNodes{})
-	if prune {
+	if opts.Prune {
 		phaseManager.AddPhase(&phase.RemoveNodes{})
 	}
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }})

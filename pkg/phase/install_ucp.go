@@ -17,6 +17,7 @@ const configName string = "com.docker.ucp.config"
 type InstallUCP struct {
 	Analytics
 	BasicPhase
+	SkipCleanup bool
 }
 
 // Title prints the phase title
@@ -28,14 +29,16 @@ func (p *InstallUCP) Title() string {
 func (p *InstallUCP) Run() (err error) {
 	swarmLeader := p.config.Spec.SwarmLeader()
 
-	defer func() {
-		if err != nil {
-			log.Println("Cleaning-up")
-			if cleanupErr := cleanupUcp(swarmLeader); cleanupErr != nil {
-				log.Warnln("Error while cleaning-up resources")
+	if !p.SkipCleanup {
+		defer func() {
+			if err != nil {
+				log.Println("Cleaning-up")
+				if cleanupErr := cleanupUcp(swarmLeader); cleanupErr != nil {
+					log.Warnln("Error while cleaning-up resources")
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	p.EventProperties = map[string]interface{}{
 		"ucp_version": p.config.Spec.Ucp.Version,
