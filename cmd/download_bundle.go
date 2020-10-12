@@ -29,10 +29,11 @@ func NewDownloadBundleCommand() *cli.Command {
 				Aliases: []string{"p"},
 			},
 			&cli.StringFlag{
-				Name:    "config",
-				Usage:   "Path to cluster config yaml",
-				Aliases: []string{"c"},
-				Value:   "launchpad.yaml",
+				Name:      "config",
+				Usage:     "Path to cluster config yaml",
+				Aliases:   []string{"c"},
+				Value:     "launchpad.yaml",
+				TakesFile: true,
 			},
 		},
 		Action: func(ctx *cli.Context) error {
