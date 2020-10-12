@@ -149,7 +149,7 @@ pipeline {
             }
           }
           environment {
-            LAUNCHPAD_CONFIG = "cluster-local.yaml"
+            LAUNCHPAD_CONFIG = "launchpad-local.yaml"
             FOOTLOOSE_TEMPLATE = "footloose-local.yaml.tpl"
           }
           steps {
