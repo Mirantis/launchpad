@@ -111,7 +111,7 @@ func ResolveClusterFile(clusterFile string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to read file: %v", err)
 	}
-	return envsubst.Bytes([]byte(buf))
+	return envsubst.Bytes(buf)
 }
 
 func openClusterFile(clusterFile string) (*os.File, error) {
