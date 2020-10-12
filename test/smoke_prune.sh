@@ -6,15 +6,15 @@ cd test
 . ./smoke.common.sh
 trap cleanup EXIT
 
-[ "${REUSE_CLUSTER}" = "" ] && setup && ../bin/launchpad --debug apply
+[ "${REUSE_CLUSTER}" = "" ] && setup && ${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
 
 # Remove a node from the launchpad.yaml and run apply with --prune
 echo -e "Removing one DTR node from launchpad.yaml..."
-sed -i '25,30d' launchpad.yaml
-cat launchpad.yaml
+sed -i '25,30d' ${LAUNCHPAD_CONFIG}
+cat ${LAUNCHPAD_CONFIG}
 
-../bin/launchpad describe hosts
-../bin/launchpad --debug apply --prune
-../bin/launchpad describe hosts
-../bin/launchpad describe ucp
-../bin/launchpad describe dtr
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG} --prune
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} ucp
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} dtr
