@@ -11,13 +11,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// RunHooks phase runs a set of hooks configured for the host
+// LoadImages phase uploads + docker loads images from host's imageDir to hosts
 type LoadImages struct {
 	Analytics
 	HostSelectPhase
 	totalBytes uint64
 }
 
+// Title is the title for the phase
 func (p *LoadImages) Title() string {
 	return "Upload images"
 }
@@ -63,7 +64,7 @@ func (p *LoadImages) Prepare(config *api.ClusterConfig) error {
 	return nil
 }
 
-// Run does all the prep work on the hosts in parallel
+// Run does all the work
 func (p *LoadImages) Run() error {
 	var totalBytes uint64
 	p.hosts.Each(func(h *api.Host) error {
