@@ -82,6 +82,7 @@ func Apply(opts *Options) error {
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }})
 	phaseManager.AddPhase(&phase.PrepareHost{})
 	phaseManager.AddPhase(&phase.InstallEngine{})
+	phaseManager.AddPhase(&phase.LoadImages{})
 	phaseManager.AddPhase(&phase.PullImages{})
 	phaseManager.AddPhase(&phase.InitSwarm{})
 	phaseManager.AddPhase(&phase.InstallUCP{SkipCleanup: opts.SkipCleanup})

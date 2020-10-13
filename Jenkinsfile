@@ -50,6 +50,16 @@ pipeline {
             sh "make smoke-apply-test CONFIG_TEMPLATE=v1beta1_launchpad.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
+        stage("Ubuntu 18.04: upload images") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          steps {
+            sh "make smoke-apply-upload-test CONFIG_TEMPLATE=launchpad-upload.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+          }
+        }
         stage("CentOS 7: apply") {
           agent {
               node {
