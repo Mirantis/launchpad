@@ -181,7 +181,7 @@ func isSwarmLeader(host *Host) bool {
 	// We can by-pass the Configurer interface as managers are always linux boxes
 	output, err := host.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
 	if err != nil {
-		log.Warnf("%s: failed to get host's swarm leader status, probably not part of swarm", host)
+		log.Debugf("%s: failed to get host's swarm leader status, probably not part of swarm", host)
 		return false
 	}
 	return output == "true"
