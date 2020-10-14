@@ -129,8 +129,8 @@ func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error
 	return nodeIDs, nil
 }
 
-func (p *RemoveNodes) swarmNodeIDs(swarmLeader *api.Host) ([]string, error) {
-	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`node ls --format="{{.ID}}"`))
+func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
+	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node ls --format="{{.ID}}"`))
 	if err != nil {
 		log.Errorln(output)
 		return []string{}, err
@@ -138,40 +138,40 @@ func (p *RemoveNodes) swarmNodeIDs(swarmLeader *api.Host) ([]string, error) {
 	return strings.Split(output, "\n"), nil
 }
 
-func (p *RemoveNodes) removeNode(swarmLeader *api.Host, nodeID string) error {
-	nodeAddr, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Status.Addr}}`, nodeID))
+func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
+	nodeAddr, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Status.Addr}}`, nodeID))
 	if err != nil {
 		return err
 	}
-	log.Infof("%s: removing orphan node %s", swarmLeader.Address, nodeAddr)
-	nodeRole, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Spec.Role}}`, nodeID))
+	log.Infof("%s: removing orphan node %s", h.Address, nodeAddr)
+	nodeRole, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Spec.Role}}`, nodeID))
 	if err != nil {
 		return err
 	}
 	if nodeRole == "manager" {
-		log.Infof("%s: demoting orphan node %s", swarmLeader.Address, nodeAddr)
-		err = swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf(`node demote %s`, nodeID))
+		log.Infof("%s: demoting orphan node %s", h.Address, nodeAddr)
+		err = h.Exec(h.Configurer.DockerCommandf(`node demote %s`, nodeID))
 		if err != nil {
 			return err
 		}
-		log.Infof("%s: orphan node %s demoted", swarmLeader.Address, nodeAddr)
+		log.Infof("%s: orphan node %s demoted", h.Address, nodeAddr)
 	}
 
-	log.Infof("%s: draining orphan node %s", swarmLeader.Address, nodeAddr)
-	drainCmd := swarmLeader.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
-	err = swarmLeader.Exec(drainCmd)
+	log.Infof("%s: draining orphan node %s", h.Address, nodeAddr)
+	drainCmd := h.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
+	err = h.Exec(drainCmd)
 	if err != nil {
 		return err
 	}
 	time.Sleep(30 * time.Second)
-	log.Infof("%s: orphan node %s drained", swarmLeader.Address, nodeAddr)
+	log.Infof("%s: orphan node %s drained", h.Address, nodeAddr)
 
-	removeCmd := swarmLeader.Configurer.DockerCommandf("node rm --force %s", nodeID)
-	err = swarmLeader.Exec(removeCmd)
+	removeCmd := h.Configurer.DockerCommandf("node rm --force %s", nodeID)
+	err = h.Exec(removeCmd)
 	if err != nil {
 		return err
 	}
-	log.Infof("%s: removed orphan node %s", swarmLeader.Address, nodeAddr)
+	log.Infof("%s: removed orphan node %s", h.Address, nodeAddr)
 	return nil
 }
 
@@ -204,8 +204,8 @@ func (p *RemoveNodes) removeDtrNode(config *api.ClusterConfig, replicaID string)
 
 // isManagedByUs returns a struct of isManaged which contains two bools, one
 // which declares node wide management and one which declares dtr management
-func (p *RemoveNodes) isManagedByUs(swarmLeader *api.Host, nodeID string) isManaged {
-	labels, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
+func (p *RemoveNodes) isManagedByUs(h *api.Host, nodeID string) isManaged {
+	labels, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
 	var managed isManaged
 	if err != nil {
 		return managed
@@ -217,9 +217,9 @@ func (p *RemoveNodes) isManagedByUs(swarmLeader *api.Host, nodeID string) isMana
 
 // getReplicaIDFromHostname retreives the replicaID from the container name
 // associated with hostname
-func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, swarmLeader *api.Host, hostname string) (string, error) {
+func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api.Host, hostname string) (string, error) {
 	// Setup httpClient
-	tlsConfig, err := ucp.GetTLSConfigFrom(swarmLeader, config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
+	tlsConfig, err := ucp.GetTLSConfigFrom(h, config.Spec.Ucp.ImageRepo, config.Spec.Ucp.Version)
 	if err != nil {
 		return "", fmt.Errorf("error getting TLS config: %w", err)
 	}

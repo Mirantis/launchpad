@@ -17,8 +17,8 @@ type RunHooks struct {
 }
 
 // HostFilterFunc returns true for hosts that have non-empty list of hooks returned by the StepListFunc
-func (p *RunHooks) HostFilterFunc(host *api.Host) bool {
-	steps := p.StepListFunc(host)
+func (p *RunHooks) HostFilterFunc(h *api.Host) bool {
+	steps := p.StepListFunc(h)
 	return len(*steps) > 0
 }
 
