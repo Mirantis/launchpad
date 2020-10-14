@@ -104,7 +104,11 @@ func (h *Host) generateName() string {
 		return fmt.Sprintf("%s:%d", h.Address, h.WinRM.Port)
 	}
 
-	return fmt.Sprintf("%s:%d", h.Address, h.SSH.Port)
+	if h.SSH != nil {
+		return fmt.Sprintf("%s:%d", h.Address, h.SSH.Port)
+	}
+
+	return h.Address
 }
 
 // SetName resets the host's logging name
