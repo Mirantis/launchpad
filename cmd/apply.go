@@ -22,11 +22,6 @@ func NewApplyCommand() *cli.Command {
 				Value:   "launchpad.yaml",
 			},
 			&cli.BoolFlag{
-				Name:  "prune",
-				Usage: "Automatically remove nodes that are no longer a part of cluster config yaml",
-				Value: false,
-			},
-			&cli.BoolFlag{
 				Name:    "force",
 				Aliases: []string{"f"},
 				Usage:   "Allow continuing in some situations where prerequisite checks fail",
@@ -51,7 +46,6 @@ func NewApplyCommand() *cli.Command {
 
 			err := apply.Apply(&apply.Options{
 				Config:      ctx.String("config"),
-				Prune:       ctx.Bool("prune"),
 				Force:       ctx.Bool("force"),
 				Debug:       ctx.Bool("debug") || ctx.Bool("trace"),
 				SkipCleanup: ctx.Bool("disable-cleanup"),

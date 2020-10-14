@@ -22,6 +22,10 @@ import (
 type RemoveNodes struct {
 	Analytics
 	BasicPhase
+
+	cleanupDtrs   []*api.Host
+	dtrReplicaIDs []string
+	removeNodeIDs []string
 }
 
 type isManaged struct {
@@ -54,8 +58,19 @@ func (p *RemoveNodes) Title() string {
 	return "Remove nodes"
 }
 
-// Run removes all nodes from swarm that are labeled and not part of the current config
-func (p *RemoveNodes) Run() error {
+// ShouldRun is true when spec.cluster.prune is true
+func (p *RemoveNodes) ShouldRun() bool {
+	if !p.config.Spec.Cluster.Prune && (len(p.cleanupDtrs) > 0 || len(p.dtrReplicaIDs) > 0 || len(p.removeNodeIDs) > 0) {
+		log.Warnf("There are nodes present which are not present in configuration Spec.Hosts - to remove them, set Spec.Cluster.Prune to true")
+	}
+
+	return p.config.Spec.Cluster.Prune
+}
+
+// Prepare finds the nodes/replica ids to be removed
+func (p *RemoveNodes) Prepare(config *api.ClusterConfig) error {
+	p.config = config
+
 	swarmLeader := p.config.Spec.SwarmLeader()
 
 	nodeIDs, err := p.currentNodeIDs(p.config)
@@ -79,11 +94,7 @@ func (p *RemoveNodes) Run() error {
 					// All of the DTRs were removed from config, just remove
 					// them forcefully since we don't care about sustaining
 					// quorum
-					log.Debug("No further DTRs found in config, cleaning up DTR components")
-					err := dtr.CleanupDtrs(dtrs, swarmLeader)
-					if err != nil {
-						return err
-					}
+					p.cleanupDtrs = dtrs
 				}
 				// Get the hostname from the nodeID inspect
 				hostname, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Description.Hostname}}`, nodeID))
@@ -99,14 +110,36 @@ func (p *RemoveNodes) Run() error {
 				}
 				log.Debugf("Obtained replicaID: %s from node intending to be removed", replicaID)
 
-				// Use that hostname to issue a remove from bootstrap
-				err = p.removeDtrNode(p.config, replicaID)
-				if err != nil {
-					return err
-				}
+				p.dtrReplicaIDs = append(p.dtrReplicaIDs, replicaID)
 			}
 
-			err = p.removeNode(swarmLeader, nodeID)
+			p.removeNodeIDs = append(p.removeNodeIDs, nodeID)
+		}
+	}
+	return nil
+}
+
+// Run removes all nodes from swarm that are labeled and not part of the current config
+func (p *RemoveNodes) Run() error {
+	swarmLeader := p.config.Spec.SwarmLeader()
+	if len(p.cleanupDtrs) > 0 {
+		err := dtr.CleanupDtrs(p.cleanupDtrs, swarmLeader)
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(p.dtrReplicaIDs) > 0 {
+		for _, replicaID := range p.dtrReplicaIDs {
+			err := p.removeDtrNode(p.config, replicaID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if len(p.removeNodeIDs) > 0 {
+		for _, nodeID := range p.removeNodeIDs {
+			err := p.removeNode(swarmLeader, nodeID)
 			if err != nil {
 				return err
 			}
@@ -114,7 +147,6 @@ func (p *RemoveNodes) Run() error {
 	}
 
 	return nil
-
 }
 
 func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error) {
