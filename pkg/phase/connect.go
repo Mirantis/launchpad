@@ -33,26 +33,26 @@ func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
 
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: opening %s connection", host.Address, proto)
+			log.Infof("%s: opening %s connection", host, proto)
 			err := host.Connect()
 			if err != nil {
-				log.Errorf("%s: failed to connect -> %s", host.Address, err.Error())
+				log.Errorf("%s: failed to connect -> %s", host, err.Error())
 			}
 			return err
 		},
 		retry.Attempts(6),
 	)
 	if err != nil {
-		log.Errorf("%s: failed to open connection", host.Address)
+		log.Errorf("%s: failed to open connection", host)
 		return err
 	}
 
-	log.Printf("%s: %s connection opened", host.Address, proto)
+	log.Printf("%s: %s connection opened", host, proto)
 	return p.testConnection(host)
 }
 
 func (p *Connect) testConnection(h *api.Host) error {
-	log.Infof("%s: testing connection", h.Address)
+	log.Infof("%s: testing connection", h)
 
 	if err := h.Exec("echo"); err != nil {
 		return err

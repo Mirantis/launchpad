@@ -35,7 +35,7 @@ func (p *UpgradeUcp) Run() error {
 	}
 	installedVersion := p.config.Spec.Ucp.Metadata.InstalledVersion
 	if bootstrapperVersion == installedVersion {
-		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader.Address, bootstrapperVersion)
+		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader, bootstrapperVersion)
 		return nil
 	}
 
@@ -53,7 +53,7 @@ func (p *UpgradeUcp) Run() error {
 
 	err = ucp.CollectUcpFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
+		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader, err.Error())
 	}
 	p.EventProperties["upgraded"] = true
 	p.EventProperties["installed_version"] = installedVersion

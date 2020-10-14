@@ -25,16 +25,16 @@ func (p *JoinManagers) Run() error {
 
 	for _, h := range p.config.Spec.Managers() {
 		if swarm.IsSwarmNode(h) {
-			log.Infof("%s: already a swarm node", h.Address)
+			log.Infof("%s: already a swarm node", h)
 			continue
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.config.Spec.Ucp.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
-		log.Debugf("%s: joining as manager", h.Address)
+		log.Debugf("%s: joining as manager", h)
 		err := h.Exec(joinCmd, exec.StreamOutput(), exec.Redact(p.config.Spec.Ucp.Metadata.ManagerJoinToken))
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to join manager node to swarm"))
 		}
-		log.Infof("%s: joined successfully", h.Address)
+		log.Infof("%s: joined successfully", h)
 	}
 	return nil
 }

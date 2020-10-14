@@ -53,7 +53,7 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 	m := c.Managers()
 	leader := m.Find(isSwarmLeader)
 	if leader != nil {
-		log.Debugf("%s: is the swarm leader", leader.Address)
+		log.Debugf("%s: is the swarm leader", leader)
 		return leader
 	}
 
@@ -181,7 +181,7 @@ func isSwarmLeader(host *Host) bool {
 	// We can by-pass the Configurer interface as managers are always linux boxes
 	output, err := host.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
 	if err != nil {
-		log.Warnf("failed to get host's swarm leader status, probably not part of swarm")
+		log.Warnf("%s: failed to get host's swarm leader status, probably not part of swarm", host)
 		return false
 	}
 	return output == "true"
@@ -214,7 +214,7 @@ func (c *ClusterSpec) DtrLeader() *Host {
 	dtrs := c.Dtrs()
 	leader := dtrs.Find(IsDtrInstalled)
 	if leader != nil {
-		log.Debugf("%s: found DTR installed, using as leader", leader.Address)
+		log.Debugf("%s: found DTR installed, using as leader", leader)
 		return leader
 	}
 
@@ -237,7 +237,7 @@ func (c *ClusterSpec) CheckUCPHealthRemote(h *Host) error {
 
 	return retry.Do(
 		func() error {
-			log.Infof("%s: waiting for UCP at %s to become healthy", h.Address, u.Host)
+			log.Infof("%s: waiting for UCP at %s to become healthy", h, u.Host)
 			return h.CheckHTTPStatus(u.String(), 200)
 		},
 		retry.Attempts(12), // last attempt should wait ~7min
@@ -253,7 +253,7 @@ func (c *ClusterSpec) CheckUCPHealthLocal(h *Host) error {
 
 	return retry.Do(
 		func() error {
-			log.Infof("%s: waiting for UCP to become healthy", h.Address)
+			log.Infof("%s: waiting for UCP to become healthy", h)
 			return h.CheckHTTPStatus(fmt.Sprintf("https://%s/_ping", host), 200)
 		},
 		retry.Attempts(12), // last attempt should wait ~7min

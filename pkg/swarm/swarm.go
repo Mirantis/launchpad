@@ -29,7 +29,7 @@ func NodeID(host *api.Host) (string, error) {
 func ClusterID(leader *api.Host) string {
 	output, err := leader.ExecWithOutput(leader.Configurer.DockerCommandf(`info --format "{{ .Swarm.Cluster.ID}}"`))
 	if err != nil {
-		log.Warnf("failed to get host's swarm status, probably not part of swarm")
+		log.Warnf("%s: failed to get host's swarm status, probably not part of swarm", leader)
 		return ""
 	}
 

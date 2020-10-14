@@ -117,10 +117,10 @@ func ImagePull(host *api.Host, images []string) error {
 			retry.Do(
 				func() error {
 					if !host.ImageExist(i) {
-						log.Infof("%s: pulling image %s", host.Address, i)
+						log.Infof("%s: pulling image %s", host, i)
 						return host.PullImage(i)
 					}
-					log.Infof("%s: image %s already exists", host.Address, i)
+					log.Infof("%s: image %s already exists", host, i)
 					return nil
 				},
 				retry.RetryIf(func(err error) bool {
@@ -128,7 +128,7 @@ func ImagePull(host *api.Host, images []string) error {
 				}),
 				retry.OnRetry(func(n uint, err error) {
 					if err != nil {
-						log.Warnf("%s: failed to pull image %s - retrying", host.Address, i)
+						log.Warnf("%s: failed to pull image %s - retrying", host, i)
 					}
 				}),
 				retry.Attempts(2),
@@ -143,7 +143,7 @@ func ImagePull(host *api.Host, images []string) error {
 func RetagImages(host *api.Host, imageMap map[string]string) error {
 	for dockerImage, realImage := range imageMap {
 		retagCmd := host.Configurer.DockerCommandf("tag %s %s", realImage, dockerImage)
-		log.Debugf("%s: retag %s --> %s", host.Address, realImage, dockerImage)
+		log.Debugf("%s: retag %s --> %s", host, realImage, dockerImage)
 		err := host.Exec(retagCmd)
 		if err != nil {
 			return err

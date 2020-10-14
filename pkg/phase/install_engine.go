@@ -58,7 +58,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 				}
 			}
 		} else if h.Metadata.EngineVersion != "" {
-			log.Infof("%s: Engine is already at version %s", h.Address, h.Metadata.EngineVersion)
+			log.Infof("%s: Engine is already at version %s", h, h.Metadata.EngineVersion)
 		}
 	}
 
@@ -104,18 +104,18 @@ func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) erro
 	err := retry.Do(
 		func() error {
 			if newInstall {
-				log.Infof("%s: installing engine (%s)", host.Address, c.Spec.Engine.Version)
+				log.Infof("%s: installing engine (%s)", host, c.Spec.Engine.Version)
 			} else {
-				log.Infof("%s: updating engine (%s -> %s)", host.Address, prevVersion, c.Spec.Engine.Version)
+				log.Infof("%s: updating engine (%s -> %s)", host, prevVersion, c.Spec.Engine.Version)
 			}
 			return host.Configurer.InstallEngine(&c.Spec.Engine)
 		},
 	)
 	if err != nil {
 		if newInstall {
-			log.Errorf("%s: failed to install engine -> %s", host.Address, err.Error())
+			log.Errorf("%s: failed to install engine -> %s", host, err.Error())
 		} else {
-			log.Errorf("%s: failed to update engine -> %s", host.Address, err.Error())
+			log.Errorf("%s: failed to update engine -> %s", host, err.Error())
 		}
 
 		return err
@@ -123,16 +123,16 @@ func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) erro
 
 	currentVersion, err := host.EngineVersion()
 	if err != nil {
-		return fmt.Errorf("%s: failed to query engine version after installation: %s", host.Address, err.Error())
+		return fmt.Errorf("%s: failed to query engine version after installation: %s", host, err.Error())
 	}
 
 	if !newInstall && currentVersion == prevVersion {
 		err = host.Configurer.RestartEngine()
 		if err != nil {
-			return fmt.Errorf("%s: failed to restart engine", host.Address)
+			return fmt.Errorf("%s: failed to restart engine", host)
 		}
 	}
 
-	log.Infof("%s: engine version %s installed", host.Address, c.Spec.Engine.Version)
+	log.Infof("%s: engine version %s installed", host, c.Spec.Engine.Version)
 	return nil
 }

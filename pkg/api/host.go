@@ -87,6 +87,47 @@ type Host struct {
 	Errors     errors         `yaml:"-"`
 
 	Connection connection.Connection `yaml:"-"`
+
+	name string
+}
+
+func (h *Host) generateName() string {
+	if h.Localhost {
+		return "localhost"
+	}
+
+	if h.Metadata != nil && h.Metadata.Hostname != "" {
+		return h.Metadata.Hostname
+	}
+
+	if h.WinRM != nil {
+		return fmt.Sprintf("%s:%d", h.Address, h.WinRM.Port)
+	}
+
+	return fmt.Sprintf("%s:%d", h.Address, h.SSH.Port)
+}
+
+// SetName resets the host's logging name
+func (h *Host) SetName() {
+	var oldname string
+	if h.name != "" {
+		oldname = h.name
+	}
+	h.name = h.generateName()
+	if h.Connection != nil {
+		h.Connection.SetName(h.name)
+	}
+	if oldname != "" && oldname != h.name {
+		log.Warnf("%s: will now be refered to as '%s'", oldname, h.name)
+	}
+}
+
+// String returns a name / string identifier for the host
+func (h *Host) String() string {
+	if h.name == "" {
+		h.SetName()
+	}
+	return h.name
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
@@ -155,11 +196,11 @@ func (h *Host) ExecAll(cmds []string) error {
 		log.Infof("%s: Executing: %s", h.Address, cmd)
 		output, err := h.ExecWithOutput(cmd)
 		if err != nil {
-			log.Errorf("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+			log.Errorf("%s: %s", h, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h)))
 			return err
 		}
 		if strings.TrimSpace(output) != "" {
-			log.Infof("%s: %s", h.Address, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h.Address)))
+			log.Infof("%s: %s", h, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h)))
 		}
 	}
 	return nil
@@ -179,10 +220,10 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
 		if pass == "" {
-			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h.Address)
+			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h)
 		}
 
-		log.Infof("%s: authenticating docker for image repo %s", h.Address, imageRepo)
+		log.Infof("%s: authenticating docker for image repo %s", h, imageRepo)
 		if strings.HasPrefix(imageRepo, "docker.io/") { // docker.io is a special case for auth
 			imageRepo = ""
 		}
@@ -200,7 +241,7 @@ func (h *Host) ImageExist(name string) bool {
 func (h *Host) PullImage(name string) error {
 	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf("pull %s", name))
 	if err != nil {
-		log.Warnf("%s: failed to pull image %s: \n%s", h.Address, name, output)
+		log.Warnf("%s: failed to pull image %s: \n%s", h, name, output)
 		return err
 	}
 	return nil
@@ -239,9 +280,9 @@ func (h *Host) CheckHTTPStatus(url string, expected int) error {
 		return err
 	}
 
-	log.Debugf("%s: response code: %d, expected %d", h.Address, status, expected)
+	log.Debugf("%s: response code: %d, expected %d", h, status, expected)
 	if status != expected {
-		return fmt.Errorf("%s: unexpected response code %d", h.Address, status)
+		return fmt.Errorf("%s: unexpected response code %d", h, status)
 	}
 
 	return nil
@@ -257,15 +298,15 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	}
 	size := stat.Size()
 
-	log.Infof("%s: uploading %s to %s", h.Address, util.FormatBytes(uint64(stat.Size())), dst)
+	log.Infof("%s: uploading %s to %s", h, util.FormatBytes(uint64(stat.Size())), dst)
 
 	if err := h.Connection.Upload(src, dst); err != nil {
-		return fmt.Errorf("%s: upload failed: %s", h.Address, err.Error())
+		return fmt.Errorf("%s: upload failed: %s", h, err.Error())
 	}
 
 	duration := time.Since(startTime).Seconds()
 	speed := float64(size) / duration
-	log.Infof("%s: transfered %s in %f seconds (%s/s)", h.Address, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
+	log.Infof("%s: transfered %s in %f seconds (%s/s)", h, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
 
 	return nil
 }

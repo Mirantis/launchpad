@@ -143,35 +143,35 @@ func (p *RemoveNodes) removeNode(swarmLeader *api.Host, nodeID string) error {
 	if err != nil {
 		return err
 	}
-	log.Infof("%s: removing orphan node %s", swarmLeader.Address, nodeAddr)
+	log.Infof("%s: removing orphan node %s", swarmLeader, nodeAddr)
 	nodeRole, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Spec.Role}}`, nodeID))
 	if err != nil {
 		return err
 	}
 	if nodeRole == "manager" {
-		log.Infof("%s: demoting orphan node %s", swarmLeader.Address, nodeAddr)
+		log.Infof("%s: demoting orphan node %s", swarmLeader, nodeAddr)
 		err = swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf(`node demote %s`, nodeID))
 		if err != nil {
 			return err
 		}
-		log.Infof("%s: orphan node %s demoted", swarmLeader.Address, nodeAddr)
+		log.Infof("%s: orphan node %s demoted", swarmLeader, nodeAddr)
 	}
 
-	log.Infof("%s: draining orphan node %s", swarmLeader.Address, nodeAddr)
+	log.Infof("%s: draining orphan node %s", swarmLeader, nodeAddr)
 	drainCmd := swarmLeader.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
 	err = swarmLeader.Exec(drainCmd)
 	if err != nil {
 		return err
 	}
 	time.Sleep(30 * time.Second)
-	log.Infof("%s: orphan node %s drained", swarmLeader.Address, nodeAddr)
+	log.Infof("%s: orphan node %s drained", swarmLeader, nodeAddr)
 
 	removeCmd := swarmLeader.Configurer.DockerCommandf("node rm --force %s", nodeID)
 	err = swarmLeader.Exec(removeCmd)
 	if err != nil {
 		return err
 	}
-	log.Infof("%s: removed orphan node %s", swarmLeader.Address, nodeAddr)
+	log.Infof("%s: removed orphan node %s", swarmLeader, nodeAddr)
 	return nil
 }
 
@@ -194,7 +194,7 @@ func (p *RemoveNodes) removeDtrNode(config *api.ClusterConfig, replicaID string)
 	}
 
 	removeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s remove %s", strings.Join(runFlags, " "), config.Spec.Dtr.GetBootstrapperImage(), strings.Join(removeFlags, " "))
-	log.Debugf("%s: Removing DTR replica %s from cluster", dtrLeader.Address, replicaID)
+	log.Debugf("%s: Removing DTR replica %s from cluster", dtrLeader, replicaID)
 	err := dtrLeader.Exec(removeCmd, exec.StreamOutput())
 	if err != nil {
 		return NewError("Failed to run DTR remove")

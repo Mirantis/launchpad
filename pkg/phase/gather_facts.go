@@ -47,12 +47,12 @@ func (p *GatherFacts) Run() error {
 	if swarmLeader.Metadata.EngineVersion != "" {
 		err := ucp.CollectUcpFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
 		if err != nil {
-			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
+			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader, err.Error())
 		}
 		if p.config.Spec.Ucp.Metadata.Installed {
-			log.Infof("%s: UCP has version %s", swarmLeader.Address, p.config.Spec.Ucp.Metadata.InstalledVersion)
+			log.Infof("%s: UCP has version %s", swarmLeader, p.config.Spec.Ucp.Metadata.InstalledVersion)
 		} else {
-			log.Infof("%s: UCP is not installed", swarmLeader.Address)
+			log.Infof("%s: UCP is not installed", swarmLeader)
 		}
 		p.config.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
@@ -71,13 +71,13 @@ func (p *GatherFacts) Run() error {
 		if dtrLeader != nil && dtrLeader.Metadata != nil && dtrLeader.Metadata.EngineVersion != "" {
 			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
 			if err != nil {
-				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
+				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader, err.Error())
 			}
 			p.config.Spec.Dtr.Metadata = dtrMeta
 			if dtrMeta.Installed {
-				log.Infof("%s: DTR has version %s", dtrLeader.Address, dtrMeta.InstalledVersion)
+				log.Infof("%s: DTR has version %s", dtrLeader, dtrMeta.InstalledVersion)
 			} else {
-				log.Infof("%s: DTR is not installed", dtrLeader.Address)
+				log.Infof("%s: DTR is not installed", dtrLeader)
 			}
 		}
 	}
@@ -87,10 +87,10 @@ func (p *GatherFacts) Run() error {
 
 func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	if h.Connection == nil {
-		return fmt.Errorf("%s: not connected", h.Address)
+		return fmt.Errorf("%s: not connected", h)
 	}
 
-	log.Infof("%s: gathering host facts", h.Address)
+	log.Infof("%s: gathering host facts", h)
 
 	os := &api.OsRelease{}
 	if p.isWindows(h) {
@@ -122,9 +122,9 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	version, err := h.EngineVersion()
 	if err != nil || version == "" {
-		log.Infof("%s: docker engine not installed", h.Address)
+		log.Infof("%s: docker engine not installed", h)
 	} else {
-		log.Infof("%s: is running docker engine version %s", h.Address, version)
+		log.Infof("%s: is running docker engine version %s", h, version)
 	}
 
 	h.Metadata.EngineVersion = version
@@ -137,23 +137,26 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		if err != nil {
 			return err
 		}
-		log.Infof("%s: detected private interface '%s'", h.Address, i)
+		log.Infof("%s: detected private interface '%s'", h, i)
 		h.PrivateInterface = i
 	}
 
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {
-		return fmt.Errorf("%s: failed to resolve internal address: %s", h.Address, err.Error())
+		return fmt.Errorf("%s: failed to resolve internal address: %s", h, err.Error())
 	}
 	if net.ParseIP(a) == nil {
-		return fmt.Errorf("%s: failed to resolve internal address: invalid IP address: %q", h.Address, a)
+		return fmt.Errorf("%s: failed to resolve internal address: invalid IP address: %q", h, a)
 	}
 	h.Metadata.InternalAddress = a
 
-	log.Infof("%s: is running \"%s\"", h.Address, h.Metadata.Os.Name)
-	log.Infof("%s: internal address: %s", h.Address, h.Metadata.InternalAddress)
+	log.Infof("%s: is running \"%s\"", h, h.Metadata.Os.Name)
+	log.Infof("%s: internal address: %s", h, h.Metadata.InternalAddress)
 
-	log.Infof("%s: gathered all facts", h.Address)
+	log.Infof("%s: gathered all facts", h)
+
+	h.SetName()
+
 	return nil
 }
 

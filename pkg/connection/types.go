@@ -12,4 +12,6 @@ type Connection interface {
 	Upload(source string, destination string) error
 	IsWindows() bool
 	Exec(string, ...exec.Option) error
+	SetName(string)
+	String() string
 }

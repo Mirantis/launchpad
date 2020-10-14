@@ -24,9 +24,25 @@ type Connection struct {
 	Port    int
 	KeyPath string
 
+	name string
+
 	isWindows bool
 	knowOs    bool
 	client    *ssh.Client
+}
+
+// SetName sets the connection's printable name
+func (c *Connection) SetName(n string) {
+	c.name = n
+}
+
+// String returns the connection's printable name
+func (c *Connection) String() string {
+	if c.name == "" {
+		return fmt.Sprintf("%s:%d", c.Address, c.Port)
+	}
+
+	return c.name
 }
 
 // Disconnect closes the SSH connection
@@ -104,7 +120,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		}
 	}
 
-	o.LogCmd(c.Address, cmd)
+	o.LogCmd(c.String(), cmd)
 
 	stdin, _ := session.StdinPipe()
 	stdout, _ := session.StdoutPipe()
@@ -115,7 +131,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	}
 
 	if len(o.Stdin) > 0 {
-		o.LogStdin(c.Address)
+		o.LogStdin(c.String())
 		io.WriteString(stdin, o.Stdin)
 	}
 	stdin.Close()
@@ -130,13 +146,13 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		for outputScanner.Scan() {
 			text := outputScanner.Text()
 			stripped := stripansi.Strip(text)
-			o.AddOutput(c.Address, stripped+"\n")
+			o.AddOutput(c.String(), stripped+"\n")
 		}
 
 		if err := outputScanner.Err(); err != nil {
-			o.LogErrorf("%s:  %s", c.Address, err.Error())
+			o.LogErrorf("%s: %s", c, err.Error())
 		}
-		log.Tracef("%s: stdout loop exited", c.Address)
+		log.Tracef("%s: stdout loop exited", c)
 	}()
 
 	gotErrors := false
@@ -148,19 +164,19 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 
 		for outputScanner.Scan() {
 			gotErrors = true
-			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
+			o.AddOutput(c.String()+" (stderr)", outputScanner.Text()+"\n")
 		}
 
 		if err := outputScanner.Err(); err != nil {
 			gotErrors = true
-			o.LogErrorf("%s:  %s", c.Address, err.Error())
+			o.LogErrorf("%s: %s", c, err.Error())
 		}
-		log.Tracef("%s: stderr loop exited", c.Address)
+		log.Tracef("%s: stderr loop exited", c)
 	}()
 
-	log.Tracef("%s: waiting for command exit", c.Address)
+	log.Tracef("%s: waiting for command exit", c)
 	err = session.Wait()
-	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	log.Tracef("%s: waiting for syncgroup done", c)
 	wg.Wait()
 
 	if err != nil {

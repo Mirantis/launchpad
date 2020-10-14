@@ -27,10 +27,26 @@ type Connection struct {
 	KeyPath       string
 	TLSServerName string
 
+	name string
+
 	caCert []byte
 	key    []byte
 	cert   []byte
 	client *winrm.Client
+}
+
+// SetName sets the connection's printable name
+func (c *Connection) SetName(n string) {
+	c.name = n
+}
+
+// String returns the connection's printable name
+func (c *Connection) String() string {
+	if c.name == "" {
+		return fmt.Sprintf("%s:%d", c.Address, c.Port)
+	}
+
+	return c.name
 }
 
 // SetWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
@@ -76,7 +92,7 @@ func (c *Connection) loadCertificates() error {
 // Connect opens the WinRM connection
 func (c *Connection) Connect() error {
 	if err := c.loadCertificates(); err != nil {
-		return fmt.Errorf("%s: failed to load certificates: %s", c.Address, err)
+		return fmt.Errorf("%s: failed to load certificates: %s", c, err)
 	}
 
 	endpoint := &winrm.Endpoint{
@@ -135,7 +151,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	}
 	defer shell.Close()
 
-	o.LogCmd(c.Address, cmd)
+	o.LogCmd(c.String(), cmd)
 
 	command, err := shell.Execute(cmd)
 	if err != nil {
@@ -145,7 +161,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 	var wg sync.WaitGroup
 
 	if o.Stdin != "" {
-		o.LogStdin(c.Address)
+		o.LogStdin(c.String())
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -154,7 +170,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 			if err != nil {
 				log.Errorf("failed to send command stdin: %s", err.Error())
 			}
-			log.Tracef("%s: input loop exited", c.Address)
+			log.Tracef("%s: input loop exited", c)
 		}()
 	}
 
@@ -164,14 +180,14 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		outputScanner := bufio.NewScanner(command.Stdout)
 
 		for outputScanner.Scan() {
-			o.AddOutput(c.Address, outputScanner.Text()+"\n")
+			o.AddOutput(c.String(), outputScanner.Text()+"\n")
 		}
 
 		if err := outputScanner.Err(); err != nil {
-			o.LogErrorf("%s:  %s", c.Address, err.Error())
+			o.LogErrorf("%s: %s", c, err.Error())
 		}
 		command.Stdout.Close()
-		log.Tracef("%s: stdout loop exited", c.Address)
+		log.Tracef("%s: stdout loop exited", c)
 	}()
 
 	gotErrors := false
@@ -183,29 +199,29 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 
 		for outputScanner.Scan() {
 			gotErrors = true
-			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
+			o.AddOutput(c.String()+" (stderr)", outputScanner.Text()+"\n")
 		}
 
 		if err := outputScanner.Err(); err != nil {
 			gotErrors = true
-			o.LogErrorf("%s:  %s", c.Address, err.Error())
+			o.LogErrorf("%s: %s", c, err.Error())
 		}
 		command.Stdout.Close()
-		log.Tracef("%s: stderr loop exited", c.Address)
+		log.Tracef("%s: stderr loop exited", c)
 	}()
 
-	log.Tracef("%s: waiting for command exit", c.Address)
+	log.Tracef("%s: waiting for command exit", c)
 
 	command.Wait()
-	log.Tracef("%s: command exited", c.Address)
+	log.Tracef("%s: command exited", c)
 
-	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	log.Tracef("%s: waiting for syncgroup done", c)
 	wg.Wait()
-	log.Tracef("%s: syncgroup done", c.Address)
+	log.Tracef("%s: syncgroup done", c)
 
 	err = command.Close()
 	if err != nil {
-		log.Warnf("%s: %s", c.Address, err.Error())
+		log.Warnf("%s: %s", c, err.Error())
 	}
 
 	if command.ExitCode() > 0 || gotErrors {
