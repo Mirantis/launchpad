@@ -36,7 +36,7 @@ func (p *JoinWorkers) Run() error {
 		log.Debugf("%s: joining as worker", h)
 		err := h.Exec(joinCmd, exec.Redact(p.config.Spec.Ucp.Metadata.WorkerJoinToken))
 		if err != nil {
-			return NewError(fmt.Sprintf("Failed to join worker %s node to swarm", h))
+			return fmt.Errorf("Failed to join worker %s node to swarm", h)
 		}
 		log.Infof("%s: joined succesfully", h)
 		if h.IsWindows() {

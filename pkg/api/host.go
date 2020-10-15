@@ -197,7 +197,7 @@ func (h *Host) ExecWithOutput(cmd string, opts ...exec.Option) (string, error) {
 // ExecAll execs a slice of commands on the host
 func (h *Host) ExecAll(cmds []string) error {
 	for _, cmd := range cmds {
-		log.Infof("%s: Executing: %s", h.Address, cmd)
+		log.Infof("%s: Executing: %s", h, cmd)
 		output, err := h.ExecWithOutput(cmd)
 		if err != nil {
 			log.Errorf("%s: %s", h, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h)))

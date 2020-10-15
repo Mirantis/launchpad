@@ -21,16 +21,16 @@ func (p *UninstallEngine) Run() error {
 	return runParallelOnHosts(p.config.Spec.Hosts, p.config, p.uninstallEngine)
 }
 
-func (p *UninstallEngine) uninstallEngine(host *api.Host, c *api.ClusterConfig) error {
-	err := host.Exec(host.Configurer.DockerCommandf("info"))
+func (p *UninstallEngine) uninstallEngine(h *api.Host, c *api.ClusterConfig) error {
+	err := h.Exec(h.Configurer.DockerCommandf("info"))
 	if err != nil {
-		log.Infof("%s: engine not installed, skipping", host)
+		log.Infof("%s: engine not installed, skipping", h)
 		return nil
 	}
-	log.Infof("%s: uninstalling engine", host)
-	err = host.Configurer.UninstallEngine(&c.Spec.Engine)
+	log.Infof("%s: uninstalling engine", h)
+	err = h.Configurer.UninstallEngine(&c.Spec.Engine)
 	if err == nil {
-		log.Infof("%s: engine uninstalled", host)
+		log.Infof("%s: engine uninstalled", h)
 	}
 
 	return err

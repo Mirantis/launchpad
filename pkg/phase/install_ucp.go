@@ -178,8 +178,8 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 	return err
 }
 
-func cleanupUcp(host *api.Host) error {
-	containersToRemove, err := host.ExecWithOutput(host.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
+func cleanupUcp(h *api.Host) error {
+	containersToRemove, err := h.ExecWithOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func cleanupUcp(host *api.Host) error {
 		return nil
 	}
 	containersToRemove = strings.ReplaceAll(containersToRemove, "\n", " ")
-	if err := host.Exec(host.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+	if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
 		return err
 	}
 
