@@ -16,12 +16,18 @@ type ClusterSpecMetadata struct {
 	Force bool
 }
 
+// Cluster is for universal cluster settings not applicable to single hosts, ucp, dtr or engine
+type Cluster struct {
+	Prune bool `yaml:"prune" default:"false"`
+}
+
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
-	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
-	Ucp    UcpConfig    `yaml:"ucp,omitempty"`
-	Dtr    *DtrConfig   `yaml:"dtr,omitempty"`
-	Engine EngineConfig `yaml:"engine,omitempty"`
+	Hosts   Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
+	Ucp     UcpConfig    `yaml:"ucp,omitempty"`
+	Dtr     *DtrConfig   `yaml:"dtr,omitempty"`
+	Engine  EngineConfig `yaml:"engine,omitempty"`
+	Cluster Cluster      `yaml:"cluster"`
 
 	Metadata ClusterSpecMetadata `yaml:"-"`
 }

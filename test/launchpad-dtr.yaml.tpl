@@ -22,12 +22,14 @@ spec:
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "dtr"
-    - address: "127.0.0.1"
-      ssh:
-        port: 9025
-        keyPath: "./id_rsa_launchpad"
-        user: "root"
-      role: "dtr"
+    - address: "127.0.0.1" # REMOVE_THIS
+      ssh: # REMOVE_THIS
+        port: 9025 # REMOVE_THIS
+        keyPath: "./id_rsa_launchpad" # REMOVE_THIS
+        user: "root" # REMOVE_THIS
+      role: "dtr" # REMOVE_THIS
+  cluster:
+    prune: false
   ucp:
     version: $UCP_VERSION
     imageRepo: $UCP_IMAGE_REPO
