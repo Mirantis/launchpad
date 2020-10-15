@@ -111,3 +111,19 @@ func TestUcpConfig_CustomRepo(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "foo.foo/foo", cfg.ImageRepo)
 }
+
+func TestUcpConfig_Credentials(t *testing.T) {
+	cfg := UcpConfig{}
+	err := yaml.Unmarshal([]byte("username: foo\npassword: bar\n"), &cfg)
+	require.NoError(t, err)
+	require.Equal(t, "foo", cfg.Username)
+	require.Equal(t, "bar", cfg.Password)
+}
+
+func TestUcpConfig_CredentialsFromInstallFlags(t *testing.T) {
+	cfg := UcpConfig{}
+	err := yaml.Unmarshal([]byte("installFlags:\n  - --admin-username=\"foo\"\n  - --admin-password bar\n"), &cfg)
+	require.NoError(t, err)
+	require.Equal(t, "foo", cfg.Username)
+	require.Equal(t, "bar", cfg.Password)
+}

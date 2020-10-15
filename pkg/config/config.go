@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v2"
@@ -79,7 +80,8 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 	if err != nil {
 		return c, err
 	}
-	log.Debugf("loaded configuration:\n%s", result)
+	re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
+	log.Debugf("loaded configuration:\n%s", re.ReplaceAllString(string(result), "$1$2[REDACTED]"))
 
 	return c, nil
 }

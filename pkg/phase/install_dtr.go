@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/dtr"
@@ -72,7 +73,7 @@ func (p *InstallDtr) Run() error {
 
 	installFlags = append(installFlags, ucpFlags...)
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact("ucp-(?:user|pass).*"))
+	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact(fmt.Sprintf("(?:%s|%s)", regexp.QuoteMeta(installFlags.GetValue("--ucp-username")), regexp.QuoteMeta(installFlags.GetValue("--ucp-password")))))
 	if err != nil {
 		return NewError("Failed to run DTR installer")
 	}

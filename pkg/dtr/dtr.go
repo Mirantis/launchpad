@@ -156,11 +156,11 @@ func BuildUcpFlags(config *api.ClusterConfig) []string {
 	}
 
 	if ucpUser == "" {
-		ucpUser = config.Spec.Ucp.InstallFlags.GetValue("--admin-username")
+		ucpUser = config.Spec.Ucp.Username
 	}
 
 	if ucpPass == "" {
-		ucpPass = config.Spec.Ucp.InstallFlags.GetValue("--admin-password")
+		ucpPass = config.Spec.Ucp.Password
 	}
 
 	return []string{

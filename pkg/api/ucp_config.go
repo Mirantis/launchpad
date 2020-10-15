@@ -14,6 +14,8 @@ import (
 type UcpConfig struct {
 	Version         string    `yaml:"version"`
 	ImageRepo       string    `yaml:"imageRepo,omitempty"`
+	Username        string    `yaml:"username" validate:"required,gt=2"`
+	Password        string    `yaml:"password" validate:"required,gt=2"`
 	InstallFlags    Flags     `yaml:"installFlags,omitempty,flow"`
 	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string    `yaml:"configData,omitempty"`
@@ -71,6 +73,22 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 		raw.Cloud.ConfigData = string(cloudConfigData)
+	}
+
+	if flagValue := raw.InstallFlags.GetValue("--admin-username"); flagValue != "" {
+		if raw.Username == "" {
+			raw.Username = flagValue
+		} else if flagValue != raw.Username {
+			return fmt.Errorf("both Spec.Ucp.Username and Spec.Ucp.InstallFlags --admin-username set, only one allowed")
+		}
+	}
+
+	if flagValue := raw.InstallFlags.GetValue("--admin-password"); flagValue != "" {
+		if raw.Password == "" {
+			raw.Password = flagValue
+		} else if flagValue != raw.Username {
+			return fmt.Errorf("both Spec.Ucp.Password and Spec.Ucp.InstallFlags --admin-password set, only one allowed")
+		}
 	}
 
 	if raw.CACertPath != "" {

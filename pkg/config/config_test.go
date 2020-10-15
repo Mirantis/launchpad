@@ -24,6 +24,9 @@ spec:
 	  - address: 10.0.0.2
 		  role: worker
 		  localhost: true
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -42,6 +45,9 @@ spec:
 	  - address: 10.0.0.2
 		  role: worker
 		  localhost: true
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -56,6 +62,9 @@ apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
 spec:
   hosts:
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -71,6 +80,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "512.1.2.3"
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -86,6 +98,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "10.10.10.10"
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -100,6 +115,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1-2-foo"
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -115,6 +133,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "foo.example.com"
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -133,6 +154,9 @@ spec:
 		  role: manager
 			ssh:
         port: 0
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -151,6 +175,9 @@ spec:
       ssh:
         port: 22
         keyPath: /path/to/nonexisting/key
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -169,6 +196,9 @@ spec:
     ssh:
 		  port: 22
     role: foobar
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -191,6 +221,9 @@ spec:
       log-opts:
         max-size: 10m
         max-files: 5
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -211,6 +244,9 @@ spec:
 		sshKeyPath: /path/to/nonexisting
 		user: foofoo
     role: manager
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -236,6 +272,9 @@ spec:
 		winRM:
 		  user: foo
 			password: foo
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 	require.NoError(t, Validate(c))
@@ -255,6 +294,9 @@ spec:
 		sshKeyPath: /path/to/nonexisting
 		user: foofoo
     role: manager
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -277,6 +319,9 @@ spec:
 		  role: manager
 		  winRM:
 			  caCertPath: /path/to/nonexisting
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -295,6 +340,9 @@ spec:
 		  role: manager
 		  winRM:
 			  certPath: /path/to/nonexisting
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -313,6 +361,9 @@ spec:
 		  role: manager
 		  winRM:
 			  keyPath: /path/to/nonexisting
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -329,6 +380,9 @@ spec:
   hosts:
     - address: "1.2.3.4"
 		  role: manager
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -347,6 +401,9 @@ spec:
 		  role: manager
 		  winRM:
 			  user: User
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -371,6 +428,9 @@ spec:
 		  role: weirdrole
     - address: "1.2.3.5"
 		  role: manager
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 		c := loadYaml(t, data)
 
@@ -391,6 +451,9 @@ spec:
 		  role: manager
 		  winRM:
 		    user: User
+	ucp:
+	  username: foofoo
+		password: barbar
 `
 		c := loadYaml(t, data)
 
