@@ -22,33 +22,33 @@ func (p *Connect) Run() error {
 	return runParallelOnHosts(p.config.Spec.Hosts, p.config, p.connectHost)
 }
 
-func (p *Connect) connectHost(host *api.Host, c *api.ClusterConfig) error {
+func (p *Connect) connectHost(h *api.Host, c *api.ClusterConfig) error {
 	proto := "SSH"
 
-	if host.Localhost {
+	if h.Localhost {
 		proto = "Local"
-	} else if host.WinRM != nil {
+	} else if h.WinRM != nil {
 		proto = "WinRM"
 	}
 
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: opening %s connection", host.Address, proto)
-			err := host.Connect()
+			log.Infof("%s: opening %s connection", h.Address, proto)
+			err := h.Connect()
 			if err != nil {
-				log.Errorf("%s: failed to connect -> %s", host.Address, err.Error())
+				log.Errorf("%s: failed to connect -> %s", h.Address, err.Error())
 			}
 			return err
 		},
 		retry.Attempts(6),
 	)
 	if err != nil {
-		log.Errorf("%s: failed to open connection", host.Address)
+		log.Errorf("%s: failed to open connection", h.Address)
 		return err
 	}
 
-	log.Printf("%s: %s connection opened", host.Address, proto)
-	return p.testConnection(host)
+	log.Printf("%s: %s connection opened", h.Address, proto)
+	return p.testConnection(h)
 }
 
 func (p *Connect) testConnection(h *api.Host) error {

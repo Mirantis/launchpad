@@ -32,30 +32,30 @@ func (p *PrepareHost) Run() error {
 	return nil
 }
 
-func (p *PrepareHost) installBasePackages(host *api.Host, c *api.ClusterConfig) error {
+func (p *PrepareHost) installBasePackages(h *api.Host, c *api.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: installing base packages", host.Address)
-			err := host.Configurer.InstallBasePackages()
+			log.Infof("%s: installing base packages", h.Address)
+			err := h.Configurer.InstallBasePackages()
 
 			return err
 		},
 	)
 	if err != nil {
-		log.Errorf("%s: failed to install base packages -> %s", host.Address, err.Error())
+		log.Errorf("%s: failed to install base packages -> %s", h.Address, err.Error())
 		return err
 	}
 
-	log.Printf("%s: base packages installed", host.Address)
+	log.Printf("%s: base packages installed", h.Address)
 	return nil
 }
 
-func (p *PrepareHost) updateEnvironment(host *api.Host, c *api.ClusterConfig) error {
-	if len(host.Environment) > 0 {
-		log.Infof("%s: updating environment", host.Address)
-		return host.Configurer.UpdateEnvironment()
+func (p *PrepareHost) updateEnvironment(h *api.Host, c *api.ClusterConfig) error {
+	if len(h.Environment) > 0 {
+		log.Infof("%s: updating environment", h.Address)
+		return h.Configurer.UpdateEnvironment()
 	}
 
-	log.Debugf("%s: no environment variables specified for the host", host.Address)
+	log.Debugf("%s: no environment variables specified for the host", h.Address)
 	return nil
 }
