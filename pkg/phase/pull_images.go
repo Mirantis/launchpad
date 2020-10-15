@@ -107,7 +107,7 @@ func (p *PullImages) ListImages(config *api.ClusterConfig) ([]string, error) {
 
 // ImagePull pulls images on a host in parallel using a workerpool with 5
 // workers. Essentially we pull 5 images in parallel.
-func ImagePull(host *api.Host, images []string) error {
+func ImagePull(h *api.Host, images []string) error {
 	wp := workerpool.New(5)
 	defer wp.StopWait()
 
@@ -116,11 +116,11 @@ func ImagePull(host *api.Host, images []string) error {
 		wp.Submit(func() {
 			retry.Do(
 				func() error {
-					if !host.ImageExist(i) {
-						log.Infof("%s: pulling image %s", host.Address, i)
-						return host.PullImage(i)
+					if !h.ImageExist(i) {
+						log.Infof("%s: pulling image %s", h.Address, i)
+						return h.PullImage(i)
 					}
-					log.Infof("%s: image %s already exists", host.Address, i)
+					log.Infof("%s: image %s already exists", h.Address, i)
 					return nil
 				},
 				retry.RetryIf(func(err error) bool {
@@ -128,7 +128,7 @@ func ImagePull(host *api.Host, images []string) error {
 				}),
 				retry.OnRetry(func(n uint, err error) {
 					if err != nil {
-						log.Warnf("%s: failed to pull image %s - retrying", host.Address, i)
+						log.Warnf("%s: failed to pull image %s - retrying", h.Address, i)
 					}
 				}),
 				retry.Attempts(2),
@@ -140,11 +140,11 @@ func ImagePull(host *api.Host, images []string) error {
 
 // RetagImages takes a list of images and retags them for use with a custom
 // image repo
-func RetagImages(host *api.Host, imageMap map[string]string) error {
+func RetagImages(h *api.Host, imageMap map[string]string) error {
 	for dockerImage, realImage := range imageMap {
-		retagCmd := host.Configurer.DockerCommandf("tag %s %s", realImage, dockerImage)
-		log.Debugf("%s: retag %s --> %s", host.Address, realImage, dockerImage)
-		err := host.Exec(retagCmd)
+		retagCmd := h.Configurer.DockerCommandf("tag %s %s", realImage, dockerImage)
+		log.Debugf("%s: retag %s --> %s", h.Address, realImage, dockerImage)
+		err := h.Exec(retagCmd)
 		if err != nil {
 			return err
 		}

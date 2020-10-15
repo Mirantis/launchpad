@@ -121,9 +121,9 @@ func NewError(err string) *Error {
 	}
 }
 
-func runParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(host *api.Host, config *api.ClusterConfig) error) error {
-	return hosts.ParallelEach(func(host *api.Host) error {
-		err := action(host, config)
+func runParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(h *api.Host, config *api.ClusterConfig) error) error {
+	return hosts.ParallelEach(func(h *api.Host) error {
+		err := action(h, config)
 		if err != nil {
 			log.Error(err.Error())
 		}

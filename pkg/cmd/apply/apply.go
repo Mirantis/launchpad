@@ -23,7 +23,6 @@ import (
 // Options for apply
 type Options struct {
 	Config      string
-	Prune       bool
 	Force       bool
 	SkipCleanup bool
 	Debug       bool
@@ -99,9 +98,7 @@ func Apply(opts *Options) error {
 		phaseManager.AddPhase(&phase.JoinDtrReplicas{})
 	}
 	phaseManager.AddPhase(&phase.LabelNodes{})
-	if opts.Prune {
-		phaseManager.AddPhase(&phase.RemoveNodes{})
-	}
+	phaseManager.AddPhase(&phase.RemoveNodes{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }})
 	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.Info{})

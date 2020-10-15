@@ -16,12 +16,18 @@ type ClusterSpecMetadata struct {
 	Force bool
 }
 
+// Cluster is for universal cluster settings not applicable to single hosts, ucp, dtr or engine
+type Cluster struct {
+	Prune bool `yaml:"prune" default:"false"`
+}
+
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
-	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
-	Ucp    UcpConfig    `yaml:"ucp,omitempty"`
-	Dtr    *DtrConfig   `yaml:"dtr,omitempty"`
-	Engine EngineConfig `yaml:"engine,omitempty"`
+	Hosts   Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
+	Ucp     UcpConfig    `yaml:"ucp,omitempty"`
+	Dtr     *DtrConfig   `yaml:"dtr,omitempty"`
+	Engine  EngineConfig `yaml:"engine,omitempty"`
+	Cluster Cluster      `yaml:"cluster"`
 
 	Metadata ClusterSpecMetadata `yaml:"-"`
 }
@@ -177,24 +183,24 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func isSwarmLeader(host *Host) bool {
+func isSwarmLeader(h *Host) bool {
 	// We can by-pass the Configurer interface as managers are always linux boxes
-	output, err := host.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
+	output, err := h.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
 	if err != nil {
-		log.Warnf("failed to get host's swarm leader status, probably not part of swarm")
+		log.Warnf("%s: failed to get host's swarm leader status, probably not part of swarm", h.Address)
 		return false
 	}
 	return output == "true"
 }
 
 // IsDtrInstalled checks to see if DTR is installed on the given host
-func IsDtrInstalled(host *Host) bool {
-	output, err := host.ExecWithOutput(`sudo docker ps -q --filter name=dtr-`)
+func IsDtrInstalled(h *Host) bool {
+	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`ps -q --filter name=dtr-`))
 	if err != nil {
 		// During the initial pre-installation phases, we expect this to fail
 		// so logging the error to debug is best to prevent erroneous errors
 		// from appearing problematic
-		log.Debugf("unable to determine if host has DTR installed: %s", err)
+		log.Debugf("%s: unable to determine if host has DTR installed: %s", h.Address, err)
 		return false
 	}
 	output = strings.Trim(output, "\n")
@@ -212,10 +218,10 @@ func (c *ClusterSpec) DtrLeader() *Host {
 	// but we need to make sure we have a Host to reference during our other
 	// bootstrap operations: Upgrade and Join
 	dtrs := c.Dtrs()
-	leader := dtrs.Find(IsDtrInstalled)
-	if leader != nil {
-		log.Debugf("%s: found DTR installed, using as leader", leader.Address)
-		return leader
+	h := dtrs.Find(IsDtrInstalled)
+	if h != nil {
+		log.Debugf("%s: found DTR installed, using as leader", h.Address)
+		return h
 	}
 
 	log.Debugf("did not find a DTR installation, falling back to the first DTR host")
