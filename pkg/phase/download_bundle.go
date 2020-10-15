@@ -39,10 +39,9 @@ func (p *DownloadBundle) Run() error {
 		return fmt.Errorf("error getting TLS config: %w", err)
 	}
 
-	urls := p.config.Spec.WebURLs()
-	url, err := util.ResolveURL(urls.Ucp)
+	url, err := p.config.Spec.UcpURL()
 	if err != nil {
-		return fmt.Errorf("error while parsing URL: %w", err)
+		return err
 	}
 
 	bundle, err := ucp.GetClientBundle(url, tlsConfig, p.Username, p.Password)

@@ -2,7 +2,7 @@ package phase
 
 import (
 	"fmt"
-	"strings"
+	"net"
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
@@ -68,7 +68,7 @@ func (p *GatherFacts) Run() error {
 			DtrLeaderReplicaID: "",
 		}
 		dtrLeader := p.config.Spec.DtrLeader()
-		if dtrLeader.Metadata.EngineVersion != "" {
+		if dtrLeader != nil && dtrLeader.Metadata != nil && dtrLeader.Metadata.EngineVersion != "" {
 			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
 			if err != nil {
 				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
@@ -86,6 +86,10 @@ func (p *GatherFacts) Run() error {
 }
 
 func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
+	if h.Connection == nil {
+		return fmt.Errorf("%s: not connected", h.Address)
+	}
+
 	log.Infof("%s: gathering host facts", h.Address)
 
 	os := &api.OsRelease{}
@@ -97,6 +101,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		}
 		os = winOs
 	} else {
+		h.Connection.SetWindows(false)
 		linuxOs, err := p.resolveLinuxOsRelease(h)
 		if err != nil {
 			return err
@@ -115,13 +120,33 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 
-	h.Metadata.EngineVersion = h.EngineVersion()
+	version, err := h.EngineVersion()
+	if err != nil || version == "" {
+		log.Infof("%s: docker engine not installed", h.Address)
+	} else {
+		log.Infof("%s: is running docker engine version %s", h.Address, version)
+	}
+
+	h.Metadata.EngineVersion = version
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.LongHostname = h.Configurer.ResolveLongHostname()
+
+	if h.PrivateInterface == "" {
+		i, err := h.Configurer.ResolvePrivateInterface()
+		if err != nil {
+			return err
+		}
+		log.Infof("%s: detected private interface '%s'", h.Address, i)
+		h.PrivateInterface = i
+	}
+
 	a, err := h.Configurer.ResolveInternalIP()
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: failed to resolve internal address: %s", h.Address, err.Error())
+	}
+	if net.ParseIP(a) == nil {
+		return fmt.Errorf("%s: failed to resolve internal address: invalid IP address: %q", h.Address, a)
 	}
 	h.Metadata.InternalAddress = a
 
@@ -133,19 +158,15 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 }
 
 func (p *GatherFacts) isWindows(h *api.Host) bool {
-	return h.ExecCmd("cmd /c exit 0", "", false, false) == nil
+	return h.Exec("cmd /c exit 0") == nil
 }
 
-// ResolveWindowsOsRelease ...
+// ResolveWindowsOsRelease ... TODO: this implementation belongs somewhere else
 func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
 	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
-	osName = strings.TrimSpace(osName)
 	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
-	osMajor = strings.TrimSpace(osMajor)
 	osMinor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMinorVersionNumber"`)
-	osMinor = strings.TrimSpace(osMinor)
 	osBuild, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentBuild"`)
-	osBuild = strings.TrimSpace(osBuild)
 
 	version := fmt.Sprintf("%s.%s.%s", osMajor, osMinor, osBuild)
 	osRelease := &api.OsRelease{

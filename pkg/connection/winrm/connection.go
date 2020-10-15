@@ -2,14 +2,14 @@ package winrm
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/masterzen/winrm"
@@ -86,24 +86,39 @@ func (c *Connection) Connect() error {
 		Port:          c.Port,
 		HTTPS:         c.UseHTTPS,
 		Insecure:      c.Insecure,
-		CACert:        c.caCert,
-		Cert:          c.cert,
-		Key:           c.key,
 		TLSServerName: c.TLSServerName,
 		Timeout:       60 * time.Second,
 	}
 
-	client, err := winrm.NewClient(endpoint, c.User, c.Password)
+	if len(c.caCert) > 0 {
+		endpoint.CACert = c.caCert
+	}
+
+	if len(c.cert) > 0 {
+		endpoint.Cert = c.cert
+	}
+
+	if len(c.key) > 0 {
+		endpoint.Key = c.key
+	}
+
+	params := winrm.DefaultParameters
+
+	if c.UseNTLM {
+		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientNTLM{} }
+	}
+
+	if c.UseHTTPS && len(c.cert) > 0 {
+		params.TransportDecorator = func() winrm.Transporter { return &winrm.ClientAuthRequest{} }
+	}
+
+	client, err := winrm.NewClientWithParameters(endpoint, c.User, c.Password, params)
+
 	if err != nil {
 		return err
 	}
+
 	c.client = client
-
-	_, err = client.CreateShell()
-
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -113,86 +128,93 @@ func (c *Connection) Disconnect() {
 	c.client = nil
 }
 
-// ExecCmd executes a command on the host
-func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
+// Exec executes a command on the host
+func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
+	o := exec.Build(opts...)
 	shell, err := c.client.CreateShell()
 	if err != nil {
 		return err
 	}
+	defer shell.Close()
 
-	if !sensitiveCommand {
-		log.Debugf("%s: executing command: %s", c.Address, cmd)
-	}
+	o.LogCmd(c.Address, cmd)
 
 	command, err := shell.Execute(cmd)
 	if err != nil {
 		return err
 	}
 
-	if stdin != "" {
-		if sensitiveCommand || len(stdin) > 256 {
-			log.Debugf("%s: writing %d bytes to command stdin", c.Address, len(stdin))
-		} else {
-			log.Debugf("%s: writing %d bytes to command stdin: %s", c.Address, len(stdin), stdin)
-		}
+	var wg sync.WaitGroup
 
+	if o.Stdin != "" {
+		o.LogStdin(c.Address)
+		wg.Add(1)
 		go func() {
-			command.Stdin.Write([]byte(stdin))
-			command.Stdin.Close()
+			defer wg.Done()
+			defer command.Stdin.Close()
+			_, err := command.Stdin.Write([]byte(o.Stdin))
+			if err != nil {
+				log.Errorf("failed to send command stdin: %s", err.Error())
+			}
+			log.Tracef("%s: input loop exited", c.Address)
 		}()
-	} else {
-		command.Stdin.Close()
 	}
 
-	multiReader := io.MultiReader(command.Stdout, command.Stderr)
-	outputScanner := bufio.NewScanner(multiReader)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(command.Stdout)
 
-	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s:  %s", c.Address, outputScanner.Text())
-		} else {
-			log.Debugf("%s:  %s", c.Address, outputScanner.Text())
+		for outputScanner.Scan() {
+			o.AddOutput(c.Address, outputScanner.Text()+"\n")
 		}
-	}
-	if err := outputScanner.Err(); err != nil {
-		log.Errorf("%s:  %s", c.Address, err.Error())
-	}
+
+		if err := outputScanner.Err(); err != nil {
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		command.Stdout.Close()
+		log.Tracef("%s: stdout loop exited", c.Address)
+	}()
+
+	gotErrors := false
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(command.Stderr)
+
+		for outputScanner.Scan() {
+			gotErrors = true
+			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
+		}
+
+		if err := outputScanner.Err(); err != nil {
+			gotErrors = true
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		command.Stdout.Close()
+		log.Tracef("%s: stderr loop exited", c.Address)
+	}()
+
+	log.Tracef("%s: waiting for command exit", c.Address)
 
 	command.Wait()
-	command.Close()
-	shell.Close()
+	log.Tracef("%s: command exited", c.Address)
 
-	if command.ExitCode() > 0 {
-		return fmt.Errorf("%s: command failed", c.Address)
+	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	wg.Wait()
+	log.Tracef("%s: syncgroup done", c.Address)
+
+	err = command.Close()
+	if err != nil {
+		log.Warnf("%s: %s", c.Address, err.Error())
+	}
+
+	if command.ExitCode() > 0 || gotErrors {
+		return fmt.Errorf("command failed")
 	}
 
 	return nil
-}
-
-// ExecWithOutput executes a command on the host and returns its output
-func (c *Connection) ExecWithOutput(cmd string) (string, error) {
-	shell, err := c.client.CreateShell()
-	if err != nil {
-		return "", err
-	}
-
-	command, err := shell.Execute(cmd)
-	if err != nil {
-		return "", err
-	}
-
-	var outWriter, errWriter bytes.Buffer
-	go io.Copy(&outWriter, command.Stdout)
-	go io.Copy(&errWriter, command.Stderr)
-
-	command.Wait()
-	shell.Close()
-
-	if command.ExitCode() > 0 {
-		return "", fmt.Errorf("%s: command failed (%d): %s", c.Address, command.ExitCode(), errWriter.String())
-	}
-
-	return strings.TrimSpace(outWriter.String()), nil
 }
 
 // ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host

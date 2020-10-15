@@ -6,12 +6,14 @@ import (
 	"io"
 	"net"
 	"os"
-	"strings"
+	"sync"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 
-	util "github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/acarl005/stripansi"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,6 +25,7 @@ type Connection struct {
 	KeyPath string
 
 	isWindows bool
+	knowOs    bool
 	client    *ssh.Client
 }
 
@@ -33,6 +36,7 @@ func (c *Connection) Disconnect() {
 
 // SetWindows can be used to tell the SSH connection to consider the host to be running Windows
 func (c *Connection) SetWindows(v bool) {
+	c.knowOs = true
 	c.isWindows = v
 }
 
@@ -77,102 +81,106 @@ func (c *Connection) Connect() error {
 		return err
 	}
 	c.client = client
-
 	return nil
 }
 
-// ExecCmd executes a command on the host
-func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
+// Exec executes a command on the host
+func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
+	o := exec.Build(opts...)
 	session, err := c.client.NewSession()
 	if err != nil {
 		return err
 	}
 	defer session.Close()
 
-	if stdin == "" && !c.isWindows {
-		// FIXME not requesting a pty for commands with stdin input for now,
-		// as it appears the pipe doesn't get closed with stdinpipe.Close()
-		modes := ssh.TerminalModes{}
+	if len(o.Stdin) == 0 && c.knowOs && !c.isWindows {
+		// Only request a PTY when there's no STDIN data, because
+		// then you would need to send a CTRL-D after input to signal
+		// the end of text
+		modes := ssh.TerminalModes{ssh.ECHO: 0}
 		err = session.RequestPty("xterm", 80, 40, modes)
 		if err != nil {
 			return err
 		}
 	}
 
-	stdout, err := session.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := session.StderrPipe()
-	if err != nil {
-		return err
-	}
+	o.LogCmd(c.Address, cmd)
 
-	stdinPipe, err := session.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	if !sensitiveCommand {
-		log.Debugf("%s: executing command: %s", c.Address, cmd)
-	}
+	stdin, _ := session.StdinPipe()
+	stdout, _ := session.StdoutPipe()
+	stderr, _ := session.StderrPipe()
 
 	if err := session.Start(cmd); err != nil {
 		return err
 	}
 
-	if stdin != "" {
-		if sensitiveCommand || len(stdin) > 256 {
-			log.Debugf("%s: writing %d bytes to command stdin", c.Address, len(stdin))
-		} else {
-			log.Debugf("%s: writing %d bytes to command stdin: %s", c.Address, len(stdin), stdin)
+	if len(o.Stdin) > 0 {
+		o.LogStdin(c.Address)
+		io.WriteString(stdin, o.Stdin)
+	}
+	stdin.Close()
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(stdout)
+
+		for outputScanner.Scan() {
+			text := outputScanner.Text()
+			stripped := stripansi.Strip(text)
+			o.AddOutput(c.Address, stripped+"\n")
 		}
 
-		go func() {
-			defer stdinPipe.Close()
-			io.WriteString(stdinPipe, stdin)
-		}()
-	}
-
-	multiReader := io.MultiReader(stdout, stderr)
-	outputScanner := bufio.NewScanner(multiReader)
-
-	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s:  %s", c.Address, outputScanner.Text())
-		} else {
-			log.Debugf("%s:  %s", c.Address, outputScanner.Text())
+		if err := outputScanner.Err(); err != nil {
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
 		}
-	}
-	if err := outputScanner.Err(); err != nil {
-		log.Errorf("%s:  %s", c.Address, err.Error())
+		log.Tracef("%s: stdout loop exited", c.Address)
+	}()
+
+	gotErrors := false
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		outputScanner := bufio.NewScanner(stderr)
+
+		for outputScanner.Scan() {
+			gotErrors = true
+			o.AddOutput(c.Address+" (stderr)", outputScanner.Text()+"\n")
+		}
+
+		if err := outputScanner.Err(); err != nil {
+			gotErrors = true
+			o.LogErrorf("%s:  %s", c.Address, err.Error())
+		}
+		log.Tracef("%s: stderr loop exited", c.Address)
+	}()
+
+	log.Tracef("%s: waiting for command exit", c.Address)
+	err = session.Wait()
+	log.Tracef("%s: waiting for syncgroup done", c.Address)
+	wg.Wait()
+
+	if err != nil {
+		return err
 	}
 
-	return session.Wait()
+	if c.knowOs && c.isWindows && gotErrors {
+		return fmt.Errorf("command failed (received output to stderr on windows)")
+	}
+
+	return nil
 }
 
-// ExecWithOutput execs a command on the host and returns its output
-func (c *Connection) ExecWithOutput(cmd string) (string, error) {
-	session, err := c.client.NewSession()
-	if err != nil {
-		return "", err
+// Upload uploads a larger file to the host.
+// Use instead of configurer.WriteFile when it seems appropriate
+func (c *Connection) Upload(src, dst string) error {
+	if c.IsWindows() {
+		return c.uploadWindows(src, dst)
 	}
-	defer session.Close()
-
-	output, err := session.CombinedOutput(cmd)
-	if err != nil {
-		return trimOutput(output), err
-	}
-
-	return trimOutput(output), nil
-}
-
-func trimOutput(output []byte) string {
-	if len(output) == 0 {
-		return ""
-	}
-
-	return strings.TrimSpace(string(output))
+	return c.uploadLinux(src, dst)
 }
 
 // ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host

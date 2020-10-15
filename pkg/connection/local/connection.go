@@ -4,11 +4,11 @@ import (
 	"bufio"
 	"io"
 	"os"
-	"os/exec"
+	osexec "os/exec"
 	"runtime"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/Mirantis/mcc/pkg/exec"
 )
 
 const hostname = "localhost"
@@ -37,18 +37,15 @@ func (c *Connection) Connect() error {
 // Disconnect on local connection does nothing
 func (c *Connection) Disconnect() {}
 
-// ExecCmd executes a command on the host
-func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
+// Exec executes a command on the host
+func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
+	o := exec.Build(opts...)
 	command := c.command(cmd)
 
-	if stdin != "" {
-		if sensitiveCommand || len(stdin) > 256 {
-			log.Debugf("%s: writing %d bytes to command stdin", hostname, len(stdin))
-		} else {
-			log.Debugf("%s: writing %d bytes to command stdin: %s", hostname, len(stdin), stdin)
-		}
+	if o.Stdin != "" {
+		o.LogStdin(hostname)
 
-		command.Stdin = strings.NewReader(stdin)
+		command.Stdin = strings.NewReader(o.Stdin)
 	}
 
 	stdout, err := command.StdoutPipe()
@@ -63,44 +60,40 @@ func (c *Connection) ExecCmd(cmd string, stdin string, streamStdout bool, sensit
 	multiReader := io.MultiReader(stdout, stderr)
 	outputScanner := bufio.NewScanner(multiReader)
 
-	if !sensitiveCommand {
-		log.Debugf("%s: executing command: %s", hostname, cmd)
-	}
+	o.LogCmd(hostname, cmd)
 
 	command.Start()
 
 	for outputScanner.Scan() {
-		if streamStdout {
-			log.Infof("%s: %s", hostname, outputScanner.Text())
-		} else {
-			log.Debugf("%s: %s", hostname, outputScanner.Text())
-		}
+		o.AddOutput(hostname, outputScanner.Text()+"\n")
 	}
 
 	return command.Wait()
 }
 
-// ExecWithOutput execs a command on the host and returns its output
-func (c *Connection) ExecWithOutput(cmd string) (string, error) {
-	command := c.command(cmd)
-	output, err := command.CombinedOutput()
-	return trimOutput(output), err
-}
-
-func trimOutput(output []byte) string {
-	if len(output) == 0 {
-		return ""
-	}
-
-	return strings.TrimSpace(string(output))
-}
-
-func (c *Connection) command(cmd string) *exec.Cmd {
+func (c *Connection) command(cmd string) *osexec.Cmd {
 	if c.IsWindows() {
-		return exec.Command(cmd)
+		return osexec.Command(cmd)
 	}
 
-	return exec.Command("bash", "-c", "--", cmd)
+	return osexec.Command("bash", "-c", "--", cmd)
+}
+
+// Upload copies a larger file to another path on the host.
+func (c *Connection) Upload(src, dst string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+
+	out, err := os.Create(dst)
+	defer out.Close()
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(out, in)
+	return err
 }
 
 // ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host

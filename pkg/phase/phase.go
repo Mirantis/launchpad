@@ -14,6 +14,7 @@ type Phase interface {
 	Title() string
 	Prepare(*api.ClusterConfig) error
 	ShouldRun() bool
+	CleanUp()
 }
 
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun
@@ -41,6 +42,9 @@ func (b *BasicPhase) Prepare(config *api.ClusterConfig) error {
 func (b *BasicPhase) ShouldRun() bool {
 	return true
 }
+
+// CleanUp basic implementation
+func (b *BasicPhase) CleanUp() {}
 
 // Title default implementation
 func (h *HostSelectPhase) Title() string {
@@ -117,9 +121,9 @@ func NewError(err string) *Error {
 	}
 }
 
-func runParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(host *api.Host, config *api.ClusterConfig) error) error {
-	return hosts.ParallelEach(func(host *api.Host) error {
-		err := action(host, config)
+func runParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(h *api.Host, config *api.ClusterConfig) error) error {
+	return hosts.ParallelEach(func(h *api.Host) error {
+		err := action(h, config)
 		if err != nil {
 			log.Error(err.Error())
 		}

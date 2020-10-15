@@ -2,10 +2,12 @@ package api
 
 import (
 	"fmt"
+	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/util"
+	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,20 +16,20 @@ type ClusterSpecMetadata struct {
 	Force bool
 }
 
-// ClusterSpec defines cluster spec
-type ClusterSpec struct {
-	Hosts  Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
-	Ucp    UcpConfig    `yaml:"ucp,omitempty"`
-	Dtr    *DtrConfig   `yaml:"dtr,omitempty"`
-	Engine EngineConfig `yaml:"engine,omitempty"`
-
-	Metadata ClusterSpecMetadata `yaml:"-"`
+// Cluster is for universal cluster settings not applicable to single hosts, ucp, dtr or engine
+type Cluster struct {
+	Prune bool `yaml:"prune" default:"false"`
 }
 
-// WebUrls holds admin web url strings for different products
-type WebUrls struct {
-	Ucp string
-	Dtr string
+// ClusterSpec defines cluster spec
+type ClusterSpec struct {
+	Hosts   Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
+	Ucp     UcpConfig    `yaml:"ucp,omitempty"`
+	Dtr     *DtrConfig   `yaml:"dtr,omitempty"`
+	Engine  EngineConfig `yaml:"engine,omitempty"`
+	Cluster Cluster      `yaml:"cluster"`
+
+	Metadata ClusterSpecMetadata `yaml:"-"`
 }
 
 // Workers filters only the workers from the cluster config
@@ -65,29 +67,109 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 	return m.First()
 }
 
-// WebURLs returns a URL to web UI for both UCP and DTR
-func (c *ClusterSpec) WebURLs() *WebUrls {
-	ucpAddress := util.GetInstallFlagValue(c.Ucp.InstallFlags, "--san")
-	if ucpAddress == "" {
-		ucpAddress = c.Managers()[0].Address
+// UcpURL returns a URL for UCP or an error if one can not be generated
+func (c *ClusterSpec) UcpURL() (*url.URL, error) {
+	// Easy route, user has provided one in DTR --ucp-url
+	if c.Dtr != nil {
+		if f := c.Dtr.InstallFlags.GetValue("--ucp-url"); f != "" {
+			if !strings.Contains(f, "://") {
+				f = "https://" + f
+			}
+			u, err := url.Parse(f)
+			if err != nil {
+				return nil, fmt.Errorf("invalid DTR --ucp-url install flag '%s': %s", f, err.Error())
+			}
+			if u.Path == "" {
+				u.Path = "/"
+			}
+			return u, nil
+		}
 	}
 
-	ucpAddress = fmt.Sprintf("https://%s", ucpAddress)
-	dtrAddress := c.dtrWebURL()
-	if dtrAddress != "" {
-		dtrAddress = fmt.Sprintf("https://%s", c.dtrWebURL())
+	var ucpAddr string
+	// Option 2: there's a "--san" install flag
+	if addr := c.Ucp.InstallFlags.GetValue("--san"); addr != "" {
+		ucpAddr = addr
+	} else {
+		// Option 3: Use the first manager's address
+		mgrs := c.Managers()
+		if len(mgrs) < 1 {
+			return nil, fmt.Errorf("unable to generate a url for ucp")
+		}
+		ucpAddr = mgrs[0].Address
 	}
 
-	return &WebUrls{
-		Ucp: ucpAddress,
-		Dtr: dtrAddress,
+	if portstr := c.Ucp.InstallFlags.GetValue("--controller-port"); portstr != "" {
+		p, err := strconv.Atoi(portstr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ucp controller-port value: '%s': %s", portstr, err.Error())
+		}
+		ucpAddr = fmt.Sprintf("%s:%d", ucpAddr, p)
 	}
+
+	return &url.URL{
+		Scheme: "https",
+		Path:   "/",
+		Host:   ucpAddr,
+	}, nil
+}
+
+// DtrURL returns an url to DTR or an error if one can't be generated
+func (c *ClusterSpec) DtrURL() (*url.URL, error) {
+	if c.Dtr != nil {
+		// Default to using the --dtr-external-url if it's set
+		if f := c.Dtr.InstallFlags.GetValue("--dtr-external-url"); f != "" {
+			if !strings.Contains(f, "://") {
+				f = "https://" + f
+			}
+			u, err := url.Parse(f)
+			if err != nil {
+				return nil, fmt.Errorf("invalid DTR --dtr-external-url install flag '%s': %s", f, err.Error())
+			}
+			if u.Scheme == "" {
+				u.Scheme = "https"
+			}
+			if u.Path == "" {
+				u.Path = "/"
+			}
+			return u, nil
+		}
+	}
+
+	var dtrAddr string
+
+	// Otherwise, use DtrLeaderAddress
+	if c.Dtr != nil && c.Dtr.Metadata != nil && c.Dtr.Metadata.DtrLeaderAddress != "" {
+		dtrAddr = c.Dtr.Metadata.DtrLeaderAddress
+	} else {
+		dtrs := c.Dtrs()
+		if len(dtrs) < 1 {
+			return nil, fmt.Errorf("unable to generate a DTR URL - no nodes with role 'dtr' present")
+		}
+		dtrAddr = dtrs[0].Address
+	}
+
+	if c.Dtr != nil {
+		if portstr := c.Dtr.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
+			p, err := strconv.Atoi(portstr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid dtr --replica-https-port value '%s': %s", portstr, err.Error())
+			}
+			dtrAddr = fmt.Sprintf("%s:%d", dtrAddr, p)
+		}
+	}
+
+	return &url.URL{
+		Scheme: "https",
+		Path:   "/",
+		Host:   dtrAddr,
+	}, nil
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type yclusterspec ClusterSpec
-	yc := (*yclusterspec)(c)
+	type spec ClusterSpec
+	yc := (*spec)(c)
 	c.Metadata = ClusterSpecMetadata{}
 	c.Engine = EngineConfig{}
 	c.Ucp = NewUcpConfig()
@@ -101,24 +183,24 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-func isSwarmLeader(host *Host) bool {
+func isSwarmLeader(h *Host) bool {
 	// We can by-pass the Configurer interface as managers are always linux boxes
-	output, err := host.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
+	output, err := h.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
 	if err != nil {
-		log.Warnf("failed to get host's swarm leader status, probably not part of swarm")
+		log.Warnf("%s: failed to get host's swarm leader status, probably not part of swarm", h.Address)
 		return false
 	}
 	return output == "true"
 }
 
 // IsDtrInstalled checks to see if DTR is installed on the given host
-func IsDtrInstalled(host *Host) bool {
-	output, err := host.ExecWithOutput(`sudo docker ps -q --filter name=dtr-`)
+func IsDtrInstalled(h *Host) bool {
+	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`ps -q --filter name=dtr-`))
 	if err != nil {
 		// During the initial pre-installation phases, we expect this to fail
 		// so logging the error to debug is best to prevent erroneous errors
 		// from appearing problematic
-		log.Debugf("unable to determine if host has DTR installed: %s", err)
+		log.Debugf("%s: unable to determine if host has DTR installed: %s", h.Address, err)
 		return false
 	}
 	output = strings.Trim(output, "\n")
@@ -136,13 +218,13 @@ func (c *ClusterSpec) DtrLeader() *Host {
 	// but we need to make sure we have a Host to reference during our other
 	// bootstrap operations: Upgrade and Join
 	dtrs := c.Dtrs()
-	leader := dtrs.Find(IsDtrInstalled)
-	if leader != nil {
-		log.Debugf("%s: found DTR installed, using as leader", leader.Address)
-		return leader
+	h := dtrs.Find(IsDtrInstalled)
+	if h != nil {
+		log.Debugf("%s: found DTR installed, using as leader", h.Address)
+		return h
 	}
 
-	log.Debugf("did not find a DTR installation, falling back to first DTR host")
+	log.Debugf("did not find a DTR installation, falling back to the first DTR host")
 	return dtrs.First()
 }
 
@@ -151,30 +233,35 @@ func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
-// dtrWebURL returns an address based on the DtrLeaderAddress or whether the
-// user has provided the --dtr-external-url flag
-func (c *ClusterSpec) dtrWebURL() string {
-	if c.Dtr == nil {
-		return ""
+// CheckUCPHealthRemote will check ucp cluster health from a host and return an error if it failed
+func (c *ClusterSpec) CheckUCPHealthRemote(h *Host) error {
+	u, err := c.UcpURL()
+	if err != nil {
+		return err
+	}
+	u.Path = "/_ping"
+
+	return retry.Do(
+		func() error {
+			log.Infof("%s: waiting for UCP at %s to become healthy", h.Address, u.Host)
+			return h.CheckHTTPStatus(u.String(), 200)
+		},
+		retry.Attempts(12), // last attempt should wait ~7min
+	)
+}
+
+// CheckUCPHealthLocal will check the local ucp health on a host and return an error if it failed
+func (c *ClusterSpec) CheckUCPHealthLocal(h *Host) error {
+	host := "localhost"
+	if port := c.Ucp.InstallFlags.GetValue("--controller-port"); port != "" {
+		host = host + ":" + port
 	}
 
-	// Default to using the --dtr-external-url if it's set
-	dtrAddress := util.GetInstallFlagValue(c.Dtr.InstallFlags, "--dtr-external-url")
-	if dtrAddress != "" {
-		return dtrAddress
-	}
-	// Otherwise, use DtrLeaderAddress
-	if c.Dtr.Metadata != nil {
-		if c.Dtr.Metadata.DtrLeaderAddress != "" {
-			return c.Dtr.Metadata.DtrLeaderAddress
-		}
-	}
-	// If we still can't find an address iterate the host roles for a value
-	for _, h := range c.Hosts {
-		if h.Role == "dtr" {
-			dtrAddress = h.Address
-			break
-		}
-	}
-	return dtrAddress
+	return retry.Do(
+		func() error {
+			log.Infof("%s: waiting for UCP to become healthy", h.Address)
+			return h.CheckHTTPStatus(fmt.Sprintf("https://%s/_ping", host), 200)
+		},
+		retry.Attempts(12), // last attempt should wait ~7min
+	)
 }

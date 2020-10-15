@@ -6,6 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/dtr"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -60,7 +61,7 @@ func (p *JoinDtrReplicas) Run() error {
 
 		joinCmd := dtrLeader.Configurer.DockerCommandf("run %s %s join %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.GetBootstrapperImage(), strings.Join(joinFlags, " "))
 		log.Debugf("%s: Joining DTR replica to cluster", d.Address)
-		err := dtrLeader.ExecCmd(joinCmd, "", true, false)
+		err := dtrLeader.Exec(joinCmd, exec.StreamOutput())
 		if err != nil {
 			return NewError("Failed to run DTR join")
 		}

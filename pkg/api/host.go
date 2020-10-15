@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/connection"
 	"github.com/Mirantis/mcc/pkg/connection/local"
+	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
 
 	log "github.com/sirupsen/logrus"
@@ -27,7 +30,7 @@ type HostMetadata struct {
 	InternalAddress     string
 	EngineVersion       string
 	Os                  *OsRelease
-	EngineInstallScript *string
+	EngineInstallScript string
 }
 
 type errors struct {
@@ -70,7 +73,7 @@ type Hooks struct {
 type Host struct {
 	Address          string            `yaml:"address" validate:"required,hostname|ip"`
 	Role             string            `yaml:"role" validate:"oneof=manager worker dtr"`
-	PrivateInterface string            `yaml:"privateInterface,omitempty" default:"eth0" validate:"gt=2"`
+	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
@@ -90,8 +93,8 @@ type Host struct {
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
 
-	type yhost Host
-	yh := (*yhost)(h)
+	type host Host
+	yh := (*host)(h)
 
 	if err := unmarshal(yh); err != nil {
 		return err
@@ -133,24 +136,17 @@ func (h *Host) Disconnect() {
 	}
 }
 
-// ExecCmd a command on the host piping stdin and streams the logs
-func (h *Host) ExecCmd(cmd string, stdin string, streamStdout bool, sensitiveCommand bool) error {
-	return h.Connection.ExecCmd(cmd, stdin, streamStdout, sensitiveCommand)
+// Exec a command on the host
+func (h *Host) Exec(cmd string, opts ...exec.Option) error {
+	return h.Connection.Exec(cmd, opts...)
 }
 
-// Exec a command on the host and streams the logs
-func (h *Host) Exec(cmd string) error {
-	return h.ExecCmd(cmd, "", false, false)
-}
-
-// Execf a printf-formatted command on the host and streams the logs
-func (h *Host) Execf(cmd string, args ...interface{}) error {
-	return h.Exec(fmt.Sprintf(cmd, args...))
-}
-
-// ExecWithOutput execs a command on the host and return output
-func (h *Host) ExecWithOutput(cmd string) (string, error) {
-	return h.Connection.ExecWithOutput(cmd)
+// ExecWithOutput execs a command on the host and returns output
+func (h *Host) ExecWithOutput(cmd string, opts ...exec.Option) (string, error) {
+	var output string
+	opts = append(opts, exec.Output(&output))
+	err := h.Exec(cmd, opts...)
+	return strings.TrimSpace(output), err
 }
 
 // ExecAll execs a slice of commands on the host
@@ -192,8 +188,12 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		}
 		return h.Configurer.AuthenticateDocker(user, pass, imageRepo)
 	}
-	log.Debugf("%s: REGISTRY_USERNAME not set, not authenticating", h.Address)
 	return nil
+}
+
+// ImageExist returns true if a docker image exists on the host
+func (h *Host) ImageExist(name string) bool {
+	return h.Exec(h.Configurer.DockerCommandf("image inspect %s --format '{{.ID}}'", name)) == nil
 }
 
 // PullImage pulls the named docker image on the host
@@ -223,18 +223,49 @@ func (h *Host) IsWindows() bool {
 }
 
 // EngineVersion returns the current engine version installed on the host
-func (h *Host) EngineVersion() string {
+func (h *Host) EngineVersion() (string, error) {
 	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
-		log.Debugf("%s: failed to get docker engine version: %s: %s", h.Address, version, err)
-		return ""
+		return "", fmt.Errorf("failed to get docker engine version: %s", err.Error())
 	}
 
-	if version == "" {
-		log.Infof("%s: docker engine not installed", h.Address)
-	} else {
-		log.Infof("%s: is running docker engine version %s", h.Address, h.Metadata.EngineVersion)
+	return version, nil
+}
+
+// CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected
+func (h *Host) CheckHTTPStatus(url string, expected int) error {
+	status, err := h.Configurer.HTTPStatus(url)
+	if err != nil {
+		return err
 	}
 
-	return version
+	log.Debugf("%s: response code: %d, expected %d", h.Address, status, expected)
+	if status != expected {
+		return fmt.Errorf("%s: unexpected response code %d", h.Address, status)
+	}
+
+	return nil
+}
+
+// WriteFileLarge copies a larger file to the host.
+// Use instead of configurer.WriteFile when it seems appropriate
+func (h *Host) WriteFileLarge(src, dst string) error {
+	startTime := time.Now()
+	stat, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	size := stat.Size()
+
+	log.Infof("%s: uploading %s to %s", h.Address, util.FormatBytes(uint64(stat.Size())), dst)
+
+	if err := h.Connection.Upload(src, dst); err != nil {
+		return fmt.Errorf("%s: upload failed: %s", h.Address, err.Error())
+	}
+
+	duration := time.Since(startTime).Seconds()
+	speed := float64(size) / duration
+	log.Infof("%s: transfered %s in %f seconds (%s/s)", h.Address, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
+
+	return nil
 }

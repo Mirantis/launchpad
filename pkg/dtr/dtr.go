@@ -22,9 +22,9 @@ type Details struct {
 var ErrorNoSuchObject error = errors.New("No such object")
 
 // CollectDtrFacts gathers the current status of the installed DTR setup
-func CollectDtrFacts(dtrLeader *api.Host) (*api.DtrMetadata, error) {
+func CollectDtrFacts(h *api.Host) (*api.DtrMetadata, error) {
 	var details *Details
-	details, err := GetDTRDetails(dtrLeader)
+	details, err := GetDTRDetails(h)
 	if err != nil {
 		if errors.Is(err, ErrorNoSuchObject) {
 			return &api.DtrMetadata{Installed: false}, nil
@@ -42,8 +42,8 @@ func CollectDtrFacts(dtrLeader *api.Host) (*api.DtrMetadata, error) {
 
 // GetDTRDetails returns a struct containing the DTR version and replica ID from
 // the host it's executed on
-func GetDTRDetails(dtrHost *api.Host) (*Details, error) {
-	rethinkdbContainerID, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
+func GetDTRDetails(h *api.Host) (*Details, error) {
+	rethinkdbContainerID, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
 		return nil, err
 	}
@@ -51,11 +51,11 @@ func GetDTRDetails(dtrHost *api.Host) (*Details, error) {
 		return nil, ErrorNoSuchObject
 	}
 
-	version, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
+	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
 	if err != nil {
 		return nil, err
 	}
-	replicaID, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`, rethinkdbContainerID))
+	replicaID, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`, rethinkdbContainerID))
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func GetDTRDetails(dtrHost *api.Host) (*Details, error) {
 		// If we failed to obtain either label then this DTR version does not
 		// support the version Config.Labels or something else may have gone
 		// wrong, attempt to pull these details with the old method
-		output, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
+		output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
 		if err != nil {
 			return nil, err
 		}
@@ -131,8 +131,8 @@ func SequentialReplicaID(replicaInt int) string {
 
 // GetBootstrapVersion gets the version of bootstrapper image from the specified
 // host
-func GetBootstrapVersion(dtrHost *api.Host, config *api.ClusterConfig) (string, error) {
-	output, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`image inspect %s --format '{{.RepoTags}}'`, config.Spec.Dtr.GetBootstrapperImage()))
+func GetBootstrapVersion(h *api.Host, config *api.ClusterConfig) (string, error) {
+	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`image inspect %s --format '{{.RepoTags}}'`, config.Spec.Dtr.GetBootstrapperImage()))
 	if err != nil {
 		return "", err
 	}
@@ -147,46 +147,42 @@ func GetBootstrapVersion(dtrHost *api.Host, config *api.ClusterConfig) (string, 
 // BuildUcpFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
 func BuildUcpFlags(config *api.ClusterConfig) []string {
+	var ucpUser string
+	var ucpPass string
+
+	if config.Spec.Dtr != nil {
+		ucpUser = config.Spec.Dtr.InstallFlags.GetValue("--ucp-username")
+		ucpPass = config.Spec.Dtr.InstallFlags.GetValue("--ucp-password")
+	}
+
+	if ucpUser == "" {
+		ucpUser = config.Spec.Ucp.InstallFlags.GetValue("--admin-username")
+	}
+
+	if ucpPass == "" {
+		ucpPass = config.Spec.Ucp.InstallFlags.GetValue("--admin-password")
+	}
+
 	return []string{
-		fmt.Sprintf("--ucp-url %s", GetUcpURL(config)),
-		fmt.Sprintf("--ucp-username %s", util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--admin-username")),
-		fmt.Sprintf("--ucp-password '%s'", util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--admin-password")),
+		fmt.Sprintf("--ucp-url=\"%s\"", ucpURLHost(config)),
+		fmt.Sprintf("--ucp-username=\"%s\"", ucpUser),
+		fmt.Sprintf("--ucp-password=\"%s\"", ucpPass),
 	}
 }
 
-// GetUcpURL builds the ucp url from the --san flag or from the swarmLeader
-func GetUcpURL(config *api.ClusterConfig) string {
-	if config.Spec.Dtr == nil {
-		return ""
-	}
-
-	dtrUcpURLFlag := util.GetInstallFlagValue(config.Spec.Dtr.InstallFlags, "--ucp-url")
-	if dtrUcpURLFlag != "" {
-		// If the --ucp-url flag has been set use that instead
-		return dtrUcpURLFlag
-	}
-
-	sanFlag := util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--san")
-	if sanFlag != "" {
-		// If a san value has been provided by the user, use that as ucp-url
-		return sanFlag
-	}
-	// Else get the swarmLeader address and append the set --controller-port if
-	// it's non-default
-	controllerPort := util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--controller-port")
-	if controllerPort == "" {
-		controllerPort = "443"
-	}
-	return fmt.Sprintf("%s:%s", config.Spec.SwarmLeader().Address, controllerPort)
+func ucpURLHost(config *api.ClusterConfig) string {
+	url, _ := config.Spec.UcpURL()
+	// url.Host will be host:port when a port has been set
+	return url.Host
 }
 
 // Destroy is functionally equivalent to a DTR destroy and is intended to
 // remove any DTR containers and volumes that may have been started via the
 // installer if it fails
-func Destroy(dtrHost *api.Host) error {
+func Destroy(h *api.Host) error {
 	// Remove containers
-	log.Debugf("%s: Removing DTR containers", dtrHost.Address)
-	containersToRemove, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
+	log.Debugf("%s: Removing DTR containers", h.Address)
+	containersToRemove, err := h.ExecWithOutput(h.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
 	if err != nil {
 		return err
 	}
@@ -194,14 +190,14 @@ func Destroy(dtrHost *api.Host) error {
 		log.Debugf("No DTR containers to remove")
 	} else {
 		containersToRemove = strings.Join(strings.Fields(containersToRemove), " ")
-		if err := dtrHost.Exec(dtrHost.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+		if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
 			return err
 		}
 	}
 
 	// Remove volumes
-	log.Debugf("%s: Removing DTR volumes", dtrHost.Address)
-	volumeOutput, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf("volume ls -q"))
+	log.Debugf("%s: Removing DTR volumes", h.Address)
+	volumeOutput, err := h.ExecWithOutput(h.Configurer.DockerCommandf("volume ls -q"))
 	if err != nil {
 		return err
 	}
@@ -222,7 +218,7 @@ func Destroy(dtrHost *api.Host) error {
 			return nil
 		}
 		volumes := strings.Join(volumesToRemove, " ")
-		err = dtrHost.Exec(dtrHost.Configurer.DockerCommandf("volume rm -f %s", volumes))
+		err = h.Exec(h.Configurer.DockerCommandf("volume rm -f %s", volumes))
 		if err != nil {
 			return err
 		}

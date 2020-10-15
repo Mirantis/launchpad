@@ -1,6 +1,7 @@
 package util
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -30,4 +31,21 @@ var LoadExternalFile = func(path string) ([]byte, error) {
 		return []byte{}, err
 	}
 	return filedata, nil
+}
+
+// FormatBytes formats a number of bytes into something like "200 KiB"
+func FormatBytes(bytes uint64) string {
+	f := float64(bytes)
+	units := []string{
+		"bytes",
+		"KiB",
+		"MiB",
+		"GiB",
+	}
+	logBase1024 := 0
+	for f > 1024.0 && logBase1024 < len(units) {
+		f /= 1024.0
+		logBase1024++
+	}
+	return fmt.Sprintf("%d %s", uint64(f), units[logBase1024])
 }

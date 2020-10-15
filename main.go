@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 
 	"github.com/Mirantis/mcc/cmd"
 	"github.com/Mirantis/mcc/pkg/analytics"
+	"github.com/Mirantis/mcc/pkg/completion"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/version"
 	log "github.com/sirupsen/logrus"
@@ -28,6 +30,44 @@ func main() {
 		},
 	}
 
+	completionCmd := &cli.Command{
+		Name:   "completion",
+		Hidden: true,
+		Description: `Generates a shell auto-completion script.
+
+   Typical locations for the generated output are:
+    - Bash: /etc/bash_completion.d/launchpad
+    - Zsh: /usr/local/share/zsh/site-functions/_launchpad
+    - Fish: ~/.config/fish/completions/launchpad.fish`,
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "shell",
+				Usage:   "Shell to generate the script for",
+				Value:   "bash",
+				Aliases: []string{"s"},
+				EnvVars: []string{"SHELL"},
+			},
+		},
+		Action: func(ctx *cli.Context) error {
+			switch path.Base(ctx.String("shell")) {
+			case "bash":
+				fmt.Print(completion.BashTemplate())
+			case "zsh":
+				fmt.Print(completion.ZshTemplate())
+			case "fish":
+				t, err := ctx.App.ToFishCompletion()
+				if err != nil {
+					return err
+				}
+				fmt.Print(t)
+			default:
+				return fmt.Errorf("no completion script available for %s", ctx.String("shell"))
+			}
+
+			return nil
+		},
+	}
+
 	cli.AppHelpTemplate = fmt.Sprintf(`%s
 GETTING STARTED:
     https://github.com/Mirantis/launchpad/blob/master/docs/getting-started.md
@@ -36,9 +76,12 @@ SUPPORT:
     https://github.com/Mirantis/launchpad/issues
 `, cli.AppHelpTemplate)
 
+	upgradeChan := make(chan *version.LaunchpadRelease)
+
 	app := &cli.App{
-		Name:  "launchpad",
-		Usage: "Mirantis Launchpad",
+		Name:                 "launchpad",
+		Usage:                "Mirantis Launchpad",
+		EnableBashCompletion: true,
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
 				Name:    "debug",
@@ -47,10 +90,23 @@ SUPPORT:
 				EnvVars: []string{"DEBUG"},
 			},
 			&cli.BoolFlag{
+				Name:    "trace",
+				Usage:   "Enable trace logging",
+				Aliases: []string{"dd"},
+				EnvVars: []string{"TRACE"},
+				Hidden:  true,
+			},
+			&cli.BoolFlag{
 				Name:    "disable-telemetry",
 				Usage:   "Disable telemetry",
 				Aliases: []string{"t"},
 				EnvVars: []string{"DISABLE_TELEMETRY"},
+			},
+			&cli.BoolFlag{
+				Name:    "disable-upgrade-check",
+				Usage:   "Disable upgrade check",
+				Aliases: []string{"u"},
+				EnvVars: []string{"DISABLE_UPGRADE_CHECK"},
 			},
 			&cli.BoolFlag{
 				Name:    "accept-license",
@@ -60,22 +116,38 @@ SUPPORT:
 			},
 		},
 		Before: func(ctx *cli.Context) error {
+			go func() {
+				if ctx.Command.Name != "download-launchpad" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
+					upgradeChan <- version.GetUpgrade()
+				} else {
+					upgradeChan <- nil
+				}
+			}()
+
 			initLogger(ctx)
 			initAnalytics(ctx)
 			return nil
 		},
-		After: func(c *cli.Context) error {
+		After: func(ctx *cli.Context) error {
 			closeAnalyticsClient()
-			version.CheckForUpgrade()
+			if ctx.Command.Name != "download-launchpad" {
+				latest := <-upgradeChan
+				if latest != nil {
+					println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-launchpad` to upgrade the tool.", latest.TagName, latest.URL))
+				}
+			}
 			return nil
 		},
 		Commands: []*cli.Command{
 			cmd.NewApplyCommand(),
 			cmd.RegisterCommand(),
+			cmd.NewDescribeCommand(),
 			cmd.NewDownloadBundleCommand(),
 			cmd.NewExecCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
+			cmd.NewDownloadLaunchpadCommand(),
+			completionCmd,
 			versionCmd,
 		},
 	}
@@ -84,18 +156,21 @@ SUPPORT:
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func initLogger(ctx *cli.Context) {
-	// Enable debug logging always, we'll setup hooks later to direct logs based on level
-	log.SetLevel(log.DebugLevel)
+	if ctx.Bool("trace") {
+		log.SetLevel(log.TraceLevel)
+	} else {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
 
 	// Send logs with level >= INFO to stdout
 
 	// stdout hook on by default of course
-	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug")))
+	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug") || ctx.Bool("trace")))
 }
 
 func initAnalytics(ctx *cli.Context) {

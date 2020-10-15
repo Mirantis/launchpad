@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/dtr"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -22,6 +23,11 @@ func (p *UpgradeDtr) Title() string {
 // Run the upgrade container
 func (p *UpgradeDtr) Run() error {
 	dtrLeader := p.config.Spec.DtrLeader()
+
+	err := p.config.Spec.CheckUCPHealthRemote(dtrLeader)
+	if err != nil {
+		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
+	}
 
 	p.EventProperties = map[string]interface{}{
 		"dtr_upgraded": false,
@@ -54,7 +60,7 @@ func (p *UpgradeDtr) Run() error {
 
 	upgradeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s upgrade %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.GetBootstrapperImage(), strings.Join(upgradeFlags, " "))
 	log.Debug("Running DTR upgrade via bootstrapper")
-	err = dtrLeader.ExecCmd(upgradeCmd, "", true, false)
+	err = dtrLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
 		return NewError("Failed to run DTR upgrade")
 	}

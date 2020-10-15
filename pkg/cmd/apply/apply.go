@@ -20,8 +20,16 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
+// Options for apply
+type Options struct {
+	Config      string
+	Force       bool
+	SkipCleanup bool
+	Debug       bool
+}
+
 // Apply ...
-func Apply(configFile string, prune, force bool) error {
+func Apply(opts *Options) error {
 	var (
 		logFile *os.File
 		err     error
@@ -34,7 +42,7 @@ func Apply(configFile string, prune, force bool) error {
 
 	}()
 
-	cfgData, err := config.ResolveClusterFile(configFile)
+	cfgData, err := config.ResolveClusterFile(opts.Config)
 	if err != nil {
 		return err
 	}
@@ -60,36 +68,36 @@ func Apply(configFile string, prune, force bool) error {
 	}
 
 	dtr := config.ContainsDtr(clusterConfig)
-	clusterConfig.Spec.Metadata.Force = force
+	clusterConfig.Spec.Metadata.Force = opts.Force
 
 	phaseManager := phase.NewManager(&clusterConfig)
+	phaseManager.SkipCleanup = opts.SkipCleanup
+
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
 	phaseManager.AddPhase(&phase.ValidateFacts{})
-	phaseManager.AddPhase(&phase.ValidateHosts{})
+	phaseManager.AddPhase(&phase.ValidateHosts{Debug: opts.Debug})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }})
 	phaseManager.AddPhase(&phase.PrepareHost{})
 	phaseManager.AddPhase(&phase.InstallEngine{})
 	phaseManager.AddPhase(&phase.PullImages{})
 	phaseManager.AddPhase(&phase.InitSwarm{})
-	phaseManager.AddPhase(&phase.InstallUCP{})
+	phaseManager.AddPhase(&phase.InstallUCP{SkipCleanup: opts.SkipCleanup})
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
-	phaseManager.AddPhase(&phase.JoinWorkers{Dtr: dtr})
+	phaseManager.AddPhase(&phase.JoinWorkers{})
 	// If the clusterConfig contains any of the DTR role then install and
 	// upgrade DTR on those specific host roles
 	if dtr {
 		phaseManager.AddPhase(&phase.PullImages{Dtr: dtr})
 		phaseManager.AddPhase(&phase.ValidateUcpHealth{})
-		phaseManager.AddPhase(&phase.InstallDtr{})
+		phaseManager.AddPhase(&phase.InstallDtr{SkipCleanup: opts.SkipCleanup})
 		phaseManager.AddPhase(&phase.UpgradeDtr{})
 		phaseManager.AddPhase(&phase.JoinDtrReplicas{})
 	}
 	phaseManager.AddPhase(&phase.LabelNodes{})
-	if prune {
-		phaseManager.AddPhase(&phase.RemoveNodes{})
-	}
+	phaseManager.AddPhase(&phase.RemoveNodes{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }})
 	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.Info{})

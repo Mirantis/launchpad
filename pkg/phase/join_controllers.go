@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,7 +30,7 @@ func (p *JoinManagers) Run() error {
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.config.Spec.Ucp.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as manager", h.Address)
-		err := h.ExecCmd(joinCmd, "", true, true)
+		err := h.Exec(joinCmd, exec.StreamOutput(), exec.Redact(p.config.Spec.Ucp.Metadata.ManagerJoinToken))
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to join manager node to swarm"))
 		}

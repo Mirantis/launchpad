@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,7 +36,7 @@ func (p *UninstallUCP) Run() error {
 		runFlags = append(runFlags, "--security-opt label=disable")
 	}
 	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", strings.Join(runFlags, " "), image, args)
-	err := swarmLeader.ExecCmd(uninstallCmd, "", true, true)
+	err := swarmLeader.Exec(uninstallCmd, exec.StreamOutput(), exec.Redact("admin-*"))
 	if err != nil {
 		return NewError("Failed to run UCP uninstaller")
 	}

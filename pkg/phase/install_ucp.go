@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
@@ -16,6 +17,7 @@ const configName string = "com.docker.ucp.config"
 type InstallUCP struct {
 	Analytics
 	BasicPhase
+	SkipCleanup bool
 }
 
 // Title prints the phase title
@@ -27,14 +29,16 @@ func (p *InstallUCP) Title() string {
 func (p *InstallUCP) Run() (err error) {
 	swarmLeader := p.config.Spec.SwarmLeader()
 
-	defer func() {
-		if err != nil {
-			log.Println("Cleaning-up")
-			if cleanupErr := cleanupUcp(swarmLeader); cleanupErr != nil {
-				log.Warnln("Error while cleaning-up resources")
+	if !p.SkipCleanup {
+		defer func() {
+			if err != nil {
+				log.Println("Cleaning-up")
+				if cleanupErr := cleanupUcp(swarmLeader); cleanupErr != nil {
+					log.Warnln("Error while cleaning-up resources")
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	p.EventProperties = map[string]interface{}{
 		"ucp_version": p.config.Spec.Ucp.Version,
@@ -58,7 +62,7 @@ func (p *InstallUCP) Run() (err error) {
 
 	if p.config.Spec.Ucp.ConfigData != "" {
 		defer func() {
-			err := swarmLeader.Execf("sudo docker config rm %s", configName)
+			err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("config rm %s", configName))
 			if err != nil {
 				log.Warnf("Failed to remove the temporary UCP installer configuration %s : %s", configName, err)
 			}
@@ -67,7 +71,7 @@ func (p *InstallUCP) Run() (err error) {
 		installFlags = append(installFlags, "--existing-config")
 		log.Info("Creating UCP configuration")
 		configCmd := swarmLeader.Configurer.DockerCommandf("config create %s -", configName)
-		err := swarmLeader.ExecCmd(configCmd, p.config.Spec.Ucp.ConfigData, false, false)
+		err := swarmLeader.Exec(configCmd, exec.Stdin(p.config.Spec.Ucp.ConfigData))
 		if err != nil {
 			return err
 		}
@@ -101,7 +105,7 @@ func (p *InstallUCP) Run() (err error) {
 	}
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = swarmLeader.ExecCmd(installCmd, "", true, true)
+	err = swarmLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact(`--admin\S+`))
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}
@@ -119,10 +123,10 @@ func (p *InstallUCP) installCertificates(config *api.ClusterConfig) error {
 	log.Infof("Installing UCP certificates")
 	managers := config.Spec.Managers()
 	err := managers.ParallelEach(func(h *api.Host) error {
-		err := h.ExecCmd(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"), "", false, false)
+		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
 		if err != nil {
 			log.Infof("%s: creating ucp-controller-server-certs volume", h.Address)
-			err := h.ExecCmd(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"), "", false, false)
+			err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"))
 			if err != nil {
 				return err
 			}
@@ -174,8 +178,8 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 	return err
 }
 
-func cleanupUcp(host *api.Host) error {
-	containersToRemove, err := host.ExecWithOutput(host.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
+func cleanupUcp(h *api.Host) error {
+	containersToRemove, err := h.ExecWithOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
 		return err
 	}
@@ -184,7 +188,7 @@ func cleanupUcp(host *api.Host) error {
 		return nil
 	}
 	containersToRemove = strings.ReplaceAll(containersToRemove, "\n", " ")
-	if err := host.Exec(host.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+	if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
 		return err
 	}
 

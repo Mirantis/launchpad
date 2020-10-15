@@ -52,12 +52,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 				return err
 			}
 			if c.Spec.Ucp.Metadata.Installed {
-				err = retry.Do( // wait for ucp api to be healthy if UCP is already installed before engine upgrade
-					func() error {
-						return h.Exec("curl -k -f https://localhost/_ping")
-					},
-					retry.Attempts(12), // last attempt should wait ~7min, should be long enough
-				)
+				err := c.Spec.CheckUCPHealthLocal(h)
 				if err != nil {
 					return err
 				}
@@ -82,9 +77,9 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 	wp := workerpool.New(concurrentUpgrades)
 	mu := sync.Mutex{}
 	installErrors := &Error{}
-	for _, host := range workers {
-		if host.Metadata.EngineVersion != "" {
-			h := host
+	for _, w := range workers {
+		if w.Metadata.EngineVersion != "" {
+			h := w
 			wp.Submit(func() {
 				err := p.installEngine(h, c)
 				if err != nil {
@@ -102,39 +97,42 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 	return nil
 }
 
-func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) error {
-	newInstall := host.Metadata.EngineVersion == ""
-	prevVersion := host.Metadata.EngineVersion
+func (p *InstallEngine) installEngine(h *api.Host, c *api.ClusterConfig) error {
+	newInstall := h.Metadata.EngineVersion == ""
+	prevVersion := h.Metadata.EngineVersion
 
 	err := retry.Do(
 		func() error {
 			if newInstall {
-				log.Infof("%s: installing engine (%s)", host.Address, c.Spec.Engine.Version)
+				log.Infof("%s: installing engine (%s)", h.Address, c.Spec.Engine.Version)
 			} else {
-				log.Infof("%s: updating engine (%s -> %s)", host.Address, prevVersion, c.Spec.Engine.Version)
+				log.Infof("%s: updating engine (%s -> %s)", h.Address, prevVersion, c.Spec.Engine.Version)
 			}
-			return host.Configurer.InstallEngine(&c.Spec.Engine)
+			return h.Configurer.InstallEngine(&c.Spec.Engine)
 		},
 	)
 	if err != nil {
 		if newInstall {
-			log.Errorf("%s: failed to install engine -> %s", host.Address, err.Error())
+			log.Errorf("%s: failed to install engine -> %s", h.Address, err.Error())
 		} else {
-			log.Errorf("%s: failed to update engine -> %s", host.Address, err.Error())
+			log.Errorf("%s: failed to update engine -> %s", h.Address, err.Error())
 		}
 
 		return err
 	}
 
-	currentVersion := host.EngineVersion()
+	currentVersion, err := h.EngineVersion()
+	if err != nil {
+		return fmt.Errorf("%s: failed to query engine version after installation: %s", h.Address, err.Error())
+	}
 
 	if !newInstall && currentVersion == prevVersion {
-		err = host.Configurer.RestartEngine()
+		err = h.Configurer.RestartEngine()
 		if err != nil {
-			return NewError(fmt.Sprintf("%s: failed to restart engine", host.Address))
+			return fmt.Errorf("%s: failed to restart engine", h.Address)
 		}
 	}
 
-	log.Printf("%s: engine version %s installed", host.Address, c.Spec.Engine.Version)
+	log.Infof("%s: engine version %s installed", h.Address, c.Spec.Engine.Version)
 	return nil
 }

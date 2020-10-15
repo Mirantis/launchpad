@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/dtr"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,6 +14,7 @@ import (
 type InstallDtr struct {
 	Analytics
 	BasicPhase
+	SkipCleanup bool
 }
 
 // Title prints the phase title
@@ -21,18 +23,25 @@ func (p *InstallDtr) Title() string {
 }
 
 // Run the installer container
-func (p *InstallDtr) Run() (err error) {
+func (p *InstallDtr) Run() error {
 	dtrLeader := p.config.Spec.DtrLeader()
 
-	defer func() {
-		if err != nil {
-			log.Println("Cleaning-up")
-			if cleanupErr := dtr.Destroy(dtrLeader); cleanupErr != nil {
-				log.Warnln("Error while cleaning-up resources")
-				log.Debugf("Cleanup resources error: %s", err)
+	err := p.config.Spec.CheckUCPHealthRemote(dtrLeader)
+	if err != nil {
+		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
+	}
+
+	if !p.SkipCleanup {
+		defer func() {
+			if err != nil {
+				log.Println("Cleaning-up")
+				if cleanupErr := dtr.Destroy(dtrLeader); cleanupErr != nil {
+					log.Warnln("Error while cleaning-up resources")
+					log.Debugf("Cleanup resources error: %s", err)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	p.EventProperties = map[string]interface{}{
 		"dtr_version": p.config.Spec.Dtr.Version,
@@ -63,7 +72,7 @@ func (p *InstallDtr) Run() (err error) {
 
 	installFlags = append(installFlags, ucpFlags...)
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = dtrLeader.ExecCmd(installCmd, "", true, true)
+	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact("ucp-(?:user|pass).*"))
 	if err != nil {
 		return NewError("Failed to run DTR installer")
 	}
