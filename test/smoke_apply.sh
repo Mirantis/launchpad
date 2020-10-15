@@ -28,7 +28,7 @@ if [ "$RES" -ne 0 ]; then
 fi
 
 echo "Apply succeeded, downloading bundle"
-../bin/launchpad --debug download-bundle --username admin --password orcaorcaorca
+../bin/launchpad --debug client-config
 
 # to source the env file succesfully we must be in the same directory
 pushd ~/.mirantis-launchpad/cluster/$CLUSTER_NAME/bundle/admin/

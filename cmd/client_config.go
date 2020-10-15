@@ -1,15 +1,9 @@
 package cmd
 
 import (
-	"bufio"
-	"fmt"
-	"io"
-	"os"
-
 	"github.com/Mirantis/mcc/pkg/analytics"
 	bundle "github.com/Mirantis/mcc/pkg/cmd/client_config"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // NewClientConfigCommand creates a download bundle command to be called via the CLI
@@ -19,26 +13,15 @@ func NewClientConfigCommand() *cli.Command {
 		Usage: "Download a client bundle",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "username",
-				Usage:   "Username",
-				Aliases: []string{"u"},
-			},
-			&cli.StringFlag{
-				Name:    "password",
-				Usage:   "Password",
-				Aliases: []string{"p"},
-			},
-			&cli.StringFlag{
-				Name:    "config",
-				Usage:   "Path to cluster config yaml",
-				Aliases: []string{"c"},
-				Value:   "launchpad.yaml",
+				Name:      "config",
+				Usage:     "Path to cluster config yaml",
+				Aliases:   []string{"c"},
+				Value:     "launchpad.yaml",
+				TakesFile: true,
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			username, password := resolveCredentials(ctx)
-
-			err := bundle.Download(ctx.String("config"), username, password)
+			err := bundle.Download(ctx.String("config"))
 			if err != nil {
 				analytics.TrackEvent("Bundle Download Failed", nil)
 			} else {
@@ -54,48 +37,4 @@ func NewClientConfigCommand() *cli.Command {
 			return nil
 		},
 	}
-}
-
-func resolveCredentials(ctx *cli.Context) (username, password string) {
-	username = ctx.String("username")
-	if username == "" {
-		username = readUsernameFrom(os.Stdin)
-	}
-	password = ctx.String("password")
-	if password == "" {
-		password = readPasswordFrom(os.Stdin)
-	}
-	return username, password
-}
-
-func readPasswordFrom(in io.Reader) string {
-	if in == os.Stdin {
-		fd := int(os.Stdin.Fd())
-		if terminal.IsTerminal(fd) {
-			fmt.Fprint(os.Stderr, "Password: ")
-			pw, err := terminal.ReadPassword(fd)
-			fmt.Fprintln(os.Stderr)
-			if err != nil {
-				fmt.Println("error while reading password: ", err)
-			}
-			return string(pw)
-		}
-	}
-	fmt.Printf("Password: ")
-	return readFrom(in)
-}
-
-func readUsernameFrom(in io.Reader) string {
-	fmt.Printf("Username: ")
-	return readFrom(in)
-}
-
-func readFrom(in io.Reader) string {
-	reader := bufio.NewReader(in)
-	line, _, err := reader.ReadLine()
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-	return string(line)
 }

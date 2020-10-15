@@ -21,8 +21,6 @@ import (
 type DownloadBundle struct {
 	Analytics
 	BasicPhase
-	Username string
-	Password string
 }
 
 // Title for the phase
@@ -44,12 +42,21 @@ func (p *DownloadBundle) Run() error {
 		return err
 	}
 
-	bundle, err := ucp.GetClientBundle(url, tlsConfig, p.Username, p.Password)
+	user := p.config.Spec.Ucp.InstallFlags.GetValue("admin-username")
+	if user == "" {
+		return fmt.Errorf("ucp --admin-username installFlag not set")
+	}
+	pass := p.config.Spec.Ucp.InstallFlags.GetValue("admin-password")
+	if pass == "" {
+		return fmt.Errorf("ucp --admin-password installFlag not set")
+	}
+
+	bundle, err := ucp.GetClientBundle(url, tlsConfig, user, pass)
 	if err != nil {
 		return fmt.Errorf("failed to download admin bundle: %s", err)
 	}
 
-	bundleDir, err := p.getBundleDir(p.config.Metadata.Name, p.Username)
+	bundleDir, err := p.getBundleDir(p.config.Metadata.Name, user)
 	if err != nil {
 		return err
 	}
