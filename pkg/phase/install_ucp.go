@@ -2,7 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -109,7 +108,7 @@ func (p *InstallUCP) Run() (err error) {
 	installFlags.AddUnlessExist("--admin-password " + p.config.Spec.Ucp.Password)
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = swarmLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact(fmt.Sprintf("(?:%s|%s)", regexp.QuoteMeta(p.config.Spec.Ucp.Username), regexp.QuoteMeta(p.config.Spec.Ucp.Password))))
+	err = swarmLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact(("--admin.*")))
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}
