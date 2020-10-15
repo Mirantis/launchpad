@@ -42,13 +42,13 @@ func (p *DownloadBundle) Run() error {
 		return err
 	}
 
-	user := p.config.Spec.Ucp.InstallFlags.GetValue("admin-username")
+	user := p.config.Spec.Ucp.InstallFlags.GetValue("--admin-username")
 	if user == "" {
-		return fmt.Errorf("ucp --admin-username installFlag not set")
+		return fmt.Errorf("config Spec.Ucp.installFlags --admin-username not set")
 	}
-	pass := p.config.Spec.Ucp.InstallFlags.GetValue("admin-password")
+	pass := p.config.Spec.Ucp.InstallFlags.GetValue("--admin-password")
 	if pass == "" {
-		return fmt.Errorf("ucp --admin-password installFlag not set")
+		return fmt.Errorf("config Spec.Ucp.installFlags --admin-password not set")
 	}
 
 	bundle, err := ucp.GetClientBundle(url, tlsConfig, user, pass)
