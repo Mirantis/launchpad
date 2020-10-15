@@ -7,13 +7,13 @@ import (
 	"os"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/cmd/bundle"
+	bundle "github.com/Mirantis/mcc/pkg/cmd/client_config"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-// NewDownloadBundleCommand creates a download bundle command to be called via the CLI
-func NewDownloadBundleCommand() *cli.Command {
+// NewClientConfigCommand creates a download bundle command to be called via the CLI
+func NewClientConfigCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "download-bundle",
 		Usage: "Download a client bundle",
