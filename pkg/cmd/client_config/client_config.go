@@ -6,7 +6,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 )
 
-// Download downloads a UCP client bundle
+// Download downloads UCP client configuration
 func Download(clusterFile string) error {
 	cfgData, err := config.ResolveClusterFile(clusterFile)
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 // NewClientConfigCommand creates a download bundle command to be called via the CLI
 func NewClientConfigCommand() *cli.Command {
 	return &cli.Command{
-		Name:  "download-bundle",
-		Usage: "Download a client bundle",
+		Name:  "client-config",
+		Usage: "Get cluster client configuration",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:      "config",
@@ -23,9 +23,9 @@ func NewClientConfigCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			err := bundle.Download(ctx.String("config"))
 			if err != nil {
-				analytics.TrackEvent("Bundle Download Failed", nil)
+				analytics.TrackEvent("Client configuration download Failed", nil)
 			} else {
-				analytics.TrackEvent("Bundle Download Completed", nil)
+				analytics.TrackEvent("Client configuration download Completed", nil)
 			}
 
 			return err
