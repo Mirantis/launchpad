@@ -12,5 +12,5 @@ type Connection interface {
 	Upload(source string, destination string) error
 	IsWindows() bool
 	Exec(string, ...exec.Option) error
-	ExecInteractive() error
+	ExecInteractive(string) error
 }

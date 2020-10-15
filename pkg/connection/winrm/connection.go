@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -218,7 +217,10 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 }
 
 // ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
-func (c *Connection) ExecInteractive() error {
-	_, err := c.client.RunWithInput("cmd", os.Stdout, os.Stderr, os.Stdin)
+func (c *Connection) ExecInteractive(cmd string) error {
+	if cmd == "" {
+		cmd = "cmd"
+	}
+	_, err := c.client.RunWithInput(cmd, os.Stdout, os.Stderr, os.Stdin)
 	return err
 }

@@ -97,8 +97,16 @@ func (c *Connection) Upload(src, dst string) error {
 }
 
 // ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
-func (c *Connection) ExecInteractive() error {
-	command := c.command("bash -s")
+func (c *Connection) ExecInteractive(cmd string) error {
+	if cmd == "" {
+		cmd = os.Getenv("SHELL")
+	}
+
+	if cmd == "" {
+		cmd = "bash -s"
+	}
+
+	command := c.command(cmd)
 	command.Stdout = os.Stdout
 	command.Stderr = os.Stderr
 	command.Stdin = os.Stdin

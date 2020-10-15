@@ -6,7 +6,9 @@ import (
 	"io"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -184,14 +186,15 @@ func (c *Connection) Upload(src, dst string) error {
 }
 
 // ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
-func (c *Connection) ExecInteractive() error {
+func (c *Connection) ExecInteractive(cmd string) error {
 	session, err := c.client.NewSession()
 	if err != nil {
 		return err
 	}
 	defer session.Close()
 
-	modes := ssh.TerminalModes{}
+	log.Tracef("requesting pty")
+	modes := ssh.TerminalModes{ssh.ECHO: 0}
 	err = session.RequestPty("xterm", 80, 40, modes)
 	if err != nil {
 		return err
@@ -199,11 +202,45 @@ func (c *Connection) ExecInteractive() error {
 
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
-	session.Stdin = os.Stdin
+	stdinpipe, err := session.StdinPipe()
+	if err != nil {
+		return err
+	}
+	go func() {
+		io.Copy(stdinpipe, os.Stdin)
+	}()
 
-	if err := session.Start("/bin/bash"); err != nil {
+	captureCtrlC(stdinpipe)
+
+	if cmd == "" {
+		err = session.Shell()
+	} else {
+		err = session.Start(cmd)
+	}
+
+	if err != nil {
 		return err
 	}
 
 	return session.Wait()
+}
+
+func captureCtrlC(stdin io.WriteCloser) {
+	c := make(chan os.Signal)
+	signal.Ignore(syscall.SIGTSTP)
+	signal.Notify(c, os.Interrupt, syscall.SIGTSTP)
+
+	go func() {
+		for sig := range c {
+			switch sig {
+			case os.Interrupt:
+				log.Tracef("relaying ctrl-c to session")
+				fmt.Fprintf(stdin, "\x03")
+			case syscall.SIGTSTP:
+				log.Tracef("relaying ctrl-z to session")
+				// TODO: sends ctrl-z but also the launchpad is suspended
+				fmt.Fprintf(stdin, "\x1a")
+			}
+		}
+	}()
 }

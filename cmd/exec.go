@@ -14,10 +14,11 @@ func NewExecCommand() *cli.Command {
 		ArgsUsage: "[COMMAND ..]",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "config",
-				Usage:   "Path to cluster config yaml",
-				Aliases: []string{"c"},
-				Value:   "launchpad.yaml",
+				Name:      "config",
+				Usage:     "Path to cluster config yaml",
+				Aliases:   []string{"c"},
+				Value:     "launchpad.yaml",
+				TakesFile: true,
 			},
 			&cli.StringFlag{
 				Name:     "address",
@@ -25,10 +26,15 @@ func NewExecCommand() *cli.Command {
 				Aliases:  []string{"a"},
 				Required: true,
 			},
+			&cli.BoolFlag{
+				Name:    "interactive",
+				Usage:   "Run interactive",
+				Aliases: []string{"i"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			args := ctx.Args().Slice()
-			return exec.Exec(ctx.String("config"), ctx.String("address"), shellquote.Join(args...))
+			return exec.Exec(ctx.String("config"), ctx.String("address"), ctx.Bool("interactive"), shellquote.Join(args...))
 		},
 	}
 }
