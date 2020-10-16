@@ -24,7 +24,7 @@ type DownloadInstaller struct {
 
 // Title for the phase
 func (p *DownloadInstaller) Title() string {
-	return "Download installer"
+	return "Download Docker Engine - Enterprise installer"
 }
 
 // Run does all the prep work on the hosts in parallel
