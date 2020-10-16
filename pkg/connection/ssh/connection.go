@@ -7,9 +7,7 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -256,26 +254,4 @@ func (c *Connection) ExecInteractive(cmd string) error {
 	}
 
 	return session.Wait()
-}
-
-func (c *Connection) captureSignals(stdin io.WriteCloser, session *ssh.Session) {
-	ch := make(chan os.Signal)
-	signal.Ignore(syscall.SIGTSTP)
-	signal.Notify(ch, os.Interrupt, syscall.SIGTSTP, syscall.SIGWINCH)
-
-	go func() {
-		for sig := range ch {
-			switch sig {
-			case os.Interrupt:
-				log.Tracef("relaying ctrl-c to session")
-				fmt.Fprintf(stdin, "\x03")
-			case syscall.SIGTSTP:
-				log.Tracef("relaying ctrl-z to session")
-				fmt.Fprintf(stdin, "\x1a")
-			case syscall.SIGWINCH:
-				log.Tracef("relaying window size change")
-				session.SendRequest("window-change", false, termSizeWNCH())
-			}
-		}
-	}()
 }
