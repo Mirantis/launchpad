@@ -21,20 +21,25 @@ func NewExecCommand() *cli.Command {
 				TakesFile: true,
 			},
 			&cli.StringFlag{
-				Name:     "address",
-				Usage:    "Host address",
-				Aliases:  []string{"a"},
-				Required: true,
+				Name:    "address",
+				Usage:   "Host address[:port]",
+				Aliases: []string{"a"},
 			},
 			&cli.BoolFlag{
 				Name:    "interactive",
 				Usage:   "Run interactive",
 				Aliases: []string{"i"},
 			},
+			&cli.BoolFlag{
+				Name:    "first",
+				Usage:   "Use the first host in configuration",
+				Aliases: []string{"f"},
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			args := ctx.Args().Slice()
-			return exec.Exec(ctx.String("config"), ctx.String("address"), ctx.Bool("interactive"), shellquote.Join(args...))
+
+			return exec.Exec(ctx.String("config"), ctx.String("address"), ctx.Bool("interactive"), ctx.Bool("first"), shellquote.Join(args...))
 		},
 	}
 }

@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +13,7 @@ import (
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -185,6 +187,22 @@ func (c *Connection) Upload(src, dst string) error {
 	return c.uploadLinux(src, dst)
 }
 
+func termSizeWNCH() []byte {
+	size := make([]byte, 16)
+	fd := int(os.Stdin.Fd())
+	rows, cols, err := terminal.GetSize(fd)
+	if err != nil {
+		log.Tracef("error getting window size: %s", err.Error())
+		binary.BigEndian.PutUint32(size, 40)
+		binary.BigEndian.PutUint32(size[4:], 80)
+	} else {
+		binary.BigEndian.PutUint32(size, uint32(cols))
+		binary.BigEndian.PutUint32(size[4:], uint32(rows))
+	}
+
+	return size
+}
+
 // ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
 func (c *Connection) ExecInteractive(cmd string) error {
 	session, err := c.client.NewSession()
@@ -193,24 +211,39 @@ func (c *Connection) ExecInteractive(cmd string) error {
 	}
 	defer session.Close()
 
-	log.Tracef("requesting pty")
-	modes := ssh.TerminalModes{ssh.ECHO: 0}
-	err = session.RequestPty("xterm", 80, 40, modes)
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+
+	fd := int(os.Stdin.Fd())
+	old, err := terminal.MakeRaw(fd)
 	if err != nil {
 		return err
 	}
 
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
+	defer terminal.Restore(fd, old)
+
+	rows, cols, err := terminal.GetSize(fd)
+	if err != nil {
+		return err
+	}
+
+	log.Tracef("requesting pty")
+	modes := ssh.TerminalModes{ssh.ECHO: 1}
+	err = session.RequestPty("xterm", cols, rows, modes)
+	if err != nil {
+		return err
+	}
+
 	stdinpipe, err := session.StdinPipe()
 	if err != nil {
 		return err
 	}
 	go func() {
 		io.Copy(stdinpipe, os.Stdin)
+		log.Tracef("stdin closed")
 	}()
 
-	captureCtrlC(stdinpipe)
+	c.captureSignals(stdinpipe, session)
 
 	if cmd == "" {
 		err = session.Shell()
@@ -225,21 +258,23 @@ func (c *Connection) ExecInteractive(cmd string) error {
 	return session.Wait()
 }
 
-func captureCtrlC(stdin io.WriteCloser) {
-	c := make(chan os.Signal)
+func (c *Connection) captureSignals(stdin io.WriteCloser, session *ssh.Session) {
+	ch := make(chan os.Signal)
 	signal.Ignore(syscall.SIGTSTP)
-	signal.Notify(c, os.Interrupt, syscall.SIGTSTP)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTSTP, syscall.SIGWINCH)
 
 	go func() {
-		for sig := range c {
+		for sig := range ch {
 			switch sig {
 			case os.Interrupt:
 				log.Tracef("relaying ctrl-c to session")
 				fmt.Fprintf(stdin, "\x03")
 			case syscall.SIGTSTP:
 				log.Tracef("relaying ctrl-z to session")
-				// TODO: sends ctrl-z but also the launchpad is suspended
 				fmt.Fprintf(stdin, "\x1a")
+			case syscall.SIGWINCH:
+				log.Tracef("relaying window size change")
+				session.SendRequest("window-change", false, termSizeWNCH())
 			}
 		}
 	}()

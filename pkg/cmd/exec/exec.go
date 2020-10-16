@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/config"
@@ -13,7 +15,7 @@ import (
 )
 
 // Exec ...
-func Exec(configFile string, address string, interactive bool, cmd string) error {
+func Exec(configFile string, address string, interactive, first bool, cmd string) error {
 	cfgData, err := config.ResolveClusterFile(configFile)
 	if err != nil {
 		return err
@@ -25,6 +27,47 @@ func Exec(configFile string, address string, interactive bool, cmd string) error
 
 	if err := config.Validate(&clusterConfig); err != nil {
 		return err
+	}
+
+	var host *api.Host
+	if address == "" {
+		if first {
+			host = clusterConfig.Spec.Hosts.First()
+			if host == nil {
+				// this should never happen
+				return fmt.Errorf("failed to get the first host from configuration")
+			}
+		} else {
+			return fmt.Errorf("--address or --first required") // feels like this is in the wrong place
+		}
+	} else if address == "localhost" {
+		host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+			return h.Localhost
+		})
+	} else if strings.Contains(address, ":") {
+		parts := strings.SplitN(address, ":", 2)
+		addr := parts[0]
+		port, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return fmt.Errorf("invalid port: %s", parts[1])
+		}
+
+		host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+			if h.Address != addr || h.Localhost {
+				return false
+			}
+			if h.WinRM != nil {
+				return h.WinRM.Port == port
+			}
+			return h.SSH.Port == port
+		})
+	} else {
+		host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+			return h.Address == address
+		})
+	}
+	if host == nil {
+		return fmt.Errorf("Host with address %s not found in configuration", address)
 	}
 
 	var stdin string
@@ -45,14 +88,8 @@ func Exec(configFile string, address string, interactive bool, cmd string) error
 		stdin = string(data)
 	}
 
-	host := clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool { return h.Address == address })
-	if host == nil {
-		return fmt.Errorf("Host with address %s not found in configuration", address)
-	}
-
 	if err := host.Connect(); err != nil {
-		println(fmt.Sprintf("Failed to connect: %s", err.Error()))
-		return err
+		return fmt.Errorf("Failed to connect: %s", err.Error())
 	}
 
 	log.Debugf("%s: connected", host.Address)
