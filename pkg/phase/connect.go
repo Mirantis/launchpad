@@ -23,31 +23,17 @@ func (p *Connect) Run() error {
 }
 
 func (p *Connect) connectHost(h *api.Host, c *api.ClusterConfig) error {
-	proto := "SSH"
-
-	if h.Localhost {
-		proto = "Local"
-	} else if h.WinRM != nil {
-		proto = "WinRM"
-	}
-
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: opening %s connection", h.Address, proto)
-			err := h.Connect()
-			if err != nil {
-				log.Errorf("%s: failed to connect -> %s", h.Address, err.Error())
-			}
-			return err
+			return h.Connect()
 		},
 		retry.Attempts(6),
 	)
+
 	if err != nil {
-		log.Errorf("%s: failed to open connection", h.Address)
 		return err
 	}
 
-	log.Printf("%s: %s connection opened", h.Address, proto)
 	return p.testConnection(h)
 }
 

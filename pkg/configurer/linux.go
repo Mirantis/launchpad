@@ -353,3 +353,7 @@ func (c *LinuxConfigurer) Pwd() string {
 func (c *LinuxConfigurer) JoinPath(parts ...string) string {
 	return strings.Join(parts, "/")
 }
+
+func (c *LinuxConfigurer) RebootCommand() string {
+	return "sudo systemctl start reboot.target"
+}
