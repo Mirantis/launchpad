@@ -280,6 +280,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	return nil
 }
 
+// Reboot reboots the host and waits for it to become responsive
 func (h *Host) Reboot() error {
 	log.Infof("%s: rebooting", h.Address)
 	h.Exec(h.Configurer.RebootCommand())

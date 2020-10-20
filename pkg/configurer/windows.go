@@ -304,6 +304,7 @@ func (c *WindowsConfigurer) JoinPath(parts ...string) string {
 	return strings.Join(parts, "\\")
 }
 
+// RebootCommand returns a command string that will reboot the host
 func (c *WindowsConfigurer) RebootCommand() string {
 	return "shutdown /r /t 5"
 }
