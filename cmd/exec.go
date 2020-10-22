@@ -32,14 +32,19 @@ func NewExecCommand() *cli.Command {
 			},
 			&cli.BoolFlag{
 				Name:    "first",
-				Usage:   "Use the first host in configuration",
+				Usage:   "Use the first host found in configuration",
 				Aliases: []string{"f"},
+			},
+			&cli.StringFlag{
+				Name:    "role",
+				Usage:   "Use the first host having this role in configuration",
+				Aliases: []string{"r"},
 			},
 		},
 		Action: func(ctx *cli.Context) error {
 			args := ctx.Args().Slice()
 
-			return exec.Exec(ctx.String("config"), ctx.String("address"), ctx.Bool("interactive"), ctx.Bool("first"), shellquote.Join(args...))
+			return exec.Exec(ctx.String("config"), ctx.String("address"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.String("role"), shellquote.Join(args...))
 		},
 	}
 }

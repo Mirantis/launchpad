@@ -15,7 +15,7 @@ import (
 )
 
 // Exec ...
-func Exec(configFile string, address string, interactive, first bool, cmd string) error {
+func Exec(configFile string, address string, interactive, first bool, role, cmd string) error {
 	cfgData, err := config.ResolveClusterFile(configFile)
 	if err != nil {
 		return err
@@ -31,14 +31,18 @@ func Exec(configFile string, address string, interactive, first bool, cmd string
 
 	var host *api.Host
 	if address == "" {
-		if first {
+		if role != "" {
+			host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool { return h.Role == role })
+			if host == nil {
+				return fmt.Errorf("failed to get the first host with role '%s' from configuration", role)
+			}
+		} else if first {
 			host = clusterConfig.Spec.Hosts.First()
 			if host == nil {
-				// this should never happen
 				return fmt.Errorf("failed to get the first host from configuration")
 			}
 		} else {
-			return fmt.Errorf("--address or --first required") // feels like this is in the wrong place
+			return fmt.Errorf("--address, --first or --role required") // feels like this is in the wrong place
 		}
 	} else if address == "localhost" {
 		host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
