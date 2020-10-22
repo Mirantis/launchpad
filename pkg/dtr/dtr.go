@@ -113,7 +113,7 @@ func GetBootstrapVersion(h *api.Host, config *api.ClusterConfig) (string, error)
 	return version, nil
 }
 
-// BuildUcpFlags builds the ucpFlags []string consisting of ucp installFlags
+// BuildUCPFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
 func BuildUCPFlags(config *api.ClusterConfig) []string {
 	var ucpUser string
