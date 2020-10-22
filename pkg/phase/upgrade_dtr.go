@@ -52,7 +52,7 @@ func (p *UpgradeDtr) Run() error {
 	upgradeFlags := []string{
 		fmt.Sprintf("--existing-replica-id %s", p.config.Spec.Dtr.Metadata.DtrLeaderReplicaID),
 	}
-	ucpFlags := dtr.BuildUcpFlags(p.config)
+	ucpFlags := dtr.BuildUCPFlags(p.config)
 	upgradeFlags = append(upgradeFlags, ucpFlags...)
 	for _, f := range dtr.PluckSharedInstallFlags(p.config.Spec.Dtr.InstallFlags, dtr.SharedInstallUpgradeFlags) {
 		upgradeFlags = append(upgradeFlags, f)
@@ -65,7 +65,7 @@ func (p *UpgradeDtr) Run() error {
 		return NewError("Failed to run DTR upgrade")
 	}
 
-	dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
+	dtrMeta, err := dtr.CollectFacts(dtrLeader)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
 	}
