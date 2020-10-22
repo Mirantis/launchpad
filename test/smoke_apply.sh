@@ -27,6 +27,11 @@ if [ "$RES" -ne 0 ]; then
   fi
 fi
 
+echo "Testing exec"
+../bin/launchpad --debug exec -r manager echo hello from manager
+../bin/launchpad --debug exec --role worker echo hello from worker
+../bin/launchpad --debug exec --first echo hello from first host
+
 echo "Apply succeeded, downloading bundle"
 ../bin/launchpad --debug download-bundle --username admin --password orcaorcaorca
 
