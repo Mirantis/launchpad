@@ -1,7 +1,6 @@
 package dtr
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -10,45 +9,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Details defines DTR host details
-type Details struct {
-	Version   string
-	ReplicaID string
-}
-
-// ErrorNoSuchObject mocks the "No such object" error returned from docker
-// engine that is returned when a container or volume is listed but nothing
-// matching that object is found
-var ErrorNoSuchObject error = errors.New("No such object")
-
-// CollectDtrFacts gathers the current status of the installed DTR setup
-func CollectDtrFacts(h *api.Host) (*api.DtrMetadata, error) {
-	var details *Details
-	details, err := GetDTRDetails(h)
-	if err != nil {
-		if errors.Is(err, ErrorNoSuchObject) {
-			return &api.DtrMetadata{Installed: false}, nil
-		}
-		return nil, err
-	}
-
-	dtrMeta := &api.DtrMetadata{
-		Installed:          true,
-		InstalledVersion:   details.Version,
-		DtrLeaderReplicaID: details.ReplicaID,
-	}
-	return dtrMeta, nil
-}
-
-// GetDTRDetails returns a struct containing the DTR version and replica ID from
-// the host it's executed on
-func GetDTRDetails(h *api.Host) (*Details, error) {
+// CollectFacts gathers the current status of the installed DTR setup
+func CollectFacts(h *api.Host) (*api.DtrMetadata, error) {
 	rethinkdbContainerID, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
 		return nil, err
 	}
 	if rethinkdbContainerID == "" {
-		return nil, ErrorNoSuchObject
+		return &api.DtrMetadata{Installed: false}, nil
 	}
 
 	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
@@ -75,11 +43,12 @@ func GetDTRDetails(h *api.Host) (*Details, error) {
 			replicaID = strings.Trim(outputFields[len(outputFields)-1], ")")
 		}
 	}
-	details := &Details{
-		Version:   version,
-		ReplicaID: replicaID,
+	dtrMeta := &api.DtrMetadata{
+		Installed:          true,
+		InstalledVersion:   version,
+		DtrLeaderReplicaID: replicaID,
 	}
-	return details, nil
+	return dtrMeta, nil
 }
 
 // PluckSharedInstallFlags plucks the shared flag values between install and
@@ -146,7 +115,7 @@ func GetBootstrapVersion(h *api.Host, config *api.ClusterConfig) (string, error)
 
 // BuildUcpFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
-func BuildUcpFlags(config *api.ClusterConfig) []string {
+func BuildUCPFlags(config *api.ClusterConfig) []string {
 	var ucpUser string
 	var ucpPass string
 
@@ -226,10 +195,10 @@ func Destroy(h *api.Host) error {
 	return nil
 }
 
-// CleanupDtrs accepts a list of dtrHosts to remove all containers, volumes
+// Cleanup accepts a list of dtrHosts to remove all containers, volumes
 // and networks on, it is intended to be used to uninstall DTR or cleanup
 // a failed install
-func CleanupDtrs(dtrHosts []*api.Host, swarmLeader *api.Host) error {
+func Cleanup(dtrHosts []*api.Host, swarmLeader *api.Host) error {
 	for _, h := range dtrHosts {
 		log.Debugf("%s: Destroying DTR host", h.Address)
 		err := Destroy(h)

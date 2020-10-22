@@ -29,10 +29,10 @@ type Credentials struct {
 	Password string `json:"password,omitempty"`
 }
 
-// CollectUcpFacts gathers the current status of installed UCP setup
+// CollectFacts gathers the current status of installed UCP setup
 // Currently we only need to know the existing version and whether UCP is installed or not.
 // In future we probably need more.
-func CollectUcpFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
+func CollectFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
 	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
 		if strings.Contains(output, "No such object") {
@@ -78,7 +78,7 @@ func GetClientBundle(ucpURL *url.URL, tlsConfig *tls.Config, username, password 
 	}
 
 	// Login and get a token for the user
-	token, err := GetUCPToken(client, ucpURL, username, password)
+	token, err := GetToken(client, ucpURL, username, password)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get token for (%s:%s) : %s", username, password, err)
 	}
@@ -107,8 +107,8 @@ func GetClientBundle(ucpURL *url.URL, tlsConfig *tls.Config, username, password 
 	return zip.NewReader(bytes.NewReader(body), int64(len(body)))
 }
 
-// GetUCPToken gets a UCP Authtoken from the given ucpURL
-func GetUCPToken(client *http.Client, ucpURL *url.URL, username, password string) (string, error) {
+// GetToken gets a UCP Authtoken from the given ucpURL
+func GetToken(client *http.Client, ucpURL *url.URL, username, password string) (string, error) {
 	ucpURL.Path = "/auth/login"
 	creds := Credentials{
 		Username: username,

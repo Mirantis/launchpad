@@ -88,7 +88,7 @@ func (p *RemoveNodes) Prepare(config *api.ClusterConfig) error {
 			// launchpad node, first remove DTR
 			if managed.dtr {
 				// Check to see if the config contains any left over DTR nodes,
-				// if it doesn't just call CleanupDtrs to remove
+				// if it doesn't just call dtr.Cleanup to remove
 				dtrs := p.config.Spec.Dtrs()
 				if len(dtrs) == 0 {
 					// All of the DTRs were removed from config, just remove
@@ -123,7 +123,7 @@ func (p *RemoveNodes) Prepare(config *api.ClusterConfig) error {
 func (p *RemoveNodes) Run() error {
 	swarmLeader := p.config.Spec.SwarmLeader()
 	if len(p.cleanupDtrs) > 0 {
-		err := dtr.CleanupDtrs(p.cleanupDtrs, swarmLeader)
+		err := dtr.Cleanup(p.cleanupDtrs, swarmLeader)
 		if err != nil {
 			return err
 		}
@@ -209,7 +209,7 @@ func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 
 func (p *RemoveNodes) removeDtrNode(config *api.ClusterConfig, replicaID string) error {
 	dtrLeader := config.Spec.DtrLeader()
-	ucpFlags := dtr.BuildUcpFlags(config)
+	ucpFlags := dtr.BuildUCPFlags(config)
 
 	runFlags := []string{"--rm", "-i"}
 	if dtrLeader.Configurer.SELinuxEnabled() {
@@ -266,7 +266,7 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 	}
 
 	// Get a UCP token
-	token, err := ucp.GetUCPToken(client, ucpURL, config.Spec.Ucp.InstallFlags.GetValue("--admin-username"), config.Spec.Ucp.InstallFlags.GetValue("--admin-password"))
+	token, err := ucp.GetToken(client, ucpURL, config.Spec.Ucp.InstallFlags.GetValue("--admin-username"), config.Spec.Ucp.InstallFlags.GetValue("--admin-password"))
 	if err != nil {
 		return "", fmt.Errorf("Failed to get auth token: %s", err)
 	}
