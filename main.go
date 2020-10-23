@@ -143,6 +143,7 @@ SUPPORT:
 			cmd.RegisterCommand(),
 			cmd.NewDescribeCommand(),
 			cmd.NewDownloadBundleCommand(),
+			cmd.NewExecCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
 			cmd.NewDownloadLaunchpadCommand(),

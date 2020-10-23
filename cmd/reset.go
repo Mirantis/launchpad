@@ -20,10 +20,11 @@ func NewResetCommand() *cli.Command {
 		Usage: "Reset (uninstall) a cluster",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "config",
-				Usage:   "Path to cluster config yaml",
-				Aliases: []string{"c"},
-				Value:   "launchpad.yaml",
+				Name:      "config",
+				Usage:     "Path to cluster config yaml",
+				Aliases:   []string{"c"},
+				Value:     "launchpad.yaml",
+				TakesFile: true,
 			},
 			&cli.BoolFlag{
 				Name:    "force",

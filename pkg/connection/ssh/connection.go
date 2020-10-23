@@ -2,6 +2,7 @@ package ssh
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -10,6 +11,7 @@ import (
 
 	ssh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
+	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -197,4 +199,75 @@ func (c *Connection) Upload(src, dst string) error {
 		return c.uploadWindows(src, dst)
 	}
 	return c.uploadLinux(src, dst)
+}
+
+func termSizeWNCH() []byte {
+	size := make([]byte, 16)
+	fd := int(os.Stdin.Fd())
+	rows, cols, err := terminal.GetSize(fd)
+	if err != nil {
+		log.Tracef("error getting window size: %s", err.Error())
+		binary.BigEndian.PutUint32(size, 40)
+		binary.BigEndian.PutUint32(size[4:], 80)
+	} else {
+		binary.BigEndian.PutUint32(size, uint32(cols))
+		binary.BigEndian.PutUint32(size[4:], uint32(rows))
+	}
+
+	return size
+}
+
+// ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
+func (c *Connection) ExecInteractive(cmd string) error {
+	session, err := c.client.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+
+	fd := int(os.Stdin.Fd())
+	old, err := terminal.MakeRaw(fd)
+	if err != nil {
+		return err
+	}
+
+	defer terminal.Restore(fd, old)
+
+	rows, cols, err := terminal.GetSize(fd)
+	if err != nil {
+		return err
+	}
+
+	log.Tracef("requesting pty")
+	modes := ssh.TerminalModes{ssh.ECHO: 1}
+	err = session.RequestPty("xterm", cols, rows, modes)
+	if err != nil {
+		return err
+	}
+
+	stdinpipe, err := session.StdinPipe()
+	if err != nil {
+		return err
+	}
+	go func() {
+		io.Copy(stdinpipe, os.Stdin)
+		log.Tracef("stdin closed")
+	}()
+
+	c.captureSignals(stdinpipe, session)
+
+	if cmd == "" {
+		err = session.Shell()
+	} else {
+		err = session.Start(cmd)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return session.Wait()
 }

@@ -17,7 +17,7 @@ func (p *UninstallDTR) Title() string {
 	return "Uninstall DTR components"
 }
 
-// Run an uninstall via CleanupDTRs
+// Run an uninstall via dtr.Cleanup
 func (p *UninstallDTR) Run() error {
 	swarmLeader := p.config.Spec.SwarmLeader()
 	if !p.config.Spec.Dtr.Metadata.Installed {
@@ -32,5 +32,5 @@ func (p *UninstallDTR) Run() error {
 			dtrHosts = append(dtrHosts, h)
 		}
 	}
-	return dtr.CleanupDtrs(dtrHosts, swarmLeader)
+	return dtr.Cleanup(dtrHosts, swarmLeader)
 }

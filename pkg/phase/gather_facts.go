@@ -45,7 +45,7 @@ func (p *GatherFacts) Run() error {
 
 	// If engine is installed, we can collect some UCP & Swarm related info too
 	if swarmLeader.Metadata.EngineVersion != "" {
-		err := ucp.CollectUcpFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
+		err := ucp.CollectFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader, err.Error())
 		}
@@ -69,7 +69,7 @@ func (p *GatherFacts) Run() error {
 		}
 		dtrLeader := p.config.Spec.DtrLeader()
 		if dtrLeader != nil && dtrLeader.Metadata != nil && dtrLeader.Metadata.EngineVersion != "" {
-			dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
+			dtrMeta, err := dtr.CollectFacts(dtrLeader)
 			if err != nil {
 				return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader, err.Error())
 			}

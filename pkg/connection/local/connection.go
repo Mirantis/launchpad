@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/kballard/go-shellquote"
 )
 
 const hostname = "localhost"
@@ -109,5 +110,40 @@ func (c *Connection) Upload(src, dst string) error {
 		return err
 	}
 	_, err = io.Copy(out, in)
+	return err
+}
+
+// ExecInteractive executes a command on the host and copies stdin/stdout/stderr from local host
+func (c *Connection) ExecInteractive(cmd string) error {
+	if cmd == "" {
+		cmd = os.Getenv("SHELL") + " -l"
+	}
+
+	if cmd == " -l" {
+		cmd = "cmd"
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	pa := os.ProcAttr{
+		Files: []*os.File{os.Stdin, os.Stdout, os.Stderr},
+		Dir:   cwd,
+	}
+
+	parts, err := shellquote.Split(cmd)
+	if err != nil {
+		return err
+	}
+
+	proc, err := os.StartProcess(parts[0], parts[1:], &pa)
+	if err != nil {
+		return err
+	}
+
+	_, err = proc.Wait()
+	println("shell exited")
 	return err
 }

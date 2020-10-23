@@ -24,7 +24,7 @@ func (p *JoinDtrReplicas) Title() string {
 // Run joins all the workers nodes to swarm if not already part of it.
 func (p *JoinDtrReplicas) Run() error {
 	dtrLeader := p.config.Spec.DtrLeader()
-	ucpFlags := dtr.BuildUcpFlags(p.config)
+	ucpFlags := dtr.BuildUCPFlags(p.config)
 	sequentialInt := 0
 
 	for _, d := range p.config.Spec.Dtrs() {

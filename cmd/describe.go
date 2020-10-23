@@ -32,10 +32,11 @@ func NewDescribeCommand() *cli.Command {
 		ArgsUsage: fmt.Sprintf("<%s>", strings.Join(reports, "|")),
 		Flags: []cli.Flag{
 			&cli.StringFlag{
-				Name:    "config",
-				Usage:   "Path to cluster config yaml",
-				Aliases: []string{"c"},
-				Value:   "launchpad.yaml",
+				Name:      "config",
+				Usage:     "Path to cluster config yaml",
+				Aliases:   []string{"c"},
+				Value:     "launchpad.yaml",
+				TakesFile: true,
 			},
 		},
 		Action: func(ctx *cli.Context) error {

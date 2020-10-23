@@ -65,7 +65,7 @@ func (p *InstallDtr) Run() error {
 	}
 
 	// Configure the ucpFlags from existing UcpConfig
-	ucpFlags := dtr.BuildUcpFlags(p.config)
+	ucpFlags := dtr.BuildUCPFlags(p.config)
 	// Conduct the install passing the --ucp-node flag for the host provided in
 	// dtrLeader.
 	ucpFlags = append(ucpFlags, fmt.Sprintf("--ucp-node %s", dtrLeader.Metadata.LongHostname))
@@ -77,7 +77,7 @@ func (p *InstallDtr) Run() error {
 		return NewError("Failed to run DTR installer")
 	}
 
-	dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
+	dtrMeta, err := dtr.CollectFacts(dtrLeader)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader, err)
 	}
