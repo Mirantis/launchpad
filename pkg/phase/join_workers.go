@@ -34,7 +34,7 @@ func (p *JoinWorkers) Run() error {
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.config.Spec.Ucp.Metadata.WorkerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as worker", h.Address)
-		err := h.Exec(joinCmd, exec.Redact(p.config.Spec.Ucp.Metadata.WorkerJoinToken))
+		err := h.Exec(joinCmd, exec.RedactString(p.config.Spec.Ucp.Metadata.WorkerJoinToken))
 		if err != nil {
 			return NewError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
 		}

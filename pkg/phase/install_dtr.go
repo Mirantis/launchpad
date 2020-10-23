@@ -72,7 +72,7 @@ func (p *InstallDtr) Run() error {
 
 	installFlags = append(installFlags, ucpFlags...)
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact("--ucp-(?:user|pass).*"))
+	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")))
 	if err != nil {
 		return NewError("Failed to run DTR installer")
 	}

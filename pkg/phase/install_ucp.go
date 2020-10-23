@@ -108,7 +108,7 @@ func (p *InstallUCP) Run() (err error) {
 	installFlags.AddUnlessExist("--admin-password " + p.config.Spec.Ucp.Password)
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = swarmLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact(("--admin.*")))
+	err = swarmLeader.Exec(installCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.Username, p.config.Spec.Ucp.Password))
 	if err != nil {
 		return NewError("Failed to run UCP installer")
 	}

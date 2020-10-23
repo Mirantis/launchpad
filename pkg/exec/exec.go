@@ -2,6 +2,7 @@ package exec
 
 import (
 	"regexp"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -77,7 +78,7 @@ func (o *Options) AddOutput(prefix, s string) {
 	}
 }
 
-// Redact is for filtering text based on the exec option "redact"
+// Redact is for filtering out sensitive text using a regexp
 func (o *Options) Redact(s string) string {
 	if o.RedactFunc == nil {
 		return s
@@ -136,6 +137,19 @@ func Redact(rexp string) Option {
 		re := regexp.MustCompile(rexp)
 		o.RedactFunc = func(s2 string) string {
 			return re.ReplaceAllString(s2, "[REDACTED]")
+		}
+	}
+}
+
+// RedactString exec option for defining one or more strings to replace with [REDACTED] in the log output
+func RedactString(s ...string) Option {
+	return func(o *Options) {
+		o.RedactFunc = func(s2 string) string {
+			newstr := s2
+			for _, r := range s {
+				newstr = strings.ReplaceAll(newstr, r, "[REDACTED]")
+			}
+			return newstr
 		}
 	}
 }

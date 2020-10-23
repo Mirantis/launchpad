@@ -195,7 +195,7 @@ func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
 
 // AuthenticateDocker performs a docker login on the host
 func (c *LinuxConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
-	return c.Host.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.Redact(fmt.Sprintf("(?:%s|%s)", regexp.QuoteMeta(user), regexp.QuoteMeta(pass))))
+	return c.Host.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.RedactString(user, pass))
 }
 
 // WriteFile writes file to host with given contents. Do not use for large files.
