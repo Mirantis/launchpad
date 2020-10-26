@@ -94,7 +94,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 		return err
 	}
 
-	err = p.config.Spec.Hosts.Each(func(h *api.Host) error {
+	return p.config.Spec.Hosts.Each(func(h *api.Host) error {
 		fn := "launchpad.test"
 		testStr := "hello world!\n"
 		defer h.Configurer.DeleteFile(fn)
@@ -120,25 +120,6 @@ func (p *ValidateHosts) validateHostConnection() error {
 		}
 		return nil
 	})
-
-	if err != nil {
-		return err
-	}
-
-	err = p.config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
-		if h.Configurer.IsContainerized() {
-			log.Warnf("%s: host is containerized, not testing reboot", h)
-			return nil
-		}
-		log.Infof("%s: test reboot", h)
-		if err := h.Reboot(); err != nil {
-			h.Errors.Add(err.Error())
-			return err
-		}
-		return nil
-	})
-
-	return err
 }
 
 func (p *ValidateHosts) validateHostFacts() error {
