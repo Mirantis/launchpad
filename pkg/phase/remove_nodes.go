@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -15,7 +16,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/ucp"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/square/go-jose.v2/json"
 )
 
 // RemoveNodes phase implementation

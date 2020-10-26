@@ -123,7 +123,13 @@ func (p *InstallEngine) installEngine(h *api.Host, c *api.ClusterConfig) error {
 
 	currentVersion, err := h.EngineVersion()
 	if err != nil {
-		return fmt.Errorf("%s: failed to query engine version after installation: %s", h, err.Error())
+		if err := h.Reboot(); err != nil {
+			return err
+		}
+		currentVersion, err = h.EngineVersion()
+		if err != nil {
+			return fmt.Errorf("%s: failed to query engine version after installation: %s", h, err.Error())
+		}
 	}
 
 	if !newInstall && currentVersion == prevVersion {
