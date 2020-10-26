@@ -1,7 +1,9 @@
 #!/bin/bash
 
 FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-"footloose.yaml.tpl"}
-CONFIG_TEMPLATE=${CONFIG_TEMPLATE:-"launchpad.yaml.tpl"}
+LAUNCHPAD_CONFIG=${LAUNCHPAD_CONFIG:-"launchpad.yaml"}
+LAUNCHPAD="../bin/launchpad --debug"
+
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export UCP_VERSION=${UCP_VERSION:-"3.3.3"}
 export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/mirantis"}
@@ -83,12 +85,6 @@ function createCluster() {
   ./footloose create
 }
 
-function generateYaml() {
-  export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-  envsubst < "${CONFIG_TEMPLATE}" > launchpad.yaml
-  cat launchpad.yaml
-}
-
 function setup() {
   if [ -z "${REUSE_CLUSTER}" ]; then
     generateKey
@@ -96,5 +92,5 @@ function setup() {
     deleteCluster
     createCluster
   fi
-  generateYaml
+  export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 }
