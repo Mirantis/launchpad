@@ -59,7 +59,7 @@ func (p *ValidateHosts) formatErrors(conf *api.ClusterConfig) error {
 
 	if len(errorHosts) > 0 {
 		messages := errorHosts.MapString(func(h *api.Host) string {
-			return fmt.Sprintf("%s:\n%s\n", h.Address, h.Errors.String())
+			return fmt.Sprintf("%s:\n%s\n", h, h.Errors.String())
 		})
 
 		return fmt.Errorf("%d of %d hosts failed validation:\n%s", len(errorHosts), len(conf.Spec.Hosts), strings.Join(messages, ""))
@@ -82,7 +82,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 	// TODO: validate content
 
 	err = p.config.Spec.Hosts.Each(func(h *api.Host) error {
-		log.Infof("%s: testing file upload", h.Address)
+		log.Infof("%s: testing file upload", h)
 		defer h.Configurer.DeleteFile("launchpad.test")
 		err := h.WriteFileLarge(f.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(), "launchpad.test"))
 		if err != nil {
@@ -98,7 +98,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 		fn := "launchpad.test"
 		testStr := "hello world!\n"
 		defer h.Configurer.DeleteFile(fn)
-		log.Infof("%s: testing stdin redirection", h.Address)
+		log.Infof("%s: testing stdin redirection", h)
 		if h.IsWindows() {
 			err := h.Exec(fmt.Sprintf(`findstr "^" > %s`, fn), exec.Stdin(testStr))
 			if err != nil {
@@ -127,10 +127,10 @@ func (p *ValidateHosts) validateHostConnection() error {
 
 	err = p.config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
 		if h.Configurer.IsContainerized() {
-			log.Warnf("%s: host is containerized, not testing reboot", h.Address)
+			log.Warnf("%s: host is containerized, not testing reboot", h)
 			return nil
 		}
-		log.Infof("%s: test reboot", h.Address)
+		log.Infof("%s: test reboot", h)
 		if err := h.Reboot(); err != nil {
 			h.Errors.Add(err.Error())
 			return err
@@ -143,7 +143,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 
 func (p *ValidateHosts) validateHostFacts() error {
 	return p.config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
-		log.Infof("%s: validating host facts", h.Address)
+		log.Infof("%s: validating host facts", h)
 		if err := h.Configurer.ValidateFacts(); err != nil {
 			h.Errors.Add(err.Error())
 			return err

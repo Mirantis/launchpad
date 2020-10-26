@@ -45,7 +45,7 @@ func (p *InstallUCP) Run() (err error) {
 	}
 
 	if p.config.Spec.Ucp.Metadata.Installed {
-		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader.Address, p.config.Spec.Ucp.Metadata.InstalledVersion)
+		log.Infof("%s: UCP already installed at version %s, not running installer", swarmLeader, p.config.Spec.Ucp.Metadata.InstalledVersion)
 		return nil
 	}
 
@@ -112,7 +112,7 @@ func (p *InstallUCP) Run() (err error) {
 
 	err = ucp.CollectFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader.Address, err.Error())
+		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader, err.Error())
 	}
 
 	return nil
@@ -125,7 +125,7 @@ func (p *InstallUCP) installCertificates(config *api.ClusterConfig) error {
 	err := managers.ParallelEach(func(h *api.Host) error {
 		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
 		if err != nil {
-			log.Infof("%s: creating ucp-controller-server-certs volume", h.Address)
+			log.Infof("%s: creating ucp-controller-server-certs volume", h)
 			err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"))
 			if err != nil {
 				return err
@@ -137,7 +137,7 @@ func (p *InstallUCP) installCertificates(config *api.ClusterConfig) error {
 			return err
 		}
 
-		log.Infof("%s: installing certificate files to %s", h.Address, dir)
+		log.Infof("%s: installing certificate files to %s", h, dir)
 		err = h.Configurer.WriteFile(fmt.Sprintf("%s/ca.pem", dir), config.Spec.Ucp.CACertData, "0600")
 		if err != nil {
 			return err
@@ -171,7 +171,7 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 	}
 
 	err := runParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, c *api.ClusterConfig) error {
-		log.Infof("%s: copying cloud provider (%s) config to %s", h.Address, provider, destFile)
+		log.Infof("%s: copying cloud provider (%s) config to %s", h, provider, destFile)
 		return h.Configurer.WriteFile(destFile, configData, "0700")
 	})
 

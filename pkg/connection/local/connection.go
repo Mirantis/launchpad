@@ -15,11 +15,27 @@ import (
 const hostname = "localhost"
 
 // Connection is a direct localhost connection
-type Connection struct{}
+type Connection struct {
+	name string
+}
 
 // NewConnection returns a new connection
 func NewConnection() *Connection {
 	return &Connection{}
+}
+
+// SetName sets the connection's printable name
+func (c *Connection) SetName(n string) {
+	c.name = n
+}
+
+// String returns the connection's printable name
+func (c *Connection) String() string {
+	if c.name == "" {
+		return hostname
+	}
+
+	return c.name
 }
 
 // SetWindows on local connection does nothing

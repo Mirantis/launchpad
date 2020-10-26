@@ -327,14 +327,14 @@ func (c *LinuxConfigurer) ResolvePrivateInterface() (string, error) {
 
 // HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
 func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
-	log.Debugf("%s: requesting %s", c.Host.Address, url)
+	log.Debugf("%s: requesting %s", c.Host, url)
 	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))
 	if err != nil {
 		return -1, err
 	}
 	status, err := strconv.Atoi(output)
 	if err != nil {
-		return -1, fmt.Errorf("%s: invalid response: %s", c.Host.Address, err.Error())
+		return -1, fmt.Errorf("%s: invalid response: %s", c.Host, err.Error())
 	}
 
 	return status, nil

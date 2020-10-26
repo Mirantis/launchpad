@@ -59,7 +59,7 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 	m := c.Managers()
 	leader := m.Find(isSwarmLeader)
 	if leader != nil {
-		log.Debugf("%s: is the swarm leader", leader.Address)
+		log.Debugf("%s: is the swarm leader", leader)
 		return leader
 	}
 
@@ -187,7 +187,7 @@ func isSwarmLeader(h *Host) bool {
 	// We can by-pass the Configurer interface as managers are always linux boxes
 	output, err := h.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
 	if err != nil {
-		log.Warnf("%s: failed to get host's swarm leader status, probably not part of swarm", h.Address)
+		log.Debugf("%s: failed to get host's swarm leader status, probably not part of swarm", h)
 		return false
 	}
 	return output == "true"
@@ -200,7 +200,7 @@ func IsDtrInstalled(h *Host) bool {
 		// During the initial pre-installation phases, we expect this to fail
 		// so logging the error to debug is best to prevent erroneous errors
 		// from appearing problematic
-		log.Debugf("%s: unable to determine if host has DTR installed: %s", h.Address, err)
+		log.Debugf("%s: unable to determine if host has DTR installed: %s", h, err)
 		return false
 	}
 	output = strings.Trim(output, "\n")
@@ -220,7 +220,7 @@ func (c *ClusterSpec) DtrLeader() *Host {
 	dtrs := c.Dtrs()
 	h := dtrs.Find(IsDtrInstalled)
 	if h != nil {
-		log.Debugf("%s: found DTR installed, using as leader", h.Address)
+		log.Debugf("%s: found DTR installed, using as leader", h)
 		return h
 	}
 
@@ -243,7 +243,7 @@ func (c *ClusterSpec) CheckUCPHealthRemote(h *Host) error {
 
 	return retry.Do(
 		func() error {
-			log.Infof("%s: waiting for UCP at %s to become healthy", h.Address, u.Host)
+			log.Infof("%s: waiting for UCP at %s to become healthy", h, u.Host)
 			return h.CheckHTTPStatus(u.String(), 200)
 		},
 		retry.Attempts(12), // last attempt should wait ~7min
@@ -259,7 +259,7 @@ func (c *ClusterSpec) CheckUCPHealthLocal(h *Host) error {
 
 	return retry.Do(
 		func() error {
-			log.Infof("%s: waiting for UCP to become healthy", h.Address)
+			log.Infof("%s: waiting for UCP to become healthy", h)
 			return h.CheckHTTPStatus(fmt.Sprintf("https://%s/_ping", host), 200)
 		},
 		retry.Attempts(12), // last attempt should wait ~7min

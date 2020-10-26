@@ -55,12 +55,12 @@ func CollectFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
 	calicoContainer, err := swarmLeader.ExecWithOutput(cmd)
 
 	if calicoContainer != "" && err != nil {
-		log.Debugf("%s: calico container found: %s", swarmLeader.Address, calicoContainer)
+		log.Debugf("%s: calico container found: %s", swarmLeader, calicoContainer)
 		cmd := swarmLeader.Configurer.DockerCommandf(`inspect %s --format {{.Config.Env}}`, calicoContainer)
 		err := swarmLeader.Exec(fmt.Sprintf("%s | tr ' ' '\n' | grep FELIX_VXLAN= | grep -q true", cmd))
 		if err != nil {
 			ucpMeta.VXLAN = true
-			log.Debugf("%s: has calico VXLAN enabled", swarmLeader.Address)
+			log.Debugf("%s: has calico VXLAN enabled", swarmLeader)
 		}
 	}
 

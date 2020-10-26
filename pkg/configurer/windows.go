@@ -287,7 +287,7 @@ func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
 
 // HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
 func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
-	log.Debugf("%s: requesting %s", c.Host.Address, url)
+	log.Debugf("%s: requesting %s", c.Host, url)
 	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode"`, ps.SingleQuote(url)))
 	if err != nil {
 		return -1, err

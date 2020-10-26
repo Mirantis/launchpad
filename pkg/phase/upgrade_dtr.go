@@ -26,7 +26,7 @@ func (p *UpgradeDtr) Run() error {
 
 	err := p.config.Spec.CheckUCPHealthRemote(dtrLeader)
 	if err != nil {
-		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
+		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader)
 	}
 
 	p.EventProperties = map[string]interface{}{
@@ -40,7 +40,7 @@ func (p *UpgradeDtr) Run() error {
 	}
 	installedVersion := p.config.Spec.Dtr.Metadata.InstalledVersion
 	if bootstrapperVersion == installedVersion {
-		log.Infof("%s: DTR cluster already at version %s, not running upgrade", dtrLeader.Address, bootstrapperVersion)
+		log.Infof("%s: DTR cluster already at version %s, not running upgrade", dtrLeader, bootstrapperVersion)
 		return nil
 	}
 	log.Debugf("Proceeding with DTR upgrade: bootstrapperVersion: %s does not match installedVersion: %s", bootstrapperVersion, installedVersion)
@@ -67,7 +67,7 @@ func (p *UpgradeDtr) Run() error {
 
 	dtrMeta, err := dtr.CollectFacts(dtrLeader)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err.Error())
+		return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader, err.Error())
 	}
 
 	// Check to make sure installedversion matches bootstrapperVersion

@@ -58,12 +58,12 @@ func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 
 	if c.Host.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
 		if c.Host.Exec("sudo yum install -q -y rh-amazon-rhui-client") == nil {
-			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", c.Host.Address)
+			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", c.Host)
 		}
 	}
 
 	if c.Host.Exec("sudo yum-config-manager --enable rhel-7-server-rhui-extras-rpms && sudo yum makecache fast") == nil {
-		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", c.Host.Address)
+		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", c.Host)
 	}
 
 	return c.LinuxConfigurer.InstallEngine(engineConfig)
