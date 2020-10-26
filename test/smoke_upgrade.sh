@@ -8,7 +8,7 @@ trap cleanup EXIT
 
 setup
 
-[ "${REUSE_CLUSTER}" = "" ] && ../bin/launchpad --debug apply
+[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} --debug apply --config ${LAUNCHPAD_CONFIG}
 
 ../bin/launchpad describe
 ../bin/launchpad describe --ucp
@@ -23,7 +23,8 @@ generateYaml
 
 cat launchpad.yaml
 
-../bin/launchpad --debug apply
-../bin/launchpad describe hosts
-../bin/launchpad describe ucp
-../bin/launchpad describe dtr
+${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} ucp
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} dtr

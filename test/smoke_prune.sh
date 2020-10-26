@@ -6,7 +6,9 @@ cd test
 . ./smoke.common.sh
 trap cleanup EXIT
 
-[ "${REUSE_CLUSTER}" = "" ] && setup && ../bin/launchpad --debug apply
+setup
+
+[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
 
 UNAME=$(uname)
 if [ "${UNAME}" = "Darwin" ]; then
@@ -17,22 +19,22 @@ fi
 
 # Remove a node from the launchpad.yaml
 echo -e "Removing one DTR node from launchpad.yaml..."
-sed $SEDOPTS '/REMOVE_THIS/d' launchpad.yaml
-cat launchpad.yaml
+sed $SEDOPTS '/REMOVE_THIS/d' ${LAUNCHPAD_CONFIG}
+cat ${LAUNCHPAD_CONFIG}
 
-../bin/launchpad describe hosts
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
 
 echo "Running with prune: false"
-../bin/launchpad --debug apply
+${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
 
 # Flip prune to true
 echo -e "Changing prune: false to prune: true..."
-sed $SEDOPTS 's/prune: false/prune: true/' launchpad.yaml
-cat launchpad.yaml
+sed $SEDOPTS 's/prune: false/prune: true/' ${LAUNCHPAD_CONFIG}
+cat ${LAUNCHPAD_CONFIG}
 
 echo "Running with prune: true"
-../bin/launchpad --debug apply
+${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
 
-../bin/launchpad describe hosts
-../bin/launchpad describe ucp
-../bin/launchpad describe dtr
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} ucp
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} dtr

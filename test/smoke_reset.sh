@@ -8,8 +8,8 @@ trap cleanup EXIT
 
 setup
 
-[ "${REUSE_CLUSTER}" = "" ] && ../bin/launchpad --debug apply
-../bin/launchpad --debug reset --force
-../bin/launchpad describe hosts
-../bin/launchpad describe ucp
-../bin/launchpad describe dtr
+[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} reset --config ${LAUNCHPAD_CONFIG} --force
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} ucp
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} dtr
