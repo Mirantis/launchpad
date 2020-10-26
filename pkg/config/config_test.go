@@ -18,15 +18,15 @@ apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
 spec:
   hosts:
-	  - address: 10.0.0.1
-		  localhost: true
-		  role: manager
-	  - address: 10.0.0.2
-		  role: worker
-		  localhost: true
-	ucp:
-	  username: foofoo
-		password: barbar
+    - address: 10.0.0.1
+      localhost: true
+      role: manager
+    - address: 10.0.0.2
+      role: worker
+      localhost: true
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -39,15 +39,15 @@ apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
 spec:
   hosts:
-	  - address: 10.0.0.1
-		  role: worker
-		  localhost: true
-	  - address: 10.0.0.2
-		  role: worker
-		  localhost: true
-	ucp:
-	  username: foofoo
-		password: barbar
+    - address: 10.0.0.1
+      role: worker
+      localhost: true
+    - address: 10.0.0.2
+      role: worker
+      localhost: true
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -62,9 +62,9 @@ apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
 spec:
   hosts:
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -80,9 +80,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "512.1.2.3"
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -98,9 +98,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "10.10.10.10"
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -115,9 +115,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1-2-foo"
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -133,9 +133,9 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "foo.example.com"
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -151,12 +151,12 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: manager
-			ssh:
+      role: manager
+      ssh:
         port: 0
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -175,9 +175,9 @@ spec:
       ssh:
         port: 22
         keyPath: /path/to/nonexisting/key
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -194,11 +194,11 @@ spec:
   hosts:
   - address: "1.2.3.4"
     ssh:
-		  port: 22
+      port: 22
     role: foobar
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -213,17 +213,17 @@ kind: DockerEnterprise
 spec:
   hosts:
   - address: "1.2.3.4"
-		ssh:
-		  port: 22
+    ssh:
+      port: 22
     role: worker
     engineConfig:
       debug: true
       log-opts:
         max-size: 10m
         max-files: 5
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -237,16 +237,16 @@ apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   engine:
-	  installURL: http://example.com/
+    installURL: http://example.com/
   hosts:
   - address: "1.2.3.4"
-		sshPort: 9022
-		sshKeyPath: /path/to/nonexisting
-		user: foofoo
+    sshPort: 9022
+    sshKeyPath: /path/to/nonexisting
+    user: foofoo
     role: manager
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -265,16 +265,16 @@ apiVersion: launchpad.mirantis.com/v1beta2
 kind: UCP
 spec:
   engine:
-	  installURL: http://example.com/
+    installURL: http://example.com/
   hosts:
   - address: "1.2.3.4"
     role: manager
-		winRM:
-		  user: foo
-			password: foo
-	ucp:
-	  username: foofoo
-		password: barbar
+    winRM:
+      user: foo
+      password: foo
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 	require.NoError(t, Validate(c))
@@ -287,16 +287,16 @@ apiVersion: launchpad.mirantis.com/v1beta1
 kind: UCP
 spec:
   engine:
-	  version: 1.2.3
+    version: 1.2.3
   hosts:
   - address: "1.2.3.4"
-		sshPort: 9022
-		sshKeyPath: /path/to/nonexisting
-		user: foofoo
+    sshPort: 9022
+    sshKeyPath: /path/to/nonexisting
+    user: foofoo
     role: manager
-	ucp:
-	  username: foofoo
-		password: barbar
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 	err := Validate(c)
@@ -316,12 +316,12 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: manager
-		  winRM:
-			  caCertPath: /path/to/nonexisting
-	ucp:
-	  username: foofoo
-		password: barbar
+      role: manager
+      winRM:
+        caCertPath: /path/to/nonexisting
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -337,12 +337,12 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: manager
-		  winRM:
-			  certPath: /path/to/nonexisting
-	ucp:
-	  username: foofoo
-		password: barbar
+      role: manager
+      winRM:
+        certPath: /path/to/nonexisting
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -358,12 +358,12 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: manager
-		  winRM:
-			  keyPath: /path/to/nonexisting
-	ucp:
-	  username: foofoo
-		password: barbar
+      role: manager
+      winRM:
+        keyPath: /path/to/nonexisting
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -379,10 +379,10 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: manager
-	ucp:
-	  username: foofoo
-		password: barbar
+      role: manager
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -398,12 +398,12 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: manager
-		  winRM:
-			  user: User
-	ucp:
-	  username: foofoo
-		password: barbar
+      role: manager
+      winRM:
+        user: User
+  ucp:
+    username: foofoo
+    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -425,12 +425,12 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: weirdrole
+      role: weirdrole
     - address: "1.2.3.5"
-		  role: manager
-	ucp:
-	  username: foofoo
-		password: barbar
+      role: manager
+  ucp:
+    username: foofoo
+    password: barbar
 `
 		c := loadYaml(t, data)
 
@@ -444,16 +444,16 @@ kind: DockerEnterprise
 spec:
   hosts:
     - address: "1.2.3.4"
-		  role: dtr
-		  winRM:
-		    user: User
+      role: dtr
+      winRM:
+        user: User
     - address: "1.2.3.5"
-		  role: manager
-		  winRM:
-		    user: User
-	ucp:
-	  username: foofoo
-		password: barbar
+      role: manager
+      winRM:
+        user: User
+  ucp:
+    username: foofoo
+    password: barbar
 `
 		c := loadYaml(t, data)
 
