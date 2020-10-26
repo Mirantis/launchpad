@@ -21,7 +21,7 @@ func (p *UninstallDTR) Title() string {
 func (p *UninstallDTR) Run() error {
 	swarmLeader := p.config.Spec.SwarmLeader()
 	if !p.config.Spec.Dtr.Metadata.Installed {
-		log.Infof("%s: DTR is not installed", swarmLeader.Address)
+		log.Infof("%s: DTR is not installed", swarmLeader)
 		return nil
 	}
 

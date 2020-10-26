@@ -51,7 +51,7 @@ func (c *Connection) Upload(src, dst string) error {
 		return err
 	}
 	defer shell.Close()
-	log.Tracef("%s: running %s", c.Address, psCmd)
+	log.Tracef("%s: running %s", c, psCmd)
 	cmd, err := shell.Execute("powershell -ExecutionPolicy Unrestricted -EncodedCommand " + psCmd)
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func (c *Connection) Upload(src, dst string) error {
 			realSent += uint64(b)
 			chunkDuration := time.Since(lastStart).Seconds()
 			chunkSpeed := float64(b) / chunkDuration
-			log.Tracef("%s: transfered %d bytes in %f seconds (%s/s)", c.Address, b, chunkDuration, util.FormatBytes(uint64(chunkSpeed)))
+			log.Tracef("%s: transfered %d bytes in %f seconds (%s/s)", c, b, chunkDuration, util.FormatBytes(uint64(chunkSpeed)))
 			if ended {
 				cmd.Stdin.Close()
 			}
@@ -110,7 +110,7 @@ func (c *Connection) Upload(src, dst string) error {
 		return err
 	}
 	if !ended {
-		log.Tracef("%s: transfering remaining chunk", c.Address)
+		log.Tracef("%s: transfering remaining chunk", c)
 		_, _ = sha256DigestLocalObj.Write(buffer[:bufferLength])
 		sha256DigestLocal = hex.EncodeToString(sha256DigestLocalObj.Sum(nil))
 		base64.StdEncoding.Encode(base64LineBuffer, buffer[:bufferLength])
@@ -163,7 +163,7 @@ func (c *Connection) Upload(src, dst string) error {
 	cmd.Wait()
 	wg.Wait()
 
-	log.Tracef("%s: real sent bytes: %d (%f%% overhead)", c.Address, realSent, 100*(1.0-(float64(bytesSent)/float64(realSent))))
+	log.Tracef("%s: real sent bytes: %d (%f%% overhead)", c, realSent, 100*(1.0-(float64(bytesSent)/float64(realSent))))
 
 	if cmd.ExitCode() != 0 {
 		log.WithFields(log.Fields{

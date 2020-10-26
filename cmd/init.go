@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/Mirantis/mcc/pkg/constant"
@@ -23,13 +24,6 @@ func NewInitCommand() *cli.Command {
 				Usage:   "What kind of cluster definition we'll create",
 				Aliases: []string{"k"},
 				Value:   "DockerEnterprise",
-				Hidden:  true, // We don't support anything else than UCP for now
-			},
-			&cli.BoolFlag{
-				Name:    "dtr",
-				Usage:   "Init a launchpad.yaml file for Docker Trusted Registry (DTR)",
-				Aliases: []string{"d"},
-				Value:   false,
 			},
 		},
 		Action: func(ctx *cli.Context) error {
@@ -39,49 +33,54 @@ func NewInitCommand() *cli.Command {
 				return err
 			}
 
-			var dtrConfig *api.DtrConfig
-			if ctx.Bool("dtr") {
+			var clusterConfig api.ClusterConfig
+
+			switch ctx.String("kind") {
+			case "DockerEnterprise":
+				var dtrConfig *api.DtrConfig
 				dtrConfig = &api.DtrConfig{
 					Version:       constant.DTRVersion,
 					ReplicaConfig: "sequential",
 				}
-			}
-			clusterConfig := api.ClusterConfig{
-				APIVersion: "launchpad.mirantis.com/v1",
-				Kind:       "DockerEnterprise",
-				Metadata: &api.ClusterMeta{
-					Name: "my-ucp-cluster",
-				},
-				Spec: &api.ClusterSpec{
-					Engine: api.EngineConfig{
-						Version: constant.EngineVersion,
+				clusterConfig = api.ClusterConfig{
+					APIVersion: "launchpad.mirantis.com/v1",
+					Kind:       "DockerEnterprise",
+					Metadata: &api.ClusterMeta{
+						Name: "my-ucp-cluster",
 					},
-					Ucp: api.UcpConfig{
-						Version: constant.UCPVersion,
-					},
-					Dtr: dtrConfig,
-					Hosts: []*api.Host{
-						{
-							Address: "10.0.0.1",
-							Role:    "manager",
-							SSH: &api.SSH{
-								User:    "root",
-								Port:    22,
-								KeyPath: "~/.ssh/id_rsa",
+					Spec: &api.ClusterSpec{
+						Engine: api.EngineConfig{
+							Version: constant.EngineVersion,
+						},
+						Ucp: api.UcpConfig{
+							Version: constant.UCPVersion,
+						},
+						Dtr: dtrConfig,
+						Hosts: []*api.Host{
+							{
+								Address: "10.0.0.1",
+								Role:    "manager",
+								SSH: &api.SSH{
+									User:    "root",
+									Port:    22,
+									KeyPath: "~/.ssh/id_rsa",
+								},
+							},
+							{
+								Address: "10.0.0.2",
+								Role:    "worker",
+								SSH:     api.DefaultSSH(),
+							},
+							{
+								Address: "10.0.0.3",
+								Role:    "dtr",
+								SSH:     api.DefaultSSH(),
 							},
 						},
-						{
-							Address: "10.0.0.2",
-							Role:    "worker",
-							SSH:     api.DefaultSSH(),
-						},
-						{
-							Address: "10.0.0.3",
-							Role:    "dtr",
-							SSH:     api.DefaultSSH(),
-						},
 					},
-				},
+				}
+			default:
+				return fmt.Errorf("unknown kind: %s", ctx.String("kind"))
 			}
 
 			encoder := yaml.NewEncoder(os.Stdout)

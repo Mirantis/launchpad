@@ -77,7 +77,7 @@ func (hosts *Hosts) IndexAll(filter func(h *Host) bool) []int {
 func (hosts *Hosts) Each(filter func(h *Host) error) error {
 	for _, h := range *hosts {
 		if err := filter(h); err != nil {
-			return fmt.Errorf("%s: %s", h.Address, err.Error())
+			return fmt.Errorf("%s: %s", h, err.Error())
 		}
 	}
 	return nil
@@ -98,7 +98,7 @@ func (hosts *Hosts) ParallelEach(filter func(h *Host) error) error {
 
 	for _, h := range *hosts {
 		go func(h *Host) {
-			ec <- erritem{h.Address, filter(h)}
+			ec <- erritem{h.String(), filter(h)}
 		}(h)
 	}
 

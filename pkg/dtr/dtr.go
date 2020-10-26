@@ -150,7 +150,7 @@ func ucpURLHost(config *api.ClusterConfig) string {
 // installer if it fails
 func Destroy(h *api.Host) error {
 	// Remove containers
-	log.Debugf("%s: Removing DTR containers", h.Address)
+	log.Debugf("%s: Removing DTR containers", h)
 	containersToRemove, err := h.ExecWithOutput(h.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func Destroy(h *api.Host) error {
 	}
 
 	// Remove volumes
-	log.Debugf("%s: Removing DTR volumes", h.Address)
+	log.Debugf("%s: Removing DTR volumes", h)
 	volumeOutput, err := h.ExecWithOutput(h.Configurer.DockerCommandf("volume ls -q"))
 	if err != nil {
 		return err
@@ -200,14 +200,14 @@ func Destroy(h *api.Host) error {
 // a failed install
 func Cleanup(dtrHosts []*api.Host, swarmLeader *api.Host) error {
 	for _, h := range dtrHosts {
-		log.Debugf("%s: Destroying DTR host", h.Address)
+		log.Debugf("%s: Destroying DTR host", h)
 		err := Destroy(h)
 		if err != nil {
 			return fmt.Errorf("failed to run DTR destroy: %s", err)
 		}
 	}
 	// Remove dtr-ol via the swarmLeader
-	log.Infof("%s: Removing dtr-ol network", swarmLeader.Address)
+	log.Infof("%s: Removing dtr-ol network", swarmLeader)
 	swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("network rm dtr-ol"))
 	return nil
 }

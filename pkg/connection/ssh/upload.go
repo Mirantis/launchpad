@@ -132,7 +132,7 @@ func (c *Connection) uploadWindows(src, dst string) error {
 			realSent += uint64(b)
 			chunkDuration := time.Since(lastStart).Seconds()
 			chunkSpeed := float64(b) / chunkDuration
-			log.Tracef("%s: transfered %d bytes in %f seconds (%s/s)", c.Address, b, chunkDuration, util.FormatBytes(uint64(chunkSpeed)))
+			log.Tracef("%s: transfered %d bytes in %f seconds (%s/s)", c, b, chunkDuration, util.FormatBytes(uint64(chunkSpeed)))
 			if ended {
 				hostIn.Close()
 			}
@@ -180,7 +180,7 @@ func (c *Connection) uploadWindows(src, dst string) error {
 		defer wg.Done()
 		_, err = io.Copy(&stderr, hostErr)
 		if err != nil {
-			log.Errorf("%s: %s", c.Address, err.Error())
+			log.Errorf("%s: %s", c, err.Error())
 		}
 	}()
 
@@ -206,7 +206,7 @@ func (c *Connection) uploadWindows(src, dst string) error {
 	session.Wait()
 	wg.Wait()
 
-	log.Tracef("%s: real sent bytes: %d (%f%% overhead)", c.Address, realSent, 100*(1.0-(float64(bytesSent)/float64(realSent))))
+	log.Tracef("%s: real sent bytes: %d (%f%% overhead)", c, realSent, 100*(1.0-(float64(bytesSent)/float64(realSent))))
 
 	if sha256DigestRemote == "" {
 		return fmt.Errorf("copy file command did not output the expected JSON to stdout but exited with code 0")

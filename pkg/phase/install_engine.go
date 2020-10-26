@@ -58,7 +58,7 @@ func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
 				}
 			}
 		} else if h.Metadata.EngineVersion != "" {
-			log.Infof("%s: Engine is already at version %s", h.Address, h.Metadata.EngineVersion)
+			log.Infof("%s: Engine is already at version %s", h, h.Metadata.EngineVersion)
 		}
 	}
 
@@ -104,18 +104,18 @@ func (p *InstallEngine) installEngine(h *api.Host, c *api.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
 			if newInstall {
-				log.Infof("%s: installing engine (%s)", h.Address, c.Spec.Engine.Version)
+				log.Infof("%s: installing engine (%s)", h, c.Spec.Engine.Version)
 			} else {
-				log.Infof("%s: updating engine (%s -> %s)", h.Address, prevVersion, c.Spec.Engine.Version)
+				log.Infof("%s: updating engine (%s -> %s)", h, prevVersion, c.Spec.Engine.Version)
 			}
 			return h.Configurer.InstallEngine(&c.Spec.Engine)
 		},
 	)
 	if err != nil {
 		if newInstall {
-			log.Errorf("%s: failed to install engine -> %s", h.Address, err.Error())
+			log.Errorf("%s: failed to install engine -> %s", h, err.Error())
 		} else {
-			log.Errorf("%s: failed to update engine -> %s", h.Address, err.Error())
+			log.Errorf("%s: failed to update engine -> %s", h, err.Error())
 		}
 
 		return err
@@ -128,17 +128,17 @@ func (p *InstallEngine) installEngine(h *api.Host, c *api.ClusterConfig) error {
 		}
 		currentVersion, err = h.EngineVersion()
 		if err != nil {
-			return fmt.Errorf("%s: failed to query engine version after installation: %s", h.Address, err.Error())
+			return fmt.Errorf("%s: failed to query engine version after installation: %s", h, err.Error())
 		}
 	}
 
 	if !newInstall && currentVersion == prevVersion {
 		err = h.Configurer.RestartEngine()
 		if err != nil {
-			return fmt.Errorf("%s: failed to restart engine", h.Address)
+			return fmt.Errorf("%s: failed to restart engine", h)
 		}
 	}
 
-	log.Infof("%s: engine version %s installed", h.Address, c.Spec.Engine.Version)
+	log.Infof("%s: engine version %s installed", h, c.Spec.Engine.Version)
 	return nil
 }

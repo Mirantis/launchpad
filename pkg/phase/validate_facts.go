@@ -59,7 +59,7 @@ func (p *ValidateFacts) populateSan() {
 	for _, h := range mgrs {
 		f := fmt.Sprintf("--san=%s", h.Address)
 		p.config.Spec.Ucp.InstallFlags.Add(f)
-		log.Warnf("%s: added manager node's public address to ucp installFlag SANs: %s", h.Address, f)
+		log.Warnf("%s: added manager node's public address to ucp installFlag SANs: %s", h, f)
 	}
 }
 
