@@ -38,16 +38,16 @@ func (p *ValidateHosts) Title() string {
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run() error {
 	if p.Debug {
-		if err := p.validateHostConnection(p.config); err != nil {
+		if err := p.validateHostConnection(); err != nil {
 			return p.formatErrors(p.config)
 		}
 	}
 
-	if err := p.validateHostFacts(p.config); err != nil {
+	if err := p.validateHostFacts(); err != nil {
 		return p.formatErrors(p.config)
 	}
 
-	if err := p.validateHostnameUniqueness(p.config); err != nil {
+	if err := p.validateHostnameUniqueness(); err != nil {
 		return p.formatErrors(p.config)
 	}
 
@@ -68,7 +68,7 @@ func (p *ValidateHosts) formatErrors(conf *api.ClusterConfig) error {
 	return nil
 }
 
-func (p *ValidateHosts) validateHostConnection(conf *api.ClusterConfig) error {
+func (p *ValidateHosts) validateHostConnection() error {
 	f, err := ioutil.TempFile("", "uploadTest")
 	if err != nil {
 		return err
@@ -84,7 +84,11 @@ func (p *ValidateHosts) validateHostConnection(conf *api.ClusterConfig) error {
 	err = p.config.Spec.Hosts.Each(func(h *api.Host) error {
 		log.Infof("%s: testing file upload", h.Address)
 		defer h.Configurer.DeleteFile("launchpad.test")
-		return h.WriteFileLarge(f.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(), "launchpad.test"))
+		err := h.WriteFileLarge(f.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(), "launchpad.test"))
+		if err != nil {
+			h.Errors.Add(err.Error())
+		}
+		return err
 	})
 	if err != nil {
 		return err
@@ -106,13 +110,30 @@ func (p *ValidateHosts) validateHostConnection(conf *api.ClusterConfig) error {
 				return err
 			}
 		}
-		content, err := h.Configurer.ReadFile("foo.txt")
+		content, err := h.Configurer.ReadFile(fn)
 		if err != nil {
 			return err
 		}
 		if strings.TrimSpace(content) != strings.TrimSpace(testStr) {
 			// Allow trailing linefeeds etc, mainly because windows is weird.
-			return fmt.Errorf("file write test content check mismatch")
+			return fmt.Errorf("file write test content check mismatch: %q vs %q", strings.TrimSpace(content), strings.TrimSpace(testStr))
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	err = p.config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+		if h.Configurer.IsContainerized() {
+			log.Warnf("%s: host is containerized, not testing reboot", h.Address)
+			return nil
+		}
+		log.Infof("%s: test reboot", h.Address)
+		if err := h.Reboot(); err != nil {
+			h.Errors.Add(err.Error())
+			return err
 		}
 		return nil
 	})
@@ -120,11 +141,10 @@ func (p *ValidateHosts) validateHostConnection(conf *api.ClusterConfig) error {
 	return err
 }
 
-func (p *ValidateHosts) validateHostFacts(conf *api.ClusterConfig) error {
-	return conf.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+func (p *ValidateHosts) validateHostFacts() error {
+	return p.config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
 		log.Infof("%s: validating host facts", h.Address)
-		err := h.Configurer.ValidateFacts()
-		if err != nil {
+		if err := h.Configurer.ValidateFacts(); err != nil {
 			h.Errors.Add(err.Error())
 			return err
 		}
@@ -132,11 +152,11 @@ func (p *ValidateHosts) validateHostFacts(conf *api.ClusterConfig) error {
 	})
 }
 
-func (p *ValidateHosts) validateHostnameUniqueness(conf *api.ClusterConfig) error {
+func (p *ValidateHosts) validateHostnameUniqueness() error {
 	log.Infof("validating hostname uniqueness")
 	hostnames := make(map[string]api.Hosts)
 
-	conf.Spec.Hosts.Each(func(h *api.Host) error {
+	p.config.Spec.Hosts.Each(func(h *api.Host) error {
 		hostnames[h.Metadata.Hostname] = append(hostnames[h.Metadata.Hostname], h)
 		return nil
 	})
@@ -151,5 +171,5 @@ func (p *ValidateHosts) validateHostnameUniqueness(conf *api.ClusterConfig) erro
 		}
 	}
 
-	return p.formatErrors(conf)
+	return p.formatErrors(p.config)
 }
