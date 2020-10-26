@@ -32,6 +32,8 @@ type HostMetadata struct {
 	EngineVersion       string
 	Os                  *OsRelease
 	EngineInstallScript string
+	ImagesToUpload      []string
+	TotalImageBytes     uint64
 }
 
 type errors struct {
@@ -78,6 +80,7 @@ type Host struct {
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
+	ImageDir         string            `yaml:"imageDir,omitempty"`
 
 	WinRM     *WinRM `yaml:"winRM,omitempty"`
 	SSH       *SSH   `yaml:"ssh,omitempty"`
@@ -275,7 +278,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 
 	duration := time.Since(startTime).Seconds()
 	speed := float64(size) / duration
-	log.Infof("%s: transfered %s in %f seconds (%s/s)", h.Address, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
+	log.Infof("%s: transfered %s in %.1f seconds (%s/s)", h.Address, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
 
 	return nil
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 export SMOKE_DIR="$( pwd -P )"
 
