@@ -10,6 +10,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/connection/local"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/util"
+	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 
 	log "github.com/sirupsen/logrus"
@@ -31,6 +32,8 @@ type HostMetadata struct {
 	EngineVersion       string
 	Os                  *OsRelease
 	EngineInstallScript string
+	ImagesToUpload      []string
+	TotalImageBytes     uint64
 }
 
 type errors struct {
@@ -77,6 +80,7 @@ type Host struct {
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
+	ImageDir         string            `yaml:"imageDir,omitempty"`
 
 	WinRM     *WinRM `yaml:"winRM,omitempty"`
 	SSH       *SSH   `yaml:"ssh,omitempty"`
@@ -111,18 +115,26 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (h *Host) Connect() error {
 	var c connection.Connection
 
+	var proto string
+
 	if h.Localhost {
 		c = local.NewConnection()
+		proto = "Local"
 	} else if h.WinRM == nil {
 		c = h.SSH.NewConnection(h.Address)
+		proto = "SSH"
 	} else {
 		c = h.WinRM.NewConnection(h.Address)
+		proto = "WinRM"
 	}
 
+	log.Infof("%s: opening %s connection", h.Address, proto)
 	if err := c.Connect(); err != nil {
 		h.Connection = nil
-		return err
+		return fmt.Errorf("%s: failed to open %s connection: %s", h.Address, proto, err.Error())
 	}
+
+	log.Infof("%s: %s connection opened", h.Address, proto)
 
 	h.Connection = c
 
@@ -134,6 +146,7 @@ func (h *Host) Disconnect() {
 	if h.Connection != nil {
 		h.Connection.Disconnect()
 	}
+	h.Connection = nil
 }
 
 // Exec a command on the host
@@ -265,7 +278,72 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 
 	duration := time.Since(startTime).Seconds()
 	speed := float64(size) / duration
-	log.Infof("%s: transfered %s in %f seconds (%s/s)", h.Address, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
+	log.Infof("%s: transfered %s in %.1f seconds (%s/s)", h.Address, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
 
+	return nil
+}
+
+// Reboot reboots the host and waits for it to become responsive
+func (h *Host) Reboot() error {
+	log.Infof("%s: rebooting", h.Address)
+	h.Exec(h.Configurer.RebootCommand())
+	log.Infof("%s: waiting for host to go offline", h.Address)
+	if err := h.waitForHost(false); err != nil {
+		return err
+	}
+	h.Disconnect()
+
+	log.Infof("%s: waiting for reconnection", h.Address)
+	err := retry.Do(
+		func() error {
+			return h.Connect()
+		},
+		// This will retry for ~5 minutes with 9 to 11 second intervals. BackOff delay makes no sense here
+		// because the user would sometimes have to wait for 10+ extra minutes even though the machine
+		// actually came online right after the last retry and the initial 100ms retry delay in the beginning
+		// will never succeed on any host.
+		retry.DelayType(retry.RandomDelay),
+		retry.MaxJitter(time.Second),
+		retry.Delay(time.Second*10),
+		retry.Attempts(30),
+	)
+
+	if err != nil {
+		return fmt.Errorf("unable to reconnect after reboot")
+	}
+
+	log.Infof("%s: waiting for host to become active", h.Address)
+	if err := h.waitForHost(true); err != nil {
+		return err
+	}
+
+	if err != nil {
+		return fmt.Errorf("unable to reconnect after reboot")
+	}
+
+	return nil
+}
+
+// when state is true wait for host to become active, when state is false, wait for connection to go down
+func (h *Host) waitForHost(state bool) error {
+	err := retry.Do(
+		func() error {
+			err := h.Exec("echo")
+			if !state && err == nil {
+				return fmt.Errorf("still online")
+			} else if state && err != nil {
+				return fmt.Errorf("still offline")
+			}
+			return nil
+		},
+		// This will retry for ~5 minutes with 9 to 11 second intervals
+		retry.DelayType(retry.RandomDelay),
+		retry.MaxJitter(time.Second),
+		retry.Delay(time.Second*10),
+		retry.Attempts(30),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to wait for host to go offline")
+	}
 	return nil
 }

@@ -54,6 +54,9 @@ lint: builder
 smoke-apply-test: build
 	./test/smoke_apply.sh
 
+smoke-apply-upload-test: build
+	./test/smoke_upload.sh
+
 smoke-apply-test-localhost: build
 	./test/smoke_apply_local.sh
 

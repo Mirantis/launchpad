@@ -28,6 +28,7 @@ type HostConfigurer interface {
 	HTTPStatus(url string) (int, error)
 	Pwd() string
 	JoinPath(...string) string
+	RebootCommand() string
 }
 
 // HostConfigurerBuilder defines the builder function signature
