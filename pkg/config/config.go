@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/a8m/envsubst"
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -112,7 +113,7 @@ func ResolveClusterFile(clusterFile string) ([]byte, error) {
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to read file: %v", err)
 	}
-	return buf, nil
+	return envsubst.Bytes(buf)
 }
 
 func openClusterFile(clusterFile string) (*os.File, error) {

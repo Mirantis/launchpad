@@ -71,7 +71,18 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 	defer c.DeleteFile(installer)
 
 	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, ps.DoubleQuote(installer))
-	return c.Host.Exec(installCommand)
+
+	output, err := c.Host.ExecWithOutput(installCommand)
+	if err != nil {
+		return err
+	}
+
+	if strings.Contains(output, "Your machine needs to be rebooted") {
+		log.Warnf("%s: host needs to be rebooted", c.Host.Address)
+		return c.Host.Reboot()
+	}
+
+	return nil
 }
 
 // UninstallEngine uninstalls docker-ee engine
@@ -122,7 +133,20 @@ func (c *WindowsConfigurer) ResolveLongHostname() string {
 
 // ResolveInternalIP resolves internal ip from private interface
 func (c *WindowsConfigurer) ResolveInternalIP() (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, ps.SingleQuote(c.Host.PrivateInterface)))
+	output, err := c.interfaceIP(c.Host.PrivateInterface)
+	if err != nil {
+		if !strings.HasPrefix(c.Host.PrivateInterface, "vEthernet") {
+			ve := fmt.Sprintf("vEthernet (%s)", c.Host.PrivateInterface)
+			log.Tracef("%s: trying %s as a private interface alias", c.Host.Address, ve)
+			return c.interfaceIP(ve)
+		}
+		return "", err
+	}
+	return output, nil
+}
+
+func (c *WindowsConfigurer) interfaceIP(iface string) (string, error) {
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, ps.SingleQuote(iface)))
 	if err != nil {
 		return "", err
 	}
@@ -160,6 +184,9 @@ func (c *WindowsConfigurer) ValidateFacts() error {
 
 func (c *WindowsConfigurer) validateLocal(address string) bool {
 	err := c.Host.Exec(ps.Cmd(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses(%s); Get-NetIPAddress -IPAddress $ips"`, ps.SingleQuote(address))))
+	if err != nil {
+		log.Tracef("%s: not a node local address '%s': %s", c.Host.Address, address, err.Error())
+	}
 	return err == nil
 }
 
@@ -274,4 +301,9 @@ func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
 // JoinPath joins a path
 func (c *WindowsConfigurer) JoinPath(parts ...string) string {
 	return strings.Join(parts, "\\")
+}
+
+// RebootCommand returns a command string that will reboot the host
+func (c *WindowsConfigurer) RebootCommand() string {
+	return "shutdown /r /t 5"
 }
