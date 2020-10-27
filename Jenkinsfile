@@ -201,6 +201,49 @@ pipeline {
             }
           }
         }
+        stage("Ubuntu 18.04 with DTR and custom repository") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          stages {
+            stage("Install UCP3.2 DTR2.7 ENG19.03.8") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
+                UCP_VERSION = "3.2.8"
+                IMAGE_REPO = "docker.io/mirantis"
+                DTR_VERSION = "2.7.8"
+                DTR_IMAGE_REPO = "docker.io/mirantis"
+                ENGINE_VERSION = "19.03.8"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-apply-local-repo-test"
+              }
+            }
+            stage("Upgrade UCP3.3 DTR2.8 ENG19.03.12") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
+                UCP_VERSION = "3.3.3"
+                IMAGE_REPO = "docker.io/mirantis"
+                DTR_VERSION = "2.8.3"
+                ENGINE_VERSION = "19.03.12"
+                REUSE_CLUSTER = "true"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-apply-local-repo-test"
+                sh "make smoke-reset-local-repo-test"
+                sh "make smoke-cleanup"
+              }
+            }
+          }
+        }
       }
     }
     stage('Release') {
