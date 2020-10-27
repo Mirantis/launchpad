@@ -1,6 +1,8 @@
 package phase
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	log "github.com/sirupsen/logrus"
@@ -30,7 +32,7 @@ func (p *JoinManagers) Run() error {
 		log.Debugf("%s: joining as manager", h)
 		err := h.Exec(joinCmd, exec.StreamOutput(), exec.Redact(p.config.Spec.Ucp.Metadata.ManagerJoinToken))
 		if err != nil {
-			return NewError("Failed to join manager node to swarm")
+			return fmt.Errorf("%s: failed to join manager node to swarm: %s", h, err.Error())
 		}
 		log.Infof("%s: joined successfully", h)
 	}

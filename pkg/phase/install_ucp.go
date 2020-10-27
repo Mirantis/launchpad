@@ -107,7 +107,7 @@ func (p *InstallUCP) Run() (err error) {
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
 	err = swarmLeader.Exec(installCmd, exec.StreamOutput(), exec.Redact(`--admin\S+`))
 	if err != nil {
-		return NewError("Failed to run UCP installer")
+		return fmt.Errorf("%s: failed to run UCP installer: %s", swarmLeader, err.Error())
 	}
 
 	err = ucp.CollectFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
