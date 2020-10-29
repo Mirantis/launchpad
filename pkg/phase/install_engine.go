@@ -131,7 +131,7 @@ func (p *InstallEngine) installEngine(host *api.Host, c *api.ClusterConfig) erro
 	if !newInstall && currentVersion == prevVersion {
 		err = host.Configurer.RestartEngine()
 		if err != nil {
-			return NewError(fmt.Sprintf("%s: failed to restart engine", host.Address))
+			return fmt.Errorf("%s: failed to restart engine", host.Address)
 		}
 	}
 

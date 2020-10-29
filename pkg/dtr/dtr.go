@@ -111,7 +111,7 @@ func SequentialReplicaID(replicaInt int) string {
 	return fmt.Sprintf("%s%d", replicaPrefix, replicaInt)
 }
 
-// BuildUCPFlags builds the ucpFlags []string consisting of ucp installFlags
+// BuildUcpFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
 func BuildUcpFlags(config *api.ClusterConfig) []string {
 	return []string{

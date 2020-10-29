@@ -97,7 +97,7 @@ func (p *PullImages) ListImages(config *api.ClusterConfig) ([]string, error) {
 	}
 	output, err := manager.ExecWithOutput(manager.Configurer.DockerCommandf("run --rm %s images %s", image, imageFlag))
 	if err != nil {
-		return []string{}, fmt.Errorf("%s: failed to get %s image list", manager, product)
+		return []string{}, fmt.Errorf("%s: failed to get %s image list", manager.Address, product)
 	}
 
 	return strings.Split(output, "\n"), nil

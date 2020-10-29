@@ -61,7 +61,7 @@ func (p *UpgradeDtr) Run() error {
 	if dtrMeta.InstalledVersion != p.config.Spec.Dtr.Version {
 		// If our newly collected facts do not match the version we upgraded to
 		// then the upgrade has failed
-		return fmt.Errorf("%s: upgraded DTR version: %s does not match intended upgrade version: %s", dtrLeader, dtrMeta.InstalledVersion, p.config.Spec.Dtr.Version)
+		return fmt.Errorf("%s: upgraded DTR version: %s does not match intended upgrade version: %s", dtrLeader.Address, dtrMeta.InstalledVersion, p.config.Spec.Dtr.Version)
 	}
 
 	p.EventProperties["dtr_upgraded"] = true

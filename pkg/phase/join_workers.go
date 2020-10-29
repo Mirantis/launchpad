@@ -43,7 +43,7 @@ func (p *JoinWorkers) Run() error {
 		log.Debugf("%s: joining as worker", h.Address)
 		err := h.ExecCmd(joinCmd, "", true, true)
 		if err != nil {
-			return NewError(fmt.Sprintf("Failed to join worker %s node to swarm", h.Address))
+			return fmt.Errorf("failed to join worker %s node to swarm", h.Address)
 		}
 		log.Infof("%s: joined succesfully", h.Address)
 		if h.IsWindows() {

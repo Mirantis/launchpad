@@ -59,7 +59,7 @@ func (p *JoinDtrReplicas) Run() error {
 		}
 
 		joinCmd := dtrLeader.Configurer.DockerCommandf("run %s %s join %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.Metadata.InstalledBootstrapImage, strings.Join(joinFlags, " "))
-		log.Debugf("%s: Joining DTR replica to cluster", d)
+		log.Debugf("%s: Joining DTR replica to cluster", d.Address)
 		err := dtrLeader.ExecCmd(joinCmd, "", true, true)
 		if err != nil {
 			return fmt.Errorf("%s: failed to run DTR join: %s", dtrLeader.Address, err.Error())
