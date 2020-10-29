@@ -7,7 +7,9 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/cmd/reset"
+	"github.com/Mirantis/mcc/pkg/component"
+	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
@@ -33,9 +35,17 @@ func NewResetCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				os.Stdout.WriteString(util.Logo)
+				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
+			}
 			start := time.Now()
 			analytics.TrackEvent("Cluster Reset Started", nil)
-			err := reset.Reset(ctx.String("config"))
+			component, err := component.Components(ctx)
+			if err == nil {
+				err = component.Reset()
+			}
+
 			if err != nil {
 				analytics.TrackEvent("Cluster Reset Failed", nil)
 			} else {

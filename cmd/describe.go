@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/cmd/describe"
+	"github.com/Mirantis/mcc/pkg/component"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
 
@@ -51,9 +51,15 @@ func NewDescribeCommand() *cli.Command {
 			if !ctx.Bool("debug") {
 				log.SetLevel(log.FatalLevel)
 			}
+
 			start := time.Now()
 			analytics.TrackEvent("Cluster Describe Started", nil)
-			err := describe.Describe(ctx.String("config"), report)
+
+			component, err := component.Components(ctx)
+			if err == nil {
+				err = component.Describe(ctx.Args().First())
+			}
+
 			if err != nil {
 				analytics.TrackEvent("Cluster Describe Failed", nil)
 			} else {

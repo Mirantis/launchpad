@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/cmd/apply"
+	"github.com/Mirantis/mcc/pkg/component"
+	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/version"
+	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -42,16 +47,17 @@ func NewApplyCommand() *cli.Command {
 			return nil
 		},
 		Action: func(ctx *cli.Context) error {
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				os.Stdout.WriteString(util.Logo)
+				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
+			}
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
 
-			err := apply.Apply(&apply.Options{
-				Config:      ctx.String("config"),
-				Force:       ctx.Bool("force"),
-				Debug:       ctx.Bool("debug") || ctx.Bool("trace"),
-				SkipCleanup: ctx.Bool("disable-cleanup"),
-			})
-
+			component, err := component.Components(ctx)
+			if err == nil {
+				err = component.Apply()
+			}
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {
