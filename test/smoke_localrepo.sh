@@ -13,8 +13,6 @@ function registrycleanup() {
 }
 trap registrycleanup EXIT
 
-setup && downloadTools
-
-cloneImages()
+setup && downloadTools && cloneImages
 
 ${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
