@@ -11,4 +11,4 @@ worker=`multipass info worker  --format json | jq .info.worker.ipv4[0]`
 sed -i "s/\"192.168.64.11\"/$worker/g" launchpad.yml 
 
 # make build  -C ../../
- ../../bin/launchpad apply -c ./launchpad.yaml
+ ../../bin/launchpad apply -c ./launchpad.yml
