@@ -15,4 +15,4 @@ trap registrycleanup EXIT
 
 setup && downloadTools && cloneImages
 
-${LAUNCHPAD} reset --config ${LAUNCHPAD_CONFIG} --force
+../bin/launchpad reset --force

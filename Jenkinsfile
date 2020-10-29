@@ -212,7 +212,7 @@ pipeline {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
+                CONFIG_TEMPLATE = "launchpad-dtr.yaml.tpl"
                 UCP_VERSION = "3.2.8"
                 IMAGE_REPO = "docker.io/mirantis"
                 DTR_VERSION = "2.7.8"
@@ -228,7 +228,7 @@ pipeline {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
+                CONFIG_TEMPLATE = "launchpad-dtr.yaml.tpl"
                 UCP_VERSION = "3.3.3"
                 IMAGE_REPO = "docker.io/mirantis"
                 DTR_VERSION = "2.8.3"
