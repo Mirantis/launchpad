@@ -2,9 +2,9 @@ apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
 spec:
   hosts:
-    - address: "147.75.55.123"
+    - address: "127.0.0.1"
       ssh:
-        port: 22
+        port: 9022
         user: "root"
       role: "manager"
       engineConfig: &linuxEngineConfig
@@ -20,12 +20,12 @@ spec:
           after:
             - ls -al foo.txt
             - cat foo.txt
-    # - address: "147.75.87.85"
-    # ssh:
-    #   port: 22
-    #   user: "root"
-    # role: "worker"
-    # engineConfig: *linuxEngineConfig
+    - address: "127.0.0.1"
+      ssh:
+        port: 9023
+        user: "root"
+      role: "worker"
+      engineConfig: *linuxEngineConfig
   ucp:
     installFlags:
       - --admin-username=admin
