@@ -13,4 +13,6 @@ type Connection interface {
 	IsWindows() bool
 	Exec(string, ...exec.Option) error
 	ExecInteractive(string) error
+	SetName(string)
+	String() string
 }

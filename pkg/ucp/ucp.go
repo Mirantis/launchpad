@@ -42,25 +42,28 @@ func CollectFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
 		}
 		return err
 	}
+
 	vparts := strings.Split(output, ":")
 	if len(vparts) != 2 {
 		return fmt.Errorf("malformed version output: %s", output)
 	}
+	repo := vparts[0][:strings.LastIndexByte(vparts[0], '/')]
 
 	ucpMeta.Installed = true
 	ucpMeta.InstalledVersion = vparts[1]
+	ucpMeta.InstalledBootstrapImage = fmt.Sprintf("%s:/ucp:%s", repo, vparts[1])
 
 	// Find out calico data plane by inspecting the calico container's env variables
 	cmd := swarmLeader.Configurer.DockerCommandf(`ps --filter label=name="Calico node" --format {{.ID}}`)
 	calicoContainer, err := swarmLeader.ExecWithOutput(cmd)
 
 	if calicoContainer != "" && err != nil {
-		log.Debugf("%s: calico container found: %s", swarmLeader.Address, calicoContainer)
+		log.Debugf("%s: calico container found: %s", swarmLeader, calicoContainer)
 		cmd := swarmLeader.Configurer.DockerCommandf(`inspect %s --format {{.Config.Env}}`, calicoContainer)
 		err := swarmLeader.Exec(fmt.Sprintf("%s | tr ' ' '\n' | grep FELIX_VXLAN= | grep -q true", cmd))
 		if err != nil {
 			ucpMeta.VXLAN = true
-			log.Debugf("%s: has calico VXLAN enabled", swarmLeader.Address)
+			log.Debugf("%s: has calico VXLAN enabled", swarmLeader)
 		}
 	}
 

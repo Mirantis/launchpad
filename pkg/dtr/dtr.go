@@ -43,10 +43,19 @@ func CollectFacts(h *api.Host) (*api.DtrMetadata, error) {
 			replicaID = strings.Trim(outputFields[len(outputFields)-1], ")")
 		}
 	}
+
+	var bootstrapimage string
+	imagename, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ .Config.Image }}'`, rethinkdbContainerID))
+	if err == nil {
+		repo := imagename[:strings.LastIndexByte(imagename, '/')]
+		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
+	}
+
 	dtrMeta := &api.DtrMetadata{
-		Installed:          true,
-		InstalledVersion:   version,
-		DtrLeaderReplicaID: replicaID,
+		Installed:               true,
+		InstalledVersion:        version,
+		InstalledBootstrapImage: bootstrapimage,
+		DtrLeaderReplicaID:      replicaID,
 	}
 	return dtrMeta, nil
 }
@@ -98,21 +107,6 @@ func SequentialReplicaID(replicaInt int) string {
 	return fmt.Sprintf("%s%d", replicaPrefix, replicaInt)
 }
 
-// GetBootstrapVersion gets the version of bootstrapper image from the specified
-// host
-func GetBootstrapVersion(h *api.Host, config *api.ClusterConfig) (string, error) {
-	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`image inspect %s --format '{{.RepoTags}}'`, config.Spec.Dtr.GetBootstrapperImage()))
-	if err != nil {
-		return "", err
-	}
-	outputSplit := strings.Split(output, ":")
-	if len(outputSplit) != 2 {
-		return "", fmt.Errorf("unexpected length of DTR bootstrapper image RepoTags")
-	}
-	version := strings.Trim(outputSplit[1], "]")
-	return version, nil
-}
-
 // BuildUCPFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
 func BuildUCPFlags(config *api.ClusterConfig) []string {
@@ -150,7 +144,7 @@ func ucpURLHost(config *api.ClusterConfig) string {
 // installer if it fails
 func Destroy(h *api.Host) error {
 	// Remove containers
-	log.Debugf("%s: Removing DTR containers", h.Address)
+	log.Debugf("%s: Removing DTR containers", h)
 	containersToRemove, err := h.ExecWithOutput(h.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
 	if err != nil {
 		return err
@@ -165,7 +159,7 @@ func Destroy(h *api.Host) error {
 	}
 
 	// Remove volumes
-	log.Debugf("%s: Removing DTR volumes", h.Address)
+	log.Debugf("%s: Removing DTR volumes", h)
 	volumeOutput, err := h.ExecWithOutput(h.Configurer.DockerCommandf("volume ls -q"))
 	if err != nil {
 		return err
@@ -200,14 +194,14 @@ func Destroy(h *api.Host) error {
 // a failed install
 func Cleanup(dtrHosts []*api.Host, swarmLeader *api.Host) error {
 	for _, h := range dtrHosts {
-		log.Debugf("%s: Destroying DTR host", h.Address)
+		log.Debugf("%s: Destroying DTR host", h)
 		err := Destroy(h)
 		if err != nil {
 			return fmt.Errorf("failed to run DTR destroy: %s", err)
 		}
 	}
 	// Remove dtr-ol via the swarmLeader
-	log.Infof("%s: Removing dtr-ol network", swarmLeader.Address)
+	log.Infof("%s: Removing dtr-ol network", swarmLeader)
 	swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("network rm dtr-ol"))
 	return nil
 }

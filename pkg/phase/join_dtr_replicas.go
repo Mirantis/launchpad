@@ -33,7 +33,7 @@ func (p *JoinDtrReplicas) Run() error {
 		// on them, if one is found which is not yet in the cluster, perform
 		// a join against dtrLeader
 		if api.IsDtrInstalled(d) {
-			log.Infof("%s: already a DTR node", d.Address)
+			log.Infof("%s: already a DTR node", d)
 			continue
 		}
 
@@ -59,11 +59,11 @@ func (p *JoinDtrReplicas) Run() error {
 			joinFlags = append(joinFlags, f)
 		}
 
-		joinCmd := dtrLeader.Configurer.DockerCommandf("run %s %s join %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.GetBootstrapperImage(), strings.Join(joinFlags, " "))
-		log.Debugf("%s: Joining DTR replica to cluster", d.Address)
+		joinCmd := dtrLeader.Configurer.DockerCommandf("run %s %s join %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.Metadata.InstalledBootstrapImage, strings.Join(joinFlags, " "))
+		log.Debugf("%s: Joining DTR replica to cluster", d)
 		err := dtrLeader.Exec(joinCmd, exec.StreamOutput())
 		if err != nil {
-			return NewError("Failed to run DTR join")
+			return fmt.Errorf("%s: failed to run DTR join: %s", dtrLeader, err.Error())
 		}
 	}
 	return nil

@@ -25,7 +25,7 @@ func (p *UninstallUCP) Title() string {
 func (p *UninstallUCP) Run() error {
 	swarmLeader := p.config.Spec.SwarmLeader()
 	if !p.config.Spec.Ucp.Metadata.Installed {
-		log.Infof("%s: UCP is not installed, skipping", swarmLeader.Address)
+		log.Infof("%s: UCP is not installed, skipping", swarmLeader)
 		return nil
 	}
 
@@ -38,16 +38,16 @@ func (p *UninstallUCP) Run() error {
 	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", strings.Join(runFlags, " "), image, args)
 	err := swarmLeader.Exec(uninstallCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.InstallFlags.GetValue("--admin-username"), p.config.Spec.Ucp.InstallFlags.GetValue("--admin-password")))
 	if err != nil {
-		return NewError("Failed to run UCP uninstaller")
+		return fmt.Errorf("%s: failed to run UCP uninstaller: %s", swarmLeader, err.Error())
 	}
 
 	if p.config.Spec.Ucp.CertData != "" {
 		managers := p.config.Spec.Managers()
 		managers.ParallelEach(func(h *api.Host) error {
-			log.Infof("%s: removing ucp-controller-server-certs volume", h.Address)
+			log.Infof("%s: removing ucp-controller-server-certs volume", h)
 			err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
 			if err != nil {
-				log.Errorf("%s: failed to remove the volume", h.Address)
+				log.Errorf("%s: failed to remove the volume", h)
 			}
 			return nil
 		})

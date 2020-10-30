@@ -38,19 +38,19 @@ func (p *LabelNodes) labelCurrentNodes(config *api.ClusterConfig, swarmLeader *a
 		if err != nil {
 			return err
 		}
-		log.Infof("%s: labeling node", h.Address)
+		log.Infof("%s: labeling node", h)
 		if h.Role == "dtr" {
 			// Add the DTR label in addition to the managed label
 			dtrLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedDtrLabelCmd, nodeID)
 			err = swarmLeader.Exec(dtrLabelCmd)
 			if err != nil {
-				return fmt.Errorf("Failed to label node %s as DTR (%s)", h.Address, nodeID)
+				return fmt.Errorf("Failed to label node %s as DTR (%s)", h, nodeID)
 			}
 		}
 		labelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedLabelCmd, nodeID)
 		err = swarmLeader.Exec(labelCmd)
 		if err != nil {
-			return fmt.Errorf("Failed to label node %s (%s)", h.Address, nodeID)
+			return fmt.Errorf("Failed to label node %s (%s)", h, nodeID)
 		}
 	}
 	return nil

@@ -38,7 +38,7 @@ func (p *Connect) connectHost(h *api.Host, c *api.ClusterConfig) error {
 }
 
 func (p *Connect) testConnection(h *api.Host) error {
-	log.Infof("%s: testing connection", h.Address)
+	log.Infof("%s: testing connection", h)
 
 	if err := h.Exec("echo"); err != nil {
 		return err

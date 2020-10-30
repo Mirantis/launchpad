@@ -23,6 +23,6 @@ func (p *Disconnect) Run() error {
 
 func (p *Disconnect) disconnectHost(h *api.Host, c *api.ClusterConfig) error {
 	h.Disconnect()
-	log.Printf("%s: connection closed", h.Address)
+	log.Infof("%s: connection closed", h)
 	return nil
 }

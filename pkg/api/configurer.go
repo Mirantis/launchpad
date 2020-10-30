@@ -56,7 +56,7 @@ func ResolveHostConfigurer(h *Host) error {
 		}
 	}
 	if h.Configurer == nil {
-		return fmt.Errorf("%s: has unsupported OS (%s)", h.Address, h.Metadata.Os.Name)
+		return fmt.Errorf("%s: has unsupported OS (%s)", h, h.Metadata.Os.Name)
 	}
 	return nil
 }

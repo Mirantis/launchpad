@@ -28,7 +28,7 @@ func (p *InstallDtr) Run() error {
 
 	err := p.config.Spec.CheckUCPHealthRemote(dtrLeader)
 	if err != nil {
-		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader.Address)
+		return fmt.Errorf("%s: failed to health check ucp, try to set `--ucp-url` installFlag and check connectivity", dtrLeader)
 	}
 
 	if !p.SkipCleanup {
@@ -48,7 +48,7 @@ func (p *InstallDtr) Run() error {
 	}
 
 	if p.config.Spec.Dtr.Metadata.Installed {
-		log.Infof("%s: DTR already installed at version %s, not running installer", dtrLeader.Address, p.config.Spec.Dtr.Metadata.InstalledVersion)
+		log.Infof("%s: DTR already installed at version %s, not running installer", dtrLeader, p.config.Spec.Dtr.Metadata.InstalledVersion)
 		return nil
 	}
 
@@ -74,12 +74,12 @@ func (p *InstallDtr) Run() error {
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
 	err = dtrLeader.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")))
 	if err != nil {
-		return NewError("Failed to run DTR installer")
+		return fmt.Errorf("%s: failed to run DTR installer: %s", dtrLeader, err.Error())
 	}
 
 	dtrMeta, err := dtr.CollectFacts(dtrLeader)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader.Address, err)
+		return fmt.Errorf("%s: failed to collect existing DTR details: %s", dtrLeader, err)
 	}
 	p.config.Spec.Dtr.Metadata = dtrMeta
 	return nil

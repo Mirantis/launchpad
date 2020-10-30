@@ -96,7 +96,7 @@ func Exec(configFile string, address string, interactive, first bool, role, cmd 
 		return fmt.Errorf("Failed to connect: %s", err.Error())
 	}
 
-	log.Debugf("%s: connected", host.Address)
+	log.Debugf("%s: connected", host)
 
 	if cmd == "" {
 		if stdin != "" {
