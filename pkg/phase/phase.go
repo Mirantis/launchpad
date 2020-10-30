@@ -1,7 +1,6 @@
 package phase
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -112,13 +111,6 @@ func (e *Error) Error() string {
 		messages = append(messages, err.Error())
 	}
 	return strings.Join(messages, "\n")
-}
-
-// NewError creates new phase.Error
-func NewError(err string) *Error {
-	return &Error{
-		Errors: []error{errors.New(err)},
-	}
 }
 
 func runParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(h *api.Host, config *api.ClusterConfig) error) error {

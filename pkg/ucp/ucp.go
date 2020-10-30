@@ -42,13 +42,16 @@ func CollectFacts(swarmLeader *api.Host, ucpMeta *api.UcpMetadata) error {
 		}
 		return err
 	}
+
 	vparts := strings.Split(output, ":")
 	if len(vparts) != 2 {
 		return fmt.Errorf("malformed version output: %s", output)
 	}
+	repo := vparts[0][:strings.LastIndexByte(vparts[0], '/')]
 
 	ucpMeta.Installed = true
 	ucpMeta.InstalledVersion = vparts[1]
+	ucpMeta.InstalledBootstrapImage = fmt.Sprintf("%s:/ucp:%s", repo, vparts[1])
 
 	// Find out calico data plane by inspecting the calico container's env variables
 	cmd := swarmLeader.Configurer.DockerCommandf(`ps --filter label=name="Calico node" --format {{.ID}}`)
