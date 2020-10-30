@@ -100,40 +100,21 @@ func (h *Host) generateName() string {
 		return "localhost"
 	}
 
-	if h.Metadata != nil && h.Metadata.Hostname != "" {
-		return h.Metadata.Hostname
-	}
-
 	if h.WinRM != nil {
-		return fmt.Sprintf("%s:%d", h.Address, h.WinRM.Port)
+		return fmt.Sprintf("%s %s:%d", h.Role, h.Address, h.WinRM.Port)
 	}
 
 	if h.SSH != nil {
-		return fmt.Sprintf("%s:%d", h.Address, h.SSH.Port)
+		return fmt.Sprintf("%s %s:%d", h.Role, h.Address, h.SSH.Port)
 	}
 
-	return h.Address
-}
-
-// SetName resets the host's logging name
-func (h *Host) SetName() {
-	var oldname string
-	if h.name != "" {
-		oldname = h.name
-	}
-	h.name = h.generateName()
-	if h.Connection != nil {
-		h.Connection.SetName(h.name)
-	}
-	if oldname != "" && oldname != h.name {
-		log.Warnf("%s: will now be refered to as '%s'", oldname, h.name)
-	}
+	return fmt.Sprintf("%s %s", h.Role, h.Address) // I don't think it should go here except in tests
 }
 
 // String returns a name / string identifier for the host
 func (h *Host) String() string {
 	if h.name == "" {
-		h.SetName()
+		h.name = h.generateName()
 	}
 	return h.name
 }
@@ -182,6 +163,7 @@ func (h *Host) Connect() error {
 	log.Infof("%s: %s connection opened", h.Address, proto)
 
 	h.Connection = c
+	h.Connection.SetName(h.String())
 
 	return nil
 }
