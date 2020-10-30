@@ -96,19 +96,30 @@ type Host struct {
 }
 
 func (h *Host) generateName() string {
+	var role string
+
+	switch h.Role {
+	case "manager":
+		role = "M"
+	case "worker":
+		role = "W"
+	case "dtr":
+		role = "D"
+	}
+
 	if h.Localhost {
-		return "localhost"
+		return fmt.Sprintf("%s localhost", role)
 	}
 
 	if h.WinRM != nil {
-		return fmt.Sprintf("%s %s:%d", h.Role, h.Address, h.WinRM.Port)
+		return fmt.Sprintf("%s %s:%d", role, h.Address, h.WinRM.Port)
 	}
 
 	if h.SSH != nil {
-		return fmt.Sprintf("%s %s:%d", h.Role, h.Address, h.SSH.Port)
+		return fmt.Sprintf("%s %s:%d", role, h.Address, h.SSH.Port)
 	}
 
-	return fmt.Sprintf("%s %s", h.Role, h.Address) // I don't think it should go here except in tests
+	return fmt.Sprintf("%s %s", role, h.Address) // I don't think it should go here except in tests
 }
 
 // String returns a name / string identifier for the host
