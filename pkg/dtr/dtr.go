@@ -1,7 +1,6 @@
 package dtr
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -10,45 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Details defines DTR host details
-type Details struct {
-	Version   string
-	ReplicaID string
-}
-
 // ErrorNoSuchObject mocks the "No such object" error returned from docker
 // engine that is returned when a container or volume is listed but nothing
 // matching that object is found
-var ErrorNoSuchObject error = errors.New("No such object")
 
 // CollectDtrFacts gathers the current status of the installed DTR setup
-func CollectDtrFacts(dtrLeader *api.Host) (*api.DtrMetadata, error) {
-	var details *Details
-	details, err := GetDTRDetails(dtrLeader)
-	if err != nil {
-		if errors.Is(err, ErrorNoSuchObject) {
-			return &api.DtrMetadata{Installed: false}, nil
-		}
-		return nil, err
-	}
-
-	dtrMeta := &api.DtrMetadata{
-		Installed:          true,
-		InstalledVersion:   details.Version,
-		DtrLeaderReplicaID: details.ReplicaID,
-	}
-	return dtrMeta, nil
-}
-
-// GetDTRDetails returns a struct containing the DTR version and replica ID from
-// the host it's executed on
-func GetDTRDetails(dtrHost *api.Host) (*Details, error) {
+func CollectDtrFacts(dtrHost *api.Host) (*api.DtrMetadata, error) {
 	rethinkdbContainerID, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
 		return nil, err
 	}
 	if rethinkdbContainerID == "" {
-		return nil, ErrorNoSuchObject
+		return &api.DtrMetadata{Installed: false}, nil
 	}
 
 	version, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
@@ -75,11 +47,21 @@ func GetDTRDetails(dtrHost *api.Host) (*Details, error) {
 			replicaID = strings.Trim(outputFields[len(outputFields)-1], ")")
 		}
 	}
-	details := &Details{
-		Version:   version,
-		ReplicaID: replicaID,
+
+	var bootstrapimage string
+	imagename, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`inspect %s --format '{{ .Config.Image }}'`, rethinkdbContainerID))
+	if err == nil {
+		repo := imagename[:strings.LastIndexByte(imagename, '/')]
+		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
 	}
-	return details, nil
+
+	dtrMeta := &api.DtrMetadata{
+		Installed:               true,
+		InstalledVersion:        version,
+		InstalledBootstrapImage: bootstrapimage,
+		DtrLeaderReplicaID:      replicaID,
+	}
+	return dtrMeta, nil
 }
 
 // PluckSharedInstallFlags plucks the shared flag values between install and
@@ -127,21 +109,6 @@ func PluckSharedInstallFlags(installFlags []string, sharedFlags []string) []stri
 func SequentialReplicaID(replicaInt int) string {
 	replicaPrefix := "00000000000"
 	return fmt.Sprintf("%s%d", replicaPrefix, replicaInt)
-}
-
-// GetBootstrapVersion gets the version of bootstrapper image from the specified
-// host
-func GetBootstrapVersion(dtrHost *api.Host, config *api.ClusterConfig) (string, error) {
-	output, err := dtrHost.ExecWithOutput(dtrHost.Configurer.DockerCommandf(`image inspect %s --format '{{.RepoTags}}'`, config.Spec.Dtr.GetBootstrapperImage()))
-	if err != nil {
-		return "", err
-	}
-	outputSplit := strings.Split(output, ":")
-	if len(outputSplit) != 2 {
-		return "", fmt.Errorf("unexpected length of DTR bootstrapper image RepoTags")
-	}
-	version := strings.Trim(outputSplit[1], "]")
-	return version, nil
 }
 
 // BuildUcpFlags builds the ucpFlags []string consisting of ucp installFlags

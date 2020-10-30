@@ -31,7 +31,7 @@ func (p *JoinManagers) Run() error {
 		log.Debugf("%s: joining as manager", h.Address)
 		err := h.ExecCmd(joinCmd, "", true, true)
 		if err != nil {
-			return NewError(fmt.Sprintf("Failed to join manager node to swarm"))
+			return fmt.Errorf("%s: failed to join manager node to swarm: %s", h.Address, err.Error())
 		}
 		log.Infof("%s: joined successfully", h.Address)
 	}

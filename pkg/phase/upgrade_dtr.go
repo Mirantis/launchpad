@@ -27,17 +27,10 @@ func (p *UpgradeDtr) Run() error {
 		"dtr_upgraded": false,
 	}
 
-	// Check specified bootstrapper images version
-	bootstrapperVersion, err := dtr.GetBootstrapVersion(dtrLeader, p.config)
-	if err != nil {
-		return NewError("Failed to check DTR bootstrapper image version")
-	}
-	installedVersion := p.config.Spec.Dtr.Metadata.InstalledVersion
-	if bootstrapperVersion == installedVersion {
-		log.Infof("%s: DTR cluster already at version %s, not running upgrade", dtrLeader.Address, bootstrapperVersion)
+	if p.config.Spec.Dtr.Version == p.config.Spec.Dtr.Metadata.InstalledVersion {
+		log.Infof("%s: DTR cluster already at version %s, not running upgrade", dtrLeader.Address, p.config.Spec.Dtr.Version)
 		return nil
 	}
-	log.Debugf("Proceeding with DTR upgrade: bootstrapperVersion: %s does not match installedVersion: %s", bootstrapperVersion, installedVersion)
 
 	runFlags := []string{"--rm", "-i"}
 	if dtrLeader.Configurer.SELinuxEnabled() {
@@ -54,9 +47,9 @@ func (p *UpgradeDtr) Run() error {
 
 	upgradeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s upgrade %s", strings.Join(runFlags, " "), p.config.Spec.Dtr.GetBootstrapperImage(), strings.Join(upgradeFlags, " "))
 	log.Debug("Running DTR upgrade via bootstrapper")
-	err = dtrLeader.ExecCmd(upgradeCmd, "", true, false)
+	err := dtrLeader.ExecCmd(upgradeCmd, "", true, false)
 	if err != nil {
-		return NewError("Failed to run DTR upgrade")
+		return fmt.Errorf("failed to run DTR upgrade: %s", err.Error())
 	}
 
 	dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)
@@ -65,15 +58,15 @@ func (p *UpgradeDtr) Run() error {
 	}
 
 	// Check to make sure installedversion matches bootstrapperVersion
-	if dtrMeta.InstalledVersion != bootstrapperVersion {
+	if dtrMeta.InstalledVersion != p.config.Spec.Dtr.Version {
 		// If our newly collected facts do not match the version we upgraded to
 		// then the upgrade has failed
-		return NewError(fmt.Sprintf("Upgraded DTR version: %s does not match intended upgrade version: %s", dtrMeta.InstalledVersion, bootstrapperVersion))
+		return fmt.Errorf("%s: upgraded DTR version: %s does not match intended upgrade version: %s", dtrLeader.Address, dtrMeta.InstalledVersion, p.config.Spec.Dtr.Version)
 	}
 
 	p.EventProperties["dtr_upgraded"] = true
-	p.EventProperties["dtr_installed_version"] = installedVersion
-	p.EventProperties["dtr_upgraded_version"] = bootstrapperVersion
+	p.EventProperties["dtr_installed_version"] = p.config.Spec.Dtr.Metadata.InstalledVersion
+	p.EventProperties["dtr_upgraded_version"] = p.config.Spec.Dtr.Version
 	p.config.Spec.Dtr.Metadata = dtrMeta
 
 	return nil

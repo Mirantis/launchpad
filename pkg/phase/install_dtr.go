@@ -65,7 +65,7 @@ func (p *InstallDtr) Run() (err error) {
 	installCmd := dtrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
 	err = dtrLeader.ExecCmd(installCmd, "", true, true)
 	if err != nil {
-		return NewError("Failed to run DTR installer")
+		return fmt.Errorf("%s: failed to run DTR installer: %s", dtrLeader.Address, err.Error())
 	}
 
 	dtrMeta, err := dtr.CollectDtrFacts(dtrLeader)

@@ -27,7 +27,7 @@ func (p *InitSwarm) Run() error {
 		log.Infof("%s: initializing swarm", swarmLeader.Address)
 		output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()))
 		if err != nil {
-			return NewError(fmt.Sprintf("Failed to initialize swarm: %s", output))
+			return fmt.Errorf("failed to initialize swarm: %s", output)
 		}
 		log.Infof("%s: swarm initialized successfully", swarmLeader.Address)
 	} else {
@@ -36,13 +36,13 @@ func (p *InitSwarm) Run() error {
 
 	mgrToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"))
 	if err != nil {
-		return NewError("failed to get swarm manager join-token")
+		return fmt.Errorf("%s: failed to get swarm manager join-token: %s", swarmLeader.Address, err.Error())
 	}
 	p.config.Spec.Ucp.Metadata.ManagerJoinToken = mgrToken
 
 	workerToken, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token worker -q"))
 	if err != nil {
-		return NewError("failed to get swarm worker join-token")
+		return fmt.Errorf("%s: failed to get swarm worker join-token: %s", swarmLeader.Address, err.Error())
 	}
 	p.config.Spec.Ucp.Metadata.WorkerJoinToken = workerToken
 	return nil

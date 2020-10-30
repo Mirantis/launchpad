@@ -192,11 +192,11 @@ func (p *RemoveNodes) removeDtrNode(config *api.ClusterConfig, replicaID string)
 		removeFlags = append(removeFlags, f)
 	}
 
-	removeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s remove %s", strings.Join(runFlags, " "), config.Spec.Dtr.GetBootstrapperImage(), strings.Join(removeFlags, " "))
+	removeCmd := dtrLeader.Configurer.DockerCommandf("run %s %s remove %s", strings.Join(runFlags, " "), config.Spec.Dtr.Metadata.InstalledBootstrapImage, strings.Join(removeFlags, " "))
 	log.Debugf("%s: Removing DTR replica %s from cluster", dtrLeader.Address, replicaID)
-	err := dtrLeader.ExecCmd(removeCmd, "", true, false)
+	err := dtrLeader.ExecCmd(removeCmd, "", true, true)
 	if err != nil {
-		return NewError("Failed to run DTR remove")
+		return fmt.Errorf("%s: failed to run DTR remove: %s", dtrLeader.Address, err.Error())
 	}
 	return nil
 }
@@ -236,7 +236,7 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, swarmL
 	// Get a UCP token
 	token, err := ucp.GetUCPToken(client, ucpURL, util.GetInstallFlagValue(config.Spec.Ucp.InstallFlags, "--admin-username"), util.GetInstallFlagValue((config.Spec.Ucp.InstallFlags), "--admin-password"))
 	if err != nil {
-		return "", fmt.Errorf("Failed to get auth token: %s", err)
+		return "", fmt.Errorf("failed to get auth token: %s", err.Error())
 	}
 
 	// Build the query
