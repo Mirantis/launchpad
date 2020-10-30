@@ -154,16 +154,17 @@ func (h *Host) Connect() error {
 		proto = "WinRM"
 	}
 
-	log.Infof("%s: opening %s connection", h.Address, proto)
+	c.SetName(h.String())
+
+	log.Infof("%s: opening %s connection", h, proto)
 	if err := c.Connect(); err != nil {
 		h.Connection = nil
-		return fmt.Errorf("%s: failed to open %s connection: %s", h.Address, proto, err.Error())
+		return fmt.Errorf("%s: failed to open %s connection: %s", h, proto, err.Error())
 	}
 
-	log.Infof("%s: %s connection opened", h.Address, proto)
+	log.Infof("%s: %s connection opened", h, proto)
 
 	h.Connection = c
-	h.Connection.SetName(h.String())
 
 	return nil
 }
