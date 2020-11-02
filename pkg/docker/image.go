@@ -29,7 +29,7 @@ func NewImage(s string) *Image {
 
 // AllFromString parses a list of images from a newline separated string and returns a list of images
 func AllFromString(s string) (list []*Image) {
-	re := regexp.MustCompile("(?m)^(?P<repo>.+?)/(?P<name>.+?):(?P<tag>.+?)$")
+	re := regexp.MustCompile("(?m)^(?P<repo>.*)/(?P<name>.+?):(?P<tag>.+?)$")
 	for _, match := range re.FindAllStringSubmatch(s, -1) {
 		list = append(list, &Image{
 			Repository: match[1],
@@ -123,8 +123,7 @@ func RetagAllToRepository(h *api.Host, images []*Image, repo string) error {
 }
 
 // AllToRepository generates a new list with a different repository
-func AllToRepository(images []*Image, repo string) []*Image {
-	list := make([]*Image, len(images), len(images))
+func AllToRepository(images []*Image, repo string) (list []*Image) {
 	for _, i := range images {
 		list = append(list, &Image{
 			Repository: repo,

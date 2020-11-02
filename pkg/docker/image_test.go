@@ -24,6 +24,7 @@ func TestAllFromString(t *testing.T) {
 	images := AllFromString(`docker.io/foo/bar:1.2.3
 docker.io/foo/bar2:1.2.3`)
 	require.Equal(t, 2, len(images))
+	require.Equal(t, "docker.io/foo", images[0].Repository)
 	require.Equal(t, "docker.io/foo/bar:1.2.3", images[0].String())
 	require.Equal(t, "docker.io/foo/bar2:1.2.3", images[1].String())
 }
