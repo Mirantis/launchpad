@@ -35,6 +35,8 @@ func Components(ctx *cli.Context) (Component, error) {
 	case "DockerEnterprise":
 		return ucp.UCP{
 			ClusterConfig: clusterConfig,
+			SkipCleanup:   ctx.Bool("disable-cleanup"),
+			Debug:         ctx.Bool("debug") || ctx.Bool("trace"),
 		}, nil
 	}
 	return nil, nil

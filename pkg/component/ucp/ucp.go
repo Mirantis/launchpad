@@ -48,14 +48,12 @@ func (u UCP) Apply() error {
 	dtr := config.ContainsDtr(u.ClusterConfig)
 
 	phaseManager := phase.NewManager(&u.ClusterConfig)
-	// TODO: pass skip cleanup somehow.
-	// phaseManager.SkipCleanup = u.ctx.Bool("disable-cleanup")
+	phaseManager.SkipCleanup = u.SkipCleanup
 
 	phaseManager.AddPhases(&phase.Connect{},
 		&phase.GatherFacts{Dtr: dtr},
 		&phase.ValidateFacts{},
-		// TODO: Make sure to pass correct debug value here
-		&phase.ValidateHosts{Debug: false /*u.ctx.Bool("debug") || u.ctx.Bool("trace")*/},
+		&phase.ValidateHosts{Debug: u.Debug},
 		&phase.DownloadInstaller{},
 		&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }},
 		&phase.PrepareHost{},
@@ -126,18 +124,16 @@ func (u UCP) Reset() error {
 	dtr := config.ContainsDtr(u.ClusterConfig)
 	phaseManager := phase.NewManager(&u.ClusterConfig)
 
-	phaseManager.AddPhase(&phase.Connect{})
-	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
-	phaseManager.AddPhase(&phase.RunHooks{Stage: "Before", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.Before }})
+	phaseManager.AddPhases(&phase.Connect{}, &phase.GatherFacts{Dtr: dtr},
+		&phase.RunHooks{Stage: "Before", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.Before }})
 	if dtr {
 		phaseManager.AddPhase(&phase.UninstallDTR{})
 	}
-	phaseManager.AddPhase(&phase.UninstallUCP{})
-	phaseManager.AddPhase(&phase.DownloadInstaller{})
-	phaseManager.AddPhase(&phase.UninstallEngine{})
-	phaseManager.AddPhase(&phase.CleanUp{})
-	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.After }})
-	phaseManager.AddPhase(&phase.Disconnect{})
+	phaseManager.AddPhases(&phase.UninstallUCP{},
+		&phase.DownloadInstaller{}, &phase.UninstallEngine{},
+		&phase.CleanUp{},
+		&phase.RunHooks{Stage: "After", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.After }},
+		&phase.Disconnect{})
 
 	return phaseManager.Run()
 }
@@ -160,10 +156,9 @@ func (u UCP) Describe(reportName string) error {
 	phaseManager := phase.NewManager(&u.ClusterConfig)
 	phaseManager.IgnoreErrors = true
 
-	phaseManager.AddPhase(&phase.Connect{})
-	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
-	phaseManager.AddPhase(&phase.Disconnect{})
-	phaseManager.AddPhase(&phase.Describe{Ucp: ucp, Dtr: dtr})
+	phaseManager.AddPhases(&phase.Connect{},
+		&phase.GatherFacts{Dtr: dtr},
+		&phase.Disconnect{} < &phase.Describe{Ucp: ucp, Dtr: dtr})
 
 	return phaseManager.Run()
 }
