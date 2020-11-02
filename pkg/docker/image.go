@@ -83,7 +83,7 @@ func PullImages(h *api.Host, images []*Image) error {
 	wp := workerpool.New(5)
 	defer wp.StopWait()
 
-	var mutex *sync.Mutex
+	var mutex sync.Mutex
 	var lastError error
 
 	for _, image := range images {
