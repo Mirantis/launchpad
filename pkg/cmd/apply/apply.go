@@ -67,14 +67,13 @@ func Apply(opts *Options) error {
 		return err
 	}
 
-	dtr := config.ContainsDtr(clusterConfig)
 	clusterConfig.Spec.Metadata.Force = opts.Force
 
 	phaseManager := phase.NewManager(&clusterConfig)
 	phaseManager.SkipCleanup = opts.SkipCleanup
 
 	phaseManager.AddPhase(&phase.Connect{})
-	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
+	phaseManager.AddPhase(&phase.GatherFacts{})
 	phaseManager.AddPhase(&phase.ValidateFacts{})
 	phaseManager.AddPhase(&phase.ValidateHosts{Debug: opts.Debug})
 	phaseManager.AddPhase(&phase.DownloadInstaller{})
@@ -82,21 +81,21 @@ func Apply(opts *Options) error {
 	phaseManager.AddPhase(&phase.PrepareHost{})
 	phaseManager.AddPhase(&phase.InstallEngine{})
 	phaseManager.AddPhase(&phase.LoadImages{})
-	phaseManager.AddPhase(&phase.PullImages{})
+	phaseManager.AddPhase(&phase.AuthenticateDocker{})
+	phaseManager.AddPhase(&phase.PullUCPImages{})
 	phaseManager.AddPhase(&phase.InitSwarm{})
 	phaseManager.AddPhase(&phase.InstallUCP{SkipCleanup: opts.SkipCleanup})
 	phaseManager.AddPhase(&phase.UpgradeUcp{})
 	phaseManager.AddPhase(&phase.JoinManagers{})
 	phaseManager.AddPhase(&phase.JoinWorkers{})
-	// If the clusterConfig contains any of the DTR role then install and
-	// upgrade DTR on those specific host roles
-	if dtr {
-		phaseManager.AddPhase(&phase.PullImages{Dtr: dtr})
-		phaseManager.AddPhase(&phase.ValidateUcpHealth{})
-		phaseManager.AddPhase(&phase.InstallDtr{SkipCleanup: opts.SkipCleanup})
-		phaseManager.AddPhase(&phase.UpgradeDtr{})
-		phaseManager.AddPhase(&phase.JoinDtrReplicas{})
-	}
+
+	// DTR phases
+	phaseManager.AddPhase(&phase.PullDTRImages{})
+	phaseManager.AddPhase(&phase.ValidateUcpHealth{})
+	phaseManager.AddPhase(&phase.InstallDtr{SkipCleanup: opts.SkipCleanup})
+	phaseManager.AddPhase(&phase.UpgradeDtr{})
+	phaseManager.AddPhase(&phase.JoinDtrReplicas{})
+
 	phaseManager.AddPhase(&phase.LabelNodes{})
 	phaseManager.AddPhase(&phase.RemoveNodes{})
 	phaseManager.AddPhase(&phase.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }})

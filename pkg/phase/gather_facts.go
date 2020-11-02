@@ -25,7 +25,6 @@ import (
 type GatherFacts struct {
 	Analytics
 	BasicPhase
-	Dtr bool
 }
 
 // Title for the phase
@@ -56,7 +55,7 @@ func (p *GatherFacts) Run() error {
 		}
 		p.config.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
-	if p.Dtr {
+	if p.config.Spec.ContainsDtr() {
 		// If we intend to configure DTR as well, gather facts for DTR
 		if p.config.Spec.Dtr == nil {
 			p.config.Spec.Dtr = &api.DtrConfig{}

@@ -13,7 +13,7 @@ import (
 // bootstrap
 type InstallDtr struct {
 	Analytics
-	BasicPhase
+	DtrPhase
 	SkipCleanup bool
 }
 
