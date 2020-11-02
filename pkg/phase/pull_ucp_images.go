@@ -55,7 +55,7 @@ func (p *PullUCPImages) ListImages() ([]*docker.Image, error) {
 			return []*docker.Image{}, err
 		}
 	}
-	output, err := manager.ExecWithOutput(manager.Configurer.DockerCommandf("run --rm %s images %s --list", bootstrap))
+	output, err := manager.ExecWithOutput(manager.Configurer.DockerCommandf("run --rm %s images --list", bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get UCP image list", manager)
 	}

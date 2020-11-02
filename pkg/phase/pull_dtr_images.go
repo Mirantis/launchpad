@@ -52,7 +52,7 @@ func (p *PullDTRImages) ListImages() ([]*docker.Image, error) {
 			return []*docker.Image{}, err
 		}
 	}
-	output, err := dtrLeader.ExecWithOutput(dtrLeader.Configurer.DockerCommandf("run --rm %s images %s", bootstrap))
+	output, err := dtrLeader.ExecWithOutput(dtrLeader.Configurer.DockerCommandf("run --rm %s images", bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get DTR image list", dtrLeader)
 	}
