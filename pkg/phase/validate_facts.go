@@ -65,10 +65,6 @@ func (p *ValidateFacts) populateSan() {
 
 // validateDTRVersionJump validates UCP upgrade path
 func (p *ValidateFacts) validateUCPVersionJump(conf *api.ClusterConfig) error {
-	if conf.Spec.Ucp.Metadata == nil {
-		return nil
-	}
-
 	if conf.Spec.Ucp.Metadata.Installed && conf.Spec.Ucp.Metadata.InstalledVersion != "" {
 		installedUCP, err := version.NewVersion(conf.Spec.Ucp.Metadata.InstalledVersion)
 		if err != nil {
