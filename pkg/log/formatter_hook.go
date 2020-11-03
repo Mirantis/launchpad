@@ -40,7 +40,7 @@ func (hook *FormatterWriterHook) Levels() []log.Level {
 func NewStdoutHook(debugEnabled bool) *FormatterWriterHook {
 	stdoutHook := &FormatterWriterHook{
 		Writer:    os.Stdout,
-		Formatter: &log.TextFormatter{ForceColors: true},
+		Formatter: &log.TextFormatter{ForceColors: true, DisableTimestamp: true},
 		LogLevels: []log.Level{
 			log.InfoLevel,
 			log.PanicLevel,
