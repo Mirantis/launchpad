@@ -14,8 +14,8 @@ import (
 type UcpConfig struct {
 	Version         string    `yaml:"version"`
 	ImageRepo       string    `yaml:"imageRepo,omitempty"`
-	Username        string    `yaml:"username" validate:"required,gt=2"`
-	Password        string    `yaml:"password" validate:"required,gt=2"`
+	Username        string    `yaml:"username,omitempty"`
+	Password        string    `yaml:"password,omitempty"`
 	InstallFlags    Flags     `yaml:"installFlags,omitempty,flow"`
 	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string    `yaml:"configData,omitempty"`
