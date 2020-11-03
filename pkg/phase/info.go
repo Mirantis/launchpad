@@ -28,7 +28,7 @@ func (p *Info) Run() error {
 		log.Infof("DTR cluster admin UI: %s", dtrurl)
 	}
 
-	log.Info("You can also download the admin client bundle with the following command: launchpad download-bundle --username <username> --password <password>")
+	log.Info("You can download the admin client bundle with the command 'launchpad client-config'")
 
 	return nil
 }
