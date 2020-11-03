@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -108,9 +109,18 @@ func (p *InstallUCP) Run() (err error) {
 	installFlags.AddUnlessExist("--admin-password " + p.config.Spec.Ucp.Password)
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = swarmLeader.Exec(installCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.Username, p.config.Spec.Ucp.Password))
+  output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.Username, p.config.Spec.Ucp.Password))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run UCP installer: %s", swarmLeader, err.Error())
+	}
+
+	if installFlags.GetValue("--admin-password") == "" {
+		re := regexp.MustCompile(`msg="Generated random admin password: (.+?)"`)
+		md := re.FindStringSubmatch(output)
+		if len(md) > 0 && md[1] != "" {
+			log.Debugf("%s: adding the auto-generated admin password to installflags", swarmLeader)
+			p.config.Spec.Ucp.InstallFlags.AddOrReplace(`--admin-password="` + md[1] + `"`)
+		}
 	}
 
 	err = ucp.CollectFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
