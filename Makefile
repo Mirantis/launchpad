@@ -57,6 +57,12 @@ smoke-apply-test: build
 smoke-apply-upload-test: build
 	./test/smoke_upload.sh
 
+smoke-apply-local-repo-test: build
+	./test/smoke_localrepo.sh
+
+smoke-reset-local-repo-test: build
+	./test/smoke_localrepo_reset.sh
+
 smoke-apply-test-localhost: build
 	./test/smoke_apply_local.sh
 

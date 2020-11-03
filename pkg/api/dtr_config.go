@@ -21,10 +21,11 @@ type DtrConfig struct {
 // DtrMetadata is metadata needed by DTR for configuration and is gathered at
 // the GatherFacts phase and at the end of each configuration phase
 type DtrMetadata struct {
-	Installed          bool
-	InstalledVersion   string
-	DtrLeaderAddress   string
-	DtrLeaderReplicaID string
+	Installed               bool
+	InstalledVersion        string
+	InstalledBootstrapImage string
+	DtrLeaderAddress        string
+	DtrLeaderReplicaID      string
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

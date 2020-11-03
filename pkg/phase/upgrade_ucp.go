@@ -28,14 +28,8 @@ func (p *UpgradeUcp) Run() error {
 	p.EventProperties = map[string]interface{}{
 		"upgraded": false,
 	}
-	// Check specified bootstrapper images version
-	bootstrapperVersion, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`image inspect %s --format '{{ index .Config.Labels "com.docker.ucp.version"}}'`, p.config.Spec.Ucp.GetBootstrapperImage()))
-	if err != nil {
-		return NewError("Failed to check bootstrapper image version")
-	}
-	installedVersion := p.config.Spec.Ucp.Metadata.InstalledVersion
-	if bootstrapperVersion == installedVersion {
-		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader, bootstrapperVersion)
+	if p.config.Spec.Ucp.Version == p.config.Spec.Ucp.Metadata.InstalledVersion {
+		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader, p.config.Spec.Ucp.Version)
 		return nil
 	}
 
@@ -46,18 +40,20 @@ func (p *UpgradeUcp) Run() error {
 	}
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s", strings.Join(runFlags, " "), p.config.Spec.Ucp.GetBootstrapperImage(), swarmClusterID)
 	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
-	err = swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
+	err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
-		return NewError("Failed to run UCP upgrade")
+		return fmt.Errorf("failed to run UCP upgrade")
 	}
+
+	originalInstalledVersion := p.config.Spec.Ucp.Metadata.InstalledVersion
 
 	err = ucp.CollectFacts(swarmLeader, p.config.Spec.Ucp.Metadata)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing UCP details: %s", swarmLeader, err.Error())
 	}
 	p.EventProperties["upgraded"] = true
-	p.EventProperties["installed_version"] = installedVersion
-	p.EventProperties["upgraded_version"] = bootstrapperVersion
+	p.EventProperties["installed_version"] = originalInstalledVersion
+	p.EventProperties["upgraded_version"] = p.config.Spec.Ucp.Version
 
 	return nil
 }

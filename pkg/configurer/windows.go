@@ -72,13 +72,15 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 
 	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, ps.DoubleQuote(installer))
 
+	log.Infof("%s: running installer", c.Host)
+
 	output, err := c.Host.ExecWithOutput(installCommand)
 	if err != nil {
 		return err
 	}
 
 	if strings.Contains(output, "Your machine needs to be rebooted") {
-		log.Warnf("%s: host needs to be rebooted", c.Host.Address)
+		log.Warnf("%s: host needs to be rebooted", c.Host)
 		return c.Host.Reboot()
 	}
 

@@ -33,17 +33,10 @@ func (p *UpgradeDtr) Run() error {
 		"dtr_upgraded": false,
 	}
 
-	// Check specified bootstrapper images version
-	bootstrapperVersion, err := dtr.GetBootstrapVersion(dtrLeader, p.config)
-	if err != nil {
-		return NewError("Failed to check DTR bootstrapper image version")
-	}
-	installedVersion := p.config.Spec.Dtr.Metadata.InstalledVersion
-	if bootstrapperVersion == installedVersion {
-		log.Infof("%s: DTR cluster already at version %s, not running upgrade", dtrLeader, bootstrapperVersion)
+	if p.config.Spec.Dtr.Version == p.config.Spec.Dtr.Metadata.InstalledVersion {
+		log.Infof("%s: DTR cluster already at version %s, not running upgrade", dtrLeader, p.config.Spec.Dtr.Version)
 		return nil
 	}
-	log.Debugf("Proceeding with DTR upgrade: bootstrapperVersion: %s does not match installedVersion: %s", bootstrapperVersion, installedVersion)
 
 	runFlags := []string{"--rm", "-i"}
 	if dtrLeader.Configurer.SELinuxEnabled() {
@@ -62,7 +55,7 @@ func (p *UpgradeDtr) Run() error {
 	log.Debug("Running DTR upgrade via bootstrapper")
 	err = dtrLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
-		return NewError("Failed to run DTR upgrade")
+		return fmt.Errorf("failed to run DTR upgrade: %s", err.Error())
 	}
 
 	dtrMeta, err := dtr.CollectFacts(dtrLeader)
@@ -71,15 +64,15 @@ func (p *UpgradeDtr) Run() error {
 	}
 
 	// Check to make sure installedversion matches bootstrapperVersion
-	if dtrMeta.InstalledVersion != bootstrapperVersion {
+	if dtrMeta.InstalledVersion != p.config.Spec.Dtr.Version {
 		// If our newly collected facts do not match the version we upgraded to
 		// then the upgrade has failed
-		return NewError(fmt.Sprintf("Upgraded DTR version: %s does not match intended upgrade version: %s", dtrMeta.InstalledVersion, bootstrapperVersion))
+		return fmt.Errorf("%s: upgraded DTR version: %s does not match intended upgrade version: %s", dtrLeader, dtrMeta.InstalledVersion, p.config.Spec.Dtr.Version)
 	}
 
 	p.EventProperties["dtr_upgraded"] = true
-	p.EventProperties["dtr_installed_version"] = installedVersion
-	p.EventProperties["dtr_upgraded_version"] = bootstrapperVersion
+	p.EventProperties["dtr_installed_version"] = p.config.Spec.Dtr.Metadata.InstalledVersion
+	p.EventProperties["dtr_upgraded_version"] = p.config.Spec.Dtr.Version
 	p.config.Spec.Dtr.Metadata = dtrMeta
 
 	return nil
