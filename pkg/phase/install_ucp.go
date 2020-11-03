@@ -123,7 +123,7 @@ func (p *InstallUCP) Run() (err error) {
 		re := regexp.MustCompile(`msg="Generated random admin password: (.+?)"`)
 		md := re.FindStringSubmatch(output)
 		if len(md) > 0 && md[1] != "" {
-			log.Warnf("Using an automatically generated password for UCP admin user: %s -- you will have to set it to Spec.Ucp.Password for any subsequent launchpad runs.")
+			log.Warnf("Using an automatically generated password for UCP admin user: %s -- you will have to set it to Spec.Ucp.Password for any subsequent launchpad runs.", md[1])
 			p.config.Spec.Ucp.Password = md[1]
 			if p.config.Spec.Ucp.Username == "" {
 				p.config.Spec.Ucp.Username = "admin"
