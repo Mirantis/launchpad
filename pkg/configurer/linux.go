@@ -58,6 +58,9 @@ func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	defer c.DeleteFile(installer)
 
 	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash %s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version, escape.Quote(installer))
+
+	log.Infof("%s: running installer", c.Host)
+
 	if err := c.Host.Exec(cmd); err != nil {
 		return err
 	}
