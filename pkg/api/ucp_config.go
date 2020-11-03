@@ -116,6 +116,7 @@ func NewUcpConfig() UcpConfig {
 	return UcpConfig{
 		Version:   constant.UCPVersion,
 		ImageRepo: constant.ImageRepo,
+		Metadata:  &UcpMetadata{},
 	}
 }
 
