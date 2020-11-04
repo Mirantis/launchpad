@@ -6,14 +6,14 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Product an interface that represents all products that LP could be handling.
+// Product is an interface that represents a product that launchpad can manage.
 type Product interface {
 	Apply() error
 	Reset() error
 	Describe(reportName string) error
 }
 
-// GetProduct is an intializer for a product
+// GetProduct returns a product instance suitable for the configuration Kind
 func GetProduct(ctx *cli.Context) (Product, error) {
 	cfgData, err := config.ResolveClusterFile(ctx.String("config"))
 	if err != nil {
