@@ -7,7 +7,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/component"
+	"github.com/Mirantis/mcc/pkg/product"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
@@ -41,9 +41,9 @@ func NewResetCommand() *cli.Command {
 			}
 			start := time.Now()
 			analytics.TrackEvent("Cluster Reset Started", nil)
-			component, err := component.Components(ctx)
+			product, err := product.GetProduct(ctx)
 			if err == nil {
-				err = component.Reset()
+				err = product.Reset()
 			}
 
 			if err != nil {

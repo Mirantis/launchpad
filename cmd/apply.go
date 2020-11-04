@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/component"
+	"github.com/Mirantis/mcc/pkg/product"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
@@ -54,9 +54,9 @@ func NewApplyCommand() *cli.Command {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
 
-			component, err := component.Components(ctx)
+			product, err := product.GetProduct(ctx)
 			if err == nil {
-				err = component.Apply()
+				err = product.Apply()
 			}
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
