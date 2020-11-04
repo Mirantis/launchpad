@@ -30,10 +30,9 @@ func Components(ctx *cli.Context) (Component, error) {
 
 	clusterConfig.Spec.Metadata.Force = ctx.Bool("force")
 
-	//
 	switch clusterConfig.Kind {
 	case "DockerEnterprise":
-		return ucp.UCP{
+		return &ucp.UCP{
 			ClusterConfig: clusterConfig,
 			SkipCleanup:   ctx.Bool("disable-cleanup"),
 			Debug:         ctx.Bool("debug") || ctx.Bool("trace"),

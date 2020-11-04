@@ -26,7 +26,7 @@ type UCP struct {
 }
 
 // Apply - installs UCP on the hosts that are defined in the config
-func (u UCP) Apply() error {
+func (u *UCP) Apply() error {
 	var (
 		logFile *os.File
 		err     error
@@ -118,7 +118,7 @@ func (u UCP) Apply() error {
 }
 
 // Reset - reinstall
-func (u UCP) Reset() error {
+func (u *UCP) Reset() error {
 	log.Debugf("loaded cluster cfg: %+v", u.ClusterConfig)
 
 	dtr := config.ContainsDtr(u.ClusterConfig)
@@ -139,7 +139,7 @@ func (u UCP) Reset() error {
 }
 
 // Describe - gets information about configured instance
-func (u UCP) Describe(reportName string) error {
+func (u *UCP) Describe(reportName string) error {
 	var dtr bool
 	var ucp bool
 
@@ -158,7 +158,8 @@ func (u UCP) Describe(reportName string) error {
 
 	phaseManager.AddPhases(&phase.Connect{},
 		&phase.GatherFacts{Dtr: dtr},
-		&phase.Disconnect{} < &phase.Describe{Ucp: ucp, Dtr: dtr})
+		&phase.Disconnect{},
+		&phase.Describe{Ucp: ucp, Dtr: dtr})
 
 	return phaseManager.Run()
 }
