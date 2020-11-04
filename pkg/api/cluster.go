@@ -7,7 +7,7 @@ type ClusterMeta struct {
 
 // ClusterConfig describes launchpad.yaml configuration
 type ClusterConfig struct {
-	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1"`
+	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1.1"`
 	Kind       string       `yaml:"kind" validate:"eq=DockerEnterprise"`
 	Metadata   *ClusterMeta `yaml:"metadata"`
 	Spec       *ClusterSpec `yaml:"spec"`
