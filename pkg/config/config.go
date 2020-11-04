@@ -11,6 +11,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/api"
+	v1 "github.com/Mirantis/mcc/pkg/api/v1"
 	"github.com/Mirantis/mcc/pkg/api/v1beta1"
 	"github.com/Mirantis/mcc/pkg/api/v1beta2"
 	"github.com/Mirantis/mcc/pkg/api/v1beta3"
@@ -66,6 +67,19 @@ func FromYaml(data []byte) (api.ClusterConfig, error) {
 
 	if cv.APIVersion == "launchpad.mirantis.com/v1beta3" {
 		err := v1beta3.Migrate(&data)
+		if err != nil {
+			return c, err
+		}
+	}
+
+	cv = Version{}
+	err = yaml.Unmarshal(data, &cv)
+	if err != nil {
+		return c, err
+	}
+
+	if cv.APIVersion == "launchpad.mirantis.com/v1" {
+		err := v1.Migrate(&data)
 		if err != nil {
 			return c, err
 		}

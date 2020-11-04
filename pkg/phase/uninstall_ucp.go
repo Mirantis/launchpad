@@ -38,7 +38,7 @@ func (p *UninstallUCP) Run() error {
 	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", strings.Join(runFlags, " "), image, args)
 	err := swarmLeader.Exec(uninstallCmd, exec.StreamOutput(), exec.Redact("admin-*"))
 	if err != nil {
-		return NewError("Failed to run UCP uninstaller")
+		return fmt.Errorf("%s: failed to run UCP uninstaller: %s", swarmLeader, err.Error())
 	}
 
 	if p.config.Spec.Ucp.CertData != "" {

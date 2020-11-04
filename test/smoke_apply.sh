@@ -33,7 +33,7 @@ echo "Testing exec"
 ../bin/launchpad --debug exec --first echo hello from first host
 
 echo "Apply succeeded, downloading bundle"
-${LAUNCHPAD} download-bundle --username admin --password orcaorcaorca --config ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} client-config --config ${LAUNCHPAD_CONFIG}
 
 # to source the env file succesfully we must be in the same directory
 pushd ~/.mirantis-launchpad/cluster/$CLUSTER_NAME/bundle/admin/

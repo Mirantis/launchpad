@@ -31,12 +31,13 @@ type UcpConfig struct {
 
 // UcpMetadata has the "runtime" discovered metadata of already existing installation.
 type UcpMetadata struct {
-	Installed        bool
-	InstalledVersion string
-	ClusterID        string
-	VXLAN            bool
-	ManagerJoinToken string
-	WorkerJoinToken  string
+	Installed               bool
+	InstalledVersion        string
+	InstalledBootstrapImage string
+	ClusterID               string
+	VXLAN                   bool
+	ManagerJoinToken        string
+	WorkerJoinToken         string
 }
 
 // UcpCloud has the cloud provider configuration
@@ -115,6 +116,7 @@ func NewUcpConfig() UcpConfig {
 	return UcpConfig{
 		Version:   constant.UCPVersion,
 		ImageRepo: constant.ImageRepo,
+		Metadata:  &UcpMetadata{},
 	}
 }
 

@@ -14,7 +14,7 @@ import (
 
 func TestHostRequireManagerValidationPass(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1"
+apiVersion: "launchpad.mirantis.com/v1.1"
 kind: DockerEnterprise
 spec:
   hosts:
@@ -32,7 +32,7 @@ spec:
 
 func TestHostRequireManagerValidationFail(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1"
+apiVersion: "launchpad.mirantis.com/v1.1"
 kind: DockerEnterprise
 spec:
   hosts:
@@ -52,7 +52,7 @@ spec:
 
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1"
+apiVersion: "launchpad.mirantis.com/v1.1"
 kind: DockerEnterprise
 spec:
   hosts:
@@ -216,7 +216,7 @@ spec:
 	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1")
+	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1.1")
 
 	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -239,7 +239,7 @@ spec:
 `
 	c := loadYaml(t, data)
 	require.NoError(t, Validate(c))
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1")
+	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1.1")
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
@@ -260,7 +260,7 @@ spec:
 	err := Validate(c)
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1")
+	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1.1")
 
 	require.Equal(t, c.Spec.Engine.InstallURLLinux, constant.EngineInstallURLLinux)
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)

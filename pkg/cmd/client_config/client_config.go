@@ -6,8 +6,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 )
 
-// Download downloads a UCP client bundle
-func Download(clusterFile string, username string, password string) error {
+// Download downloads UCP client configuration
+func Download(clusterFile string) error {
 	cfgData, err := config.ResolveClusterFile(clusterFile)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ func Download(clusterFile string, username string, password string) error {
 	phaseManager.AddPhase(&phase.Connect{})
 	phaseManager.AddPhase(&phase.GatherFacts{})
 	phaseManager.AddPhase(&phase.ValidateHosts{})
-	phaseManager.AddPhase(&phase.DownloadBundle{Username: username, Password: password})
+	phaseManager.AddPhase(&phase.DownloadBundle{})
 	phaseManager.AddPhase(&phase.Disconnect{})
 
 	if err = phaseManager.Run(); err != nil {

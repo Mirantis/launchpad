@@ -43,10 +43,19 @@ func CollectFacts(h *api.Host) (*api.DtrMetadata, error) {
 			replicaID = strings.Trim(outputFields[len(outputFields)-1], ")")
 		}
 	}
+
+	var bootstrapimage string
+	imagename, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ .Config.Image }}'`, rethinkdbContainerID))
+	if err == nil {
+		repo := imagename[:strings.LastIndexByte(imagename, '/')]
+		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
+	}
+
 	dtrMeta := &api.DtrMetadata{
-		Installed:          true,
-		InstalledVersion:   version,
-		DtrLeaderReplicaID: replicaID,
+		Installed:               true,
+		InstalledVersion:        version,
+		InstalledBootstrapImage: bootstrapimage,
+		DtrLeaderReplicaID:      replicaID,
 	}
 	return dtrMeta, nil
 }
@@ -98,21 +107,6 @@ func SequentialReplicaID(replicaInt int) string {
 	return fmt.Sprintf("%s%d", replicaPrefix, replicaInt)
 }
 
-// GetBootstrapVersion gets the version of bootstrapper image from the specified
-// host
-func GetBootstrapVersion(h *api.Host, config *api.ClusterConfig) (string, error) {
-	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`image inspect %s --format '{{.RepoTags}}'`, config.Spec.Dtr.GetBootstrapperImage()))
-	if err != nil {
-		return "", err
-	}
-	outputSplit := strings.Split(output, ":")
-	if len(outputSplit) != 2 {
-		return "", fmt.Errorf("unexpected length of DTR bootstrapper image RepoTags")
-	}
-	version := strings.Trim(outputSplit[1], "]")
-	return version, nil
-}
-
 // BuildUCPFlags builds the ucpFlags []string consisting of ucp installFlags
 // that are shared with DTR
 func BuildUCPFlags(config *api.ClusterConfig) []string {
@@ -126,6 +120,11 @@ func BuildUCPFlags(config *api.ClusterConfig) []string {
 
 	if ucpUser == "" {
 		ucpUser = config.Spec.Ucp.InstallFlags.GetValue("--admin-username")
+	}
+
+	// Still empty? Default to admin.
+	if ucpUser == "" {
+		ucpUser = "admin"
 	}
 
 	if ucpPass == "" {

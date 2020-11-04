@@ -142,7 +142,7 @@ SUPPORT:
 			cmd.NewApplyCommand(),
 			cmd.RegisterCommand(),
 			cmd.NewDescribeCommand(),
-			cmd.NewDownloadBundleCommand(),
+			cmd.NewClientConfigCommand(),
 			cmd.NewExecCommand(),
 			cmd.NewResetCommand(),
 			cmd.NewInitCommand(),
