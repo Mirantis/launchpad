@@ -18,7 +18,7 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// UCP - Universal Control Plane component
+// UCP - Universal Control Plane product
 type UCP struct {
 	ClusterConfig api.ClusterConfig
 	SkipCleanup   bool
