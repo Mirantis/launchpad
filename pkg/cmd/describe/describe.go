@@ -39,7 +39,7 @@ func Describe(configFile, reportName string) error {
 	phaseManager.IgnoreErrors = true
 
 	phaseManager.AddPhase(&phase.Connect{})
-	phaseManager.AddPhase(&phase.GatherFacts{Dtr: dtr})
+	phaseManager.AddPhase(&phase.GatherFacts{})
 	phaseManager.AddPhase(&phase.Disconnect{})
 	phaseManager.AddPhase(&phase.Describe{Ucp: ucp, Dtr: dtr})
 

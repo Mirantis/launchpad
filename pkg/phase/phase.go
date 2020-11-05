@@ -23,6 +23,16 @@ type BasicPhase struct {
 	config *api.ClusterConfig
 }
 
+// DtrPhase only runs when the config includes dtr hosts
+type DtrPhase struct {
+	BasicPhase
+}
+
+// ShouldRun default implementation for DTR phase returns true when the config has DTR nodes
+func (d *DtrPhase) ShouldRun() bool {
+	return d.config.Spec.ContainsDtr()
+}
+
 // HostSelectPhase is a phase where hosts are collected before running to see if it's necessary to run the phase at all in ShouldRun
 type HostSelectPhase struct {
 	Phase

@@ -265,3 +265,8 @@ func (c *ClusterSpec) CheckUCPHealthLocal(h *Host) error {
 		retry.Attempts(12), // last attempt should wait ~7min
 	)
 }
+
+// ContainsDtr returns true when the config has dtr hosts
+func (c *ClusterSpec) ContainsDtr() bool {
+	return c.Hosts.Find(func(h *Host) bool { return h.Role == "dtr" }) != nil
+}
