@@ -1,4 +1,4 @@
-package ucp
+package docker_enterprise
 
 import (
 	"fmt"
@@ -13,8 +13,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UCP - Universal Control Plane product
-type UCP struct {
+// DockerEnterprise is the product that bundles UCP, DTR and Docker Engine
+type DockerEnterprise struct {
 	ClusterConfig api.ClusterConfig
 	SkipCleanup   bool
 	Debug         bool

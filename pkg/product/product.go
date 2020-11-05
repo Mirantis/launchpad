@@ -2,7 +2,7 @@ package product
 
 import (
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/product/ucp"
+	de "github.com/Mirantis/mcc/pkg/product/docker_enterprise"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,7 +32,7 @@ func GetProduct(ctx *cli.Context) (Product, error) {
 
 	switch clusterConfig.Kind {
 	case "DockerEnterprise":
-		return &ucp.UCP{
+		return &de.DockerEnterprise{
 			ClusterConfig: clusterConfig,
 			SkipCleanup:   ctx.Bool("disable-cleanup"),
 			Debug:         ctx.Bool("debug") || ctx.Bool("trace"),

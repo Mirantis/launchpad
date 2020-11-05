@@ -1,4 +1,4 @@
-package ucp
+package docker_enterprise
 
 import (
 	"crypto/sha1"
@@ -12,8 +12,8 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// Apply - installs UCP on the hosts that are defined in the config
-func (u *UCP) Apply() error {
+// Apply - installs Docker Enterprise (UCP, DTR, Engine) on the hosts that are defined in the config
+func (p *DockerEnterprise) Apply() error {
 	var (
 		logFile *os.File
 		err     error
@@ -27,19 +27,19 @@ func (u *UCP) Apply() error {
 	}()
 
 	// Add logger to dump all log levels to file
-	logFile, err = addFileLogger(u.ClusterConfig.Metadata.Name)
+	logFile, err = addFileLogger(p.ClusterConfig.Metadata.Name)
 	if err != nil {
 		return err
 	}
 
-	phaseManager := phase.NewManager(&u.ClusterConfig)
-	phaseManager.SkipCleanup = u.SkipCleanup
+	phaseManager := phase.NewManager(&p.ClusterConfig)
+	phaseManager.SkipCleanup = p.SkipCleanup
 
 	phaseManager.AddPhases(
 		&phase.Connect{},
 		&phase.GatherFacts{},
 		&phase.ValidateFacts{},
-		&phase.ValidateHosts{Debug: u.Debug},
+		&phase.ValidateHosts{Debug: p.Debug},
 		&phase.DownloadInstaller{},
 		&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }},
 		&phase.PrepareHost{},
@@ -71,23 +71,23 @@ func (u *UCP) Apply() error {
 
 	windowsWorkersCount := 0
 	linuxWorkersCount := 0
-	for _, h := range u.ClusterConfig.Spec.Workers() {
+	for _, h := range p.ClusterConfig.Spec.Workers() {
 		if h.IsWindows() {
 			windowsWorkersCount++
 		} else {
 			linuxWorkersCount++
 		}
 	}
-	clusterID := u.ClusterConfig.Spec.Ucp.Metadata.ClusterID
+	clusterID := p.ClusterConfig.Spec.Ucp.Metadata.ClusterID
 	props := event.Properties{
-		"kind":            u.ClusterConfig.Kind,
-		"api_version":     u.ClusterConfig.APIVersion,
-		"hosts":           len(u.ClusterConfig.Spec.Hosts),
-		"managers":        len(u.ClusterConfig.Spec.Managers()),
-		"dtrs":            len(u.ClusterConfig.Spec.Dtrs()),
+		"kind":            p.ClusterConfig.Kind,
+		"api_version":     p.ClusterConfig.APIVersion,
+		"hosts":           len(p.ClusterConfig.Spec.Hosts),
+		"managers":        len(p.ClusterConfig.Spec.Managers()),
+		"dtrs":            len(p.ClusterConfig.Spec.Dtrs()),
 		"linux_workers":   linuxWorkersCount,
 		"windows_workers": windowsWorkersCount,
-		"engine_version":  u.ClusterConfig.Spec.Engine.Version,
+		"engine_version":  p.ClusterConfig.Spec.Engine.Version,
 		"cluster_id":      clusterID,
 		// send ucp analytics user id as ucp_instance_id property
 		"ucp_instance_id": fmt.Sprintf("%x", sha1.Sum([]byte(clusterID))),

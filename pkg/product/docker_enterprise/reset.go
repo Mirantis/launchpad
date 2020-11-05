@@ -1,4 +1,4 @@
-package ucp
+package docker_enterprise
 
 import (
 	"github.com/Mirantis/mcc/pkg/api"
@@ -7,10 +7,10 @@ import (
 )
 
 // Reset - reinstall
-func (u *UCP) Reset() error {
-	log.Debugf("loaded cluster cfg: %+v", u.ClusterConfig)
+func (p *DockerEnterprise) Reset() error {
+	log.Debugf("loaded cluster cfg: %+v", p.ClusterConfig)
 
-	phaseManager := phase.NewManager(&u.ClusterConfig)
+	phaseManager := phase.NewManager(&p.ClusterConfig)
 
 	phaseManager.AddPhases(
 		&phase.Connect{},

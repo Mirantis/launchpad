@@ -1,4 +1,4 @@
-package ucp
+package docker_enterprise
 
 import (
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -6,7 +6,7 @@ import (
 )
 
 // Describe - gets information about configured instance
-func (u *UCP) Describe(reportName string) error {
+func (p *DockerEnterprise) Describe(reportName string) error {
 	var dtr bool
 	var ucp bool
 
@@ -18,9 +18,9 @@ func (u *UCP) Describe(reportName string) error {
 		ucp = true
 	}
 
-	log.Debugf("loaded cluster cfg: %+v", u.ClusterConfig)
+	log.Debugf("loaded cluster cfg: %+v", p.ClusterConfig)
 
-	phaseManager := phase.NewManager(&u.ClusterConfig)
+	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.IgnoreErrors = true
 
 	phaseManager.AddPhases(
