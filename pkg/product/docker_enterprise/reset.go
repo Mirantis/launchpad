@@ -6,7 +6,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Reset - reinstall
 func (p *DockerEnterprise) Reset() error {
 	log.Debugf("loaded cluster cfg: %+v", p.ClusterConfig)
 
