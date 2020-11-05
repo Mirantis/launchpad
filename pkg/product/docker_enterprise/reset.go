@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Reset uninstalls a Docker Enterprise cluster
 func (p *DockerEnterprise) Reset() error {
 	log.Debugf("loaded cluster cfg: %+v", p.ClusterConfig)
 

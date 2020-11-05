@@ -5,7 +5,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 )
 
-// Download downloads UCP client configuration
+// ClientConfig downloads UCP client bundle
 func (p *DockerEnterprise) ClientConfig() error {
 
 	manager := p.ClusterConfig.Spec.Managers()[0]
