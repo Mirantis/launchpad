@@ -12,7 +12,7 @@ import (
 // UpgradeDtr is the phase implementation for running the actual DTR upgrade container
 type UpgradeDtr struct {
 	Analytics
-	BasicPhase
+	DtrPhase
 }
 
 // Title prints the phase title

@@ -13,7 +13,7 @@ import (
 // JoinDtrReplicas phase implementation
 type JoinDtrReplicas struct {
 	Analytics
-	BasicPhase
+	DtrPhase
 }
 
 // Title for the phase

@@ -25,7 +25,6 @@ import (
 type GatherFacts struct {
 	Analytics
 	BasicPhase
-	Dtr bool
 }
 
 // Title for the phase
@@ -56,7 +55,7 @@ func (p *GatherFacts) Run() error {
 		}
 		p.config.Spec.Ucp.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
-	if p.Dtr {
+	if p.config.Spec.ContainsDtr() {
 		// If we intend to configure DTR as well, gather facts for DTR
 		if p.config.Spec.Dtr == nil {
 			p.config.Spec.Dtr = &api.DtrConfig{}
@@ -154,8 +153,6 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	log.Infof("%s: internal address: %s", h, h.Metadata.InternalAddress)
 
 	log.Infof("%s: gathered all facts", h)
-
-	h.SetName()
 
 	return nil
 }
