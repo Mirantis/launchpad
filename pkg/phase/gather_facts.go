@@ -155,8 +155,6 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	log.Infof("%s: gathered all facts", h)
 
-	h.SetName()
-
 	return nil
 }
 
