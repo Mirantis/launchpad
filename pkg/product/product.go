@@ -11,6 +11,7 @@ type Product interface {
 	Apply() error
 	Reset() error
 	Describe(reportName string) error
+	ClientConfig() error
 }
 
 // GetProduct returns a product instance suitable for the configuration Kind
