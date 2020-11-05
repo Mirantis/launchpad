@@ -32,8 +32,6 @@ func (u *UCP) Apply() error {
 		return err
 	}
 
-	dtr := u.ClusterConfig.Spec.ContainsDtr()
-
 	phaseManager := phase.NewManager(&u.ClusterConfig)
 	phaseManager.SkipCleanup = u.SkipCleanup
 
