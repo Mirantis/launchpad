@@ -1,4 +1,4 @@
-package docker_enterprise
+package dockerenterprise
 
 import (
 	"github.com/Mirantis/mcc/pkg/api"

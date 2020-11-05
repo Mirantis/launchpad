@@ -1,4 +1,4 @@
-package docker_enterprise
+package dockerenterprise
 
 import (
 	"crypto/sha1"
