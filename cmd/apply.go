@@ -47,15 +47,16 @@ func NewApplyCommand() *cli.Command {
 			return nil
 		},
 		Action: func(ctx *cli.Context) error {
-			if isatty.IsTerminal(os.Stdout.Fd()) {
-				os.Stdout.WriteString(util.Logo)
-				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
-			}
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
 
 			product, err := product.GetProduct(ctx)
 			if err == nil {
+				if isatty.IsTerminal(os.Stdout.Fd()) {
+					os.Stdout.WriteString(util.Logo)
+					os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
+				}
+
 				err = product.Apply()
 			}
 			if err != nil {
