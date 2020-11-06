@@ -27,6 +27,11 @@ func NewManager(config *api.ClusterConfig) *Manager {
 	return phaseMgr
 }
 
+// AddPhases add multiple phases to manager in one call
+func (m *Manager) AddPhases(phases ...Phase) {
+	m.phases = append(m.phases, phases...)
+}
+
 // AddPhase adds a Phase to Manager
 func (m *Manager) AddPhase(phase Phase) {
 	m.phases = append(m.phases, phase)
