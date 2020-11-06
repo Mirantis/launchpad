@@ -5,7 +5,7 @@ import (
 	logger "log"
 	"runtime"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/config/user"
 	"github.com/Mirantis/mcc/version"
 	"github.com/denisbrodbeck/machineid"
 	log "github.com/sirupsen/logrus"
@@ -85,7 +85,7 @@ func (c *Client) TrackEvent(event string, properties analytics.Properties) error
 
 // IdentifyUser identifies user on analytics service if analytics
 // is enabled
-func (c *Client) IdentifyUser(userConfig *config.UserConfig) error {
+func (c *Client) IdentifyUser(userConfig *user.Config) error {
 	if !c.IsEnabled {
 		log.Debug("analytics disabled, not identifying user")
 		return nil
@@ -108,7 +108,7 @@ func TrackEvent(event string, properties map[string]interface{}) error {
 }
 
 // IdentifyUser uses the default analytics client to identify the user
-func IdentifyUser(userConfig *config.UserConfig) error {
+func IdentifyUser(userConfig *user.Config) error {
 	return defaultClient.IdentifyUser(userConfig)
 }
 
@@ -139,7 +139,7 @@ func MachineID() string {
 
 // UserID returs user id for our analytics events.
 func UserID() string {
-	userConfig, err := config.GetUserConfig()
+	userConfig, err := user.GetConfig()
 	if err != nil {
 		return ""
 	}

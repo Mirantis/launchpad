@@ -12,14 +12,6 @@ import (
 
 	"crypto/rand"
 
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	log "github.com/sirupsen/logrus"
 )
 

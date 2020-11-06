@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/product"
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
@@ -50,15 +50,18 @@ func NewApplyCommand() *cli.Command {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
 
-			product, err := product.GetProduct(ctx)
-			if err == nil {
-				if isatty.IsTerminal(os.Stdout.Fd()) {
-					os.Stdout.WriteString(util.Logo)
-					os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
-				}
-
-				err = product.Apply()
+			product, err := config.ProductFromFile(ctx.String("config"))
+			if err != nil {
+				return err
 			}
+
+			if isatty.IsTerminal(os.Stdout.Fd()) {
+				os.Stdout.WriteString(util.Logo)
+				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
+			}
+
+			err = product.Apply()
+
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 			} else {
@@ -68,6 +71,7 @@ func NewApplyCommand() *cli.Command {
 				}
 				analytics.TrackEvent("Cluster Apply Completed", props)
 			}
+
 			return err
 		},
 	}

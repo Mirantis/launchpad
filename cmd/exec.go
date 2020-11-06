@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/Mirantis/mcc/pkg/cmd/exec"
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v2"
 )
@@ -21,8 +21,8 @@ func NewExecCommand() *cli.Command {
 				TakesFile: true,
 			},
 			&cli.StringFlag{
-				Name:    "address",
-				Usage:   "Host address[:port]",
+				Name:    "target",
+				Usage:   "Target (example: address[:port])",
 				Aliases: []string{"a"},
 			},
 			&cli.BoolFlag{
@@ -32,19 +32,24 @@ func NewExecCommand() *cli.Command {
 			},
 			&cli.BoolFlag{
 				Name:    "first",
-				Usage:   "Use the first host found in configuration",
+				Usage:   "Use the first target found in configuration",
 				Aliases: []string{"f"},
 			},
 			&cli.StringFlag{
 				Name:    "role",
-				Usage:   "Use the first host having this role in configuration",
+				Usage:   "Use the first target having this role in configuration",
 				Aliases: []string{"r"},
 			},
 		},
 		Action: func(ctx *cli.Context) error {
+			product, err := config.ProductFromFile(ctx.String("config"))
+			if err != nil {
+				return err
+			}
+
 			args := ctx.Args().Slice()
 
-			return exec.Exec(ctx.String("config"), ctx.String("address"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.String("role"), shellquote.Join(args...))
+			return product.Exec(ctx.String("address"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.String("role"), shellquote.Join(args...))
 		},
 	}
 }

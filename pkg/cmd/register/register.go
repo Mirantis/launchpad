@@ -6,12 +6,12 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/config/user"
 	log "github.com/sirupsen/logrus"
 )
 
 // Register ...
-func Register(userConfig *config.UserConfig) error {
+func Register(userConfig *user.Config) error {
 	icons := func(icons *survey.IconSet) {
 		icons.Question.Text = ">"
 	}
@@ -52,7 +52,7 @@ func Register(userConfig *config.UserConfig) error {
 		return errors.New("You must agree to Mirantis Launchpad Software Evaluation License Agreement before you can use the tool")
 	}
 
-	err := config.SaveUserConfig(userConfig)
+	err := user.SaveConfig(userConfig)
 	if err == nil {
 		analytics.IdentifyUser(userConfig)
 		log.Info("Registration completed!")

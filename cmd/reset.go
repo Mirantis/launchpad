@@ -7,7 +7,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/product"
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
@@ -35,10 +35,12 @@ func NewResetCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Reset Started", nil)
-			product, err := product.GetProduct(ctx)
-			if err == nil {
-				err = product.Reset()
+			product, err := config.ProductFromFile(ctx.String("config"))
+			if err != nil {
+				return err
 			}
+
+			err = product.Reset()
 
 			if err != nil {
 				analytics.TrackEvent("Cluster Reset Failed", nil)
