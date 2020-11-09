@@ -7,6 +7,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/phase"
+	de "github.com/Mirantis/mcc/pkg/product/dockerenterprise/phase"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -17,33 +19,35 @@ func (p *DockerEnterprise) Apply(disableCleanup, force bool) error {
 	phaseManager.SkipCleanup = disableCleanup
 
 	phaseManager.AddPhases(
-		&phase.Connect{},
-		&phase.GatherFacts{},
-		&phase.ValidateFacts{Force: force},
-		&phase.ValidateHosts{},
-		&phase.DownloadInstaller{},
-		&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }},
-		&phase.PrepareHost{},
-		&phase.InstallEngine{},
-		&phase.LoadImages{},
-		&phase.PullUCPImages{},
-		&phase.InitSwarm{},
-		&phase.InstallUCP{SkipCleanup: disableCleanup},
-		&phase.UpgradeUcp{},
-		&phase.JoinManagers{},
-		&phase.JoinWorkers{},
+		&common.Connect{},
+		&de.GatherFacts{},
+		&de.ValidateFacts{Force: force},
+		&de.ValidateHosts{},
+		&de.DownloadInstaller{},
+		&common.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }},
+		&de.PrepareHost{},
+		&de.InstallEngine{},
+		&de.LoadImages{},
+		&de.PullUCPImages{},
+		&de.InitSwarm{},
+		&de.InstallUCP{SkipCleanup: disableCleanup},
+		&de.UpgradeUcp{},
+		&de.JoinManagers{},
+		&de.JoinWorkers{},
+
 		// begin DTR phases
-		&phase.PullDTRImages{},
-		&phase.ValidateUcpHealth{},
-		&phase.InstallDtr{SkipCleanup: disableCleanup},
-		&phase.UpgradeDtr{},
-		&phase.JoinDtrReplicas{},
+		&de.PullDTRImages{},
+		&de.ValidateUcpHealth{},
+		&de.InstallDtr{SkipCleanup: disableCleanup},
+		&de.UpgradeDtr{},
+		&de.JoinDtrReplicas{},
 		// end DTR phases
-		&phase.LabelNodes{},
-		&phase.RemoveNodes{},
-		&phase.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }},
-		&phase.Disconnect{},
-		&phase.Info{},
+
+		&de.LabelNodes{},
+		&de.RemoveNodes{},
+		&common.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }},
+		&common.Disconnect{},
+		&de.Info{},
 	)
 
 	if err := phaseManager.Run(); err != nil {

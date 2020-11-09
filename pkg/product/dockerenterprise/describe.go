@@ -4,6 +4,8 @@ import (
 	"os"
 
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/phase"
+	de "github.com/Mirantis/mcc/pkg/product/dockerenterprise/phase"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -32,10 +34,10 @@ func (p *DockerEnterprise) Describe(reportName string) error {
 	phaseManager.IgnoreErrors = true
 
 	phaseManager.AddPhases(
-		&phase.Connect{},
-		&phase.GatherFacts{},
-		&phase.Disconnect{},
-		&phase.Describe{Ucp: ucp, Dtr: dtr},
+		&common.Connect{},
+		&de.GatherFacts{},
+		&common.Disconnect{},
+		&de.Describe{Ucp: ucp, Dtr: dtr},
 	)
 
 	return phaseManager.Run()
