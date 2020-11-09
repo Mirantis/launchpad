@@ -23,7 +23,7 @@ func NewExecCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:    "target",
 				Usage:   "Target (example: address[:port])",
-				Aliases: []string{"a"},
+				Aliases: []string{"t"},
 			},
 			&cli.BoolFlag{
 				Name:    "interactive",
