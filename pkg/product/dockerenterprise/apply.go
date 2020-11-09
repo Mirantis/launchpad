@@ -3,7 +3,6 @@ package dockerenterprise
 import (
 	"crypto/sha1"
 	"fmt"
-	"os"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/api"
@@ -13,33 +12,15 @@ import (
 )
 
 // Apply - installs Docker Enterprise (UCP, DTR, Engine) on the hosts that are defined in the config
-func (p *DockerEnterprise) Apply() error {
-	var (
-		logFile *os.File
-		err     error
-	)
-	defer func() {
-		// logFile can be nil if error occurred before parsing the config
-		if err != nil && logFile != nil {
-			log.Infof("See %s for more logs ", logFile.Name())
-		}
-
-	}()
-
-	// Add logger to dump all log levels to file
-	logFile, err = addFileLogger(p.ClusterConfig.Metadata.Name)
-	if err != nil {
-		return err
-	}
-
+func (p *DockerEnterprise) Apply(disableCleanup, force bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
-	phaseManager.SkipCleanup = p.SkipCleanup
+	phaseManager.SkipCleanup = disableCleanup
 
 	phaseManager.AddPhases(
 		&phase.Connect{},
 		&phase.GatherFacts{},
-		&phase.ValidateFacts{},
-		&phase.ValidateHosts{Debug: p.Debug},
+		&phase.ValidateFacts{Force: force},
+		&phase.ValidateHosts{},
 		&phase.DownloadInstaller{},
 		&phase.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }},
 		&phase.PrepareHost{},
@@ -47,14 +28,14 @@ func (p *DockerEnterprise) Apply() error {
 		&phase.LoadImages{},
 		&phase.PullUCPImages{},
 		&phase.InitSwarm{},
-		&phase.InstallUCP{SkipCleanup: phaseManager.SkipCleanup},
+		&phase.InstallUCP{SkipCleanup: disableCleanup},
 		&phase.UpgradeUcp{},
 		&phase.JoinManagers{},
 		&phase.JoinWorkers{},
 		// begin DTR phases
 		&phase.PullDTRImages{},
 		&phase.ValidateUcpHealth{},
-		&phase.InstallDtr{SkipCleanup: phaseManager.SkipCleanup},
+		&phase.InstallDtr{SkipCleanup: disableCleanup},
 		&phase.UpgradeDtr{},
 		&phase.JoinDtrReplicas{},
 		// end DTR phases
@@ -65,7 +46,7 @@ func (p *DockerEnterprise) Apply() error {
 		&phase.Info{},
 	)
 
-	if err = phaseManager.Run(); err != nil {
+	if err := phaseManager.Run(); err != nil {
 		return err
 	}
 

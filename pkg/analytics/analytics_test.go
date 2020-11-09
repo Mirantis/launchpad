@@ -3,7 +3,7 @@ package analytics
 import (
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/config/user"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/segmentio/analytics-go.v3"
 )
@@ -58,7 +58,7 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		AnalyticsClient: client,
 	}
 
-	userConfig := config.UserConfig{
+	userConfig := user.Config{
 		Name:    "John Doe",
 		Email:   "john.doe@example.org",
 		Company: "Acme, Inc.",
@@ -83,7 +83,7 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 }
 
 func TestDefaultClient(t *testing.T) {
-	userConfig := config.UserConfig{
+	userConfig := user.Config{
 		Name:    "John Doe",
 		Email:   "john.doe@example.org",
 		Company: "Acme, Inc.",

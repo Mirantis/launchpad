@@ -3,13 +3,10 @@ package dockerenterprise
 import (
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
-	log "github.com/sirupsen/logrus"
 )
 
 // Reset uninstalls a Docker Enterprise cluster
 func (p *DockerEnterprise) Reset() error {
-	log.Debugf("loaded cluster cfg: %+v", p.ClusterConfig)
-
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 
 	phaseManager.AddPhases(

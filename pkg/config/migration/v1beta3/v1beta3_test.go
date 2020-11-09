@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestMigration(t *testing.T) {
@@ -16,13 +17,17 @@ spec:
       role: "manager"
 `)
 	// go's YAML marshal does not add the --- header
-	b4 := []byte(`apiVersion: launchpad.mirantis.com/v1
+	v1 := []byte(`apiVersion: launchpad.mirantis.com/v1
 kind: DockerEnterprise
 spec:
   hosts:
   - address: 10.0.0.1
     role: manager
 `)
-	require.NoError(t, Migrate(&b3))
-	require.Equal(t, b4, b3)
+	in := make(map[string]interface{})
+	require.NoError(t, yaml.Unmarshal(b3, in))
+	require.NoError(t, Migrate(in))
+	out, err := yaml.Marshal(in)
+	require.NoError(t, err)
+	require.Equal(t, v1, out)
 }

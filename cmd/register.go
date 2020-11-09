@@ -4,7 +4,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/cmd/register"
-	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/config/user"
 	"github.com/urfave/cli/v2"
 )
 
@@ -31,11 +31,11 @@ func RegisterCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			if _, err := config.GetUserConfig(); err != nil {
+			if _, err := user.GetConfig(); err != nil {
 				analytics.TrackEvent("User Not Registered", nil)
 			}
 			analytics.TrackEvent("User Register Started", nil)
-			userConfig := &config.UserConfig{
+			userConfig := &user.Config{
 				Name:    ctx.String("name"),
 				Company: ctx.String("company"),
 				Email:   ctx.String("email"),

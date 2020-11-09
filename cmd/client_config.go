@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/product"
+	"github.com/Mirantis/mcc/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -38,10 +38,12 @@ func NewClientConfigCommand() *cli.Command {
 			},
 		},
 		Action: func(ctx *cli.Context) error {
-			product, err := product.GetProduct(ctx)
-			if err == nil {
-				err = product.ClientConfig()
+			product, err := config.ProductFromFile(ctx.String("config"))
+			if err != nil {
+				return err
 			}
+
+			err = product.ClientConfig()
 			if err != nil {
 				analytics.TrackEvent("Client configuration download Failed", nil)
 			} else {

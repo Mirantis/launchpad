@@ -1,4 +1,4 @@
-package exec
+package dockerenterprise
 
 import (
 	"fmt"
@@ -8,55 +8,41 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
-	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/exec"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// Exec ...
-func Exec(configFile string, address string, interactive, first bool, role, cmd string) error {
-	cfgData, err := config.ResolveClusterFile(configFile)
-	if err != nil {
-		return err
-	}
-	clusterConfig, err := config.FromYaml(cfgData)
-	if err != nil {
-		return err
-	}
-
-	if err := config.Validate(&clusterConfig); err != nil {
-		return err
-	}
-
+// Exec runs commands or shell sessions on a configuration host
+func (p *DockerEnterprise) Exec(target string, interactive, first bool, role, cmd string) error {
 	var host *api.Host
-	if address == "" {
+	if target == "" {
 		if role != "" {
-			host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool { return h.Role == role })
+			host = p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool { return h.Role == role })
 			if host == nil {
 				return fmt.Errorf("failed to get the first host with role '%s' from configuration", role)
 			}
 		} else if first {
-			host = clusterConfig.Spec.Hosts.First()
+			host = p.ClusterConfig.Spec.Hosts.First()
 			if host == nil {
 				return fmt.Errorf("failed to get the first host from configuration")
 			}
 		} else {
-			return fmt.Errorf("--address, --first or --role required") // feels like this is in the wrong place
+			return fmt.Errorf("--target, --first or --role required") // feels like this is in the wrong place
 		}
-	} else if address == "localhost" {
-		host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+	} else if target == "localhost" {
+		host = p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
 			return h.Localhost
 		})
-	} else if strings.Contains(address, ":") {
-		parts := strings.SplitN(address, ":", 2)
+	} else if strings.Contains(target, ":") {
+		parts := strings.SplitN(target, ":", 2)
 		addr := parts[0]
 		port, err := strconv.Atoi(parts[1])
 		if err != nil {
 			return fmt.Errorf("invalid port: %s", parts[1])
 		}
 
-		host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+		host = p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
 			if h.Address != addr || h.Localhost {
 				return false
 			}
@@ -66,12 +52,12 @@ func Exec(configFile string, address string, interactive, first bool, role, cmd 
 			return h.SSH.Port == port
 		})
 	} else {
-		host = clusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
-			return h.Address == address
+		host = p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+			return h.Address == target
 		})
 	}
 	if host == nil {
-		return fmt.Errorf("Host with address %s not found in configuration", address)
+		return fmt.Errorf("Host with target %s not found in configuration", target)
 	}
 
 	var stdin string

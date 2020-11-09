@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-
-	"github.com/Mirantis/mcc/pkg/constant"
 
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,58 +30,13 @@ func NewInitCommand() *cli.Command {
 				return err
 			}
 
-			var clusterConfig api.ClusterConfig
-
-			switch ctx.String("kind") {
-			case "DockerEnterprise":
-				var dtrConfig *api.DtrConfig
-				dtrConfig = &api.DtrConfig{
-					Version:       constant.DTRVersion,
-					ReplicaConfig: "sequential",
-				}
-				clusterConfig = api.ClusterConfig{
-					APIVersion: "launchpad.mirantis.com/v1",
-					Kind:       "DockerEnterprise",
-					Metadata: &api.ClusterMeta{
-						Name: "my-ucp-cluster",
-					},
-					Spec: &api.ClusterSpec{
-						Engine: api.EngineConfig{
-							Version: constant.EngineVersion,
-						},
-						Ucp: api.UcpConfig{
-							Version: constant.UCPVersion,
-						},
-						Dtr: dtrConfig,
-						Hosts: []*api.Host{
-							{
-								Address: "10.0.0.1",
-								Role:    "manager",
-								SSH: &api.SSH{
-									User:    "root",
-									Port:    22,
-									KeyPath: "~/.ssh/id_rsa",
-								},
-							},
-							{
-								Address: "10.0.0.2",
-								Role:    "worker",
-								SSH:     api.DefaultSSH(),
-							},
-							{
-								Address: "10.0.0.3",
-								Role:    "dtr",
-								SSH:     api.DefaultSSH(),
-							},
-						},
-					},
-				}
-			default:
-				return fmt.Errorf("unknown kind: %s", ctx.String("kind"))
+			cfg, err := config.Init(ctx.String("kind"))
+			if err != nil {
+				return err
 			}
 
 			encoder := yaml.NewEncoder(os.Stdout)
-			err := encoder.Encode(clusterConfig)
+			err = encoder.Encode(cfg)
 
 			if err != nil {
 				analytics.TrackEvent("Cluster Init Failed", nil)
