@@ -9,17 +9,10 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/Mirantis/mcc/pkg/util"
 
 	"crypto/rand"
 
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
-	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,7 +20,6 @@ import (
 type ValidateHosts struct {
 	Analytics
 	BasicPhase
-	Debug bool
 }
 
 // Title for the phase
@@ -37,7 +29,7 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run() error {
-	if p.Debug {
+	if util.IsDebug() {
 		if err := p.validateHostConnection(); err != nil {
 			return p.formatErrors(p.config)
 		}

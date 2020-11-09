@@ -14,6 +14,7 @@ import (
 type ValidateFacts struct {
 	Analytics
 	BasicPhase
+	Force bool
 }
 
 // Title for the phase
@@ -28,7 +29,7 @@ func (p *ValidateFacts) Run() error {
 	}
 
 	if err := p.validateUCPVersionJump(p.config); err != nil {
-		if p.config.Spec.Metadata.Force {
+		if p.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
 			return err
@@ -36,7 +37,7 @@ func (p *ValidateFacts) Run() error {
 	}
 
 	if err := p.validateDTRVersionJump(p.config); err != nil {
-		if p.config.Spec.Metadata.Force {
+		if p.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
 			return err
@@ -44,7 +45,7 @@ func (p *ValidateFacts) Run() error {
 	}
 
 	if err := p.validateDataPlane(p.config); err != nil {
-		if p.config.Spec.Metadata.Force {
+		if p.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
 			return err

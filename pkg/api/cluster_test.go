@@ -1,20 +1,29 @@
-package config
+package api
 
 import (
 	"encoding/json"
 	"strings"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/config/migration"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
 	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
+	"gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestHostRequireManagerValidationPass(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1"
+apiVersion: "launchpad.mirantis.com/v1.1"
 kind: DockerEnterprise
 spec:
   hosts:
@@ -29,13 +38,13 @@ spec:
     password: barbar
 `
 	c := loadYaml(t, data)
-	err := Validate(c)
+	err := c.Validate()
 	require.NoError(t, err)
 }
 
 func TestHostRequireManagerValidationFail(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1"
+apiVersion: "launchpad.mirantis.com/v1.1"
 kind: DockerEnterprise
 spec:
   hosts:
@@ -50,7 +59,7 @@ spec:
     password: barbar
 `
 	c := loadYaml(t, data)
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 
 	validateErrorField(t, err, "Hosts")
@@ -58,7 +67,7 @@ spec:
 
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1"
+apiVersion: "launchpad.mirantis.com/v1.1"
 kind: DockerEnterprise
 spec:
   hosts:
@@ -67,7 +76,7 @@ spec:
     password: barbar
 `
 	c := loadYaml(t, data)
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 
 	validateErrorField(t, err, "Hosts")
@@ -86,7 +95,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "Address")
 }
@@ -104,7 +113,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.NotContains(t, getAllErrorFields(err), "Address")
 }
 
@@ -121,7 +130,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "Address")
 }
@@ -139,7 +148,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.NotContains(t, getAllErrorFields(err), "Address")
 
 }
@@ -160,7 +169,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "Port")
 }
@@ -181,7 +190,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
 }
@@ -201,7 +210,7 @@ spec:
     password: barbar
 `
 	c := loadYaml(t, data)
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "Role")
 }
@@ -248,11 +257,10 @@ spec:
     username: foofoo
     password: barbar
 `
-	c := loadYaml(t, data)
-	err := Validate(c)
-	require.Error(t, err)
+	c := loadAndMigrateYaml(t, data)
+	err := c.Validate()
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1")
+	require.Equal(t, "launchpad.mirantis.com/v1.1", c.APIVersion)
 
 	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -276,9 +284,9 @@ spec:
     username: foofoo
     password: barbar
 `
-	c := loadYaml(t, data)
-	require.NoError(t, Validate(c))
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1")
+	c := loadAndMigrateYaml(t, data)
+	require.NoError(t, c.Validate())
+	require.Equal(t, "launchpad.mirantis.com/v1.1", c.APIVersion)
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
@@ -298,15 +306,15 @@ spec:
     username: foofoo
     password: barbar
 `
-	c := loadYaml(t, data)
-	err := Validate(c)
+	c := loadAndMigrateYaml(t, data)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, c.APIVersion, "launchpad.mirantis.com/v1")
+	require.Equal(t, "launchpad.mirantis.com/v1.1", c.APIVersion)
 
-	require.Equal(t, c.Spec.Engine.InstallURLLinux, constant.EngineInstallURLLinux)
-	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
-	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
+	require.Equal(t, constant.EngineInstallURLLinux, c.Spec.Engine.InstallURLLinux)
+	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
+	require.Equal(t, "foofoo", c.Spec.Hosts[0].SSH.User)
 }
 
 func TestHostWinRMCACertPathValidation(t *testing.T) {
@@ -325,7 +333,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "CACertPath")
 }
@@ -346,7 +354,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "CertPath")
 }
@@ -367,7 +375,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	err := Validate(c)
+	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
 }
@@ -393,7 +401,7 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
+apiVersion: launchpad.mirantis.com/v1.1
 kind: DockerEnterprise
 spec:
   hosts:
@@ -407,7 +415,7 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	require.NoError(t, Validate(c))
+	require.NoError(t, c.Validate())
 
 	require.Equal(t, c.Spec.Hosts[0].WinRM.User, "User")
 	require.Equal(t, c.Spec.Hosts[0].WinRM.Port, 5985)
@@ -420,7 +428,7 @@ func TestValidationWithDtrRole(t *testing.T) {
 
 	t.Run("the role is not ucp, worker or dtr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/v1
+apiVersion: launchpad.mirantis.com/v1.1
 kind: DockerEnterprise
 spec:
   hosts:
@@ -433,13 +441,12 @@ spec:
     password: barbar
 `
 		c := loadYaml(t, data)
-
-		require.Error(t, Validate(c))
+		require.Error(t, c.Validate())
 	})
 
 	t.Run("the role is dtr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/v1
+apiVersion: launchpad.mirantis.com/v1.1
 kind: DockerEnterprise
 spec:
   hosts:
@@ -456,20 +463,30 @@ spec:
     password: barbar
 `
 		c := loadYaml(t, data)
-
-		require.NoError(t, Validate(c))
+		require.NoError(t, c.Validate())
 	})
 
 }
 
 // Just a small helper to load the config struct from yaml to get defaults etc. in place
-func loadYaml(t *testing.T, data string) *api.ClusterConfig {
+func loadYaml(t *testing.T, data string) *ClusterConfig {
+	c := &ClusterConfig{}
 	// convert any tabs added by editor into double spaces
-	c, err := FromYaml([]byte(strings.ReplaceAll(data, "\t", "  ")))
-	if err != nil {
-		t.Error(err)
-	}
-	return &c
+	require.NoError(t, yaml.Unmarshal([]byte(strings.ReplaceAll(data, "\t", "  ")), c))
+	return c
+}
+
+// Just a small helper to load the config struct from yaml through the migrations
+func loadAndMigrateYaml(t *testing.T, data string) *ClusterConfig {
+	c := &ClusterConfig{}
+	raw := make(map[string]interface{})
+	// convert any tabs added by editor into double spaces
+	require.NoError(t, yaml.Unmarshal([]byte(strings.ReplaceAll(data, "\t", "  ")), raw))
+	require.NoError(t, migration.Migrate(raw))
+	newdata, err := yaml.Marshal(raw)
+	require.NoError(t, err)
+	require.NoError(t, yaml.Unmarshal(newdata, c))
+	return c
 }
 
 // checks that the validation errors contains error for the expected field

@@ -96,44 +96,36 @@ type Host struct {
 }
 
 func (h *Host) generateName() string {
-	if h.Localhost {
-		return "localhost"
+	var role string
+
+	switch h.Role {
+	case "manager":
+		role = "M"
+	case "worker":
+		role = "W"
+	case "dtr":
+		role = "D"
 	}
 
-	if h.Metadata != nil && h.Metadata.Hostname != "" {
-		return h.Metadata.Hostname
+	if h.Localhost {
+		return fmt.Sprintf("%s localhost", role)
 	}
 
 	if h.WinRM != nil {
-		return fmt.Sprintf("%s:%d", h.Address, h.WinRM.Port)
+		return fmt.Sprintf("%s %s:%d", role, h.Address, h.WinRM.Port)
 	}
 
 	if h.SSH != nil {
-		return fmt.Sprintf("%s:%d", h.Address, h.SSH.Port)
+		return fmt.Sprintf("%s %s:%d", role, h.Address, h.SSH.Port)
 	}
 
-	return h.Address
-}
-
-// SetName resets the host's logging name
-func (h *Host) SetName() {
-	var oldname string
-	if h.name != "" {
-		oldname = h.name
-	}
-	h.name = h.generateName()
-	if h.Connection != nil {
-		h.Connection.SetName(h.name)
-	}
-	if oldname != "" && oldname != h.name {
-		log.Warnf("%s: will now be refered to as '%s'", oldname, h.name)
-	}
+	return fmt.Sprintf("%s %s", role, h.Address) // I don't think it should go here except in tests
 }
 
 // String returns a name / string identifier for the host
 func (h *Host) String() string {
 	if h.name == "" {
-		h.SetName()
+		h.name = h.generateName()
 	}
 	return h.name
 }
@@ -173,13 +165,15 @@ func (h *Host) Connect() error {
 		proto = "WinRM"
 	}
 
-	log.Infof("%s: opening %s connection", h.Address, proto)
+	c.SetName(h.String())
+
+	log.Infof("%s: opening %s connection", h, proto)
 	if err := c.Connect(); err != nil {
 		h.Connection = nil
-		return fmt.Errorf("%s: failed to open %s connection: %s", h.Address, proto, err.Error())
+		return fmt.Errorf("%s: failed to open %s connection: %s", h, proto, err.Error())
 	}
 
-	log.Infof("%s: %s connection opened", h.Address, proto)
+	log.Infof("%s: %s connection opened", h, proto)
 
 	h.Connection = c
 
@@ -245,21 +239,6 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 			imageRepo = ""
 		}
 		return h.Configurer.AuthenticateDocker(user, pass, imageRepo)
-	}
-	return nil
-}
-
-// ImageExist returns true if a docker image exists on the host
-func (h *Host) ImageExist(name string) bool {
-	return h.Exec(h.Configurer.DockerCommandf("image inspect %s --format '{{.ID}}'", name)) == nil
-}
-
-// PullImage pulls the named docker image on the host
-func (h *Host) PullImage(name string) error {
-	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf("pull %s", name))
-	if err != nil {
-		log.Warnf("%s: failed to pull image %s: \n%s", h, name, output)
-		return err
 	}
 	return nil
 }

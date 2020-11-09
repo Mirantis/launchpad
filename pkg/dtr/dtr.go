@@ -122,6 +122,11 @@ func BuildUCPFlags(config *api.ClusterConfig) []string {
 		ucpUser = config.Spec.Ucp.Username
 	}
 
+	// Still empty? Default to admin.
+	if ucpUser == "" {
+		ucpUser = "admin"
+	}
+
 	if ucpPass == "" {
 		ucpPass = config.Spec.Ucp.Password
 	}

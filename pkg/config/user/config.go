@@ -1,4 +1,4 @@
-package config
+package user
 
 import (
 	"io/ioutil"
@@ -14,22 +14,22 @@ const (
 	configFile = "~/.mirantis-launchpad/user.yaml"
 )
 
-// UserConfig struct for launchpad config
-type UserConfig struct {
+// Config struct for launchpad user config
+type Config struct {
 	Name    string `yaml:"name"`
 	Company string `yaml:"company"`
 	Email   string `yaml:"email"`
 	Eula    bool   `yaml:"eula"`
 }
 
-// GetUserConfig returns a new decoded Config struct
-func GetUserConfig() (*UserConfig, error) {
+// GetConfig returns a new decoded Config struct
+func GetConfig() (*Config, error) {
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
 		return nil, err
 	}
 
-	config := &UserConfig{}
+	config := &Config{}
 	// Open config file
 	file, err := os.Open(configFile)
 	if err != nil {
@@ -48,8 +48,8 @@ func GetUserConfig() (*UserConfig, error) {
 	return config, nil
 }
 
-// SaveUserConfig saves config struct to yaml file
-func SaveUserConfig(config *UserConfig) error {
+// SaveConfig saves config struct to yaml file
+func SaveConfig(config *Config) error {
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
 		return err

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestMigration(t *testing.T) {
@@ -30,6 +31,10 @@ spec:
       port: 9022
       user: admin
 `)
-	require.NoError(t, Migrate(&b1))
-	require.Equal(t, b2, b1)
+	in := make(map[string]interface{})
+	require.NoError(t, yaml.Unmarshal(b1, in))
+	require.NoError(t, Migrate(in))
+	out, err := yaml.Marshal(in)
+	require.NoError(t, err)
+	require.Equal(t, b2, out)
 }

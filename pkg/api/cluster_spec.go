@@ -11,11 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ClusterSpecMetadata contains spec level metadata
-type ClusterSpecMetadata struct {
-	Force bool
-}
-
 // Cluster is for universal cluster settings not applicable to single hosts, ucp, dtr or engine
 type Cluster struct {
 	Prune bool `yaml:"prune" default:"false"`
@@ -28,8 +23,6 @@ type ClusterSpec struct {
 	Dtr     *DtrConfig   `yaml:"dtr,omitempty"`
 	Engine  EngineConfig `yaml:"engine,omitempty"`
 	Cluster Cluster      `yaml:"cluster"`
-
-	Metadata ClusterSpecMetadata `yaml:"-"`
 }
 
 // Workers filters only the workers from the cluster config
@@ -170,7 +163,6 @@ func (c *ClusterSpec) DtrURL() (*url.URL, error) {
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type spec ClusterSpec
 	yc := (*spec)(c)
-	c.Metadata = ClusterSpecMetadata{}
 	c.Engine = EngineConfig{}
 	c.Ucp = NewUcpConfig()
 
@@ -264,4 +256,9 @@ func (c *ClusterSpec) CheckUCPHealthLocal(h *Host) error {
 		},
 		retry.Attempts(12), // last attempt should wait ~7min
 	)
+}
+
+// ContainsDtr returns true when the config has dtr hosts
+func (c *ClusterSpec) ContainsDtr() bool {
+	return c.Hosts.Find(func(h *Host) bool { return h.Role == "dtr" }) != nil
 }

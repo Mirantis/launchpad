@@ -9,7 +9,7 @@ import (
 // UninstallDTR is the phase implementation for running DTR uninstall
 type UninstallDTR struct {
 	Analytics
-	BasicPhase
+	DtrPhase
 }
 
 // Title prints the phase title

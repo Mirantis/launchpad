@@ -11,115 +11,99 @@ import (
 	"github.com/a8m/envsubst"
 	"gopkg.in/yaml.v2"
 
-	"github.com/Mirantis/mcc/pkg/api"
-	"github.com/Mirantis/mcc/pkg/api/v1beta1"
-	"github.com/Mirantis/mcc/pkg/api/v1beta2"
-	"github.com/Mirantis/mcc/pkg/api/v1beta3"
-	validator "github.com/go-playground/validator/v10"
+	"github.com/Mirantis/mcc/pkg/config/migration"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
+	"github.com/Mirantis/mcc/pkg/product"
+	"github.com/Mirantis/mcc/pkg/product/dockerenterprise"
 	log "github.com/sirupsen/logrus"
 )
 
-// Version is used for determining the configuration file type and version
-type Version struct {
-	APIVersion string `yaml:"apiVersion" validate:"required,gt=2"`
-	Kind       string `yaml:"kind" validate:"required,gt=2"`
+// ProductFromFile loads a yaml file and returns a Product that matches its Kind or an error if the file loading or validation fails
+func ProductFromFile(path string) (product.Product, error) {
+	data, err := resolveClusterFile(path)
+	if err != nil {
+		return nil, err
+	}
+	data, err = envsubst.Bytes(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return productFromYAML(data)
 }
 
-// FromYaml loads the cluster config from given yaml data
-func FromYaml(data []byte) (api.ClusterConfig, error) {
-	c := api.ClusterConfig{}
+func productFromYAML(data []byte) (product.Product, error) {
+	c := make(map[string]interface{})
+	if err := yaml.Unmarshal(data, c); err != nil {
+		return nil, err
+	}
 
-	cv := Version{}
-	err := yaml.Unmarshal(data, &cv)
+	if err := migration.Migrate(c); err != nil {
+		return nil, err
+	}
+
+	if c["kind"] == nil {
+		return nil, fmt.Errorf("configuration does not contain the required keyword 'kind'")
+	}
+
+	plain, err := yaml.Marshal(c)
 	if err != nil {
-		return c, err
+		return nil, err
 	}
 
-	if cv.Kind != "UCP" && cv.Kind != "DockerEnterprise" {
-		return c, fmt.Errorf("Unknown kind: %s", cv.Kind)
-	}
-
-	if cv.APIVersion == "launchpad.mirantis.com/v1beta1" {
-		err := v1beta1.Migrate(&data)
-		if err != nil {
-			return c, err
-		}
-	}
-
-	cv = Version{}
-	err = yaml.Unmarshal(data, &cv)
-	if err != nil {
-		return c, err
-	}
-
-	if cv.APIVersion == "launchpad.mirantis.com/v1beta2" {
-		err := v1beta2.Migrate(&data)
-		if err != nil {
-			return c, err
-		}
-	}
-
-	cv = Version{}
-	err = yaml.Unmarshal(data, &cv)
-	if err != nil {
-		return c, err
-	}
-
-	if cv.APIVersion == "launchpad.mirantis.com/v1beta3" {
-		err := v1beta3.Migrate(&data)
-		if err != nil {
-			return c, err
-		}
-	}
-
-	err = yaml.UnmarshalStrict(data, &c)
-	if err != nil {
-		return c, err
-	}
-
-	result, err := yaml.Marshal(c)
-	if err != nil {
-		return c, err
-	}
 	re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
-	log.Debugf("loaded configuration:\n%s", re.ReplaceAllString(string(result), "$1$2[REDACTED]"))
+	log.Debugf("loaded configuration:\n%s", re.ReplaceAllString(string(plain), "$1$2[REDACTED]"))
 
-	return c, nil
-}
-
-// Validate validates that everything in the config makes sense
-// Currently we do only very "static" validation using https://github.com/go-playground/validator
-func Validate(c *api.ClusterConfig) error {
-	validator := validator.New()
-	validator.RegisterStructValidation(requireManager, api.ClusterSpec{})
-	return validator.Struct(c)
-}
-
-func requireManager(sl validator.StructLevel) {
-	hosts := sl.Current().Interface().(api.ClusterSpec).Hosts
-	if hosts.Count(func(h *api.Host) bool { return h.Role == "manager" }) == 0 {
-		sl.ReportError(hosts, "Hosts", "", "manager required", "")
+	switch c["kind"].(string) {
+	case "DockerEnterprise":
+		return dockerenterprise.NewDockerEnterprise(plain)
+	default:
+		return nil, fmt.Errorf("unknown configuration kind '%s'", c["kind"].(string))
 	}
 }
 
-// ResolveClusterFile looks for the launchpad.yaml file, based on the value.
-// It returns the contents of this file as []byte if found,
-// or error if it didn't.
-func ResolveClusterFile(clusterFile string) ([]byte, error) {
+// Init returns an example cluster configuration
+func Init(kind string) (interface{}, error) {
+	switch kind {
+	case "DockerEnterprise":
+		return dockerenterprise.Init(), nil
+	default:
+		return "", fmt.Errorf("unknown configuration kind '%s'", kind)
+	}
+}
+
+func resolveClusterFile(clusterFile string) ([]byte, error) {
+	if clusterFile == "-" {
+		stat, err := os.Stdin.Stat()
+		if err == nil {
+			if (stat.Mode() & os.ModeCharDevice) == 0 {
+				return ioutil.ReadAll(os.Stdin)
+			}
+		}
+
+		return nil, fmt.Errorf("can't open cluster configuration from stdin")
+	}
+
 	file, err := openClusterFile(clusterFile)
 	defer file.Close()
-
-	buf, err := ioutil.ReadAll(file)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to read file: %v", err)
+		return nil, err
 	}
-	return envsubst.Bytes(buf)
+
+	return ioutil.ReadAll(file)
 }
 
 func openClusterFile(clusterFile string) (*os.File, error) {
 	clusterFileName := detectClusterFile(clusterFile)
 	if clusterFileName == "" {
-		return nil, fmt.Errorf("can not find cluster configuration file %s", clusterFile)
+		return nil, fmt.Errorf("can't find cluster configuration file %s", clusterFile)
 	}
 
 	file, fp, err := openFile(clusterFileName)
@@ -162,9 +146,4 @@ func openFile(fileName string) (file *os.File, path string, err error) {
 		return nil, fp, fmt.Errorf("can not find cluster configuration file: %v", err)
 	}
 	return file, fp, nil
-}
-
-// ContainsDtr returns true if the given ClusterConfig contains DTR nodes
-func ContainsDtr(config api.ClusterConfig) bool {
-	return len(config.Spec.Dtrs()) > 0
 }
