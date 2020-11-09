@@ -30,6 +30,11 @@ func ProductFromFile(path string) (product.Product, error) {
 	if err != nil {
 		return nil, err
 	}
+	data, err = envsubst.Bytes(data)
+	if err != nil {
+		return nil, err
+	}
+
 	return productFromYAML(data)
 }
 
@@ -73,20 +78,30 @@ func Init(kind string) (interface{}, error) {
 }
 
 func resolveClusterFile(clusterFile string) ([]byte, error) {
+	if clusterFile == "-" {
+		stat, err := os.Stdin.Stat()
+		if err == nil {
+			if (stat.Mode() & os.ModeCharDevice) == 0 {
+				return ioutil.ReadAll(os.Stdin)
+			}
+		}
+
+		return nil, fmt.Errorf("can't open cluster configuration from stdin")
+	}
+
 	file, err := openClusterFile(clusterFile)
 	defer file.Close()
-
-	buf, err := ioutil.ReadAll(file)
 	if err != nil {
-		return []byte{}, fmt.Errorf("failed to read file: %v", err)
+		return nil, err
 	}
-	return envsubst.Bytes(buf)
+
+	return ioutil.ReadAll(file)
 }
 
 func openClusterFile(clusterFile string) (*os.File, error) {
 	clusterFileName := detectClusterFile(clusterFile)
 	if clusterFileName == "" {
-		return nil, fmt.Errorf("can not find cluster configuration file %s", clusterFile)
+		return nil, fmt.Errorf("can't find cluster configuration file %s", clusterFile)
 	}
 
 	file, fp, err := openFile(clusterFileName)
@@ -129,5 +144,4 @@ func openFile(fileName string) (file *os.File, path string, err error) {
 		return nil, fp, fmt.Errorf("can not find cluster configuration file: %v", err)
 	}
 	return file, fp, nil
-
 }

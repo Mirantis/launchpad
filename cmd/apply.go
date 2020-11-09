@@ -28,7 +28,7 @@ func NewApplyCommand() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:      "config",
-				Usage:     "Path to cluster config yaml",
+				Usage:     "Path to cluster config yaml. Use '-' to read from stdin.",
 				Aliases:   []string{"c"},
 				Value:     "launchpad.yaml",
 				TakesFile: true,
