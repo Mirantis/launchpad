@@ -9,6 +9,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/Mirantis/mcc/pkg/util"
 
 	"crypto/rand"
 
@@ -19,7 +20,6 @@ import (
 type ValidateHosts struct {
 	Analytics
 	BasicPhase
-	Debug bool
 }
 
 // Title for the phase
@@ -29,7 +29,7 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run() error {
-	if p.Debug {
+	if util.IsDebug() {
 		if err := p.validateHostConnection(); err != nil {
 			return p.formatErrors(p.config)
 		}
