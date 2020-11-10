@@ -266,7 +266,7 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 	}
 
 	// Get a UCP token
-	token, err := ucp.GetToken(client, ucpURL, config.Spec.Ucp.InstallFlags.GetValue("--admin-username"), config.Spec.Ucp.InstallFlags.GetValue("--admin-password"))
+	token, err := ucp.GetToken(client, ucpURL, config.Spec.Ucp.AdminUsername, config.Spec.Ucp.AdminPassword)
 	if err != nil {
 		return "", fmt.Errorf("failed to get auth token: %s", err.Error())
 	}
