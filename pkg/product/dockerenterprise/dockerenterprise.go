@@ -21,7 +21,7 @@ func (p *DockerEnterprise) ClusterName() string {
 // NewDockerEnterprise returns a new instance of the Docker Enterprise product
 func NewDockerEnterprise(data []byte) (*DockerEnterprise, error) {
 	c := api.ClusterConfig{}
-	if err := yaml.Unmarshal(data, &c); err != nil {
+	if err := yaml.UnmarshalStrict(data, &c); err != nil {
 		return nil, err
 	}
 
