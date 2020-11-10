@@ -119,7 +119,7 @@ func BuildUCPFlags(config *api.ClusterConfig) []string {
 	}
 
 	if ucpUser == "" {
-		ucpUser = config.Spec.Ucp.InstallFlags.GetValue("--admin-username")
+		ucpUser = config.Spec.Ucp.AdminUsername
 	}
 
 	// Still empty? Default to admin.
@@ -128,7 +128,7 @@ func BuildUCPFlags(config *api.ClusterConfig) []string {
 	}
 
 	if ucpPass == "" {
-		ucpPass = config.Spec.Ucp.InstallFlags.GetValue("--admin-password")
+		ucpPass = config.Spec.Ucp.AdminPassword
 	}
 
 	return []string{

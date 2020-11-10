@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -207,7 +206,7 @@ func (c *WindowsConfigurer) CheckPrivilege() error {
 // AuthenticateDocker performs a docker login on the host
 func (c *WindowsConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	return c.Host.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.Redact(fmt.Sprintf("(?:%s|%s)", regexp.QuoteMeta(user), regexp.QuoteMeta(pass))))
+	return c.Host.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.RedactString(user, pass))
 }
 
 // WriteFile writes file to host with given contents. Do not use for large files.

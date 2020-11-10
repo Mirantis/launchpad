@@ -58,7 +58,7 @@ func (p *InstallUCP) Run() (err error) {
 		if err != nil {
 			return err
 		}
-		installFlags = append(installFlags, " --external-server-cert")
+		installFlags.AddUnlessExist("--external-server-cert")
 	}
 
 	if p.config.Spec.Ucp.ConfigData != "" {
@@ -69,7 +69,7 @@ func (p *InstallUCP) Run() (err error) {
 			}
 		}()
 
-		installFlags = append(installFlags, "--existing-config")
+		installFlags.AddUnlessExist("--existing-config")
 		log.Info("Creating UCP configuration")
 		configCmd := swarmLeader.Configurer.DockerCommandf("config create %s -", configName)
 		err := swarmLeader.Exec(configCmd, exec.Stdin(p.config.Spec.Ucp.ConfigData))
@@ -84,12 +84,12 @@ func (p *InstallUCP) Run() (err error) {
 		if err != nil {
 			return fmt.Errorf("error while reading license file %s: %v", licenseFilePath, err)
 		}
-		installFlags = append(installFlags, licenseFlag)
+		installFlags.AddUnlessExist(licenseFlag)
 	}
 
 	if p.config.Spec.Ucp.Cloud != nil {
 		if p.config.Spec.Ucp.Cloud.Provider != "" {
-			installFlags = append(installFlags, fmt.Sprintf("--cloud-provider %s", p.config.Spec.Ucp.Cloud.Provider))
+			installFlags.AddUnlessExist("--cloud-provider " + p.config.Spec.Ucp.Cloud.Provider)
 		}
 		if p.config.Spec.Ucp.Cloud.ConfigData != "" {
 			applyCloudConfig(p.config)
@@ -98,15 +98,23 @@ func (p *InstallUCP) Run() (err error) {
 
 	if api.IsCustomImageRepo(p.config.Spec.Ucp.ImageRepo) {
 		// In case of custom repo, don't let UCP check the images
-		installFlags = append(installFlags, "--pull never")
+		installFlags.AddUnlessExist("--pull never")
 	}
 	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if swarmLeader.Configurer.SELinuxEnabled() {
 		runFlags = append(runFlags, "--security-opt label=disable")
 	}
 
+	if p.config.Spec.Ucp.AdminUsername != "" {
+		installFlags.AddUnlessExist("--admin-username " + p.config.Spec.Ucp.AdminUsername)
+	}
+
+	if p.config.Spec.Ucp.AdminPassword != "" {
+		installFlags.AddUnlessExist("--admin-password " + p.config.Spec.Ucp.AdminPassword)
+	}
+
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.Redact(`--admin\S+`))
+	output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.AdminUsername, p.config.Spec.Ucp.AdminPassword))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run UCP installer: %s", swarmLeader, err.Error())
 	}
@@ -115,8 +123,12 @@ func (p *InstallUCP) Run() (err error) {
 		re := regexp.MustCompile(`msg="Generated random admin password: (.+?)"`)
 		md := re.FindStringSubmatch(output)
 		if len(md) > 0 && md[1] != "" {
-			log.Debugf("%s: adding the auto-generated admin password to installflags", swarmLeader)
-			p.config.Spec.Ucp.InstallFlags.AddOrReplace(`--admin-password="` + md[1] + `"`)
+			log.Warnf("Using an automatically generated password for UCP admin user: %s -- you will have to set it to Spec.Ucp.Password for any subsequent launchpad runs.", md[1])
+			p.config.Spec.Ucp.AdminPassword = md[1]
+			if p.config.Spec.Ucp.AdminUsername == "" {
+				log.Debugf("defaulting to ucp admin username 'admin'")
+				p.config.Spec.Ucp.AdminUsername = "admin"
+			}
 		}
 	}
 

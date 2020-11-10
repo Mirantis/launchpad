@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/a8m/envsubst"
@@ -57,7 +58,8 @@ func productFromYAML(data []byte) (product.Product, error) {
 		return nil, err
 	}
 
-	log.Debugf("loaded configuration:\n%s", plain)
+	re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
+	log.Debugf("loaded configuration:\n%s", re.ReplaceAllString(string(plain), "$1$2[REDACTED]"))
 
 	switch c["kind"].(string) {
 	case "DockerEnterprise":

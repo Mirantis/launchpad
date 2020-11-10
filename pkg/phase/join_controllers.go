@@ -30,7 +30,7 @@ func (p *JoinManagers) Run() error {
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.config.Spec.Ucp.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as manager", h)
-		err := h.Exec(joinCmd, exec.StreamOutput(), exec.Redact(p.config.Spec.Ucp.Metadata.ManagerJoinToken))
+		err := h.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.Metadata.ManagerJoinToken))
 		if err != nil {
 			return fmt.Errorf("%s: failed to join manager node to swarm: %s", h, err.Error())
 		}

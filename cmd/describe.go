@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var reports = []string{"hosts", "dtr", "ucp"}
+var reports = []string{"hosts", "dtr", "ucp", "config"}
 
 func reportIsKnown(n string) bool {
 	for _, v := range reports {
