@@ -3,6 +3,8 @@ package dockerenterprise
 import (
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/phase"
+	de "github.com/Mirantis/mcc/pkg/product/dockerenterprise/phase"
 )
 
 // ClientConfig downloads UCP client bundle
@@ -15,11 +17,11 @@ func (p *DockerEnterprise) ClientConfig() error {
 
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.AddPhases(
-		&phase.Connect{},
-		&phase.GatherFacts{},
-		&phase.ValidateHosts{},
-		&phase.DownloadBundle{},
-		&phase.Disconnect{},
+		&common.Connect{},
+		&de.GatherFacts{},
+		&de.ValidateHosts{},
+		&de.DownloadBundle{},
+		&common.Disconnect{},
 	)
 
 	return phaseManager.Run()

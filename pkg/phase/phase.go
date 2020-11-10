@@ -20,66 +20,56 @@ type Phase interface {
 type BasicPhase struct {
 	Phase
 
-	config *api.ClusterConfig
-}
-
-// DtrPhase only runs when the config includes dtr hosts
-type DtrPhase struct {
-	BasicPhase
-}
-
-// ShouldRun default implementation for DTR phase returns true when the config has DTR nodes
-func (d *DtrPhase) ShouldRun() bool {
-	return d.config.Spec.ContainsDtr()
+	Config *api.ClusterConfig
 }
 
 // HostSelectPhase is a phase where hosts are collected before running to see if it's necessary to run the phase at all in ShouldRun
 type HostSelectPhase struct {
 	Phase
 
-	config *api.ClusterConfig
-	hosts  api.Hosts
+	Config *api.ClusterConfig
+	Hosts  api.Hosts
 }
 
 // Prepare rceives the cluster config and stores it to the phase's config field
-func (b *BasicPhase) Prepare(config *api.ClusterConfig) error {
-	b.config = config
+func (p *BasicPhase) Prepare(config *api.ClusterConfig) error {
+	p.Config = config
 	return nil
 }
 
 // ShouldRun for BasicPhases is always true
-func (b *BasicPhase) ShouldRun() bool {
+func (p *BasicPhase) ShouldRun() bool {
 	return true
 }
 
 // CleanUp basic implementation
-func (b *BasicPhase) CleanUp() {}
+func (p *BasicPhase) CleanUp() {}
 
 // Title default implementation
-func (h *HostSelectPhase) Title() string {
+func (p *HostSelectPhase) Title() string {
 	return ""
 }
 
 // Run default implementation
-func (h *HostSelectPhase) Run() error {
+func (p *HostSelectPhase) Run() error {
 	return nil
 }
 
 // Prepare HostSelectPhase implementation which runs the supplied HostFilterFunc to populate the phase's hosts field
-func (h *HostSelectPhase) Prepare(config *api.ClusterConfig) error {
-	h.config = config
-	hosts := config.Spec.Hosts.Filter(h.HostFilterFunc)
-	h.hosts = hosts
+func (p *HostSelectPhase) Prepare(config *api.ClusterConfig) error {
+	p.Config = config
+	hosts := config.Spec.Hosts.Filter(p.HostFilterFunc)
+	p.Hosts = hosts
 	return nil
 }
 
 // ShouldRun HostSelectPhase default implementation which returns true if there are hosts that matched the HostFilterFunc
-func (h *HostSelectPhase) ShouldRun() bool {
-	return len(h.hosts) > 0
+func (p *HostSelectPhase) ShouldRun() bool {
+	return len(p.Hosts) > 0
 }
 
 // HostFilterFunc default implementation, matches all hosts
-func (h *HostSelectPhase) HostFilterFunc(host *api.Host) bool {
+func (p *HostSelectPhase) HostFilterFunc(host *api.Host) bool {
 	return true
 }
 
@@ -123,7 +113,8 @@ func (e *Error) Error() string {
 	return strings.Join(messages, "\n")
 }
 
-func runParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(h *api.Host, config *api.ClusterConfig) error) error {
+// RunParallelOnHosts runs a function parallelly on the listed hosts
+func RunParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(h *api.Host, config *api.ClusterConfig) error) error {
 	return hosts.ParallelEach(func(h *api.Host) error {
 		err := action(h, config)
 		if err != nil {
