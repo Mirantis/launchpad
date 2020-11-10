@@ -14,8 +14,8 @@ import (
 type UcpConfig struct {
 	Version         string    `yaml:"version"`
 	ImageRepo       string    `yaml:"imageRepo,omitempty"`
-	Username        string    `yaml:"username,omitempty"`
-	Password        string    `yaml:"password,omitempty"`
+	AdminUsername   string    `yaml:"adminUsername,omitempty"`
+	AdminPassword   string    `yaml:"adminPassword,omitempty"`
 	InstallFlags    Flags     `yaml:"installFlags,omitempty,flow"`
 	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string    `yaml:"configData,omitempty"`
@@ -77,18 +77,20 @@ func (c *UcpConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if flagValue := raw.InstallFlags.GetValue("--admin-username"); flagValue != "" {
-		if raw.Username == "" {
-			raw.Username = flagValue
-		} else if flagValue != raw.Username {
-			return fmt.Errorf("both Spec.Ucp.Username and Spec.Ucp.InstallFlags --admin-username set, only one allowed")
+		if raw.AdminUsername == "" {
+			raw.AdminUsername = flagValue
+			raw.InstallFlags.Delete("--admin-username")
+		} else if flagValue != raw.AdminUsername {
+			return fmt.Errorf("both Spec.Ucp.AdminUsername and Spec.Ucp.InstallFlags --admin-username set, only one allowed")
 		}
 	}
 
 	if flagValue := raw.InstallFlags.GetValue("--admin-password"); flagValue != "" {
-		if raw.Password == "" {
-			raw.Password = flagValue
-		} else if flagValue != raw.Username {
-			return fmt.Errorf("both Spec.Ucp.Password and Spec.Ucp.InstallFlags --admin-password set, only one allowed")
+		if raw.AdminPassword == "" {
+			raw.AdminPassword = flagValue
+			raw.InstallFlags.Delete("--admin-password")
+		} else if flagValue != raw.AdminPassword {
+			return fmt.Errorf("both Spec.Ucp.AdminPassword and Spec.Ucp.InstallFlags --admin-password set, only one allowed")
 		}
 	}
 

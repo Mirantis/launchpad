@@ -54,8 +54,8 @@ func TestBuildUcpFlags(t *testing.T) {
 	config := &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Ucp: api.UcpConfig{
-				Username: "admin",
-				Password: "password1234",
+				AdminUsername: "admin",
+				AdminPassword: "password1234",
 				InstallFlags: []string{
 					"--san ucp.acme.com",
 				},

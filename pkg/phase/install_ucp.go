@@ -105,16 +105,16 @@ func (p *InstallUCP) Run() (err error) {
 		runFlags = append(runFlags, "--security-opt label=disable")
 	}
 
-	if p.config.Spec.Ucp.Username != "" {
-		installFlags.AddUnlessExist("--admin-username " + p.config.Spec.Ucp.Username)
+	if p.config.Spec.Ucp.AdminUsername != "" {
+		installFlags.AddUnlessExist("--admin-username " + p.config.Spec.Ucp.AdminUsername)
 	}
 
-	if p.config.Spec.Ucp.Password != "" {
-		installFlags.AddUnlessExist("--admin-password " + p.config.Spec.Ucp.Password)
+	if p.config.Spec.Ucp.AdminPassword != "" {
+		installFlags.AddUnlessExist("--admin-password " + p.config.Spec.Ucp.AdminPassword)
 	}
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.Username, p.config.Spec.Ucp.Password))
+	output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.config.Spec.Ucp.AdminUsername, p.config.Spec.Ucp.AdminPassword))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run UCP installer: %s", swarmLeader, err.Error())
 	}
@@ -124,9 +124,10 @@ func (p *InstallUCP) Run() (err error) {
 		md := re.FindStringSubmatch(output)
 		if len(md) > 0 && md[1] != "" {
 			log.Warnf("Using an automatically generated password for UCP admin user: %s -- you will have to set it to Spec.Ucp.Password for any subsequent launchpad runs.", md[1])
-			p.config.Spec.Ucp.Password = md[1]
-			if p.config.Spec.Ucp.Username == "" {
-				p.config.Spec.Ucp.Username = "admin"
+			p.config.Spec.Ucp.AdminPassword = md[1]
+			if p.config.Spec.Ucp.AdminUsername == "" {
+				log.Debugf("defaulting to ucp admin username 'admin'")
+				p.config.Spec.Ucp.AdminUsername = "admin"
 			}
 		}
 	}

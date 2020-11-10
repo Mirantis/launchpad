@@ -42,13 +42,13 @@ func (p *DownloadBundle) Run() error {
 		return err
 	}
 
-	user := p.config.Spec.Ucp.Username
+	user := p.config.Spec.Ucp.AdminUsername
 	if user == "" {
-		return fmt.Errorf("config Spec.Ucp.Username not set")
+		return fmt.Errorf("config Spec.Ucp.AdminUsername not set")
 	}
-	pass := p.config.Spec.Ucp.Password
+	pass := p.config.Spec.Ucp.AdminPassword
 	if pass == "" {
-		return fmt.Errorf("config Spec.Ucp.Password not set")
+		return fmt.Errorf("config Spec.Ucp.AdminPassword not set")
 	}
 
 	bundle, err := ucp.GetClientBundle(url, tlsConfig, user, pass)
