@@ -1,6 +1,8 @@
 package phase
 
 import (
+	"time"
+
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
 	retry "github.com/avast/retry-go"
@@ -28,7 +30,10 @@ func (p *Connect) connectHost(h *api.Host, c *api.ClusterConfig) error {
 		func() error {
 			return h.Connect()
 		},
-		retry.Attempts(6),
+		retry.DelayType(retry.RandomDelay),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*10),
+		retry.Attempts(30),
 	)
 
 	if err != nil {
