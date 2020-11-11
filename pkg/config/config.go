@@ -31,11 +31,6 @@ func ProductFromFile(path string) (product.Product, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err = envsubst.Bytes(data)
-	if err != nil {
-		return nil, err
-	}
-
 	return productFromYAML(data)
 }
 
@@ -53,7 +48,12 @@ func productFromYAML(data []byte) (product.Product, error) {
 		return nil, fmt.Errorf("configuration does not contain the required keyword 'kind'")
 	}
 
-	plain, err := yaml.Marshal(c)
+	data, err := yaml.Marshal(c)
+	if err != nil {
+		return nil, err
+	}
+
+	plain, err := envsubst.Bytes(data)
 	if err != nil {
 		return nil, err
 	}
