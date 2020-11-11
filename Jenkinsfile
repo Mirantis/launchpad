@@ -173,12 +173,12 @@ pipeline {
             }
           }
           stages {
-            stage("Install UCP3.2 DTR2.7 ENG19.03.8") {
+            stage("Install UCP3.3.3 DTR2.7 ENG19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
-                UCP_VERSION = "3.2.8"
+                UCP_VERSION = "3.3.3"
                 IMAGE_REPO = "docker.io/mirantis"
                 DTR_VERSION = "2.7.8"
                 DTR_IMAGE_REPO = "docker.io/mirantis"
@@ -189,12 +189,13 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade UCP3.3 DTR2.8 ENG19.03.12") {
+            stage("Upgrade UCP3.3.4-rc2 DTR2.8 ENG19.03.12 from private repos") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
-                UCP_VERSION = "3.3.3"
+                UCP_VERSION = "3.3.4-rc2"
+                UCP_IMAGE_REPO = "docker.io/mirantiseng"
                 REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
                 IMAGE_REPO = "docker.io/mirantis"
                 DTR_VERSION = "2.8.3"
