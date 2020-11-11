@@ -47,7 +47,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-apply-test LAUNCHPAD_CONFIG=launchpad-v1beta1.yaml LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-test CONFIG_TEMPLATE=launchpad-v1beta1.yaml LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("Ubuntu 18.04: upload images") {
@@ -57,7 +57,7 @@ pipeline {
             }
           }
           steps {
-            sh "make smoke-apply-upload-test CONFIG_TEMPLATE=launchpad-upload.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+            sh "make smoke-apply-upload-test LAUNCHPAD_CONFIG=launchpad-upload.yaml LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("CentOS 7: apply") {

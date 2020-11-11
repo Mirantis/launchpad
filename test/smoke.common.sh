@@ -93,6 +93,10 @@ function setup() {
     createCluster
   fi
   export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+  if [ ! -z "${CONFIG_TEMPLATE}" ]; then
+    export LAUNCHPAD_CONFIG="${CONFIG_TEMPLATE%.tpl}"
+    envsubst < ${CONFIG_TEMPLATE} > ${LAUNCHPAD_CONFIG}
+  fi
 }
 
 function cloneImages() {
