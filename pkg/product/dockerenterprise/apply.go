@@ -28,6 +28,7 @@ func (p *DockerEnterprise) Apply(disableCleanup, force bool) error {
 		&de.PrepareHost{},
 		&de.InstallEngine{},
 		&de.LoadImages{},
+		&de.AuthenticateDocker{},
 		&de.PullUCPImages{},
 		&de.InitSwarm{},
 		&de.InstallUCP{SkipCleanup: disableCleanup},
