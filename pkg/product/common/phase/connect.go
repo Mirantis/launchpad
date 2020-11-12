@@ -46,7 +46,7 @@ func (p *Connect) connectHost(h *api.Host, c *api.ClusterConfig) error {
 		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
 		retry.MaxJitter(time.Second*2),
 		retry.Delay(time.Second*3),
-		retry.Attempts(60),
+		retry.Attempts(retries),
 	)
 
 	if err != nil {

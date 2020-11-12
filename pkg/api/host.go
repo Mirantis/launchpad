@@ -356,11 +356,10 @@ func (h *Host) waitForHost(state bool) error {
 			}
 			return nil
 		},
-		// This will retry for ~5 minutes with 9 to 11 second intervals
-		retry.DelayType(retry.RandomDelay),
-		retry.MaxJitter(time.Second),
-		retry.Delay(time.Second*10),
-		retry.Attempts(30),
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(60),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to wait for host to go offline")
