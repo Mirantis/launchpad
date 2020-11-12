@@ -170,7 +170,7 @@ func (h *Host) Connect() error {
 	log.Infof("%s: opening %s connection", h, proto)
 	if err := c.Connect(); err != nil {
 		h.Connection = nil
-		return fmt.Errorf("%s: failed to open %s connection: %s", h, proto, err.Error())
+		return err
 	}
 
 	log.Infof("%s: %s connection opened", h, proto)
@@ -231,7 +231,7 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
 		if pass == "" {
-			return fmt.Errorf("%s: REGISTRY_PASSWORD not set", h)
+			return fmt.Errorf("REGISTRY_PASSWORD not set")
 		}
 
 		log.Infof("%s: authenticating docker for image repo %s", h, imageRepo)
@@ -278,7 +278,7 @@ func (h *Host) CheckHTTPStatus(url string, expected int) error {
 
 	log.Debugf("%s: response code: %d, expected %d", h, status, expected)
 	if status != expected {
-		return fmt.Errorf("%s: unexpected response code %d", h, status)
+		return fmt.Errorf("unexpected response code %d", status)
 	}
 
 	return nil
@@ -297,7 +297,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	log.Infof("%s: uploading %s to %s", h, util.FormatBytes(uint64(stat.Size())), dst)
 
 	if err := h.Connection.Upload(src, dst); err != nil {
-		return fmt.Errorf("%s: upload failed: %s", h, err.Error())
+		return fmt.Errorf("upload failed: %s", err.Error())
 	}
 
 	duration := time.Since(startTime).Seconds()
@@ -322,14 +322,10 @@ func (h *Host) Reboot() error {
 		func() error {
 			return h.Connect()
 		},
-		// This will retry for ~5 minutes with 9 to 11 second intervals. BackOff delay makes no sense here
-		// because the user would sometimes have to wait for 10+ extra minutes even though the machine
-		// actually came online right after the last retry and the initial 100ms retry delay in the beginning
-		// will never succeed on any host.
-		retry.DelayType(retry.RandomDelay),
-		retry.MaxJitter(time.Second),
-		retry.Delay(time.Second*10),
-		retry.Attempts(30),
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(60),
 	)
 
 	if err != nil {
@@ -360,11 +356,10 @@ func (h *Host) waitForHost(state bool) error {
 			}
 			return nil
 		},
-		// This will retry for ~5 minutes with 9 to 11 second intervals
-		retry.DelayType(retry.RandomDelay),
-		retry.MaxJitter(time.Second),
-		retry.Delay(time.Second*10),
-		retry.Attempts(30),
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(60),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to wait for host to go offline")

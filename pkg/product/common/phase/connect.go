@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"strings"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -25,15 +26,27 @@ func (p *Connect) Run() error {
 	return phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.connectHost)
 }
 
+const retries = 60
+
 func (p *Connect) connectHost(h *api.Host, c *api.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
 			return h.Connect()
 		},
-		retry.DelayType(retry.RandomDelay),
+		retry.OnRetry(
+			func(n uint, err error) {
+				log.Errorf("%s: attempt %d of %d.. failed to connect: %s", h, n+1, retries, err.Error())
+			},
+		),
+		retry.RetryIf(
+			func(err error) bool {
+				return !strings.Contains(err.Error(), "no supported methods remain")
+			},
+		),
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
 		retry.MaxJitter(time.Second*2),
-		retry.Delay(time.Second*10),
-		retry.Attempts(30),
+		retry.Delay(time.Second*3),
+		retry.Attempts(retries),
 	)
 
 	if err != nil {
