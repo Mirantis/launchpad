@@ -186,7 +186,6 @@ func GetLatest(timeout time.Duration) *LaunchpadRelease {
 		return nil
 	}
 
-	log.Debugf("%s returned: %+v", baseMsg, *l)
 	return l
 }
 
