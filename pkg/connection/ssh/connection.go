@@ -90,7 +90,7 @@ func (c *Connection) Connect() error {
 		if err != nil {
 			return fmt.Errorf("cannot connect to SSH agent auth socket %s: %s", sshAgentSock, err)
 		}
-		log.Debugf("using SSH auth sock %s", sshAgentSock)
+		log.Tracef("using SSH auth sock %s", sshAgentSock)
 		config.Auth = append(config.Auth, ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers))
 	}
 
