@@ -6,6 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/exec"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -36,6 +37,16 @@ func NewClientConfigCommand() *cli.Command {
 				Aliases: []string{"p"},
 				Hidden:  true,
 			},
+			&cli.BoolFlag{
+				Name:  "confirm",
+				Usage: "Ask confirmation for all commands",
+				Value: false,
+			},
+			&cli.BoolFlag{
+				Name:  "disable-redact",
+				Usage: "Do not hide sensitive information in the output",
+				Value: false,
+			},
 		},
 		Action: func(ctx *cli.Context) error {
 			product, err := config.ProductFromFile(ctx.String("config"))
@@ -53,6 +64,8 @@ func NewClientConfigCommand() *cli.Command {
 			return err
 		},
 		Before: func(ctx *cli.Context) error {
+			exec.Confirm = ctx.Bool("confirm")
+			exec.DisableRedact = ctx.Bool("disable-redact")
 			if strings.Contains(strings.Join(os.Args, " "), "download-bundle") {
 				log.Warn()
 				log.Warn("[DEPRECATED] The 'download-bundle' subcommand is now 'client-config'.")

@@ -8,6 +8,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
@@ -30,6 +31,16 @@ func NewResetCommand() *cli.Command {
 				Name:    "force",
 				Usage:   "Don't ask for confirmation",
 				Aliases: []string{"f"},
+			},
+			&cli.BoolFlag{
+				Name:  "confirm",
+				Usage: "Ask confirmation for all commands",
+				Value: false,
+			},
+			&cli.BoolFlag{
+				Name:  "disable-redact",
+				Usage: "Do not hide sensitive information in the output",
+				Value: false,
 			},
 		},
 		Action: func(ctx *cli.Context) error {
@@ -54,6 +65,8 @@ func NewResetCommand() *cli.Command {
 			return err
 		},
 		Before: func(ctx *cli.Context) error {
+			exec.Confirm = ctx.Bool("confirm")
+			exec.DisableRedact = ctx.Bool("disable-redact")
 			if !ctx.Bool("force") {
 				if !isatty.IsTerminal(os.Stdout.Fd()) {
 					return fmt.Errorf("reset requires --force")

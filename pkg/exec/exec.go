@@ -1,10 +1,24 @@
 package exec
 
 import (
+	"fmt"
+	"os"
 	"regexp"
 	"strings"
+	"sync"
 
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	// DisableRedact will make redact not redact anything
+	DisableRedact = false
+	// Confirm will make all command execs ask for confirmation
+	Confirm = false
+
+	mutex sync.Mutex
 )
 
 // Option is a functional option for the exec package
@@ -24,6 +38,29 @@ type Options struct {
 
 // LogCmd is for logging the command to be executed
 func (o *Options) LogCmd(prefix, cmd string) {
+	if Confirm {
+		if !isatty.IsTerminal(os.Stdout.Fd()) {
+			os.Stderr.WriteString("--confirm requires an interactive terminal")
+			os.Exit(1)
+		}
+
+		mutex.Lock()
+
+		confirmed := false
+		fmt.Printf("\nHost: %s\nCommand: %s\n", prefix, o.Redact(cmd))
+		prompt := &survey.Confirm{
+			Message: fmt.Sprintf("Run this command?"),
+			Default: true,
+		}
+		survey.AskOne(prompt, &confirmed)
+		if !confirmed {
+			os.Stderr.WriteString("aborted\n")
+			os.Exit(1)
+		}
+
+		mutex.Unlock()
+	}
+
 	if o.LogCommand {
 		log.Debugf("%s: executing `%s`", prefix, o.Redact(cmd))
 	} else {
@@ -72,15 +109,21 @@ func (o *Options) AddOutput(prefix, s string) {
 	}
 
 	if o.StreamOutput {
+		mutex.Lock()
+		defer mutex.Unlock()
 		log.Infof("%s: %s", prefix, o.Redact(s))
 	} else {
+		if log.IsLevelEnabled(log.DebugLevel) {
+			mutex.Lock()
+			defer mutex.Unlock()
+		}
 		o.LogDebugf("%s: %s", prefix, o.Redact(s))
 	}
 }
 
 // Redact is for filtering out sensitive text using a regexp
 func (o *Options) Redact(s string) string {
-	if o.RedactFunc == nil {
+	if DisableRedact || o.RedactFunc == nil {
 		return s
 	}
 	return o.RedactFunc(s)

@@ -9,6 +9,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/exec"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
@@ -45,8 +46,20 @@ func NewApplyCommand() *cli.Command {
 				Value:  false,
 				Hidden: true,
 			},
+			&cli.BoolFlag{
+				Name:  "confirm",
+				Usage: "Ask confirmation for all commands",
+				Value: false,
+			},
+			&cli.BoolFlag{
+				Name:  "disable-redact",
+				Usage: "Do not hide sensitive information in the output",
+				Value: false,
+			},
 		},
 		Before: func(ctx *cli.Context) error {
+			exec.Confirm = ctx.Bool("confirm")
+			exec.DisableRedact = ctx.Bool("disable-redact")
 			if !ctx.Bool("accept-license") {
 				return analytics.RequireRegisteredUser()
 			}
