@@ -49,7 +49,7 @@ func NewExecCommand() *cli.Command {
 
 			args := ctx.Args().Slice()
 
-			return product.Exec(ctx.String("address"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.String("role"), shellquote.Join(args...))
+			return product.Exec(ctx.String("target"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.String("role"), shellquote.Join(args...))
 		},
 	}
 }
