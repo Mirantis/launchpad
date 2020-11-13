@@ -12,6 +12,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/config/migration"
+	"github.com/Mirantis/mcc/pkg/exec"
+
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
 	// needed to load the migrators
@@ -58,8 +60,13 @@ func productFromYAML(data []byte) (product.Product, error) {
 		return nil, err
 	}
 
-	re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
-	log.Debugf("loaded configuration:\n%s", re.ReplaceAllString(string(plain), "$1$2[REDACTED]"))
+	cfg := string(plain)
+	if !exec.DisableRedact {
+		re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
+		cfg = re.ReplaceAllString(cfg, "$1$2[REDACTED]")
+	}
+
+	log.Debugf("loaded configuration:\n%s", cfg)
 
 	switch c["kind"].(string) {
 	case "DockerEnterprise":

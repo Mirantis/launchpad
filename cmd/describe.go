@@ -7,6 +7,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
 
@@ -37,6 +38,16 @@ func NewDescribeCommand() *cli.Command {
 				Aliases:   []string{"c"},
 				Value:     "launchpad.yaml",
 				TakesFile: true,
+			},
+			&cli.BoolFlag{
+				Name:  "confirm",
+				Usage: "Ask confirmation for all commands",
+				Value: false,
+			},
+			&cli.BoolFlag{
+				Name:  "disable-redact",
+				Usage: "Do not hide sensitive information in the output",
+				Value: false,
 			},
 		},
 		Action: func(ctx *cli.Context) error {
@@ -74,6 +85,8 @@ func NewDescribeCommand() *cli.Command {
 			return err
 		},
 		Before: func(ctx *cli.Context) error {
+			exec.Confirm = ctx.Bool("confirm")
+			exec.DisableRedact = ctx.Bool("disable-redact")
 			if !ctx.Bool("accept-license") {
 				return analytics.RequireRegisteredUser()
 			}
