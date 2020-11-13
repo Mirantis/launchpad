@@ -1,5 +1,5 @@
-apiVersion: "launchpad.mirantis.com/v1.1"
-kind: DockerEnterprise
+apiVersion: "launchpad.mirantis.com/mke/v1.1"
+kind: mke
 spec:
   hosts:
     - address: "192.168.64.10"
@@ -14,10 +14,10 @@ spec:
         user: "ubuntu"
         keyPath: "/var/root/Library/Application Support/multipassd/ssh-keys/id_rsa"
       privateInterface: enp0s2
-  ucp:
+  mke:
+    adminUsername: admin
+    adminPassword: v3ryS3cret
     installFlags:
-      - --admin-username=admin
-      - --admin-password=v3ryS3cret
       - --default-node-orchestrator=kubernetes
       - --force-minimums
       - --pod-cidr=10.32.0.0/16

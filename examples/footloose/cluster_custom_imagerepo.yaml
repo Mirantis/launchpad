@@ -1,5 +1,5 @@
-apiVersion: "launchpad.mirantis.com/v1"
-kind: UCP
+apiVersion: "launchpad.mirantis.com/mke/v1.1"
+kind: mke
 spec:
   hosts:
     - address: "127.0.0.1"
@@ -12,7 +12,7 @@ spec:
         port: 9023
         user: "root"
       role: "worker"
-  ucp:
+  mke:
     version: 3.3.0-rc4
     # Use custom image repo, remember to set the REGISTRY_USERNAME & REGISTRY_PASSWORD envs
     imageRepo: docker.io/dockereng

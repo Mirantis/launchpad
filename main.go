@@ -116,6 +116,10 @@ SUPPORT:
 			},
 		},
 		Before: func(ctx *cli.Context) error {
+			mcclog.Debug = ctx.Bool("debug") || ctx.Bool("trace")
+			mcclog.Trace = ctx.Bool("trace")
+			initLogger()
+
 			go func() {
 				if ctx.Command.Name != "download-launchpad" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
 					upgradeChan <- version.GetUpgrade()
@@ -123,10 +127,6 @@ SUPPORT:
 					upgradeChan <- nil
 				}
 			}()
-
-			mcclog.Debug = ctx.Bool("debug") || ctx.Bool("trace")
-			mcclog.Trace = ctx.Bool("trace")
-			initLogger()
 
 			initAnalytics(ctx)
 			return nil
@@ -162,6 +162,7 @@ SUPPORT:
 }
 
 func initLogger() {
+	log.SetLevel(log.TraceLevel)
 	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
 
 	// Send logs with level >= INFO to stdout

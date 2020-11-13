@@ -12,8 +12,8 @@ type ClusterMeta struct {
 
 // ClusterConfig describes launchpad.yaml configuration
 type ClusterConfig struct {
-	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/v1.1"`
-	Kind       string       `yaml:"kind" validate:"eq=DockerEnterprise"`
+	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.1"`
+	Kind       string       `yaml:"kind" validate:"oneof=mke mke+msr"`
 	Metadata   *ClusterMeta `yaml:"metadata"`
 	Spec       *ClusterSpec `yaml:"spec"`
 }
@@ -21,7 +21,7 @@ type ClusterConfig struct {
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	c.Metadata = &ClusterMeta{
-		Name: "launchpad-de",
+		Name: "launchpad-mke",
 	}
 	c.Spec = &ClusterSpec{}
 
@@ -40,37 +40,49 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (c *ClusterConfig) Validate() error {
 	validator := validator.New()
 	validator.RegisterStructValidation(requireManager, ClusterSpec{})
+	validator.RegisterStructValidation(disallowMSR, ClusterConfig{})
 	return validator.Struct(c)
 }
 
 func requireManager(sl validator.StructLevel) {
 	hosts := sl.Current().Interface().(ClusterSpec).Hosts
 	if hosts.Count(func(h *Host) bool { return h.Role == "manager" }) == 0 {
-		sl.ReportError(hosts, "Hosts", "", "manager required", "")
+		sl.ReportError(hosts, "hosts", "", "manager required", "")
+	}
+}
+
+// disallow MSR config when using the "mke" kind instead of "mke+msr"
+func disallowMSR(sl validator.StructLevel) {
+	if sl.Current().Interface().(ClusterConfig).Kind == "mke+msr" {
+		return
+	}
+
+	spec := sl.Current().Interface().(ClusterConfig).Spec
+	if spec.MSR != nil {
+		sl.ReportError(spec.MSR, "msr", "", "msr configuration is only available with kind: mke+msr", "")
+	}
+
+	hosts := spec.Hosts
+	if hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
+		sl.ReportError(hosts, "hosts", "", "role=msr is only available with kind: mke+msr", "")
 	}
 }
 
 // Init returns an example of configuration file contents
-func Init() *ClusterConfig {
-	var dtrConfig *DtrConfig
-	dtrConfig = &DtrConfig{
-		Version:       constant.DTRVersion,
-		ReplicaConfig: "sequential",
-	}
-	return &ClusterConfig{
-		APIVersion: "launchpad.mirantis.com/v1",
-		Kind:       "DockerEnterprise",
+func Init(kind string) *ClusterConfig {
+	config := &ClusterConfig{
+		APIVersion: "launchpad.mirantis.com/mke/v1.1",
+		Kind:       kind,
 		Metadata: &ClusterMeta{
-			Name: "my-ucp-cluster",
+			Name: "my-mke-cluster",
 		},
 		Spec: &ClusterSpec{
 			Engine: EngineConfig{
 				Version: constant.EngineVersion,
 			},
-			Ucp: UcpConfig{
-				Version: constant.UCPVersion,
+			MKE: MKEConfig{
+				Version: constant.MKEVersion,
 			},
-			Dtr: dtrConfig,
 			Hosts: []*Host{
 				{
 					Address: "10.0.0.1",
@@ -86,12 +98,23 @@ func Init() *ClusterConfig {
 					Role:    "worker",
 					SSH:     DefaultSSH(),
 				},
-				{
-					Address: "10.0.0.3",
-					Role:    "dtr",
-					SSH:     DefaultSSH(),
-				},
 			},
 		},
 	}
+	if kind == "mke+msr" {
+		config.Spec.MSR = &MSRConfig{
+			Version:       constant.MSRVersion,
+			ReplicaConfig: "sequential",
+		}
+
+		config.Spec.Hosts = append(config.Spec.Hosts,
+			&Host{
+				Address: "10.0.0.3",
+				Role:    "msr",
+				SSH:     DefaultSSH(),
+			},
+		)
+	}
+
+	return config
 }

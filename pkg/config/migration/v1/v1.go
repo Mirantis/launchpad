@@ -24,110 +24,147 @@ func Migrate(plain map[string]interface{}) error {
 		yaml.Unmarshal(re.ReplaceAll(s, []byte("$1$$$2")), plain)
 	}
 
-	plain["apiVersion"] = "launchpad.mirantis.com/v1.1"
+	plain["apiVersion"] = "launchpad.mirantis.com/mke/v1.1"
+
+	var hasMsr = false
 
 	// It gets ugly - scan for the admin username/pass in ucp/dtr installFlags and move over to ucp.username + ucp.password
 
-	spec := plain["spec"].(map[interface{}]interface{})
-	if spec["ucp"] != nil {
-		ucp := spec["ucp"].(map[interface{}]interface{})
-		if ucp["installFlags"] != nil {
-			installFlags := ucp["installFlags"].([]interface{})
-			drop := -1
-			for idx, val := range installFlags {
-				if strings.HasPrefix(val.(string), "--admin-username") {
-					user := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
-					user = strings.TrimSpace(user)
-					user = strings.Trim(user, `"`)
-					if user != "" {
-						ucp["adminUsername"] = user
-						drop = idx
-					}
+	spec, ok := plain["spec"].(map[interface{}]interface{})
+	if ok {
+		hosts, ok := spec["hosts"]
+		if ok {
+			hslice := hosts.([]interface{})
+			for _, h := range hslice {
+				host := h.(map[interface{}]interface{})
+				if host["role"].(string) == "dtr" {
+					host["role"] = "msr"
+					log.Debugf("changed v1 host.role[dtr] to v1.1 host.role[msr]")
+					hasMsr = true
 				}
-			}
-			if drop >= 0 {
-				ucp["installFlags"] = removeIndex(installFlags, drop)
-				log.Debugf("migrated v1 ucp.installFlags[--admin-username] to v1.1 ucp.adminUsername")
-			}
-
-			drop = -1
-			installFlags = ucp["installFlags"].([]interface{})
-			for idx, val := range installFlags {
-				if strings.HasPrefix(val.(string), "--admin-password") {
-					pass := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
-					pass = strings.TrimSpace(pass)
-					pass = strings.Trim(pass, `"`)
-					if pass != "" {
-						ucp["adminPassword"] = pass
-						drop = idx
-					}
-				}
-			}
-			if drop >= 0 {
-				ucp["installFlags"] = removeIndex(installFlags, drop)
-				log.Debugf("migrated v1 ucp.installFlags[--admin-password] to v1.1 ucp.adminPassword")
 			}
 		}
-	}
 
-	if spec["dtr"] != nil {
-		dtr := spec["dtr"].(map[interface{}]interface{})
-		if dtr["installFlags"] != nil {
-			installFlags := dtr["installFlags"].([]interface{})
-			drop := -1
-			for idx, val := range installFlags {
-				if strings.HasPrefix(val.(string), "--ucp-username") {
-					user := val.(string)[strings.IndexAny(val.(string), `=" `):]
-					user = strings.TrimSpace(user)
-					user = strings.Trim(user, `"`)
-					if user != "" {
-						if spec["ucp"] == nil {
-							spec["ucp"] = make(map[interface{}]interface{})
-							spec["ucp"].(map[interface{}]interface{})["adminUsername"] = user
+		ucp, ok := spec["ucp"].(map[interface{}]interface{})
+		if ok {
+			installFlags, ok := ucp["installFlags"].([]interface{})
+			if ok {
+				drop := -1
+				for idx, val := range installFlags {
+					if strings.HasPrefix(val.(string), "--admin-username") {
+						user := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
+						user = strings.TrimSpace(user)
+						user = strings.Trim(user, `"`)
+						if user != "" {
+							ucp["adminUsername"] = user
 							drop = idx
-						} else if spec["ucp"].(map[interface{}]interface{})["adminUsername"] == nil {
-							spec["ucp"].(map[interface{}]interface{})["adminUsername"] = user
-							drop = idx
-						} else if spec["ucp"].(map[interface{}]interface{})["adminUsername"] != user {
-							log.Warnf("spec.dtr.installFlags[--ucp-username] and spec.ucp.username mismatch")
 						}
 					}
 				}
-			}
-			if drop >= 0 {
-				dtr["installFlags"] = removeIndex(installFlags, drop)
-				log.Debugf("migrated v1 dtr.installFlags[--ucp-username] to v1.1 ucp.adminUsername")
-			}
+				if drop >= 0 {
+					ucp["installFlags"] = removeIndex(installFlags, drop)
+					log.Debugf("migrated v1 ucp.installFlags[--admin-username] to v1.1 mke.adminUsername")
+				}
 
-			drop = -1
-			installFlags = dtr["installFlags"].([]interface{})
-			for idx, val := range installFlags {
-				if strings.HasPrefix(val.(string), "--ucp-password") {
-					pass := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
-					pass = strings.TrimSpace(pass)
-					pass = strings.Trim(pass, `"`)
-					if pass != "" {
-						if spec["ucp"] == nil {
-							spec["ucp"] = make(map[interface{}]interface{})
-							spec["ucp"].(map[interface{}]interface{})["adminPassword"] = pass
+				drop = -1
+				installFlags = ucp["installFlags"].([]interface{})
+				for idx, val := range installFlags {
+					if strings.HasPrefix(val.(string), "--admin-password") {
+						pass := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
+						pass = strings.TrimSpace(pass)
+						pass = strings.Trim(pass, `"`)
+						if pass != "" {
+							ucp["adminPassword"] = pass
 							drop = idx
-						} else if spec["ucp"].(map[interface{}]interface{})["adminPassword"] == nil {
-							spec["ucp"].(map[interface{}]interface{})["adminPassword"] = pass
-							drop = idx
-						} else if spec["ucp"].(map[interface{}]interface{})["adminPassword"] != pass {
-							log.Warnf("spec.dtr.installFlags[--ucp-password] and spec.ucp.adminPassword mismatch")
 						}
 					}
 				}
+				if drop >= 0 {
+					ucp["installFlags"] = removeIndex(installFlags, drop)
+					log.Debugf("migrated v1 spec.ucp.installFlags[--admin-password] to v1.1 spec.mke.adminPassword")
+				}
 			}
-			if drop >= 0 {
-				dtr["installFlags"] = removeIndex(installFlags, drop)
-				log.Debugf("migrated v1 dtr.installFlags[--ucp-password] to v1.1 ucp.adminPassword")
+
+			spec["mke"] = spec["ucp"]
+			delete(spec, "ucp")
+			log.Debugf("migrated v1 spec.ucp to v1.1 spec.mke")
+		}
+
+		dtr, ok := spec["dtr"].(map[interface{}]interface{})
+		if ok {
+			hasMsr = true
+			installFlags, ok := dtr["installFlags"].([]interface{})
+			if ok {
+				drop := -1
+				for idx, val := range installFlags {
+					if strings.HasPrefix(val.(string), "--ucp-username") {
+						user := val.(string)[strings.IndexAny(val.(string), `=" `):]
+						user = strings.TrimSpace(user)
+						user = strings.Trim(user, `"`)
+						if user != "" {
+							if spec["mke"] == nil {
+								spec["mke"] = make(map[interface{}]interface{})
+								spec["mke"].(map[interface{}]interface{})["adminUsername"] = user
+								drop = idx
+							} else if spec["mke"].(map[interface{}]interface{})["adminUsername"] == nil {
+								spec["mke"].(map[interface{}]interface{})["adminUsername"] = user
+								drop = idx
+							} else if spec["mke"].(map[interface{}]interface{})["adminUsername"] != user {
+								log.Warnf("spec.dtr.installFlags[--ucp-username] and spec.mke.adminUsername mismatch")
+							}
+						}
+					}
+				}
+				if drop >= 0 {
+					dtr["installFlags"] = removeIndex(installFlags, drop)
+					log.Debugf("migrated v1 spec.dtr.installFlags[--ucp-username] to v1.1 spec.mke.adminUsername")
+				}
+
+				drop = -1
+				installFlags = dtr["installFlags"].([]interface{})
+				for idx, val := range installFlags {
+					if strings.HasPrefix(val.(string), "--ucp-password") {
+						pass := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
+						pass = strings.TrimSpace(pass)
+						pass = strings.Trim(pass, `"`)
+						if pass != "" {
+							if spec["mke"] == nil {
+								spec["mke"] = make(map[interface{}]interface{})
+								spec["mke"].(map[interface{}]interface{})["adminPassword"] = pass
+								drop = idx
+							} else if spec["mke"].(map[interface{}]interface{})["adminPassword"] == nil {
+								spec["mke"].(map[interface{}]interface{})["adminPassword"] = pass
+								drop = idx
+							} else if spec["mke"].(map[interface{}]interface{})["adminPassword"] != pass {
+								log.Warnf("spec.dtr.installFlags[--ucp-password] and spec.mke.adminPassword mismatch")
+							}
+						}
+					}
+				}
+				if drop >= 0 {
+					dtr["installFlags"] = removeIndex(installFlags, drop)
+					log.Debugf("migrated v1 spec.dtr.installFlags[--ucp-password] to v1.1 spec.mke.adminPassword")
+				}
 			}
+			spec["msr"] = spec["dtr"]
+			delete(spec, "dtr")
+			log.Debugf("migrated v1 spec.dtr to v1.1 spec.msr")
 		}
 	}
 
-	log.Debugf("migrated configuration from v1 to v1.1")
+	if plain["kind"].(string) == "DockerEnterprise" {
+		if hasMsr {
+			plain["kind"] = "mke+msr"
+			log.Debugf("migrated v1 kind[DockerEnterprise] to v1.1 kind[mke+msr]")
+		} else {
+			plain["kind"] = "mke"
+			log.Debugf("migrated v1 kind[DockerEnterprise] to v1.1 kind[mke]")
+		}
+	}
+
+	log.Debugf("migrated configuration from launchpad.mirantis.com/v1 to launchpad.mirantis.com/mke/v1.1")
+	log.Infof("Note: The configuration has been migrated from a previous version")
+	log.Infof("      to see the migrated configuration use: launchpad describe config")
 	return nil
 }
 

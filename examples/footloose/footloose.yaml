@@ -1,5 +1,5 @@
 cluster:
-  name: ucp
+  name: mke
   privateKey: ~/.ssh/id_rsa
 machines:
 - count: 1

@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var reports = []string{"hosts", "dtr", "ucp", "config"}
+var reports = []string{"hosts", "mke", "msr", "config"}
 
 func reportIsKnown(n string) bool {
 	for _, v := range reports {

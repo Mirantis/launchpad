@@ -1,6 +1,6 @@
-# Bootstrapping UCP cluster with Multipass
+# Bootstrapping MKE cluster with Multipass
 
-This directory provides an example flow with mcc tool together with [Multipass](http://multipass.run/).
+This directory provides an example flow with Launchpad tool together with [Multipass](http://multipass.run/).
 
 ## Steps
 

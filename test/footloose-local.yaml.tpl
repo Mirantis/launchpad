@@ -1,5 +1,5 @@
 cluster:
-  name: ucp
+  name: mke
   privateKey: ./id_rsa_launchpad
 machines:
 - count: 1

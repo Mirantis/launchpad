@@ -12,7 +12,9 @@ import (
 )
 
 var (
+	// Debug turns on debug logging for stdout output
 	Debug = false
+	// Trace turns on trace logging for stdout output
 	Trace = false
 )
 
@@ -59,10 +61,10 @@ func NewStdoutHook() *FormatterWriterHook {
 	}
 
 	// Add debug level to stdout hook if set by user
-	if Debug {
-		stdoutHook.LogLevels = append([]log.Level{log.DebugLevel}, stdoutHook.LogLevels...)
-	} else if Trace {
+	if Trace {
 		stdoutHook.LogLevels = append([]log.Level{log.TraceLevel, log.DebugLevel}, stdoutHook.LogLevels...)
+	} else if Debug {
+		stdoutHook.LogLevels = append([]log.Level{log.DebugLevel}, stdoutHook.LogLevels...)
 	}
 
 	return stdoutHook

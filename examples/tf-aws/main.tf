@@ -96,8 +96,8 @@ locals {
 
 output "ucp_cluster" {
   value = {
-    apiVersion = "launchpad.mirantis.com/v1.1"
-    kind = "DockerEnterprise"
+    apiVersion = "launchpad.mirantis.com/mke/v1.1"
+    kind = "mke"
     spec = {
       ucp = {
         installFlags: [

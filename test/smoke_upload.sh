@@ -10,7 +10,7 @@ setup && downloadTools
 
 mkdir -p images
 docker pull docker.io/mirantis/ucp:3.3.3
-for image in $(docker run --rm ${IMAGE_REPO}/ucp:${UCP_VERSION} images --list | sort | uniq); do
+for image in $(docker run --rm ${IMAGE_REPO}/ucp:${MKE_VERSION} images --list | sort | uniq); do
   docker pull docker.io/$image
   fn=${image//\//-}
   fn=${fn//:/}
@@ -22,4 +22,4 @@ done
 rm -rf images
 
 ../bin/launchpad describe hosts
-../bin/launchpad describe ucp
+../bin/launchpad describe mke

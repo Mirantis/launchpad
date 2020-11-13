@@ -15,7 +15,7 @@ spec:
       user: "root"
       role: "worker"
   ucp:
-    version: $UCP_VERSION
+    version: $MKE_VERSION
     configData: |-
       [scheduling_configuration]
         default_node_orchestrator = "kubernetes"
