@@ -2,9 +2,11 @@ package phase
 
 import (
 	"fmt"
-	"github.com/Mirantis/mcc/pkg/phase"
 	"os"
 	"text/tabwriter"
+
+	"github.com/Mirantis/mcc/pkg/phase"
+	log "github.com/sirupsen/logrus"
 )
 
 // Describe shows information about the current status of the cluster
@@ -48,8 +50,10 @@ func (p *Describe) ucpReport() {
 	ucpurl := "n/a"
 	url, err := p.Config.Spec.UcpURL()
 	if err != nil {
-		ucpurl = url.String()
+		log.Debug(err)
 	}
+
+	ucpurl = url.String()
 
 	fmt.Fprintf(w, "%s\t%s\t\n", uv, ucpurl)
 	w.Flush()
@@ -71,8 +75,9 @@ func (p *Describe) dtrReport() {
 	dtrurl := "n/a"
 	url, err := p.Config.Spec.DtrURL()
 	if err != nil {
-		dtrurl = url.String()
+		log.Debug(err)
 	}
+	dtrurl = url.String()
 
 	fmt.Fprintf(w, "%s\t%s\t\n", uv, dtrurl)
 	w.Flush()
