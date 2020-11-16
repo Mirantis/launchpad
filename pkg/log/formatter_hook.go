@@ -7,9 +7,13 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/Mirantis/mcc/version"
 	"github.com/shiena/ansicolor"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	Debug = false
+	Trace = false
 )
 
 // FormatterWriterHook is a logrus hook implementation that allows customizing both the log stream target and formatter
@@ -37,7 +41,7 @@ func (hook *FormatterWriterHook) Levels() []log.Level {
 }
 
 // NewStdoutHook creates new hook for stdout logging
-func NewStdoutHook(debugEnabled bool) *FormatterWriterHook {
+func NewStdoutHook() *FormatterWriterHook {
 	stdoutHook := &FormatterWriterHook{
 		Writer:    os.Stdout,
 		Formatter: &log.TextFormatter{ForceColors: true, DisableTimestamp: true},
@@ -55,12 +59,10 @@ func NewStdoutHook(debugEnabled bool) *FormatterWriterHook {
 	}
 
 	// Add debug level to stdout hook if set by user
-	if debugEnabled {
-		if !version.IsProduction() {
-			stdoutHook.LogLevels = append([]log.Level{log.TraceLevel}, stdoutHook.LogLevels...)
-		}
-
+	if Debug {
 		stdoutHook.LogLevels = append([]log.Level{log.DebugLevel}, stdoutHook.LogLevels...)
+	} else if Trace {
+		stdoutHook.LogLevels = append([]log.Level{log.TraceLevel, log.DebugLevel}, stdoutHook.LogLevels...)
 	}
 
 	return stdoutHook

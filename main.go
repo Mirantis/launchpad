@@ -124,7 +124,10 @@ SUPPORT:
 				}
 			}()
 
-			initLogger(ctx)
+			mcclog.Debug = ctx.Bool("debug") || ctx.Bool("trace")
+			mcclog.Trace = ctx.Bool("trace")
+			initLogger()
+
 			initAnalytics(ctx)
 			return nil
 		},
@@ -158,19 +161,13 @@ SUPPORT:
 	}
 }
 
-func initLogger(ctx *cli.Context) {
-	if ctx.Bool("trace") {
-		log.SetLevel(log.TraceLevel)
-	} else {
-		log.SetLevel(log.DebugLevel)
-	}
-
+func initLogger() {
 	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
 
 	// Send logs with level >= INFO to stdout
 
 	// stdout hook on by default of course
-	log.AddHook(mcclog.NewStdoutHook(ctx.Bool("debug") || ctx.Bool("trace")))
+	log.AddHook(mcclog.NewStdoutHook())
 }
 
 func initAnalytics(ctx *cli.Context) {

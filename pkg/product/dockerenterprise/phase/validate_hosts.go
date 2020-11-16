@@ -9,8 +9,8 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
+	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/util"
 
 	"crypto/rand"
 
@@ -30,7 +30,7 @@ func (p *ValidateHosts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *ValidateHosts) Run() error {
-	if util.IsDebug() {
+	if mcclog.Debug {
 		if err := p.validateHostConnection(); err != nil {
 			return p.formatErrors(p.Config)
 		}
