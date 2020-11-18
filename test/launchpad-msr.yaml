@@ -56,4 +56,3 @@ spec:
       - --ucp-insecure-tls
       - --replica-http-port 81
       - --replica-https-port 444
-    replicaConfig: sequential
