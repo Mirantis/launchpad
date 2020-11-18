@@ -36,6 +36,15 @@ type HostMetadata struct {
 	TotalImageBytes     uint64
 }
 
+// MSRMetadata is metadata needed by MSR for configuration and is gathered at
+// the GatherFacts phase and at the end of each configuration phase
+type MSRMetadata struct {
+	Installed               bool
+	InstalledVersion        string
+	InstalledBootstrapImage string
+	ReplicaID               string
+}
+
 type errors struct {
 	errors []string
 }
@@ -86,9 +95,10 @@ type Host struct {
 	SSH       *SSH   `yaml:"ssh,omitempty"`
 	Localhost bool   `yaml:"localhost,omitempty"`
 
-	Metadata   *HostMetadata  `yaml:"-"`
-	Configurer HostConfigurer `yaml:"-"`
-	Errors     errors         `yaml:"-"`
+	Metadata    *HostMetadata  `yaml:"-"`
+	MSRMetadata *MSRMetadata   `yaml:"-"`
+	Configurer  HostConfigurer `yaml:"-"`
+	Errors      errors         `yaml:"-"`
 
 	Connection connection.Connection `yaml:"-"`
 

@@ -91,3 +91,29 @@ func (f *Flags) Delete(s string) {
 	}
 	*f = append((*f)[:idx], (*f)[idx+1:]...)
 }
+
+// Merge takes the flags from another Flags and adds them to this one unless this already has that flag set
+func (f *Flags) Merge(b Flags) {
+	for _, flag := range b {
+		f.AddUnlessExist(flag)
+	}
+}
+
+// MergeOverwrite takes the flags from another Flags and adds or replaces them into this one
+func (f *Flags) MergeOverwrite(b Flags) {
+	for _, flag := range b {
+		f.AddOrReplace(flag)
+	}
+}
+
+// MergeAdd takes the flags from another Flags and adds them into this one even if they exist
+func (f *Flags) MergeAdd(b Flags) {
+	for _, flag := range b {
+		f.Add(flag)
+	}
+}
+
+// Join creates a string separated by spaces
+func (f *Flags) Join() string {
+	return strings.Join(*f, " ")
+}

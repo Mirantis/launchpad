@@ -2,8 +2,8 @@ package phase
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -24,20 +24,26 @@ func (p *InstallMSR) Title() string {
 	return "Install MSR components"
 }
 
+// ShouldRun should return true only when there is an installation to be performed
+func (p *InstallMSR) ShouldRun() bool {
+	h := p.Config.Spec.MSRLeader()
+	return p.Config.Spec.ContainsMSR() && (h.MSRMetadata == nil || !h.MSRMetadata.Installed)
+}
+
 // Run the installer container
 func (p *InstallMSR) Run() error {
-	msrLeader := p.Config.Spec.MSRLeader()
+	h := p.Config.Spec.MSRLeader()
 
-	err := p.Config.Spec.CheckMKEHealthRemote(msrLeader)
+	err := p.Config.Spec.CheckMKEHealthRemote(h)
 	if err != nil {
-		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", msrLeader)
+		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", h)
 	}
 
 	if !p.SkipCleanup {
 		defer func() {
 			if err != nil {
 				log.Println("Cleaning-up")
-				if cleanupErr := msr.Destroy(msrLeader); cleanupErr != nil {
+				if cleanupErr := msr.Destroy(h); cleanupErr != nil {
 					log.Warnln("Error while cleaning-up resources")
 					log.Debugf("Cleanup resources error: %s", err)
 				}
@@ -49,40 +55,39 @@ func (p *InstallMSR) Run() error {
 		"msr_version": p.Config.Spec.MSR.Version,
 	}
 
-	if p.Config.Spec.MSR.Metadata.Installed {
-		log.Infof("%s: MSR already installed at version %s, not running installer", msrLeader, p.Config.Spec.MSR.Metadata.InstalledVersion)
-		return nil
-	}
-
 	image := p.Config.Spec.MSR.GetBootstrapperImage()
-	runFlags := []string{"--rm", "-i"}
-	if msrLeader.Configurer.SELinuxEnabled() {
-		runFlags = append(runFlags, "--security-opt label=disable")
+	runFlags := api.Flags{"--rm", "-i"}
+
+	if h.Configurer.SELinuxEnabled() {
+		runFlags.Add("--security-opt label=disable")
 	}
 	installFlags := p.Config.Spec.MSR.InstallFlags
-
-	if p.Config.Spec.MSR.ReplicaConfig == "sequential" {
-		log.Debugf("Configuring MSR replica ids to be sequential")
-		installFlags = append(installFlags, fmt.Sprintf("--replica-id %s", msr.SequentialReplicaID(1)))
-	}
 
 	// Configure the mkeFlags from existing MKEConfig
 	mkeFlags := msr.BuildMKEFlags(p.Config)
 	// Conduct the install passing the --ucp-node flag for the host provided in
 	// msrLeader.
-	mkeFlags = append(mkeFlags, fmt.Sprintf("--ucp-node %s", msrLeader.Metadata.LongHostname))
+	mkeFlags.AddOrReplace(fmt.Sprintf("--ucp-node %s", h.Metadata.LongHostname))
 
-	installFlags = append(installFlags, mkeFlags...)
-	installCmd := msrLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
-	err = msrLeader.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")))
-	if err != nil {
-		return fmt.Errorf("%s: failed to run MSR installer: %s", msrLeader, err.Error())
+	installFlags.Merge(mkeFlags)
+
+	if h.MSRMetadata.ReplicaID != "" {
+		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.ReplicaID)
+		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
+	} else {
+		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}
 
-	msrMeta, err := msr.CollectFacts(msrLeader)
+	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
+	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")))
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing MSR details: %s", msrLeader, err)
+		return fmt.Errorf("%s: failed to run MSR installer: %s", h, err.Error())
 	}
-	p.Config.Spec.MSR.Metadata = msrMeta
+
+	msrMeta, err := msr.CollectFacts(h)
+	if err != nil {
+		return fmt.Errorf("%s: failed to collect existing MSR details: %s", h, err)
+	}
+	h.MSRMetadata = msrMeta
 	return nil
 }

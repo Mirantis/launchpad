@@ -22,7 +22,8 @@ func (p *UninstallMSR) Title() string {
 // Run an uninstall via msr.Cleanup
 func (p *UninstallMSR) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
-	if !p.Config.Spec.MSR.Metadata.Installed {
+	msrLeader := p.Config.Spec.MSRLeader()
+	if msrLeader == nil || !msrLeader.MSRMetadata.Installed {
 		log.Infof("%s: MSR is not installed", swarmLeader)
 		return nil
 	}

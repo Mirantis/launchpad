@@ -143,11 +143,11 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 
 // GetTLSConfigFrom retrieves the valid tlsConfig from the given mke manager
 func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Config, error) {
-	runFlags := []string{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := api.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if manager.Configurer.SELinuxEnabled() {
-		runFlags = append(runFlags, "--security-opt label=disable")
+		runFlags.Add("--security-opt label=disable")
 	}
-	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, strings.Join(runFlags, " "), imageRepo, mkeVersion), exec.Redact(`[A-Za-z0-9+/=_\-]{64}`))
+	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, runFlags.Join(), imageRepo, mkeVersion), exec.Redact(`[A-Za-z0-9+/=_\-]{64}`))
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
 	}

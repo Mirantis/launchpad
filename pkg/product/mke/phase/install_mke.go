@@ -101,9 +101,9 @@ func (p *InstallMKE) Run() (err error) {
 		// In case of custom repo, don't let MKE check the images
 		installFlags.AddUnlessExist("--pull never")
 	}
-	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := api.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if swarmLeader.Configurer.SELinuxEnabled() {
-		runFlags = append(runFlags, "--security-opt label=disable")
+		runFlags.Add("--security-opt label=disable")
 	}
 
 	if p.Config.Spec.MKE.AdminUsername != "" {
@@ -114,7 +114,7 @@ func (p *InstallMKE) Run() (err error) {
 		installFlags.AddUnlessExist("--admin-password " + p.Config.Spec.MKE.AdminPassword)
 	}
 
-	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", strings.Join(runFlags, " "), image, strings.Join(installFlags, " "))
+	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
 	output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: %s", swarmLeader, err.Error())

@@ -62,24 +62,22 @@ func (p *GatherFacts) Run() error {
 			p.Config.Spec.MSR = &api.MSRConfig{}
 		}
 
-		p.Config.Spec.MSR.Metadata = &api.MSRMetadata{
-			Installed:          false,
-			InstalledVersion:   "",
-			MSRLeaderReplicaID: "",
-		}
-		msrLeader := p.Config.Spec.MSRLeader()
-		if msrLeader != nil && msrLeader.Metadata != nil && msrLeader.Metadata.EngineVersion != "" {
-			msrMeta, err := msr.CollectFacts(msrLeader)
-			if err != nil {
-				return fmt.Errorf("%s: failed to collect existing msr details: %s", msrLeader, err.Error())
+		msrHosts := p.Config.Spec.MSRs()
+		msrHosts.ParallelEach(func(h *api.Host) error {
+			if h.Metadata != nil && h.Metadata.EngineVersion != "" {
+				msrMeta, err := msr.CollectFacts(h)
+				if err != nil {
+					log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
+				}
+				h.MSRMetadata = msrMeta
+				if msrMeta.Installed {
+					log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
+				} else {
+					log.Infof("%s: msr is not installed", h)
+				}
 			}
-			p.Config.Spec.MSR.Metadata = msrMeta
-			if msrMeta.Installed {
-				log.Infof("%s: msr has version %s", msrLeader, msrMeta.InstalledVersion)
-			} else {
-				log.Infof("%s: msr is not installed", msrLeader)
-			}
-		}
+			return nil
+		})
 	}
 
 	return nil

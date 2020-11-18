@@ -1,3 +1,11 @@
+def docker_hub = [
+  usernamePassword(
+    usernameVariable: 'REGISTRY_USERNAME',
+    passwordVariable: 'REGISTRY_PASSWORD',
+    credentialsId   : 'docker-hub-generic-up',
+  )
+]
+
 pipeline {
   agent {
     node {
@@ -179,7 +187,7 @@ pipeline {
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
                 MKE_VERSION = "3.3.3"
-                IMAGE_REPO = "docker.io/mirantis"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
                 ENGINE_VERSION = "19.03.8"
@@ -196,18 +204,19 @@ pipeline {
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
                 MKE_VERSION = "3.3.4-rc2"
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
-                REGISTRY_CREDS = credentials("docker-hub-generic-up")
-                IMAGE_REPO = "docker.io/mirantis"
+                MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.8.3"
                 ENGINE_VERSION = "19.03.12"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-test"
-                sh "make smoke-prune-test"
-                sh "make smoke-reset-test"
-                sh "make smoke-cleanup"
+                withCredentials(docker_hub) {
+                  sh "make smoke-test"
+                  sh "make smoke-prune-test"
+                  sh "make smoke-reset-test"
+                  sh "make smoke-cleanup"
+                }
               }
             }
           }
@@ -225,7 +234,7 @@ pipeline {
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
                 MKE_VERSION = "3.2.8"
-                IMAGE_REPO = "docker.io/mirantis"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
                 ENGINE_VERSION = "19.03.8"
@@ -241,7 +250,8 @@ pipeline {
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
                 MKE_VERSION = "3.3.3"
-                IMAGE_REPO = "docker.io/mirantis"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.8.3"
                 ENGINE_VERSION = "19.03.12"
                 REUSE_CLUSTER = "true"

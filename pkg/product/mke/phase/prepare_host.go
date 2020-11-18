@@ -2,6 +2,7 @@ package phase
 
 import (
 	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 
 	retry "github.com/avast/retry-go"
@@ -29,6 +30,13 @@ func (p *PrepareHost) Run() error {
 	err = phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.installBasePackages)
 	if err != nil {
 		return err
+	}
+
+	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.ReplicaIDs == "sequential" {
+		err = msr.AssignSequentialReplicaIDs(p.Config)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

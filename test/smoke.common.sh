@@ -16,13 +16,6 @@ export CLUSTER_NAME=${BUILD_TAG:-"local"}
 export DISABLE_TELEMETRY="true"
 export ACCEPT_LICENSE="true"
 
-if [ ! -z "${REGISTRY_CREDS_USR}" ]; then
-  export REGISTRY_USERNAME="${REGISTRY_CREDS_USR}"
-fi
-if [ ! -z "${REGISTRY_CREDS_PSW}" ]; then
-  export REGISTRY_PASSWORD="${REGISTRY_CREDS_PSW}"
-fi
-
 function cleanup() {
     echo -e "Cleaning up..."
     unset DOCKER_HOST

@@ -44,3 +44,8 @@ func TestFlagsWithQuotes(t *testing.T) {
 	require.Equal(t, "foofoo", flags.GetValue("--admin-username"))
 	require.Equal(t, "foobar", flags.GetValue("--admin-password"))
 }
+
+func TestString(t *testing.T) {
+	flags := Flags{"--help", "--setting=false"}
+	require.Equal(t, "--help --setting=false", flags.Join())
+}

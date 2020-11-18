@@ -186,10 +186,17 @@ func Redact(rexp string) Option {
 
 // RedactString exec option for defining one or more strings to replace with [REDACTED] in the log output
 func RedactString(s ...string) Option {
+	var newS []string
+	for _, str := range s {
+		if str != "" {
+			newS = append(newS, str)
+		}
+	}
+
 	return func(o *Options) {
 		o.RedactFunc = func(s2 string) string {
 			newstr := s2
-			for _, r := range s {
+			for _, r := range newS {
 				newstr = strings.ReplaceAll(newstr, r, "[REDACTED]")
 			}
 			return newstr

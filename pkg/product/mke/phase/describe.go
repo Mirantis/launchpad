@@ -60,7 +60,8 @@ func (p *Describe) mkeReport() {
 }
 
 func (p *Describe) msrReport() {
-	if p.Config.Spec.MSR == nil || !p.Config.Spec.MSR.Metadata.Installed {
+	msrLeader := p.Config.Spec.MSRLeader()
+	if msrLeader == nil || msrLeader.MSRMetadata == nil || !msrLeader.MSRMetadata.Installed {
 		fmt.Println("Not installed")
 		return
 	}
@@ -71,7 +72,7 @@ func (p *Describe) msrReport() {
 	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
 	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
-	uv := p.Config.Spec.MSR.Metadata.InstalledVersion
+	uv := msrLeader.MSRMetadata.InstalledVersion
 	msrurl := "n/a"
 	url, err := p.Config.Spec.MSRURL()
 	if err != nil {

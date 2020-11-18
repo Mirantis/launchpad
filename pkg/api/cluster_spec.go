@@ -132,15 +132,11 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 	var msrAddr string
 
 	// Otherwise, use MSRLeaderAddress
-	if c.MSR != nil && c.MSR.Metadata != nil && c.MSR.Metadata.MSRLeaderAddress != "" {
-		msrAddr = c.MSR.Metadata.MSRLeaderAddress
-	} else {
-		msrs := c.MSRs()
-		if len(msrs) < 1 {
-			return nil, fmt.Errorf("unable to generate a MSR URL - no nodes with role 'msr' present")
-		}
-		msrAddr = msrs[0].Address
+	msrLeader := c.MSRLeader()
+	if msrLeader == nil {
+		return nil, fmt.Errorf("unable to generate a MSR URL - no MSR nodes found")
 	}
+	msrAddr = msrLeader.Address
 
 	if c.MSR != nil {
 		if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
@@ -187,21 +183,7 @@ func isSwarmLeader(h *Host) bool {
 
 // IsMSRInstalled checks to see if MSR is installed on the given host
 func IsMSRInstalled(h *Host) bool {
-	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`ps -q --filter name=dtr-`))
-	if err != nil {
-		// During the initial pre-installation phases, we expect this to fail
-		// so logging the error to debug is best to prevent erroneous errors
-		// from appearing problematic
-		log.Debugf("%s: unable to determine if host has MSR installed: %s", h, err)
-		return false
-	}
-	output = strings.Trim(output, "\n")
-	if len(output) >= 9 {
-		// Check for the presence of the 9 MSR containers we expect to be
-		// running
-		return true
-	}
-	return false
+	return h.MSRMetadata != nil && h.MSRMetadata.Installed
 }
 
 // MSRLeader returns the current MSRLeader host

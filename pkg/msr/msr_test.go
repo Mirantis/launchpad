@@ -1,10 +1,8 @@
 package msr
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -66,7 +64,7 @@ func TestBuildMKEFlags(t *testing.T) {
 
 	t.Run("MKE flags are built when --san is provided", func(t *testing.T) {
 		actual := BuildMKEFlags(config)
-		expected := []string{
+		expected := api.Flags{
 			"--ucp-url=\"ucp.acme.com\"",
 			"--ucp-username=\"admin\"",
 			"--ucp-password=\"password1234\"",
@@ -79,14 +77,25 @@ func TestBuildMKEFlags(t *testing.T) {
 	})
 }
 
-func TestSequentialReplicaID(t *testing.T) {
+func TestFormatReplicaID(t *testing.T) {
+	require.Equal(t, "000000000001", FormatReplicaID(1))
+	require.Equal(t, "00000000000a", FormatReplicaID(10))
+	require.Equal(t, "000000000010", FormatReplicaID(16))
+}
 
-	t.Run("A sequential id is generated for up to 9 replicas with a length of 12 characters", func(t *testing.T) {
-		for i := 1; i == 9; i++ {
-			expected := fmt.Sprintf("0000000000%s", strconv.Itoa(i))
-			actual := SequentialReplicaID(i)
-			require.Equal(t, expected, actual)
-			require.Len(t, actual, 12)
-		}
-	})
+func TestSequentialReplicaIDs(t *testing.T) {
+	config := &api.ClusterConfig{
+		Spec: &api.ClusterSpec{
+			Hosts: []*api.Host{
+				{Role: "msr"},
+				{Role: "msr", MSRMetadata: &api.MSRMetadata{ReplicaID: "00000000001f"}},
+				{Role: "msr"},
+			},
+			MSR: &api.MSRConfig{ReplicaIDs: "sequential"},
+		},
+	}
+	require.NoError(t, AssignSequentialReplicaIDs(config))
+	require.Equal(t, "000000000020", config.Spec.Hosts[0].MSRMetadata.ReplicaID)
+	require.Equal(t, "00000000001f", config.Spec.Hosts[1].MSRMetadata.ReplicaID)
+	require.Equal(t, "000000000021", config.Spec.Hosts[2].MSRMetadata.ReplicaID)
 }
