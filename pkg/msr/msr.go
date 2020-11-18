@@ -100,13 +100,6 @@ func PluckSharedInstallFlags(installFlags []string, sharedFlags []string) []stri
 	return final
 }
 
-// SequentialReplicaID returns a replica id for a given int intended to be used
-// to construct a sequential number of replicas up to a value of 9
-func SequentialReplicaID(replicaInt int) string {
-	replicaPrefix := "00000000000"
-	return fmt.Sprintf("%s%d", replicaPrefix, replicaInt)
-}
-
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR
 func BuildMKEFlags(config *api.ClusterConfig) []string {

@@ -1,14 +1,11 @@
 package msr
 
 import (
-	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/api"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPluckSharedInstallFlags(t *testing.T) {
@@ -75,18 +72,6 @@ func TestBuildMKEFlags(t *testing.T) {
 		sort.Strings(expected)
 		if !reflect.DeepEqual(actual, expected) {
 			t.Fatalf("expected is not equal to actual\nexpected: %s\nactual: %s", expected, actual)
-		}
-	})
-}
-
-func TestSequentialReplicaID(t *testing.T) {
-
-	t.Run("A sequential id is generated for up to 9 replicas with a length of 12 characters", func(t *testing.T) {
-		for i := 1; i == 9; i++ {
-			expected := fmt.Sprintf("0000000000%s", strconv.Itoa(i))
-			actual := SequentialReplicaID(i)
-			require.Equal(t, expected, actual)
-			require.Len(t, actual, 12)
 		}
 	})
 }

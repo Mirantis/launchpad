@@ -30,6 +30,28 @@ spec:
 	require.Equal(t, string(v11), string(out))
 }
 
+func TestReplicaConfigDeprecation(t *testing.T) {
+	v1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1"
+kind: DockerEnterprise
+spec:
+  dtr:
+    replicaConfig: sequential
+`)
+	// go's YAML marshal does not add the --- header
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke+msr
+spec:
+  msr: {}
+`)
+	in := make(map[string]interface{})
+	require.NoError(t, yaml.Unmarshal(v1, in))
+	require.NoError(t, Migrate(in))
+	out, err := yaml.Marshal(in)
+	require.NoError(t, err)
+	require.Equal(t, string(v11), string(out))
+}
+
 func TestCredentialsMigration(t *testing.T) {
 	v1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1"

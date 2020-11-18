@@ -93,6 +93,16 @@ func Migrate(plain map[string]interface{}) error {
 		dtr, ok := spec["dtr"].(map[interface{}]interface{})
 		if ok {
 			hasMsr = true
+			rc, ok := dtr["replicaConfig"].(string)
+			if ok {
+				if rc == "random" {
+					log.Debugf("ignoring the deprecated v1 spec.dtr.replicaConfig[random]")
+				} else {
+					log.Warnf("removed the deprecated api v1 spec.dtr.replicaConfig[sequential]")
+				}
+				delete(dtr, "replicaConfig")
+			}
+
 			installFlags, ok := dtr["installFlags"].([]interface{})
 			if ok {
 				drop := -1

@@ -26,10 +26,8 @@ func (p *JoinMSRReplicas) Title() string {
 func (p *JoinMSRReplicas) Run() error {
 	msrLeader := p.Config.Spec.MSRLeader()
 	mkeFlags := msr.BuildMKEFlags(p.Config)
-	sequentialInt := 0
 
 	for _, d := range p.Config.Spec.MSRs() {
-		sequentialInt++
 		// Iterate through the msrs and determine which have MSR installed
 		// on them, if one is found which is not yet in the cluster, perform
 		// a join against msrLeader
@@ -46,12 +44,6 @@ func (p *JoinMSRReplicas) Run() error {
 		joinFlags := []string{
 			fmt.Sprintf("--ucp-node %s", d.Metadata.LongHostname),
 			fmt.Sprintf("--existing-replica-id %s", p.Config.Spec.MSR.Metadata.MSRLeaderReplicaID),
-		}
-		if p.Config.Spec.MSR.ReplicaConfig == "sequential" {
-			// Assign the appropriate sequential replica value if set
-			builtSeqInt := msr.SequentialReplicaID(sequentialInt)
-			log.Debugf("Joining replica with sequential replicaID: %s", builtSeqInt)
-			joinFlags = append(joinFlags, fmt.Sprintf("--replica-id %s", builtSeqInt))
 		}
 		joinFlags = append(joinFlags, mkeFlags...)
 		// We can't just append the installFlags to joinFlags because they

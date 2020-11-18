@@ -10,10 +10,9 @@ import (
 
 // MSRConfig has all the bits needed to configure MSR during installation
 type MSRConfig struct {
-	Version       string `yaml:"version"`
-	ImageRepo     string `yaml:"imageRepo,omitempty"`
-	InstallFlags  Flags  `yaml:"installFlags,flow,omitempty"`
-	ReplicaConfig string `yaml:"replicaConfig,omitempty"  default:"random"`
+	Version      string `yaml:"version"`
+	ImageRepo    string `yaml:"imageRepo,omitempty"`
+	InstallFlags Flags  `yaml:"installFlags,flow,omitempty"`
 
 	Metadata *MSRMetadata `yaml:"-"`
 }

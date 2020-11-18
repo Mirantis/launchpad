@@ -61,11 +61,6 @@ func (p *InstallMSR) Run() error {
 	}
 	installFlags := p.Config.Spec.MSR.InstallFlags
 
-	if p.Config.Spec.MSR.ReplicaConfig == "sequential" {
-		log.Debugf("Configuring MSR replica ids to be sequential")
-		installFlags = append(installFlags, fmt.Sprintf("--replica-id %s", msr.SequentialReplicaID(1)))
-	}
-
 	// Configure the mkeFlags from existing MKEConfig
 	mkeFlags := msr.BuildMKEFlags(p.Config)
 	// Conduct the install passing the --ucp-node flag for the host provided in
