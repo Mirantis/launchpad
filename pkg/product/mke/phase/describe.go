@@ -1,0 +1,124 @@
+package phase
+
+import (
+	"fmt"
+	"os"
+	"text/tabwriter"
+
+	"github.com/Mirantis/mcc/pkg/phase"
+	log "github.com/sirupsen/logrus"
+)
+
+// Describe shows information about the current status of the cluster
+type Describe struct {
+	phase.BasicPhase
+
+	MKE bool
+	MSR bool
+}
+
+// Title for the phase
+func (p *Describe) Title() string {
+	return "Display cluster status"
+}
+
+// Run does the actual saving of the local state file
+func (p *Describe) Run() error {
+	if p.MKE {
+		p.mkeReport()
+	} else if p.MSR {
+		p.msrReport()
+	} else {
+		p.hostReport()
+	}
+
+	return nil
+}
+
+func (p *Describe) mkeReport() {
+	if !p.Config.Spec.MKE.Metadata.Installed {
+		fmt.Println("Not installed")
+		return
+	}
+	w := new(tabwriter.Writer)
+
+	// minwidth, tabwidth, padding, padchar, flags
+	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
+
+	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
+	uv := p.Config.Spec.MKE.Metadata.InstalledVersion
+	mkeurl := "n/a"
+	url, err := p.Config.Spec.MKEURL()
+	if err != nil {
+		log.Debug(err)
+	}
+
+	mkeurl = url.String()
+
+	fmt.Fprintf(w, "%s\t%s\t\n", uv, mkeurl)
+	w.Flush()
+}
+
+func (p *Describe) msrReport() {
+	if p.Config.Spec.MSR == nil || !p.Config.Spec.MSR.Metadata.Installed {
+		fmt.Println("Not installed")
+		return
+	}
+
+	w := new(tabwriter.Writer)
+
+	// minwidth, tabwidth, padding, padchar, flags
+	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
+
+	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
+	uv := p.Config.Spec.MSR.Metadata.InstalledVersion
+	msrurl := "n/a"
+	url, err := p.Config.Spec.MSRURL()
+	if err != nil {
+		log.Debug(err)
+	}
+	msrurl = url.String()
+
+	fmt.Fprintf(w, "%s\t%s\t\n", uv, msrurl)
+	w.Flush()
+}
+
+func (p *Describe) hostReport() {
+	w := new(tabwriter.Writer)
+
+	// minwidth, tabwidth, padding, padchar, flags
+	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
+
+	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "INTERNAL_IP", "HOSTNAME", "ROLE", "OS", "ENGINE")
+
+	for _, h := range p.Config.Spec.Hosts {
+		ev := "n/a"
+		os := "n/a"
+		ia := "n/a"
+		hn := "n/a"
+		if h.Metadata != nil {
+			if h.Metadata.EngineVersion != "" {
+				ev = h.Metadata.EngineVersion
+			}
+			if h.Metadata.Os != nil {
+				os = fmt.Sprintf("%s/%s", h.Metadata.Os.ID, h.Metadata.Os.Version)
+			}
+			if h.Metadata.InternalAddress != "" {
+				ia = h.Metadata.InternalAddress
+			}
+			if h.Metadata.Hostname != "" {
+				hn = h.Metadata.Hostname
+			}
+		}
+		fmt.Fprintf(w,
+			"%s\t%s\t%s\t%s\t%s\t%s\t\n",
+			h.Address,
+			ia,
+			hn,
+			h.Role,
+			os,
+			ev,
+		)
+	}
+	w.Flush()
+}

@@ -18,7 +18,7 @@ else
 fi
 
 # Remove a node from the launchpad.yaml
-echo -e "Removing one DTR node from launchpad.yaml..."
+echo -e "Removing one MSR node from launchpad.yaml..."
 sed $SEDOPTS '/REMOVE_THIS/d' ${LAUNCHPAD_CONFIG}
 cat ${LAUNCHPAD_CONFIG}
 
@@ -36,5 +36,5 @@ echo "Running with prune: true"
 ${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
 
 ${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} ucp
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} dtr
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} mke
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} msr

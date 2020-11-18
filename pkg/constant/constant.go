@@ -5,10 +5,10 @@ const (
 	ImageRepo = "docker.io/mirantis"
 	// ImageRepoLegacy is the default image repo to use for older versions
 	ImageRepoLegacy = "docker.io/docker"
-	// UCPVersion is the default UCP version to use
-	UCPVersion = "3.3.3"
-	// DTRVersion is the default DTR version to use
-	DTRVersion = "2.8.3"
+	// MKEVersion is the default MKE version to use
+	MKEVersion = "3.3.3"
+	// MSRVersion is the default MSR version to use
+	MSRVersion = "2.8.3"
 	// EngineVersion is the default engine version
 	EngineVersion = "19.03.12"
 	// EngineChannel is the default engine channel
@@ -21,10 +21,8 @@ const (
 	EngineInstallURLWindows = "https://get.mirantis.com/install.ps1"
 	// StateBaseDir defines the base dir for all local state
 	StateBaseDir = ".mirantis-launchpad"
-	// ProductDTR defines DTR
-	ProductDTR = "dtr"
 	// ManagedLabelCmd marks the node as being managed by launchpad
 	ManagedLabelCmd = "node update --label-add com.mirantis.launchpad.managed=true"
-	// ManagedDtrLabelCmd marks a DTR node as being managed by launchpad
-	ManagedDtrLabelCmd = "node update --label-add com.mirantis.launchpad.managed.dtr=true"
+	// ManagedMSRLabelCmd marks a MSR node as being managed by launchpad
+	ManagedMSRLabelCmd = "node update --label-add com.mirantis.launchpad.managed.dtr=true"
 )

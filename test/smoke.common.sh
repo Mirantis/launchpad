@@ -5,10 +5,10 @@ LAUNCHPAD_CONFIG=${LAUNCHPAD_CONFIG:-"launchpad.yaml"}
 LAUNCHPAD="../bin/launchpad --debug"
 
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
-export UCP_VERSION=${UCP_VERSION:-"3.3.3"}
-export UCP_IMAGE_REPO=${UCP_IMAGE_REPO:-"docker.io/mirantis"}
-export DTR_VERSION=${DTR_VERSION:-"2.8.3"}
-export DTR_IMAGE_REPO=${DTR_IMAGE_REPO:-"docker.io/mirantis"}
+export MKE_VERSION=${MKE_VERSION:-"3.3.3"}
+export MKE_IMAGE_REPO=${MKE_IMAGE_REPO:-"docker.io/mirantis"}
+export MSR_VERSION=${MSR_VERSION:-"2.8.3"}
+export MSR_IMAGE_REPO=${MSR_IMAGE_REPO:-"docker.io/mirantis"}
 export ENGINE_VERSION=${ENGINE_VERSION:-"19.03.12"}
 export PRESERVE_CLUSTER=${PRESERVE_CLUSTER:-""}
 export REUSE_CLUSTER=${REUSE_CLUSTER:-""}
@@ -76,7 +76,7 @@ function generateKey() {
 
 function deleteCluster() {
   # cleanup any existing cluster
-  envsubst < footloose-dtr.yaml.tpl > footloose.yaml
+  envsubst < footloose-msr.yaml.tpl > footloose.yaml
   ./footloose delete && docker volume prune -f
 }
 
@@ -92,7 +92,7 @@ function setup() {
     deleteCluster
     createCluster
   fi
-  export UCP_MANAGER_IP=$(docker inspect ucp-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+  export MKE_MANAGER_IP=$(docker inspect mke-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
   if [ ! -z "${CONFIG_TEMPLATE}" ]; then
     export LAUNCHPAD_CONFIG="${CONFIG_TEMPLATE%.tpl}"
     envsubst < ${CONFIG_TEMPLATE} > ${LAUNCHPAD_CONFIG}
@@ -115,35 +115,35 @@ function cloneImages() {
   docker rm --force /registry || true
   docker run --name registry -d --network footloose-cluster --expose 5000 --ip 172.16.86.100 registry:latest
 
-  echo "Pulling + pushing UCP images..."
+  echo "Pulling + pushing MKE images..."
 
-  docker pull $UCP_IMAGE_REPO/ucp:$UCP_VERSION
-  for image in $(docker run --rm ${UCP_IMAGE_REPO}/ucp:${UCP_VERSION} images --list | sort | uniq); do
+  docker pull $MKE_IMAGE_REPO/ucp:$MKE_VERSION
+  for image in $(docker run --rm ${MKE_IMAGE_REPO}/ucp:${MKE_VERSION} images --list | sort | uniq); do
     imagebase=$(basename ${image})
     imagebase=${imagebase%:*}
-    fullimage="$UCP_IMAGE_REPO/$imagebase:$UCP_VERSION"
+    fullimage="$MKE_IMAGE_REPO/$imagebase:$MKE_VERSION"
     ./footloose ssh $FLOPT root@pusher0 -- \
       "docker pull ${fullimage} && \
-       docker tag ${fullimage} 172.16.86.100:5000/test/$imagebase:$UCP_VERSION && \
-       docker push 172.16.86.100:5000/test/$imagebase:$UCP_VERSION"
+       docker tag ${fullimage} 172.16.86.100:5000/test/$imagebase:$MKE_VERSION && \
+       docker push 172.16.86.100:5000/test/$imagebase:$MKE_VERSION"
   done
 
-  echo "Pulling + pushing DTR images..."
+  echo "Pulling + pushing MSR images..."
 
-  docker pull $DTR_IMAGE_REPO/dtr:$DTR_VERSION
-  for image in $(docker run --rm ${DTR_IMAGE_REPO}/dtr:${DTR_VERSION} images | sort | uniq); do
+  docker pull $MSR_IMAGE_REPO/dtr:$MSR_VERSION
+  for image in $(docker run --rm ${MSR_IMAGE_REPO}/dtr:${MSR_VERSION} images | sort | uniq); do
     imagebase=$(basename ${image})
     imagebase=${imagebase%:*}
-    fullimage="$DTR_IMAGE_REPO/$imagebase:$DTR_VERSION"
+    fullimage="$MSR_IMAGE_REPO/$imagebase:$MSR_VERSION"
     ./footloose ssh $FLOPT root@pusher0 -- \
       "docker pull ${fullimage} && \
-       docker tag ${fullimage} 172.16.86.100:5000/test/$imagebase:$DTR_VERSION && \
-       docker push 172.16.86.100:5000/test/$imagebase:$DTR_VERSION"
+       docker tag ${fullimage} 172.16.86.100:5000/test/$imagebase:$MSR_VERSION && \
+       docker push 172.16.86.100:5000/test/$imagebase:$MSR_VERSION"
   done
 
   ./footloose delete $FLOPT
 
-  export UCP_IMAGE_REPO=172.16.86.100:5000/test
-  export DTR_IMAGE_REPO=172.16.86.100:5000/test
+  export MKE_IMAGE_REPO=172.16.86.100:5000/test
+  export MSR_IMAGE_REPO=172.16.86.100:5000/test
 }
 

@@ -23,7 +23,7 @@ import (
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
 	"github.com/Mirantis/mcc/pkg/product"
-	"github.com/Mirantis/mcc/pkg/product/dockerenterprise"
+	"github.com/Mirantis/mcc/pkg/product/mke"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -69,8 +69,8 @@ func productFromYAML(data []byte) (product.Product, error) {
 	log.Debugf("loaded configuration:\n%s", cfg)
 
 	switch c["kind"].(string) {
-	case "DockerEnterprise":
-		return dockerenterprise.NewDockerEnterprise(plain)
+	case "mke", "mke+msr":
+		return mke.NewMKE(plain)
 	default:
 		return nil, fmt.Errorf("unknown configuration kind '%s'", c["kind"].(string))
 	}
@@ -79,8 +79,8 @@ func productFromYAML(data []byte) (product.Product, error) {
 // Init returns an example cluster configuration
 func Init(kind string) (interface{}, error) {
 	switch kind {
-	case "DockerEnterprise":
-		return dockerenterprise.Init(), nil
+	case "mke", "mke+msr":
+		return mke.Init(kind), nil
 	default:
 		return "", fmt.Errorf("unknown configuration kind '%s'", kind)
 	}

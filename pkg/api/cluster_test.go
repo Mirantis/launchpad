@@ -23,8 +23,8 @@ import (
 
 func TestHostRequireManagerValidationPass(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1.1"
-kind: DockerEnterprise
+apiVersion: "launchpad.mirantis.com/mke/v1.1"
+kind: mke
 spec:
   hosts:
     - address: 10.0.0.1
@@ -33,7 +33,7 @@ spec:
     - address: 10.0.0.2
       role: worker
       localhost: true
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -44,8 +44,8 @@ spec:
 
 func TestHostRequireManagerValidationFail(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1.1"
-kind: DockerEnterprise
+apiVersion: "launchpad.mirantis.com/mke/v1.1"
+kind: mke
 spec:
   hosts:
     - address: 10.0.0.1
@@ -54,7 +54,7 @@ spec:
     - address: 10.0.0.2
       role: worker
       localhost: true
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -62,16 +62,16 @@ spec:
 	err := c.Validate()
 	require.Error(t, err)
 
-	validateErrorField(t, err, "Hosts")
+	validateErrorField(t, err, "hosts")
 }
 
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/v1.1"
-kind: DockerEnterprise
+apiVersion: "launchpad.mirantis.com/mke/v1.1"
+kind: mke
 spec:
   hosts:
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -84,12 +84,12 @@ spec:
 
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "512.1.2.3"
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -102,12 +102,12 @@ spec:
 
 func TestHostAddressValidationWithValidIP(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "10.10.10.10"
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -119,12 +119,12 @@ spec:
 
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1-2-foo"
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -138,11 +138,11 @@ spec:
 func TestHostAddressValidationWithValidHostname(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+kind: mke
 spec:
   hosts:
     - address: "foo.example.com"
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -155,15 +155,15 @@ spec:
 
 func TestHostSshPortValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
       ssh:
         port: 0
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -176,15 +176,15 @@ spec:
 
 func TestHostSshKeyValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       ssh:
         port: 22
         keyPath: /path/to/nonexisting/key
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -197,15 +197,15 @@ spec:
 
 func TestHostRoleValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
   - address: "1.2.3.4"
     ssh:
       port: 22
     role: foobar
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -217,8 +217,8 @@ spec:
 
 func TestHostWithComplexEngineConfig(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
   - address: "1.2.3.4"
@@ -230,7 +230,7 @@ spec:
       log-opts:
         max-size: 10m
         max-files: 5
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -243,7 +243,7 @@ spec:
 func TestMigrateFromV1Beta1(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta1
-kind: UCP
+kind: mke
 spec:
   engine:
     installURL: http://example.com/
@@ -253,14 +253,14 @@ spec:
     sshKeyPath: /path/to/nonexisting
     user: foofoo
     role: manager
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, "launchpad.mirantis.com/v1.1", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.1", c.APIVersion)
 
 	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -270,7 +270,7 @@ spec:
 func TestMigrateFromV1Beta2(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta2
-kind: UCP
+kind: mke
 spec:
   engine:
     installURL: http://example.com/
@@ -280,19 +280,19 @@ spec:
     winRM:
       user: foo
       password: foo
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
 	c := loadAndMigrateYaml(t, data)
 	require.NoError(t, c.Validate())
-	require.Equal(t, "launchpad.mirantis.com/v1.1", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.1", c.APIVersion)
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta1
-kind: UCP
+kind: mke
 spec:
   engine:
     version: 1.2.3
@@ -302,7 +302,7 @@ spec:
     sshKeyPath: /path/to/nonexisting
     user: foofoo
     role: manager
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -310,7 +310,7 @@ spec:
 	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, "launchpad.mirantis.com/v1.1", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.1", c.APIVersion)
 
 	require.Equal(t, constant.EngineInstallURLLinux, c.Spec.Engine.InstallURLLinux)
 	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
@@ -319,15 +319,15 @@ spec:
 
 func TestHostWinRMCACertPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
       winRM:
         caCertPath: /path/to/nonexisting
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -340,15 +340,15 @@ spec:
 
 func TestHostWinRMCertPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
       winRM:
         certPath: /path/to/nonexisting
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -361,15 +361,15 @@ spec:
 
 func TestHostWinRMKeyPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
       winRM:
         keyPath: /path/to/nonexisting
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -382,13 +382,13 @@ spec:
 
 func TestHostSSHDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -401,15 +401,15 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
       winRM:
         user: User
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -424,19 +424,19 @@ spec:
 	require.Equal(t, c.Spec.Hosts[0].WinRM.Insecure, false)
 }
 
-func TestValidationWithDtrRole(t *testing.T) {
+func TestValidationWithMSRRole(t *testing.T) {
 
-	t.Run("the role is not ucp, worker or dtr", func(t *testing.T) {
+	t.Run("the role is not ucp, worker or msr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: weirdrole
     - address: "1.2.3.5"
       role: manager
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `
@@ -444,21 +444,21 @@ spec:
 		require.Error(t, c.Validate())
 	})
 
-	t.Run("the role is dtr", func(t *testing.T) {
+	t.Run("the role is msr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke+msr
 spec:
   hosts:
     - address: "1.2.3.4"
-      role: dtr
+      role: msr
       winRM:
         user: User
     - address: "1.2.3.5"
       role: manager
       winRM:
         user: User
-  ucp:
+  mke:
     username: foofoo
     password: barbar
 `

@@ -6,167 +6,167 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestUCPClusterSpecUcpURLWithoutSan(t *testing.T) {
+func TestMKEClusterSpecMKEURLWithoutSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{},
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{},
 	}
-	url, err := spec.UcpURL()
+	url, err := spec.MKEURL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.2/", url.String())
 }
 
-func TestUCPClusterSpecUcpURLWithSan(t *testing.T) {
+func TestMKEClusterSpecMKEURLWithSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
 		},
-		Ucp: UcpConfig{
-			InstallFlags: []string{"--san=ucp.acme.com"},
+		MKE: MKEConfig{
+			InstallFlags: []string{"--san=mke.acme.com"},
 		},
-		Dtr: &DtrConfig{},
+		MSR: &MSRConfig{},
 	}
 
-	url, err := spec.UcpURL()
+	url, err := spec.MKEURL()
 	require.NoError(t, err)
-	require.Equal(t, "https://ucp.acme.com/", url.String())
+	require.Equal(t, "https://mke.acme.com/", url.String())
 }
 
-func TestUCPClusterSpecUcpURLWithMultiSan(t *testing.T) {
+func TestMKEClusterSpecMKEURLWithMultiSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
 		},
-		Ucp: UcpConfig{
-			InstallFlags: []string{"--san=ucp.acme.com", "--san=admin.acme.com"},
+		MKE: MKEConfig{
+			InstallFlags: []string{"--san=mke.acme.com", "--san=admin.acme.com"},
 		},
 	}
-	url, err := spec.UcpURL()
+	url, err := spec.MKEURL()
 	require.NoError(t, err)
-	require.Equal(t, "https://ucp.acme.com/", url.String())
+	require.Equal(t, "https://mke.acme.com/", url.String())
 }
 
-func TestUCPClusterSpecUcpURLWithNoDTRMetadata(t *testing.T) {
+func TestMKEClusterSpecMKEURLWithNoMSRMetadata(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "dtr"},
+			{Address: "192.168.1.3", Role: "msr"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{},
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{},
 	}
 
-	url, err := spec.UcpURL()
+	url, err := spec.MKEURL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.2/", url.String())
 }
 
-func TestUCPClusterSpecDtrURLWithNoDTRMetadata(t *testing.T) {
+func TestMKEClusterSpecMSRURLWithNoMSRMetadata(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "dtr"},
+			{Address: "192.168.1.3", Role: "msr"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{},
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{},
 	}
 
-	url, err := spec.DtrURL()
+	url, err := spec.MSRURL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.3/", url.String())
 }
 
-func TestUCPClusterSpecDtrURLWithNoDTRHostRoleButConfig(t *testing.T) {
+func TestMKEClusterSpecMSRURLWithNoMSRHostRoleButConfig(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{},
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{},
 	}
-	_, err := spec.DtrURL()
+	_, err := spec.MSRURL()
 	require.Error(t, err)
 }
 
-func TestUCPClusterSpecDtrURLWithoutExternalURL(t *testing.T) {
+func TestMKEClusterSpecMSRURLWithoutExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "dtr"},
+			{Address: "192.168.1.3", Role: "msr"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{
-			Metadata: &DtrMetadata{
-				DtrLeaderAddress: "192.168.1.3",
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{
+			Metadata: &MSRMetadata{
+				MSRLeaderAddress: "192.168.1.3",
 			},
 		},
 	}
-	url, err := spec.DtrURL()
+	url, err := spec.MSRURL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.3/", url.String())
 }
 
-func TestUCPClusterSpecDtrURLWithExternalURL(t *testing.T) {
+func TestMKEClusterSpecMSRURLWithExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "dtr"},
+			{Address: "192.168.1.3", Role: "msr"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{
-			InstallFlags: []string{"--dtr-external-url dtr.acme.com"},
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{
+			InstallFlags: []string{"--dtr-external-url msr.acme.com"},
 		},
 	}
-	url, err := spec.DtrURL()
+	url, err := spec.MSRURL()
 	require.NoError(t, err)
-	require.Equal(t, "https://dtr.acme.com/", url.String())
+	require.Equal(t, "https://msr.acme.com/", url.String())
 }
 
-func TestUCPClusterSpecDtrURLWithPort(t *testing.T) {
+func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "dtr"},
+			{Address: "192.168.1.3", Role: "msr"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{
 			InstallFlags: []string{"--replica-https-port 999"},
 		},
 	}
-	url, err := spec.DtrURL()
+	url, err := spec.MSRURL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.3:999/", url.String())
 }
 
-func TestUCPClusterSpecUcpURLWithPort(t *testing.T) {
+func TestMKEClusterSpecMKEURLWithPort(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
 		},
-		Ucp: UcpConfig{
+		MKE: MKEConfig{
 			InstallFlags: []string{"--controller-port 999"},
 		},
 	}
-	url, err := spec.UcpURL()
+	url, err := spec.MKEURL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.2:999/", url.String())
 }
 
-func TestUCPClusterSpecUcpURLFromDtrUcpUrl(t *testing.T) {
+func TestMKEClusterSpecMKEURLFromMSRMKEUrl(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "dtr"},
+			{Address: "192.168.1.3", Role: "msr"},
 		},
-		Ucp: UcpConfig{},
-		Dtr: &DtrConfig{
-			InstallFlags: []string{"--ucp-url ucp.acme.com:5555"},
+		MKE: MKEConfig{},
+		MSR: &MSRConfig{
+			InstallFlags: []string{"--ucp-url mke.acme.com:5555"},
 		},
 	}
-	url, err := spec.UcpURL()
+	url, err := spec.MKEURL()
 	require.NoError(t, err)
-	require.Equal(t, "https://ucp.acme.com:5555/", url.String())
+	require.Equal(t, "https://mke.acme.com:5555/", url.String())
 }

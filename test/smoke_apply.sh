@@ -44,5 +44,5 @@ docker ps
 docker ps --filter name=dtr
 ./kubectl get pods --all-namespaces
 ${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} ucp
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} dtr
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} mke
+${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} msr

@@ -75,7 +75,7 @@ type Hooks struct {
 // Host contains all the needed details to work with hosts
 type Host struct {
 	Address          string            `yaml:"address" validate:"required,hostname|ip"`
-	Role             string            `yaml:"role" validate:"oneof=manager worker dtr"`
+	Role             string            `yaml:"role" validate:"oneof=manager worker msr"`
 	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
 	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
@@ -103,8 +103,8 @@ func (h *Host) generateName() string {
 		role = "M"
 	case "worker":
 		role = "W"
-	case "dtr":
-		role = "D"
+	case "msr":
+		role = "R"
 	}
 
 	if h.Localhost {

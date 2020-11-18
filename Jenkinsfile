@@ -120,7 +120,7 @@ pipeline {
             }
           }
         }
-        stage("UCP3.3.3 VXLAN switch") {
+        stage("MKE3.3.3 VXLAN switch") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -166,22 +166,22 @@ pipeline {
             sh "make smoke-apply-test-localhost LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
-        stage("Ubuntu 18.04 with DTR") {
+        stage("Ubuntu 18.04 with MSR") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           stages {
-            stage("Install UCP3.3.3 DTR2.7 ENG19.03.8") {
+            stage("Install MKE3.3.3 MSR2.7 ENG19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
-                UCP_VERSION = "3.3.3"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
+                MKE_VERSION = "3.3.3"
                 IMAGE_REPO = "docker.io/mirantis"
-                DTR_VERSION = "2.7.8"
-                DTR_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.7.8"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
                 ENGINE_VERSION = "19.03.8"
                 PRESERVE_CLUSTER = "true"
               }
@@ -189,16 +189,16 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade UCP3.3.4-rc2 DTR2.8 ENG19.03.12 from private repos") {
+            stage("Upgrade MKE3.3.4-rc2 MSR2.8 ENG19.03.12 from private repos") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
-                UCP_VERSION = "3.3.4-rc2"
-                UCP_IMAGE_REPO = "docker.io/mirantiseng"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
+                MKE_VERSION = "3.3.4-rc2"
+                MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
                 IMAGE_REPO = "docker.io/mirantis"
-                DTR_VERSION = "2.8.3"
+                MSR_VERSION = "2.8.3"
                 ENGINE_VERSION = "19.03.12"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
@@ -212,22 +212,22 @@ pipeline {
             }
           }
         }
-        stage("Ubuntu 18.04 with DTR and custom repository") {
+        stage("Ubuntu 18.04 with MSR and custom repository") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           stages {
-            stage("Install UCP3.2 DTR2.7 ENG19.03.8") {
+            stage("Install MKE3.2 MSR2.7 ENG19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
-                UCP_VERSION = "3.2.8"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
+                MKE_VERSION = "3.2.8"
                 IMAGE_REPO = "docker.io/mirantis"
-                DTR_VERSION = "2.7.8"
-                DTR_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.7.8"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
                 ENGINE_VERSION = "19.03.8"
                 PRESERVE_CLUSTER = "true"
               }
@@ -235,14 +235,14 @@ pipeline {
                 sh "make smoke-apply-local-repo-test"
               }
             }
-            stage("Upgrade UCP3.3 DTR2.8 ENG19.03.12") {
+            stage("Upgrade MKE3.3 MSR2.8 ENG19.03.12") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-dtr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-dtr.yaml"
-                UCP_VERSION = "3.3.3"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
+                MKE_VERSION = "3.3.3"
                 IMAGE_REPO = "docker.io/mirantis"
-                DTR_VERSION = "2.8.3"
+                MSR_VERSION = "2.8.3"
                 ENGINE_VERSION = "19.03.12"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"

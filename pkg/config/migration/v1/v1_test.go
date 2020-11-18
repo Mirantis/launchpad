@@ -13,14 +13,14 @@ apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
 spec:
   ucp:
-    version: $UCP_VERSION
+    version: $MKE_VERSION
 `)
 	// go's YAML marshal does not add the --- header
-	v11 := []byte(`apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
-  ucp:
-    version: $$UCP_VERSION
+  mke:
+    version: $$MKE_VERSION
 `)
 	in := make(map[string]interface{})
 	require.NoError(t, yaml.Unmarshal(v1, in))
@@ -42,10 +42,10 @@ spec:
       - --admin-password="barbar"
 `)
 	// go's YAML marshal does not add the --- header
-	v11 := []byte(`apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 spec:
-  ucp:
+  mke:
     adminPassword: barbar
     adminUsername: foo
     installFlags:
@@ -61,7 +61,7 @@ spec:
 	require.Equal(t, string(v11), string(out))
 }
 
-func TestCredentialsMigrationDTRnoUCP(t *testing.T) {
+func TestCredentialsMigrationMSRnoMKE(t *testing.T) {
 	v1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
@@ -73,15 +73,15 @@ spec:
       - --ucp-password="barbar"
 `)
 	// go's YAML marshal does not add the --- header
-	v11 := []byte(`apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke+msr
 spec:
-  dtr:
-    installFlags:
-    - --test
-  ucp:
+  mke:
     adminPassword: barbar
     adminUsername: foo
+  msr:
+    installFlags:
+    - --test
 `)
 
 	in := make(map[string]interface{})
@@ -92,7 +92,7 @@ spec:
 	require.Equal(t, string(v11), string(out))
 }
 
-func TestCredentialsMigrationDTRandUCP(t *testing.T) {
+func TestCredentialsMigrationMSRandMKE(t *testing.T) {
 	v1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1"
 kind: DockerEnterprise
@@ -108,19 +108,50 @@ spec:
       - --ucp-password="bardbard"
 `)
 	// go's YAML marshal does not add the --- header
-	v11 := []byte(`apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke+msr
 spec:
-  dtr:
+  mke:
+    adminPassword: barbar
+    adminUsername: foo
+    installFlags: []
+  msr:
     installFlags:
     - --ucp-username "food"
     - --test
     - --ucp-password="bardbard"
-  ucp:
-    adminPassword: barbar
-    adminUsername: foo
-    installFlags: []
 `)
+
+	in := make(map[string]interface{})
+	require.NoError(t, yaml.Unmarshal(v1, in))
+	require.NoError(t, Migrate(in))
+	out, err := yaml.Marshal(in)
+	require.NoError(t, err)
+	require.Equal(t, string(v11), string(out))
+}
+
+func TestRoleMigration(t *testing.T) {
+	v1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1"
+kind: DockerEnterprise
+spec:
+  hosts:
+    - address: 10.0.0.1
+      role: manager
+    - address: 10.0.0.2
+      role: dtr
+`)
+	// go's YAML marshal does not add the --- header
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke+msr
+spec:
+  hosts:
+  - address: 10.0.0.1
+    role: manager
+  - address: 10.0.0.2
+    role: msr
+`)
+	// looks like yaml.Marshal alphabetically sorts these, no matter which way the code is flipped.
 
 	in := make(map[string]interface{})
 	require.NoError(t, yaml.Unmarshal(v1, in))

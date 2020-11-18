@@ -1,5 +1,5 @@
-apiVersion: "launchpad.mirantis.com/v1.1"
-kind: DockerEnterprise
+apiVersion: "launchpad.mirantis.com/mke/v1.1"
+kind: mke+msr
 spec:
   hosts:
     - address: "127.0.0.1"
@@ -15,19 +15,19 @@ spec:
       hooks:
         apply:
           before:
-            - ls -al
             - echo hello > foo.txt
           after:
-            - ls -al foo.txt
-            - cat foo.txt
+            - rm foo.txt
     - address: "127.0.0.1"
       ssh:
         port: 9023
         user: "root"
-      role: "worker"
+      role: "msr"
       engineConfig: *linuxEngineConfig
-  ucp:
+  mke:
+    adminUsername: admin
+    adminPassword: orcaorcaorca
     installFlags:
-      - --admin-username=admin
-      - --admin-password=orcaorcaorca
       - --default-node-orchestrator=kubernetes
+  msr:
+    version: 2.3.4

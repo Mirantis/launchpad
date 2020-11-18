@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Cluster is for universal cluster settings not applicable to single hosts, ucp, dtr or engine
+// Cluster is for universal cluster settings not applicable to single hosts, mke, msr or engine
 type Cluster struct {
 	Prune bool `yaml:"prune" default:"false"`
 }
@@ -19,8 +19,8 @@ type Cluster struct {
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
 	Hosts   Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
-	Ucp     UcpConfig    `yaml:"ucp,omitempty"`
-	Dtr     *DtrConfig   `yaml:"dtr,omitempty"`
+	MKE     MKEConfig    `yaml:"mke,omitempty"`
+	MSR     *MSRConfig   `yaml:"msr,omitempty"`
 	Engine  EngineConfig `yaml:"engine,omitempty"`
 	Cluster Cluster      `yaml:"cluster"`
 }
@@ -35,15 +35,15 @@ func (c *ClusterSpec) Managers() Hosts {
 	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "manager" })
 }
 
-// Dtrs filters only the DTR nodes from the cluster config
-func (c *ClusterSpec) Dtrs() Hosts {
-	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "dtr" })
+// MSRs filters only the MSR nodes from the cluster config
+func (c *ClusterSpec) MSRs() Hosts {
+	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "msr" })
 }
 
-// WorkersAndDtrs filters both worker and DTR roles from the cluster config
-func (c *ClusterSpec) WorkersAndDtrs() Hosts {
+// WorkersAndMSRs filters both worker and MSR roles from the cluster config
+func (c *ClusterSpec) WorkersAndMSRs() Hosts {
 	return c.Hosts.Filter(func(h *Host) bool {
-		return h.Role == "dtr" || h.Role == "worker"
+		return h.Role == "msr" || h.Role == "worker"
 	})
 }
 
@@ -60,17 +60,17 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 	return m.First()
 }
 
-// UcpURL returns a URL for UCP or an error if one can not be generated
-func (c *ClusterSpec) UcpURL() (*url.URL, error) {
-	// Easy route, user has provided one in DTR --ucp-url
-	if c.Dtr != nil {
-		if f := c.Dtr.InstallFlags.GetValue("--ucp-url"); f != "" {
+// MKEURL returns a URL for MKE or an error if one can not be generated
+func (c *ClusterSpec) MKEURL() (*url.URL, error) {
+	// Easy route, user has provided one in MSR --ucp-url
+	if c.MSR != nil {
+		if f := c.MSR.InstallFlags.GetValue("--ucp-url"); f != "" {
 			if !strings.Contains(f, "://") {
 				f = "https://" + f
 			}
 			u, err := url.Parse(f)
 			if err != nil {
-				return nil, fmt.Errorf("invalid DTR --ucp-url install flag '%s': %s", f, err.Error())
+				return nil, fmt.Errorf("invalid MSR --ucp-url install flag '%s': %s", f, err.Error())
 			}
 			if u.Path == "" {
 				u.Path = "/"
@@ -79,45 +79,45 @@ func (c *ClusterSpec) UcpURL() (*url.URL, error) {
 		}
 	}
 
-	var ucpAddr string
+	var mkeAddr string
 	// Option 2: there's a "--san" install flag
-	if addr := c.Ucp.InstallFlags.GetValue("--san"); addr != "" {
-		ucpAddr = addr
+	if addr := c.MKE.InstallFlags.GetValue("--san"); addr != "" {
+		mkeAddr = addr
 	} else {
 		// Option 3: Use the first manager's address
 		mgrs := c.Managers()
 		if len(mgrs) < 1 {
-			return nil, fmt.Errorf("unable to generate a url for ucp")
+			return nil, fmt.Errorf("unable to generate a url for mke")
 		}
-		ucpAddr = mgrs[0].Address
+		mkeAddr = mgrs[0].Address
 	}
 
-	if portstr := c.Ucp.InstallFlags.GetValue("--controller-port"); portstr != "" {
+	if portstr := c.MKE.InstallFlags.GetValue("--controller-port"); portstr != "" {
 		p, err := strconv.Atoi(portstr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid ucp controller-port value: '%s': %s", portstr, err.Error())
+			return nil, fmt.Errorf("invalid mke controller-port value: '%s': %s", portstr, err.Error())
 		}
-		ucpAddr = fmt.Sprintf("%s:%d", ucpAddr, p)
+		mkeAddr = fmt.Sprintf("%s:%d", mkeAddr, p)
 	}
 
 	return &url.URL{
 		Scheme: "https",
 		Path:   "/",
-		Host:   ucpAddr,
+		Host:   mkeAddr,
 	}, nil
 }
 
-// DtrURL returns an url to DTR or an error if one can't be generated
-func (c *ClusterSpec) DtrURL() (*url.URL, error) {
-	if c.Dtr != nil {
+// MSRURL returns an url to MSR or an error if one can't be generated
+func (c *ClusterSpec) MSRURL() (*url.URL, error) {
+	if c.MSR != nil {
 		// Default to using the --dtr-external-url if it's set
-		if f := c.Dtr.InstallFlags.GetValue("--dtr-external-url"); f != "" {
+		if f := c.MSR.InstallFlags.GetValue("--dtr-external-url"); f != "" {
 			if !strings.Contains(f, "://") {
 				f = "https://" + f
 			}
 			u, err := url.Parse(f)
 			if err != nil {
-				return nil, fmt.Errorf("invalid DTR --dtr-external-url install flag '%s': %s", f, err.Error())
+				return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %s", f, err.Error())
 			}
 			if u.Scheme == "" {
 				u.Scheme = "https"
@@ -129,33 +129,33 @@ func (c *ClusterSpec) DtrURL() (*url.URL, error) {
 		}
 	}
 
-	var dtrAddr string
+	var msrAddr string
 
-	// Otherwise, use DtrLeaderAddress
-	if c.Dtr != nil && c.Dtr.Metadata != nil && c.Dtr.Metadata.DtrLeaderAddress != "" {
-		dtrAddr = c.Dtr.Metadata.DtrLeaderAddress
+	// Otherwise, use MSRLeaderAddress
+	if c.MSR != nil && c.MSR.Metadata != nil && c.MSR.Metadata.MSRLeaderAddress != "" {
+		msrAddr = c.MSR.Metadata.MSRLeaderAddress
 	} else {
-		dtrs := c.Dtrs()
-		if len(dtrs) < 1 {
-			return nil, fmt.Errorf("unable to generate a DTR URL - no nodes with role 'dtr' present")
+		msrs := c.MSRs()
+		if len(msrs) < 1 {
+			return nil, fmt.Errorf("unable to generate a MSR URL - no nodes with role 'msr' present")
 		}
-		dtrAddr = dtrs[0].Address
+		msrAddr = msrs[0].Address
 	}
 
-	if c.Dtr != nil {
-		if portstr := c.Dtr.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
+	if c.MSR != nil {
+		if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
 			p, err := strconv.Atoi(portstr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid dtr --replica-https-port value '%s': %s", portstr, err.Error())
+				return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %s", portstr, err.Error())
 			}
-			dtrAddr = fmt.Sprintf("%s:%d", dtrAddr, p)
+			msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
 		}
 	}
 
 	return &url.URL{
 		Scheme: "https",
 		Path:   "/",
-		Host:   dtrAddr,
+		Host:   msrAddr,
 	}, nil
 }
 
@@ -164,7 +164,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type spec ClusterSpec
 	yc := (*spec)(c)
 	c.Engine = EngineConfig{}
-	c.Ucp = NewUcpConfig()
+	c.MKE = NewMKEConfig()
 
 	if err := unmarshal(yc); err != nil {
 		return err
@@ -185,39 +185,39 @@ func isSwarmLeader(h *Host) bool {
 	return output == "true"
 }
 
-// IsDtrInstalled checks to see if DTR is installed on the given host
-func IsDtrInstalled(h *Host) bool {
+// IsMSRInstalled checks to see if MSR is installed on the given host
+func IsMSRInstalled(h *Host) bool {
 	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`ps -q --filter name=dtr-`))
 	if err != nil {
 		// During the initial pre-installation phases, we expect this to fail
 		// so logging the error to debug is best to prevent erroneous errors
 		// from appearing problematic
-		log.Debugf("%s: unable to determine if host has DTR installed: %s", h, err)
+		log.Debugf("%s: unable to determine if host has MSR installed: %s", h, err)
 		return false
 	}
 	output = strings.Trim(output, "\n")
 	if len(output) >= 9 {
-		// Check for the presence of the 9 DTR containers we expect to be
+		// Check for the presence of the 9 MSR containers we expect to be
 		// running
 		return true
 	}
 	return false
 }
 
-// DtrLeader returns the current DtrLeader host
-func (c *ClusterSpec) DtrLeader() *Host {
-	// DTR doesn't have the concept of leaders during the installation phase,
+// MSRLeader returns the current MSRLeader host
+func (c *ClusterSpec) MSRLeader() *Host {
+	// MSR doesn't have the concept of leaders during the installation phase,
 	// but we need to make sure we have a Host to reference during our other
 	// bootstrap operations: Upgrade and Join
-	dtrs := c.Dtrs()
-	h := dtrs.Find(IsDtrInstalled)
+	msrs := c.MSRs()
+	h := msrs.Find(IsMSRInstalled)
 	if h != nil {
-		log.Debugf("%s: found DTR installed, using as leader", h)
+		log.Debugf("%s: found MSR installed, using as leader", h)
 		return h
 	}
 
-	log.Debugf("did not find a DTR installation, falling back to the first DTR host")
-	return dtrs.First()
+	log.Debugf("did not find a MSR installation, falling back to the first MSR host")
+	return msrs.First()
 }
 
 // IsCustomImageRepo checks if the config is using a custom image repo
@@ -225,9 +225,9 @@ func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
-// CheckUCPHealthRemote will check ucp cluster health from a host and return an error if it failed
-func (c *ClusterSpec) CheckUCPHealthRemote(h *Host) error {
-	u, err := c.UcpURL()
+// CheckMKEHealthRemote will check mke cluster health from a host and return an error if it failed
+func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
+	u, err := c.MKEURL()
 	if err != nil {
 		return err
 	}
@@ -235,30 +235,30 @@ func (c *ClusterSpec) CheckUCPHealthRemote(h *Host) error {
 
 	return retry.Do(
 		func() error {
-			log.Infof("%s: waiting for UCP at %s to become healthy", h, u.Host)
+			log.Infof("%s: waiting for MKE at %s to become healthy", h, u.Host)
 			return h.CheckHTTPStatus(u.String(), 200)
 		},
 		retry.Attempts(12), // last attempt should wait ~7min
 	)
 }
 
-// CheckUCPHealthLocal will check the local ucp health on a host and return an error if it failed
-func (c *ClusterSpec) CheckUCPHealthLocal(h *Host) error {
+// CheckMKEHealthLocal will check the local mke health on a host and return an error if it failed
+func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
 	host := "localhost"
-	if port := c.Ucp.InstallFlags.GetValue("--controller-port"); port != "" {
+	if port := c.MKE.InstallFlags.GetValue("--controller-port"); port != "" {
 		host = host + ":" + port
 	}
 
 	return retry.Do(
 		func() error {
-			log.Infof("%s: waiting for UCP to become healthy", h)
+			log.Infof("%s: waiting for MKE to become healthy", h)
 			return h.CheckHTTPStatus(fmt.Sprintf("https://%s/_ping", host), 200)
 		},
 		retry.Attempts(12), // last attempt should wait ~7min
 	)
 }
 
-// ContainsDtr returns true when the config has dtr hosts
-func (c *ClusterSpec) ContainsDtr() bool {
-	return c.Hosts.Find(func(h *Host) bool { return h.Role == "dtr" }) != nil
+// ContainsMSR returns true when the config has msr hosts
+func (c *ClusterSpec) ContainsMSR() bool {
+	return c.Hosts.Find(func(h *Host) bool { return h.Role == "msr" }) != nil
 }

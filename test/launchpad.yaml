@@ -1,5 +1,5 @@
-apiVersion: launchpad.mirantis.com/v1.1
-kind: DockerEnterprise
+apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke
 metadata:
   name: $CLUSTER_NAME
 spec:
@@ -20,9 +20,9 @@ spec:
         user: "root"
       role: "worker"
       engineConfig: &engineCfg
-  ucp:
-    version: $UCP_VERSION
-    imageRepo: $UCP_IMAGE_REPO
+  mke:
+    version: $MKE_VERSION
+    imageRepo: $MKE_IMAGE_REPO
     configData: |-
       [scheduling_configuration]
         default_node_orchestrator = "kubernetes"

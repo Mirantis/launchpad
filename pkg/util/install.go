@@ -9,7 +9,7 @@ import (
 // Shared install utility between install phases for different products
 
 // SetupLicenseFile reads the license file and returns a license string command
-// flag to be used with DTR and UCP installers
+// flag to be used with MSR and MKE installers
 func SetupLicenseFile(licenseFilePath string) (string, error) {
 	license, err := ioutil.ReadFile(licenseFilePath)
 	if err != nil {
