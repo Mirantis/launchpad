@@ -21,6 +21,8 @@ func init() {
 }
 
 func main() {
+	cmd.Execute()
+	return
 	versionCmd := &cli.Command{
 		Name: "version",
 		Action: func(ctx *cli.Context) error {
