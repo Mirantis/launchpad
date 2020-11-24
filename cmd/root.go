@@ -27,6 +27,7 @@ var (
 			return initializeConfig(cmd)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+
 			return fmt.Errorf("blah")
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
@@ -42,6 +43,7 @@ var (
 	}
 
 	debug, telemetry, checkUpgrade, acceptLicence, downloadLaunchpad bool
+	cfg                                                              string
 	upgradeChan                                                      = make(chan *version.LaunchpadRelease)
 )
 
@@ -53,6 +55,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&checkUpgrade, "disable-upgrade-check", "u", false, "Disable upgrade check")
 	rootCmd.PersistentFlags().BoolVarP(&acceptLicence, "accept-license", "a", false, "Accept License Agreement: https://github.com/Mirantis/launchpad/blob/master/LICENSE")
 	rootCmd.PersistentFlags().BoolVarP(&downloadLaunchpad, "download-launchpad", "", false, "Download launchpad")
+	rootCmd.Flags().StringVarP(&cfg, "config", "c", "", "Path to cluster config yaml")
+
+	
 }
 
 func initializeConfig(cmd *cobra.Command) error {
