@@ -22,8 +22,8 @@ type LinuxConfigurer struct {
 	Host *api.Host
 }
 
-// LocateIPCmd is an one-liner to set $ip to one of the known locations of `ip`
-const LocateIPCmd = `ip=$(command -v ip || command -v /usr/sbin/ip || command -v /sbin/ip)`
+// LocateIPCmd is an one-liner to set $ip to one of the known locations of `ip`. If not found, sets to "false" instead, which will make the command fail.
+const LocateIPCmd = `ip=$(command -v ip /usr/sbin/ip /sbin/ip false | head -1)`
 
 // InstallEngine install Docker EE engine on Linux
 func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
