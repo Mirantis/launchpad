@@ -196,7 +196,7 @@ pipeline {
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
                 MKE_VERSION = "3.3.4-rc2"
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
-                REGISTRY_CREDS = credentials("dockerbuildbot-index.docker.io")
+                REGISTRY_CREDS = credentials("docker-hub-generic-up")
                 IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.8.3"
                 ENGINE_VERSION = "19.03.12"
