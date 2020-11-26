@@ -22,6 +22,9 @@ type LinuxConfigurer struct {
 	Host *api.Host
 }
 
+// SbinPath is for adding sbin directories to current $PATH
+const SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
+
 // InstallEngine install Docker EE engine on Linux
 func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
 	if len(c.Host.DaemonConfig) > 0 {
@@ -98,7 +101,7 @@ func (c *LinuxConfigurer) ResolveLongHostname() string {
 
 // ResolveInternalIP resolves internal ip from private interface
 func (c *LinuxConfigurer) ResolveInternalIP() (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf("ip -o addr show dev %s scope global", c.Host.PrivateInterface))
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, c.Host.PrivateInterface))
 	if err != nil {
 		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", c.Host.PrivateInterface, output)
 	}
@@ -315,7 +318,7 @@ func (c *LinuxConfigurer) ConfigureDockerProxy() error {
 
 // ResolvePrivateInterface tries to find a private network interface
 func (c *LinuxConfigurer) ResolvePrivateInterface() (string, error) {
-	output, err := c.Host.ExecWithOutput(`(ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`)
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`%s; (ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`, SbinPath))
 	if err == nil {
 		re := regexp.MustCompile(`\bdev (\w+)`)
 		match := re.FindSubmatch([]byte(output))

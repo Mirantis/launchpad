@@ -1,8 +1,6 @@
 package enterpriselinux
 
 import (
-	"fmt"
-
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/configurer"
 
@@ -12,15 +10,6 @@ import (
 // Configurer is the EL family specific implementation of a host configurer
 type Configurer struct {
 	configurer.LinuxConfigurer
-}
-
-// ResolveInternalIP resolves internal ip from private interface
-func (c *Configurer) ResolveInternalIP() (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf("/usr/sbin/ip -o addr show dev %s scope global", c.Host.PrivateInterface))
-	if err != nil {
-		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", c.Host.PrivateInterface, output)
-	}
-	return c.ParseInternalIPFromIPOutput(output)
 }
 
 // InstallBasePackages install all the needed base packages on the host
