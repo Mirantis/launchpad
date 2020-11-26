@@ -2,8 +2,8 @@ package phase
 
 import (
 	"fmt"
-	"strings"
 
+	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -35,12 +35,11 @@ func (p *UpgradeMKE) Run() error {
 	}
 
 	swarmClusterID := swarm.ClusterID(swarmLeader)
-	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := api.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if swarmLeader.Configurer.SELinuxEnabled() {
-		runFlags = append(runFlags, "--security-opt label=disable")
+		runFlags.Add("--security-opt label=disable")
 	}
-	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s", strings.Join(runFlags, " "), p.Config.Spec.MKE.GetBootstrapperImage(), swarmClusterID)
-	log.Debugf("Running upgrade with cmd: %s", upgradeCmd)
+	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), swarmClusterID)
 	err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
 		return fmt.Errorf("failed to run MKE upgrade")

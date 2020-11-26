@@ -2,6 +2,7 @@ package msr
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
@@ -55,7 +56,7 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 		Installed:               true,
 		InstalledVersion:        version,
 		InstalledBootstrapImage: bootstrapimage,
-		MSRLeaderReplicaID:      replicaID,
+		ReplicaID:               replicaID,
 	}
 	return msrMeta, nil
 }
@@ -100,16 +101,14 @@ func PluckSharedInstallFlags(installFlags []string, sharedFlags []string) []stri
 	return final
 }
 
-// SequentialReplicaID returns a replica id for a given int intended to be used
-// to construct a sequential number of replicas up to a value of 9
-func SequentialReplicaID(replicaInt int) string {
-	replicaPrefix := "00000000000"
-	return fmt.Sprintf("%s%d", replicaPrefix, replicaInt)
+// FormatReplicaID returns a zero padded 12 character hex string
+func FormatReplicaID(num uint64) string {
+	return fmt.Sprintf("%012x", num)
 }
 
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR
-func BuildMKEFlags(config *api.ClusterConfig) []string {
+func BuildMKEFlags(config *api.ClusterConfig) api.Flags {
 	var mkeUser string
 	var mkePass string
 
@@ -131,7 +130,7 @@ func BuildMKEFlags(config *api.ClusterConfig) []string {
 		mkePass = config.Spec.MKE.AdminPassword
 	}
 
-	return []string{
+	return api.Flags{
 		fmt.Sprintf("--ucp-url=\"%s\"", mkeURLHost(config)),
 		fmt.Sprintf("--ucp-username=\"%s\"", mkeUser),
 		fmt.Sprintf("--ucp-password=\"%s\"", mkePass),
@@ -192,6 +191,42 @@ func Destroy(h *api.Host) error {
 		}
 	}
 	return nil
+}
+
+// AssignSequentialReplicaIDs goes through all the MSR hosts, finds the highest replica id and assigns sequential ones starting from that to all the hosts without replica ids.
+func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
+	msrHosts := c.Spec.MSRs()
+
+	// find the largest replica id
+	var maxReplicaID uint64
+	err := msrHosts.Each(func(h *api.Host) error {
+		if h.MSRMetadata == nil {
+			h.MSRMetadata = &api.MSRMetadata{}
+		}
+		if h.MSRMetadata.ReplicaID != "" {
+			ri, err := strconv.ParseUint(h.MSRMetadata.ReplicaID, 16, 48)
+			if err != nil {
+				return fmt.Errorf("%s: invalid MSR replicaID '%s': %s", h, h.MSRMetadata.ReplicaID, err)
+			}
+			if maxReplicaID < ri {
+				maxReplicaID = ri
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	if maxReplicaID+uint64(len(msrHosts)) > 0xffffffffffff {
+		return fmt.Errorf("can not assign sequential MSR replica ids: cluster already has replica id %012x which will overflow", maxReplicaID)
+	}
+	return msrHosts.Each(func(h *api.Host) error {
+		if h.MSRMetadata.ReplicaID == "" {
+			maxReplicaID++
+			h.MSRMetadata.ReplicaID = FormatReplicaID(maxReplicaID)
+		}
+		return nil
+	})
 }
 
 // Cleanup accepts a list of msrHosts to remove all containers, volumes

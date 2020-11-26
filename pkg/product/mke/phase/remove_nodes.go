@@ -213,21 +213,21 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 	msrLeader := config.Spec.MSRLeader()
 	mkeFlags := msr.BuildMKEFlags(config)
 
-	runFlags := []string{"--rm", "-i"}
+	runFlags := api.Flags{"--rm", "-i"}
 	if msrLeader.Configurer.SELinuxEnabled() {
-		runFlags = append(runFlags, "--security-opt label=disable")
+		runFlags.Add("--security-opt label=disable")
 	}
 
-	removeFlags := []string{
+	removeFlags := api.Flags{
 		fmt.Sprintf("--replica-ids %s", replicaID),
-		fmt.Sprintf("--existing-replica-id %s", config.Spec.MSR.Metadata.MSRLeaderReplicaID),
+		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID),
 	}
-	removeFlags = append(removeFlags, mkeFlags...)
+	removeFlags.MergeOverwrite(mkeFlags)
 	for _, f := range msr.PluckSharedInstallFlags(config.Spec.MSR.InstallFlags, msr.SharedInstallRemoveFlags) {
-		removeFlags = append(removeFlags, f)
+		removeFlags.AddOrReplace(f)
 	}
 
-	removeCmd := msrLeader.Configurer.DockerCommandf("run %s %s remove %s", strings.Join(runFlags, " "), config.Spec.MSR.Metadata.InstalledBootstrapImage, strings.Join(removeFlags, " "))
+	removeCmd := msrLeader.Configurer.DockerCommandf("run %s %s remove %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, removeFlags.Join())
 	log.Debugf("%s: Removing MSR replica %s from cluster", msrLeader, replicaID)
 	err := msrLeader.Exec(removeCmd, exec.StreamOutput())
 	if err != nil {

@@ -2,7 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
@@ -33,11 +32,11 @@ func (p *UninstallMKE) Run() error {
 
 	image := fmt.Sprintf("%s/ucp:%s", p.Config.Spec.MKE.ImageRepo, p.Config.Spec.MKE.Version)
 	args := fmt.Sprintf("--id %s", swarm.ClusterID(swarmLeader))
-	runFlags := []string{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := api.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if swarmLeader.Configurer.SELinuxEnabled() {
-		runFlags = append(runFlags, "--security-opt label=disable")
+		runFlags.Add("--security-opt label=disable")
 	}
-	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", strings.Join(runFlags, " "), image, args)
+	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", runFlags.Join(), image, args)
 	err := swarmLeader.Exec(uninstallCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.InstallFlags.GetValue("--admin-username"), p.Config.Spec.MKE.InstallFlags.GetValue("--admin-password")))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE uninstaller: %s", swarmLeader, err.Error())

@@ -24,9 +24,9 @@ func (p *Info) Run() error {
 		log.Infof("MKE cluster admin UI: %s", mkeurl)
 	}
 
-	dtrurl, err := p.Config.Spec.MSRURL()
+	msrurl, err := p.Config.Spec.MSRURL()
 	if err == nil {
-		log.Infof("MSR cluster admin UI: %s", dtrurl)
+		log.Infof("MSR cluster admin UI: %s", msrurl)
 	}
 
 	log.Info("You can download the admin client bundle with the command 'launchpad client-config'")

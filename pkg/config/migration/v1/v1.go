@@ -146,6 +146,13 @@ func Migrate(plain map[string]interface{}) error {
 					log.Debugf("migrated v1 spec.dtr.installFlags[--ucp-password] to v1.1 spec.mke.adminPassword")
 				}
 			}
+
+			if dtr["replicaConfig"] != nil {
+				dtr["replicaIDs"] = dtr["replicaConfig"]
+				delete(dtr, "replicaConfig")
+				log.Debugf("migrated v1 spec.dtr.replicaConfig to v1.1 spec.mke.replicaIDs")
+			}
+
 			spec["msr"] = spec["dtr"]
 			delete(spec, "dtr")
 			log.Debugf("migrated v1 spec.dtr to v1.1 spec.msr")

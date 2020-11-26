@@ -95,8 +95,9 @@ func (p *ValidateFacts) validateMKEVersionJump(conf *api.ClusterConfig) error {
 
 // validateMSRVersionJump validates MSR upgrade path
 func (p *ValidateFacts) validateMSRVersionJump(conf *api.ClusterConfig) error {
-	if conf.Spec.MSR != nil && conf.Spec.MSR.Metadata != nil && conf.Spec.MSR.Metadata.Installed && conf.Spec.MSR.Metadata.InstalledVersion != "" {
-		installedMSR, err := version.NewVersion(conf.Spec.MSR.Metadata.InstalledVersion)
+	msrLeader := conf.Spec.MSRLeader()
+	if conf.Spec.MSR != nil && msrLeader.MSRMetadata != nil && msrLeader.MSRMetadata.Installed && msrLeader.MSRMetadata.InstalledVersion != "" {
+		installedMSR, err := version.NewVersion(msrLeader.MSRMetadata.InstalledVersion)
 		if err != nil {
 			return err
 		}

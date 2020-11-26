@@ -10,22 +10,10 @@ import (
 
 // MSRConfig has all the bits needed to configure MSR during installation
 type MSRConfig struct {
-	Version       string `yaml:"version"`
-	ImageRepo     string `yaml:"imageRepo,omitempty"`
-	InstallFlags  Flags  `yaml:"installFlags,flow,omitempty"`
-	ReplicaConfig string `yaml:"replicaConfig,omitempty"  default:"random"`
-
-	Metadata *MSRMetadata `yaml:"-"`
-}
-
-// MSRMetadata is metadata needed by MSR for configuration and is gathered at
-// the GatherFacts phase and at the end of each configuration phase
-type MSRMetadata struct {
-	Installed               bool
-	InstalledVersion        string
-	InstalledBootstrapImage string
-	MSRLeaderAddress        string
-	MSRLeaderReplicaID      string
+	Version      string `yaml:"version"`
+	ImageRepo    string `yaml:"imageRepo,omitempty"`
+	InstallFlags Flags  `yaml:"installFlags,flow,omitempty"`
+	ReplicaIDs   string `yaml:"replicaIDs,omitempty"  default:"random"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

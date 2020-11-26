@@ -2,7 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
@@ -14,7 +13,26 @@ import (
 // JoinMSRReplicas phase implementation
 type JoinMSRReplicas struct {
 	phase.Analytics
-	MSRPhase
+	phase.HostSelectPhase
+}
+
+// HostFilterFunc returns true for hosts that have non-empty list of hooks returned by the StepListFunc
+func (p *JoinMSRReplicas) HostFilterFunc(h *api.Host) bool {
+	return h.MSRMetadata == nil || !h.MSRMetadata.Installed
+}
+
+// Prepare collects the hosts
+func (p *JoinMSRReplicas) Prepare(config *api.ClusterConfig) error {
+	if !config.Spec.ContainsMSR() {
+		return nil
+	}
+	p.Config = config
+	log.Debugf("collecting hosts for phase %s", p.Title())
+	msrHosts := config.Spec.MSRs()
+	hosts := msrHosts.Filter(p.HostFilterFunc)
+	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
+	p.Hosts = hosts
+	return nil
 }
 
 // Title for the phase
@@ -26,45 +44,41 @@ func (p *JoinMSRReplicas) Title() string {
 func (p *JoinMSRReplicas) Run() error {
 	msrLeader := p.Config.Spec.MSRLeader()
 	mkeFlags := msr.BuildMKEFlags(p.Config)
-	sequentialInt := 0
 
-	for _, d := range p.Config.Spec.MSRs() {
-		sequentialInt++
+	for _, h := range p.Hosts {
 		// Iterate through the msrs and determine which have MSR installed
 		// on them, if one is found which is not yet in the cluster, perform
 		// a join against msrLeader
-		if api.IsMSRInstalled(d) {
-			log.Infof("%s: already a MSR node", d)
+		if h.MSRMetadata.Installed {
+			log.Infof("%s: already a MSR node", h)
 			continue
 		}
 
 		// Run the join with the appropriate flags taken from the install spec
-		runFlags := []string{"--rm", "-i"}
+		runFlags := api.Flags{"--rm", "-i"}
 		if msrLeader.Configurer.SELinuxEnabled() {
-			runFlags = append(runFlags, "--security-opt label=disable")
+			runFlags.Add("--security-opt label=disable")
 		}
-		joinFlags := []string{
-			fmt.Sprintf("--ucp-node %s", d.Metadata.LongHostname),
-			fmt.Sprintf("--existing-replica-id %s", p.Config.Spec.MSR.Metadata.MSRLeaderReplicaID),
-		}
-		if p.Config.Spec.MSR.ReplicaConfig == "sequential" {
-			// Assign the appropriate sequential replica value if set
-			builtSeqInt := msr.SequentialReplicaID(sequentialInt)
-			log.Debugf("Joining replica with sequential replicaID: %s", builtSeqInt)
-			joinFlags = append(joinFlags, fmt.Sprintf("--replica-id %s", builtSeqInt))
-		}
-		joinFlags = append(joinFlags, mkeFlags...)
+		joinFlags := api.Flags{}
+		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.LongHostname))
+		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))
+		joinFlags.MergeOverwrite(mkeFlags)
 		// We can't just append the installFlags to joinFlags because they
 		// differ, so we have to selectively pluck the ones that are shared
 		for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallJoinFlags) {
-			joinFlags = append(joinFlags, f)
+			joinFlags.AddOrReplace(f)
+		}
+		if h.MSRMetadata != nil && h.MSRMetadata.ReplicaID != "" {
+			log.Infof("%s: joining MSR replica to cluster with with replica id: %s", h, h.MSRMetadata.ReplicaID)
+			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
+		} else {
+			log.Infof("%s: joining MSR replica to cluster", h)
 		}
 
-		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", strings.Join(runFlags, " "), p.Config.Spec.MSR.Metadata.InstalledBootstrapImage, strings.Join(joinFlags, " "))
-		log.Debugf("%s: Joining MSR replica to cluster", d)
+		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
 		err := msrLeader.Exec(joinCmd, exec.StreamOutput())
 		if err != nil {
-			return fmt.Errorf("%s: failed to run MSR join: %s", msrLeader, err.Error())
+			return fmt.Errorf("%s: failed to run MSR join: %s", h, err.Error())
 		}
 	}
 	return nil

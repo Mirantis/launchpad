@@ -160,3 +160,34 @@ spec:
 	require.NoError(t, err)
 	require.Equal(t, string(v11), string(out))
 }
+
+func TestReplicaConfig(t *testing.T) {
+	v1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1"
+kind: DockerEnterprise
+spec:
+  hosts:
+    - address: 10.0.0.1
+      role: manager
+  dtr:
+    replicaConfig: sequential
+`)
+	// go's YAML marshal does not add the --- header
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke+msr
+spec:
+  hosts:
+  - address: 10.0.0.1
+    role: manager
+  msr:
+    replicaIDs: sequential
+`)
+	// looks like yaml.Marshal alphabetically sorts these, no matter which way the code is flipped.
+
+	in := make(map[string]interface{})
+	require.NoError(t, yaml.Unmarshal(v1, in))
+	require.NoError(t, Migrate(in))
+	out, err := yaml.Marshal(in)
+	require.NoError(t, err)
+	require.Equal(t, string(v11), string(out))
+}

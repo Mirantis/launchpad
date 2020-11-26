@@ -103,8 +103,8 @@ func Init(kind string) *ClusterConfig {
 	}
 	if kind == "mke+msr" {
 		config.Spec.MSR = &MSRConfig{
-			Version:       constant.MSRVersion,
-			ReplicaConfig: "sequential",
+			Version:    constant.MSRVersion,
+			ReplicaIDs: "sequential",
 		}
 
 		config.Spec.Hosts = append(config.Spec.Hosts,

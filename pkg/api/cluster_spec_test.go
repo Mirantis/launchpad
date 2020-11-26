@@ -95,14 +95,10 @@ func TestMKEClusterSpecMSRURLWithoutExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "msr"},
+			{Address: "192.168.1.3", Role: "msr", MSRMetadata: &MSRMetadata{Installed: true}},
 		},
 		MKE: MKEConfig{},
-		MSR: &MSRConfig{
-			Metadata: &MSRMetadata{
-				MSRLeaderAddress: "192.168.1.3",
-			},
-		},
+		MSR: &MSRConfig{},
 	}
 	url, err := spec.MSRURL()
 	require.NoError(t, err)
