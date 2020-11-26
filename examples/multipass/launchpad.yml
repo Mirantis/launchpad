@@ -5,14 +5,12 @@ spec:
     - address: "192.168.64.10"
       ssh:
         user: "ubuntu"
-        keyPath: "/var/root/Library/Application Support/multipassd/ssh-keys/id_rsa"
       role: "manager"
       privateInterface: enp0s2
     - address: "192.168.64.11"
       role: "worker"
       ssh:
         user: "ubuntu"
-        keyPath: "/var/root/Library/Application Support/multipassd/ssh-keys/id_rsa"
       privateInterface: enp0s2
   mke:
     adminUsername: admin
