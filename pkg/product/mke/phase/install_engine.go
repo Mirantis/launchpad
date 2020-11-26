@@ -2,21 +2,33 @@ package phase
 
 import (
 	"fmt"
-	"math"
-	"sync"
 
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
 
 	retry "github.com/avast/retry-go"
-	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )
 
 // InstallEngine phase implementation
 type InstallEngine struct {
 	phase.Analytics
-	phase.BasicPhase
+	phase.HostSelectPhase
+}
+
+// HostFilterFunc returns true for hosts that do not have engine installed
+func (p *InstallEngine) HostFilterFunc(h *api.Host) bool {
+	return h.Metadata.EngineVersion == ""
+}
+
+// Prepare collects the hosts
+func (p *InstallEngine) Prepare(config *api.ClusterConfig) error {
+	p.Config = config
+	log.Debugf("collecting hosts for phase %s", p.Title())
+	hosts := config.Spec.Hosts.Filter(p.HostFilterFunc)
+	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
+	p.Hosts = hosts
+	return nil
 }
 
 // Title for the phase
@@ -29,97 +41,19 @@ func (p *InstallEngine) Run() error {
 	p.EventProperties = map[string]interface{}{
 		"engine_version": p.Config.Spec.Engine.Version,
 	}
-	err := p.upgradeEngines(p.Config)
-	if err != nil {
-		return err
-	}
 
-	newHosts := []*api.Host{}
-	for _, h := range p.Config.Spec.Hosts {
-		if h.Metadata.EngineVersion == "" {
-			newHosts = append(newHosts, h)
-		}
-	}
-
-	return phase.RunParallelOnHosts(newHosts, p.Config, p.installEngine)
+	return p.Hosts.ParallelEach(p.installEngine)
 }
 
-// Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
-// TODO: should we drain?
-func (p *InstallEngine) upgradeEngines(c *api.ClusterConfig) error {
-	for _, h := range c.Spec.Managers() {
-		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Spec.Engine.Version {
-			err := p.installEngine(h, c)
-			if err != nil {
-				return err
-			}
-			if c.Spec.MKE.Metadata.Installed {
-				err := c.Spec.CheckMKEHealthLocal(h)
-				if err != nil {
-					return err
-				}
-			}
-		} else if h.Metadata.EngineVersion != "" {
-			log.Infof("%s: Engine is already at version %s", h, h.Metadata.EngineVersion)
-		}
-	}
-
-	workers := []*api.Host{}
-	for _, h := range c.Spec.WorkersAndMSRs() {
-		if h.Metadata.EngineVersion != "" && h.Metadata.EngineVersion != c.Spec.Engine.Version {
-			workers = append(workers, h)
-		}
-	}
-
-	// sacrifice 10% of workers for upgrade gods
-	concurrentUpgrades := int(math.Floor(float64(len(workers)) * 0.10))
-	if concurrentUpgrades == 0 {
-		concurrentUpgrades = 1
-	}
-	wp := workerpool.New(concurrentUpgrades)
-	mu := sync.Mutex{}
-	installErrors := &phase.Error{}
-	for _, w := range workers {
-		if w.Metadata.EngineVersion != "" {
-			h := w
-			wp.Submit(func() {
-				err := p.installEngine(h, c)
-				if err != nil {
-					mu.Lock()
-					installErrors.Errors = append(installErrors.Errors)
-					mu.Unlock()
-				}
-			})
-		}
-	}
-	wp.StopWait()
-	if installErrors.Count() > 0 {
-		return installErrors
-	}
-	return nil
-}
-
-func (p *InstallEngine) installEngine(h *api.Host, c *api.ClusterConfig) error {
-	newInstall := h.Metadata.EngineVersion == ""
-	prevVersion := h.Metadata.EngineVersion
-
+func (p *InstallEngine) installEngine(h *api.Host) error {
 	err := retry.Do(
 		func() error {
-			if newInstall {
-				log.Infof("%s: installing engine (%s)", h, c.Spec.Engine.Version)
-			} else {
-				log.Infof("%s: updating engine (%s -> %s)", h, prevVersion, c.Spec.Engine.Version)
-			}
-			return h.Configurer.InstallEngine(&c.Spec.Engine)
+			log.Infof("%s: installing engine (%s)", h, p.Config.Spec.Engine.Version)
+			return h.Configurer.InstallEngine(&p.Config.Spec.Engine)
 		},
 	)
 	if err != nil {
-		if newInstall {
-			log.Errorf("%s: failed to install engine -> %s", h, err.Error())
-		} else {
-			log.Errorf("%s: failed to update engine -> %s", h, err.Error())
-		}
-
+		log.Errorf("%s: failed to install engine -> %s", h, err.Error())
 		return err
 	}
 
@@ -134,13 +68,23 @@ func (p *InstallEngine) installEngine(h *api.Host, c *api.ClusterConfig) error {
 		}
 	}
 
-	if !newInstall && currentVersion == prevVersion {
+	if currentVersion != p.Config.Spec.Engine.Version {
 		err = h.Configurer.RestartEngine()
 		if err != nil {
 			return fmt.Errorf("%s: failed to restart engine", h)
 		}
+		currentVersion, err = h.EngineVersion()
+		if err != nil {
+			return fmt.Errorf("%s: failed to query engine version after restart: %s", h, err.Error())
+		}
 	}
 
-	log.Infof("%s: engine version %s installed", h, c.Spec.Engine.Version)
+	if currentVersion != p.Config.Spec.Engine.Version {
+		return fmt.Errorf("%s: engine version not %s after installation", h, p.Config.Spec.Engine.Version)
+	}
+
+	log.Infof("%s: engine version %s installed", h, p.Config.Spec.Engine.Version)
+	h.Metadata.EngineVersion = p.Config.Spec.Engine.Version
+	h.Metadata.EngineRestartRequired = false
 	return nil
 }

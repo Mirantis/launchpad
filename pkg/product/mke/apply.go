@@ -8,7 +8,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
-	de "github.com/Mirantis/mcc/pkg/product/mke/phase"
+	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -20,35 +20,38 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 
 	phaseManager.AddPhases(
 		&common.Connect{},
-		&de.GatherFacts{},
-		&de.ValidateFacts{Force: force},
-		&de.ValidateHosts{},
-		&de.DownloadInstaller{},
+		&mke.GatherFacts{},
+		&mke.ValidateFacts{Force: force},
+		&mke.ValidateHosts{},
+		&mke.DownloadInstaller{},
 		&common.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }},
-		&de.PrepareHost{},
-		&de.InstallEngine{},
-		&de.LoadImages{},
-		&de.AuthenticateDocker{},
-		&de.PullMKEImages{},
-		&de.InitSwarm{},
-		&de.InstallMKE{SkipCleanup: disableCleanup},
-		&de.UpgradeMKE{},
-		&de.JoinManagers{},
-		&de.JoinWorkers{},
+		&mke.PrepareHost{},
+		&mke.ConfigureEngine{},
+		&mke.InstallEngine{},
+		&mke.UpgradeEngine{},
+		&mke.RestartEngine{},
+		&mke.LoadImages{},
+		&mke.AuthenticateDocker{},
+		&mke.PullMKEImages{},
+		&mke.InitSwarm{},
+		&mke.InstallMKE{SkipCleanup: disableCleanup},
+		&mke.UpgradeMKE{},
+		&mke.JoinManagers{},
+		&mke.JoinWorkers{},
 
 		// begin MSR phases
-		&de.PullMSRImages{},
-		&de.ValidateMKEHealth{},
-		&de.InstallMSR{SkipCleanup: disableCleanup},
-		&de.UpgradeMSR{},
-		&de.JoinMSRReplicas{},
+		&mke.PullMSRImages{},
+		&mke.ValidateMKEHealth{},
+		&mke.InstallMSR{SkipCleanup: disableCleanup},
+		&mke.UpgradeMSR{},
+		&mke.JoinMSRReplicas{},
 		// end MSR phases
 
-		&de.LabelNodes{},
-		&de.RemoveNodes{},
+		&mke.LabelNodes{},
+		&mke.RemoveNodes{},
 		&common.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }},
 		&common.Disconnect{},
-		&de.Info{},
+		&mke.Info{},
 	)
 
 	if err := phaseManager.Run(); err != nil {
