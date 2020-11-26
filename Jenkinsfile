@@ -205,7 +205,7 @@ pipeline {
                 MKE_VERSION = "3.3.4-rc2"
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
-                MSR_VERSION = "2.8.3"
+                MSR_VERSION = "2.8.3-73b55aac"
                 ENGINE_VERSION = "19.03.12"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
