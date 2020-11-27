@@ -10,6 +10,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/connection"
 	"github.com/Mirantis/mcc/pkg/connection/local"
 	"github.com/Mirantis/mcc/pkg/exec"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
@@ -17,25 +18,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// OsRelease host operating system info
-type OsRelease struct {
-	ID      string
-	IDLike  string
-	Name    string
-	Version string
-}
-
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
-	Hostname              string
-	LongHostname          string
-	InternalAddress       string
-	EngineVersion         string
-	EngineInstallScript   string
-	EngineRestartRequired bool
-	Os                    *OsRelease
-	ImagesToUpload        []string
-	TotalImageBytes       uint64
+	Hostname            string
+	LongHostname        string
+	InternalAddress     string
+	EngineVersion       string
+	Os                  *common.OsRelease
+	EngineInstallScript string
+	ImagesToUpload      []string
+	TotalImageBytes     uint64
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
@@ -71,31 +63,19 @@ func (errors *errors) String() string {
 	return "- " + strings.Join(errors.errors, "\n- ")
 }
 
-// BeforeAfter is the a child struct for the Hooks struct, containing sections for Before and After
-type BeforeAfter struct {
-	Before *[]string `yaml:"before" default:"[]"`
-	After  *[]string `yaml:"after" default:"[]"`
-}
-
-// Hooks is a list of hook-points
-type Hooks struct {
-	Apply *BeforeAfter `yaml:"apply" default:"{}"`
-	Reset *BeforeAfter `yaml:"reset" default:"{}"`
-}
-
 // Host contains all the needed details to work with hosts
 type Host struct {
-	Address          string            `yaml:"address" validate:"required,hostname|ip"`
-	Role             string            `yaml:"role" validate:"oneof=manager worker msr"`
-	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
-	DaemonConfig     GenericHash       `yaml:"engineConfig,flow,omitempty" default:"{}"`
-	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
-	Hooks            *Hooks            `yaml:"hooks,omitempty" default:"{}"`
-	ImageDir         string            `yaml:"imageDir,omitempty"`
+	Address          string             `yaml:"address" validate:"required,hostname|ip"`
+	Role             string             `yaml:"role" validate:"oneof=manager worker msr"`
+	PrivateInterface string             `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
+	DaemonConfig     common.GenericHash `yaml:"engineConfig,flow,omitempty" default:"{}"`
+	Environment      map[string]string  `yaml:"environment,flow,omitempty" default:"{}"`
+	Hooks            *common.Hooks      `yaml:"hooks,omitempty" default:"{}"`
+	ImageDir         string             `yaml:"imageDir,omitempty"`
 
-	WinRM     *WinRM `yaml:"winRM,omitempty"`
-	SSH       *SSH   `yaml:"ssh,omitempty"`
-	Localhost bool   `yaml:"localhost,omitempty"`
+	WinRM     *common.WinRM `yaml:"winRM,omitempty"`
+	SSH       *common.SSH   `yaml:"ssh,omitempty"`
+	Localhost bool          `yaml:"localhost,omitempty"`
 
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
@@ -154,7 +134,7 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if h.WinRM == nil && h.SSH == nil && !h.Localhost {
-		h.SSH = DefaultSSH()
+		h.SSH = common.DefaultSSH()
 	}
 
 	return nil

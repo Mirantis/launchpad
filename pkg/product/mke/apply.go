@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"

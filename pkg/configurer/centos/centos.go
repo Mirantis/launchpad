@@ -1,9 +1,9 @@
 package centos
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/configurer"
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // Configurer is the CentOS specific implementation of a host configurer

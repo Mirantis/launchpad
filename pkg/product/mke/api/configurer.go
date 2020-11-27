@@ -1,6 +1,8 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
 // This is under api because it has direct deps to api structs

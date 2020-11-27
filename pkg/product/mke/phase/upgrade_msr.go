@@ -3,10 +3,10 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -46,11 +46,11 @@ func (p *UpgradeMSR) Run() error {
 		return nil
 	}
 
-	runFlags := api.Flags{"--rm", "-i"}
+	runFlags := common.Flags{"--rm", "-i"}
 	if h.Configurer.SELinuxEnabled() {
 		runFlags.Add("--security-opt label=disable")
 	}
-	upgradeFlags := api.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.ReplicaID)}
+	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.ReplicaID)}
 
 	upgradeFlags.MergeOverwrite(msr.BuildMKEFlags(p.Config))
 	for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallUpgradeFlags) {

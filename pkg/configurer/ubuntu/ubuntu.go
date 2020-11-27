@@ -1,8 +1,8 @@
 package ubuntu
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/configurer"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation

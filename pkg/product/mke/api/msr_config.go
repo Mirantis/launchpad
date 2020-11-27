@@ -5,15 +5,16 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/hashicorp/go-version"
 )
 
 // MSRConfig has all the bits needed to configure MSR during installation
 type MSRConfig struct {
-	Version      string `yaml:"version"`
-	ImageRepo    string `yaml:"imageRepo,omitempty"`
-	InstallFlags Flags  `yaml:"installFlags,flow,omitempty"`
-	ReplicaIDs   string `yaml:"replicaIDs,omitempty"  default:"random"`
+	Version      string       `yaml:"version"`
+	ImageRepo    string       `yaml:"imageRepo,omitempty"`
+	InstallFlags common.Flags `yaml:"installFlags,flow,omitempty"`
+	ReplicaIDs   string       `yaml:"replicaIDs,omitempty"  default:"random"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

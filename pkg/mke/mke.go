@@ -12,8 +12,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -143,7 +144,7 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 
 // GetTLSConfigFrom retrieves the valid tlsConfig from the given mke manager
 func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Config, error) {
-	runFlags := api.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := common.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if manager.Configurer.SELinuxEnabled() {
 		runFlags.Add("--security-opt label=disable")
 	}

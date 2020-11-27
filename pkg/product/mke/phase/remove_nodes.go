@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/util"
 
@@ -213,12 +214,12 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 	msrLeader := config.Spec.MSRLeader()
 	mkeFlags := msr.BuildMKEFlags(config)
 
-	runFlags := api.Flags{"--rm", "-i"}
+	runFlags := common.Flags{"--rm", "-i"}
 	if msrLeader.Configurer.SELinuxEnabled() {
 		runFlags.Add("--security-opt label=disable")
 	}
 
-	removeFlags := api.Flags{
+	removeFlags := common.Flags{
 		fmt.Sprintf("--replica-ids %s", replicaID),
 		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID),
 	}

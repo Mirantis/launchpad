@@ -5,7 +5,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/api"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,7 +65,7 @@ func TestBuildMKEFlags(t *testing.T) {
 
 	t.Run("MKE flags are built when --san is provided", func(t *testing.T) {
 		actual := BuildMKEFlags(config)
-		expected := api.Flags{
+		expected := common.Flags{
 			"--ucp-url=\"ucp.acme.com\"",
 			"--ucp-username=\"admin\"",
 			"--ucp-password=\"password1234\"",
