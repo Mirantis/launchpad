@@ -40,7 +40,6 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (c *ClusterConfig) Validate() error {
 	validator := validator.New()
 	validator.RegisterStructValidation(requireManager, ClusterSpec{})
-	validator.RegisterStructValidation(disallowMSR, ClusterConfig{})
 	return validator.Struct(c)
 }
 
@@ -48,23 +47,6 @@ func requireManager(sl validator.StructLevel) {
 	hosts := sl.Current().Interface().(ClusterSpec).Hosts
 	if hosts.Count(func(h *Host) bool { return h.Role == "manager" }) == 0 {
 		sl.ReportError(hosts, "hosts", "", "manager required", "")
-	}
-}
-
-// disallow MSR config when using the "mke" kind instead of "mke+msr"
-func disallowMSR(sl validator.StructLevel) {
-	if sl.Current().Interface().(ClusterConfig).Kind == "mke+msr" {
-		return
-	}
-
-	spec := sl.Current().Interface().(ClusterConfig).Spec
-	if spec.MSR != nil {
-		sl.ReportError(spec.MSR, "msr", "", "msr configuration is only available with kind: mke+msr", "")
-	}
-
-	hosts := spec.Hosts
-	if hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
-		sl.ReportError(hosts, "hosts", "", "role=msr is only available with kind: mke+msr", "")
 	}
 }
 
