@@ -20,14 +20,15 @@ import (
 
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
-	Hostname            string
-	LongHostname        string
-	InternalAddress     string
-	EngineVersion       string
-	Os                  *common.OsRelease
-	EngineInstallScript string
-	ImagesToUpload      []string
-	TotalImageBytes     uint64
+	Hostname              string
+	LongHostname          string
+	InternalAddress       string
+	EngineVersion         string
+	EngineInstallScript   string
+	EngineRestartRequired bool
+	Os                    *common.OsRelease
+	ImagesToUpload        []string
+	TotalImageBytes       uint64
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
