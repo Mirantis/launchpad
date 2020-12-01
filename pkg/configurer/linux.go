@@ -1,7 +1,6 @@
 package configurer
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"regexp"
@@ -25,28 +24,13 @@ type LinuxConfigurer struct {
 // SbinPath is for adding sbin directories to current $PATH
 const SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
 
+// EngineConfigPath returns the configuration file path
+func (c *LinuxConfigurer) EngineConfigPath() string {
+	return "/etc/docker/daemon.json"
+}
+
 // InstallEngine install Docker EE engine on Linux
 func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
-	if len(c.Host.DaemonConfig) > 0 {
-		daemonJSONData, err := json.Marshal(c.Host.DaemonConfig)
-		if err != nil {
-			return fmt.Errorf("failed to marshal daemon json config: %w", err)
-		}
-
-		cfg := "/etc/docker/daemon.json"
-		if c.FileExist(cfg) {
-			log.Debugf("deleting %s", cfg)
-			if err := c.DeleteFile(cfg); err != nil {
-				return err
-			}
-		}
-
-		log.Debugf("writing %s", cfg)
-		if err := c.WriteFile(cfg, string(daemonJSONData), "0700"); err != nil {
-			return err
-		}
-	}
-
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}

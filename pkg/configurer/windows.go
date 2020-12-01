@@ -1,7 +1,6 @@
 package configurer
 
 import (
-	"encoding/json"
 	"fmt"
 	"path"
 	"strconv"
@@ -31,28 +30,13 @@ func (c *WindowsConfigurer) Pwd() string {
 	return pwd
 }
 
+// EngineConfigPath returns the configuration file path
+func (c *WindowsConfigurer) EngineConfigPath() string {
+	return `C:\ProgramData\Docker\config\daemon.json`
+}
+
 // InstallEngine install Docker EE engine on Windows
 func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
-	if len(c.Host.DaemonConfig) > 0 {
-		daemonJSONData, err := json.Marshal(c.Host.DaemonConfig)
-		if err != nil {
-			return fmt.Errorf("failed to marshal daemon json config: %w", err)
-		}
-
-		cfg := `C:\ProgramData\Docker\config\daemon.json`
-		if c.FileExist(cfg) {
-			log.Debugf("deleting %s", cfg)
-			if err := c.DeleteFile(cfg); err != nil {
-				return err
-			}
-		}
-
-		log.Debugf("writing %s", cfg)
-		if err := c.WriteFile(cfg, string(daemonJSONData), "0700"); err != nil {
-			return err
-		}
-	}
-
 	if c.Host.Metadata.EngineVersion == engineConfig.Version {
 		return nil
 	}

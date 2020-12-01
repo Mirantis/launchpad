@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -26,14 +27,15 @@ type OsRelease struct {
 
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
-	Hostname            string
-	LongHostname        string
-	InternalAddress     string
-	EngineVersion       string
-	Os                  *OsRelease
-	EngineInstallScript string
-	ImagesToUpload      []string
-	TotalImageBytes     uint64
+	Hostname              string
+	LongHostname          string
+	InternalAddress       string
+	EngineVersion         string
+	EngineInstallScript   string
+	EngineRestartRequired bool
+	Os                    *OsRelease
+	ImagesToUpload        []string
+	TotalImageBytes       uint64
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
@@ -351,6 +353,41 @@ func (h *Host) Reboot() error {
 		return fmt.Errorf("unable to reconnect after reboot")
 	}
 
+	return nil
+}
+
+// ConfigureEngine writes the docker engine daemon.json and toggles the host Metadata EngineRestartRequired flag if changed
+func (h *Host) ConfigureEngine() error {
+	if len(h.DaemonConfig) > 0 {
+		daemonJSONData, err := json.Marshal(h.DaemonConfig)
+		if err != nil {
+			return fmt.Errorf("failed to marshal daemon json config: %w", err)
+		}
+		daemonJSON := string(daemonJSONData)
+
+		cfg := h.Configurer.EngineConfigPath()
+		oldConfig := ""
+		if h.Configurer.FileExist(cfg) {
+			f, err := h.Configurer.ReadFile(cfg)
+			if err != nil {
+				return err
+			}
+			oldConfig = f
+
+			log.Debugf("deleting %s", cfg)
+			if err := h.Configurer.DeleteFile(cfg); err != nil {
+				return err
+			}
+		}
+
+		log.Debugf("writing %s", cfg)
+		if err := h.Configurer.WriteFile(cfg, daemonJSON, "0700"); err != nil {
+			return err
+		}
+		if h.Metadata.EngineVersion != "" && oldConfig != daemonJSON {
+			h.Metadata.EngineRestartRequired = true
+		}
+	}
 	return nil
 }
 
