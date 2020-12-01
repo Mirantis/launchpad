@@ -10,7 +10,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/util"
 
-	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"

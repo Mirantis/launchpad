@@ -1,8 +1,8 @@
 package windows
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/configurer"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // Windows2019Configurer is a Windows 2019 configurer implementation.

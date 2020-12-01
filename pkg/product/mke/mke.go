@@ -1,7 +1,7 @@
 package mke
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"gopkg.in/yaml.v2"
 )
 

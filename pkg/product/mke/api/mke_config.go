@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
 
 	"github.com/hashicorp/go-version"
@@ -12,21 +13,21 @@ import (
 
 // MKEConfig has all the bits needed to configure mke during installation
 type MKEConfig struct {
-	Version         string    `yaml:"version"`
-	ImageRepo       string    `yaml:"imageRepo,omitempty"`
-	AdminUsername   string    `yaml:"adminUsername,omitempty"`
-	AdminPassword   string    `yaml:"adminPassword,omitempty"`
-	InstallFlags    Flags     `yaml:"installFlags,omitempty,flow"`
-	ConfigFile      string    `yaml:"configFile,omitempty" validate:"omitempty,file"`
-	ConfigData      string    `yaml:"configData,omitempty"`
-	LicenseFilePath string    `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
-	CACertPath      string    `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
-	CertPath        string    `yaml:"certPath,omitempty" validate:"omitempty,file"`
-	KeyPath         string    `yaml:"keyPath,omitempty" validate:"omitempty,file"`
-	CACertData      string    `yaml:"caCertData,omitempty"`
-	CertData        string    `yaml:"certData,omitempty"`
-	KeyData         string    `yaml:"keyData,omitempty"`
-	Cloud           *MKECloud `yaml:"cloud,omitempty"`
+	Version         string       `yaml:"version"`
+	ImageRepo       string       `yaml:"imageRepo,omitempty"`
+	AdminUsername   string       `yaml:"adminUsername,omitempty"`
+	AdminPassword   string       `yaml:"adminPassword,omitempty"`
+	InstallFlags    common.Flags `yaml:"installFlags,omitempty,flow"`
+	ConfigFile      string       `yaml:"configFile,omitempty" validate:"omitempty,file"`
+	ConfigData      string       `yaml:"configData,omitempty"`
+	LicenseFilePath string       `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
+	CACertPath      string       `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
+	CertPath        string       `yaml:"certPath,omitempty" validate:"omitempty,file"`
+	KeyPath         string       `yaml:"keyPath,omitempty" validate:"omitempty,file"`
+	CACertData      string       `yaml:"caCertData,omitempty"`
+	CertData        string       `yaml:"certData,omitempty"`
+	KeyData         string       `yaml:"keyData,omitempty"`
+	Cloud           *MKECloud    `yaml:"cloud,omitempty"`
 
 	Metadata *MKEMetadata `yaml:"-"`
 }

@@ -4,7 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/api"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -161,7 +162,7 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 			},
 			MKE: api.MKEConfig{
 				Metadata: &api.MKEMetadata{},
-				InstallFlags: api.Flags{
+				InstallFlags: common.Flags{
 					"--foo",
 				},
 			},
@@ -195,7 +196,7 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 			},
 			MKE: api.MKEConfig{
 				Metadata: &api.MKEMetadata{},
-				InstallFlags: api.Flags{
+				InstallFlags: common.Flags{
 					"--foo",
 					"--san foofoo",
 				},

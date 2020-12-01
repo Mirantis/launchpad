@@ -5,8 +5,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"

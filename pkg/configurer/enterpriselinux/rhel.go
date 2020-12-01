@@ -1,8 +1,8 @@
 package enterpriselinux
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/configurer"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // Rhel RedHat Enterprise Linux

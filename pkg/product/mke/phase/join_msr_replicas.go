@@ -3,10 +3,11 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -55,11 +56,11 @@ func (p *JoinMSRReplicas) Run() error {
 		}
 
 		// Run the join with the appropriate flags taken from the install spec
-		runFlags := api.Flags{"--rm", "-i"}
+		runFlags := common.Flags{"--rm", "-i"}
 		if msrLeader.Configurer.SELinuxEnabled() {
 			runFlags.Add("--security-opt label=disable")
 		}
-		joinFlags := api.Flags{}
+		joinFlags := common.Flags{}
 		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.LongHostname))
 		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))
 		joinFlags.MergeOverwrite(mkeFlags)

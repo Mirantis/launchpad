@@ -5,7 +5,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/api"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -108,7 +109,7 @@ func FormatReplicaID(num uint64) string {
 
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR
-func BuildMKEFlags(config *api.ClusterConfig) api.Flags {
+func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
 	var mkeUser string
 	var mkePass string
 
@@ -130,7 +131,7 @@ func BuildMKEFlags(config *api.ClusterConfig) api.Flags {
 		mkePass = config.Spec.MKE.AdminPassword
 	}
 
-	return api.Flags{
+	return common.Flags{
 		fmt.Sprintf("--ucp-url=\"%s\"", mkeURLHost(config)),
 		fmt.Sprintf("--ucp-username=\"%s\"", mkeUser),
 		fmt.Sprintf("--ucp-password=\"%s\"", mkePass),

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"

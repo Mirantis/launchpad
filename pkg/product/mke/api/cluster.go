@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	validator "github.com/go-playground/validator/v10"
 )
 
@@ -69,7 +70,7 @@ func Init(kind string) *ClusterConfig {
 				{
 					Address: "10.0.0.1",
 					Role:    "manager",
-					SSH: &SSH{
+					SSH: &common.SSH{
 						User:    "root",
 						Port:    22,
 						KeyPath: "~/.ssh/id_rsa",
@@ -78,7 +79,7 @@ func Init(kind string) *ClusterConfig {
 				{
 					Address: "10.0.0.2",
 					Role:    "worker",
-					SSH:     DefaultSSH(),
+					SSH:     common.DefaultSSH(),
 				},
 			},
 		},
@@ -93,7 +94,7 @@ func Init(kind string) *ClusterConfig {
 			&Host{
 				Address: "10.0.0.3",
 				Role:    "msr",
-				SSH:     DefaultSSH(),
+				SSH:     common.DefaultSSH(),
 			},
 		)
 	}

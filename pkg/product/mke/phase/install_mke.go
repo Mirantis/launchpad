@@ -5,10 +5,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	log "github.com/sirupsen/logrus"
 )
@@ -101,7 +102,7 @@ func (p *InstallMKE) Run() (err error) {
 		// In case of custom repo, don't let MKE check the images
 		installFlags.AddUnlessExist("--pull never")
 	}
-	runFlags := api.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if swarmLeader.Configurer.SELinuxEnabled() {
 		runFlags.Add("--security-opt label=disable")
 	}

@@ -1,9 +1,9 @@
 package mke
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
 )
 

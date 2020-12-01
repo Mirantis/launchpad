@@ -1,8 +1,8 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // CleanUp phase implementation does all the prep work we need for the hosts

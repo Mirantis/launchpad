@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/phase"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )

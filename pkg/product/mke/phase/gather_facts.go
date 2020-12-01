@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/Mirantis/mcc/pkg/api"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 
 	// needed to load the build func in package init
@@ -90,7 +91,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	log.Infof("%s: gathering host facts", h)
 
-	os := &api.OsRelease{}
+	os := &common.OsRelease{}
 	if p.isWindows(h) {
 		h.Connection.SetWindows(true)
 		winOs, err := p.resolveWindowsOsRelease(h)
@@ -161,14 +162,14 @@ func (p *GatherFacts) isWindows(h *api.Host) bool {
 }
 
 // ResolveWindowsOsRelease ... TODO: this implementation belongs somewhere else
-func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, error) {
+func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*common.OsRelease, error) {
 	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
 	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
 	osMinor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMinorVersionNumber"`)
 	osBuild, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentBuild"`)
 
 	version := fmt.Sprintf("%s.%s.%s", osMajor, osMinor, osBuild)
-	osRelease := &api.OsRelease{
+	osRelease := &common.OsRelease{
 		ID:      fmt.Sprintf("windows-%s", version),
 		Name:    osName,
 		Version: version,
@@ -178,7 +179,7 @@ func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*api.OsRelease, erro
 }
 
 // ResolveLinuxOsRelease ...
-func (p *GatherFacts) resolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error) {
+func (p *GatherFacts) resolveLinuxOsRelease(h *api.Host) (*common.OsRelease, error) {
 	output, err := h.ExecWithOutput("cat /etc/os-release")
 	if err != nil {
 		return nil, err
@@ -187,7 +188,7 @@ func (p *GatherFacts) resolveLinuxOsRelease(h *api.Host) (*api.OsRelease, error)
 	if err != nil {
 		return nil, err
 	}
-	osRelease := &api.OsRelease{
+	osRelease := &common.OsRelease{
 		ID:      info["ID"],
 		IDLike:  info["ID_LIKE"],
 		Name:    info["PRETTY_NAME"],
