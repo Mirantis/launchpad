@@ -1,25 +1,35 @@
 package phase
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
+// Phase interface
+type Phase interface {
+	Eventable
+	Run() error
+	Title() string
+	Prepare(interface{}) error
+	ShouldRun() bool
+	CleanUp()
+}
+
 // Manager executes phases to construct the cluster
 type Manager struct {
 	phases       []Phase
-	config       *api.ClusterConfig
+	config       interface{}
 	IgnoreErrors bool
 	SkipCleanup  bool
 }
 
 // NewManager constructs new phase manager
-func NewManager(config *api.ClusterConfig) *Manager {
+func NewManager(config interface{}) *Manager {
 	phaseMgr := &Manager{
 		config: config,
 	}
@@ -55,9 +65,10 @@ func (m *Manager) Run() error {
 		log.Infof(text, phase.Title())
 		if p, ok := interface{}(phase).(Eventable); ok {
 			start := time.Now()
+			r := reflect.ValueOf(m.config).Elem()
 			props := event.Properties{
-				"kind":        m.config.Kind,
-				"api_version": m.config.APIVersion,
+				"kind":        r.FieldByName("Kind").String(),
+				"api_version": r.FieldByName("APIVersion").String(),
 			}
 
 			err := phase.Run()

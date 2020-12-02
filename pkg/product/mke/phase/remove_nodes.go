@@ -71,8 +71,8 @@ func (p *RemoveNodes) ShouldRun() bool {
 }
 
 // Prepare finds the nodes/replica ids to be removed
-func (p *RemoveNodes) Prepare(config *api.ClusterConfig) error {
-	p.Config = config
+func (p *RemoveNodes) Prepare(config interface{}) error {
+	p.Config = config.(*api.ClusterConfig)
 
 	swarmLeader := p.Config.Spec.SwarmLeader()
 

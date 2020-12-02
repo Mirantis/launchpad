@@ -23,13 +23,13 @@ func (p *JoinMSRReplicas) HostFilterFunc(h *api.Host) bool {
 }
 
 // Prepare collects the hosts
-func (p *JoinMSRReplicas) Prepare(config *api.ClusterConfig) error {
-	if !config.Spec.ContainsMSR() {
+func (p *JoinMSRReplicas) Prepare(config interface{}) error {
+	p.Config = config.(*api.ClusterConfig)
+	if !p.Config.Spec.ContainsMSR() {
 		return nil
 	}
-	p.Config = config
 	log.Debugf("collecting hosts for phase %s", p.Title())
-	msrHosts := config.Spec.MSRs()
+	msrHosts := p.Config.Spec.MSRs()
 	hosts := msrHosts.Filter(p.HostFilterFunc)
 	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
 	p.Hosts = hosts

@@ -57,10 +57,10 @@ func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 }
 
 // Prepare collects the hosts
-func (p *LoadImages) Prepare(config *api.ClusterConfig) error {
-	p.Config = config
+func (p *LoadImages) Prepare(config interface{}) error {
+	p.Config = config.(*api.ClusterConfig)
 	log.Debugf("collecting hosts for phase %s", p.Title())
-	hosts := config.Spec.Hosts.Filter(p.HostFilterFunc)
+	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
 	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
 	p.Hosts = hosts
 	return nil
