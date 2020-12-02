@@ -2,11 +2,13 @@ package phase
 
 import (
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	log "github.com/sirupsen/logrus"
 )
 
 // Info shows information about the configured clusters
 type Info struct {
+	common.Analytics
 	phase.BasicPhase
 }
 
