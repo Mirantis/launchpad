@@ -9,17 +9,13 @@ import (
 
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun
 type BasicPhase struct {
-	Phase
-
 	Config *api.ClusterConfig
 }
 
 // HostSelectPhase is a phase where hosts are collected before running to see if it's necessary to run the phase at all in ShouldRun
 type HostSelectPhase struct {
-	Phase
-
-	Config *api.ClusterConfig
-	Hosts  api.Hosts
+	BasicPhase
+	Hosts api.Hosts
 }
 
 // Prepare rceives the cluster config and stores it to the phase's config field
