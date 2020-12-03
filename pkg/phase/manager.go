@@ -63,7 +63,8 @@ func (m *Manager) Run() error {
 
 		text := aurora.Green("==> Running phase: %s").String()
 		log.Infof(text, phase.Title())
-		if p, ok := interface{}(phase).(interface{ Eventable }); ok {
+		eventable := reflect.TypeOf((*Eventable)(nil)).Elem()
+		if reflect.TypeOf(phase).Implements(eventable) {
 			start := time.Now()
 			r := reflect.ValueOf(m.config).Elem()
 			props := event.Properties{
@@ -75,7 +76,7 @@ func (m *Manager) Run() error {
 
 			duration := time.Since(start)
 			props["duration"] = duration.Seconds()
-			for k, v := range p.GetEventProperties() {
+			for k, v := range phase.GetEventProperties() {
 				props[k] = v
 			}
 			if err != nil {
