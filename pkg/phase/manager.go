@@ -63,8 +63,7 @@ func (m *Manager) Run() error {
 
 		text := aurora.Green("==> Running phase: %s").String()
 		log.Infof(text, phase.Title())
-		eventable := reflect.TypeOf((*Eventable)(nil)).Elem()
-		if reflect.TypeOf(phase).Implements(eventable) {
+		if _, ok := interface{}(&phase).(Eventable); ok {
 			start := time.Now()
 			r := reflect.ValueOf(m.config).Elem()
 			props := event.Properties{

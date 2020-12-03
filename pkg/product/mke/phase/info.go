@@ -7,7 +7,6 @@ import (
 
 // Info shows information about the configured clusters
 type Info struct {
-	phase.Analytics
 	phase.BasicPhase
 }
 
