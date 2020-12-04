@@ -12,7 +12,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var kinds = []string{"mke", "mke+msr"}
+var kinds = []string{"mke", "mke+msr", "dummy"}
 
 func kindIsKnown(n string) bool {
 	for _, v := range kinds {
