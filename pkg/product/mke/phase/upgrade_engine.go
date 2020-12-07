@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"time"
 
+	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 
@@ -51,15 +53,22 @@ func (p *UpgradeEngine) Run() error {
 // TODO: should we drain?
 func (p *UpgradeEngine) upgradeEngines() error {
 	var managers api.Hosts
-	var others api.Hosts
+	var workers api.Hosts
+	var msrs api.Hosts
 	for _, h := range p.Hosts {
-		if h.Role == "manager" {
+		switch h.Role {
+		case "manager":
 			managers = append(managers, h)
-		} else {
-			others = append(others, h)
+		case "workers":
+			managers = append(workers, h)
+		case "msr":
+			managers = append(msrs, h)
+		default:
+			return fmt.Errorf("%s: unknown role: %s", h, h.Role)
 		}
 	}
 
+	// Upgrade managers individually
 	for _, h := range managers {
 		err := p.upgradeEngine(h)
 		if err != nil {
@@ -73,15 +82,40 @@ func (p *UpgradeEngine) upgradeEngines() error {
 		}
 	}
 
-	// sacrifice 10% of workers for upgrade gods
-	concurrentUpgrades := int(math.Floor(float64(len(others)) * 0.10))
+	// Upgrade MSR hosts individually
+	for _, h := range msrs {
+		err := p.upgradeEngine(h)
+		if err != nil {
+			return err
+		}
+		if h.MSRMetadata.Installed {
+			err := retry.Do(
+				func() error {
+					if _, err := msr.CollectFacts(h); err != nil {
+						return err
+					}
+					return nil
+				},
+				retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+				retry.MaxJitter(time.Second*2),
+				retry.Delay(time.Second*5),
+				retry.Attempts(3),
+			)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Upgrade worker hosts parallelly in 10% chunks
+	concurrentUpgrades := int(math.Floor(float64(len(workers)) * 0.10))
 	if concurrentUpgrades == 0 {
 		concurrentUpgrades = 1
 	}
 	wp := workerpool.New(concurrentUpgrades)
 	mu := sync.Mutex{}
 	installErrors := &phase.Error{}
-	for _, w := range others {
+	for _, w := range workers {
 		h := w
 		wp.Submit(func() {
 			err := p.upgradeEngine(h)
