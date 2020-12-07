@@ -59,7 +59,7 @@ func (p *UpgradeEngine) upgradeEngines() error {
 		switch h.Role {
 		case "manager":
 			managers = append(managers, h)
-		case "workers":
+		case "worker":
 			workers = append(workers, h)
 		case "msr":
 			msrs = append(msrs, h)
