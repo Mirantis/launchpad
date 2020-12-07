@@ -60,9 +60,9 @@ func (p *UpgradeEngine) upgradeEngines() error {
 		case "manager":
 			managers = append(managers, h)
 		case "workers":
-			managers = append(workers, h)
+			workers = append(workers, h)
 		case "msr":
-			managers = append(msrs, h)
+			msrs = append(msrs, h)
 		default:
 			return fmt.Errorf("%s: unknown role: %s", h, h.Role)
 		}
