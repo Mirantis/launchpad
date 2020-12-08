@@ -15,7 +15,7 @@ import (
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
 	"github.com/Mirantis/mcc/pkg/constant"
-	validator "github.com/go-playground/validator/v10"
+	validator "gopkg.in/dealancer/validate.v2"
 	"gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/require"

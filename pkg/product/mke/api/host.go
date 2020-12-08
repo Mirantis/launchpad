@@ -66,13 +66,13 @@ func (errors *errors) String() string {
 
 // Host contains all the needed details to work with hosts
 type Host struct {
-	Address          string             `yaml:"address" validate:"required,hostname|ip"`
-	Role             string             `yaml:"role" validate:"oneof=manager worker msr"`
-	PrivateInterface string             `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
+	Address          string             `yaml:"address" validate:"format=hostname | format=ip"`
+	Role             string             `yaml:"role" validate:"one_of=manager,worker,msr"`
+	PrivateInterface string             `yaml:"privateInterface,omitempty" validate:"empty=true | gt=2"`
 	DaemonConfig     common.GenericHash `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string  `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            *common.Hooks      `yaml:"hooks,omitempty" default:"{}"`
-	ImageDir         string             `yaml:"imageDir,omitempty"`
+	ImageDir         string             `yaml:"imageDir,omitempty" validate:"empty=true | format=dir"`
 
 	WinRM     *common.WinRM `yaml:"winRM,omitempty"`
 	SSH       *common.SSH   `yaml:"ssh,omitempty"`

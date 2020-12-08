@@ -152,3 +152,10 @@ func (hosts *Hosts) Include(filter func(h *Host) bool) bool {
 func (hosts *Hosts) Count(filter func(h *Host) bool) int {
 	return len(hosts.IndexAll(filter))
 }
+
+func (h *Hosts) Validate() error {
+	if h.Count(func(h *Host) bool { return h.Role == "manager" }) < 1 {
+		return fmt.Errorf("spec.hosts at least one host with role=manager required")
+	}
+	return nil
+}

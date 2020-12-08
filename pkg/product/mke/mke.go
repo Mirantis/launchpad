@@ -2,6 +2,7 @@ package mke
 
 import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	validator "gopkg.in/dealancer/validate.v2"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,7 +25,7 @@ func NewMKE(data []byte) (*MKE, error) {
 		return nil, err
 	}
 
-	if err := c.Validate(); err != nil {
+	if err := validator.Validate(&c); err != nil {
 		return nil, err
 	}
 	return &MKE{ClusterConfig: c}, nil

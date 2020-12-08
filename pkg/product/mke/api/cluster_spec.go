@@ -18,7 +18,7 @@ type Cluster struct {
 
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
-	Hosts   Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
+	Hosts   Hosts        `yaml:"hosts" validate:"gt=1"`
 	MKE     MKEConfig    `yaml:"mke,omitempty"`
 	MSR     *MSRConfig   `yaml:"msr,omitempty"`
 	Engine  EngineConfig `yaml:"engine,omitempty"`

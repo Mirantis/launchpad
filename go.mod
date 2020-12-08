@@ -17,12 +17,12 @@ require (
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/gammazero/deque v0.0.0-20200310222745-50fa758af896 // indirect
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
-	github.com/go-playground/validator/v10 v10.3.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/pretty v0.2.0 // indirect
+	github.com/leodido/go-urn v1.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
 	github.com/masterzen/winrm v0.0.0-20200612141538-f6f9b2959811
@@ -40,6 +40,7 @@ require (
 	golang.org/x/net v0.0.0-20201029055024-942e2f445f3c // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/dealancer/validate.v2 v2.1.0
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/yaml.v2 v2.3.0
 )

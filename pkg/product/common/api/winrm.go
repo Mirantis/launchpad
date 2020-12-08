@@ -8,16 +8,16 @@ import (
 
 // WinRM contains configuration options for a WinRM connection
 type WinRM struct {
-	User          string `yaml:"user" validate:"omitempty,gt=2" default:"Administrator"`
-	Port          int    `yaml:"port" default:"5985" validate:"gt=0,lte=65535"`
+	User          string `yaml:"user" validate:"gt=2" default:"Administrator"`
+	Port          int    `yaml:"port" default:"5985" validate:"gt=0 & lte=65535"`
 	Password      string `yaml:"password,omitempty"`
 	UseHTTPS      bool   `yaml:"useHTTPS" default:"false"`
 	Insecure      bool   `yaml:"insecure" default:"false"`
 	UseNTLM       bool   `yaml:"useNTLM" default:"false"`
-	CACertPath    string `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
-	CertPath      string `yaml:"certPath,omitempty" validate:"omitempty,file"`
-	KeyPath       string `yaml:"keyPath,omitempty" validate:"omitempty,file"`
-	TLSServerName string `yaml:"tlsServerName,omitempty" validate:"omitempty,hostname|ip"`
+	CACertPath    string `yaml:"caCertPath,omitempty" validate:"empty=true | format=file"`
+	CertPath      string `yaml:"certPath,omitempty" validate:"empty=true | format=file"`
+	KeyPath       string `yaml:"keyPath,omitempty" validate:"empty=true | format=file"`
+	TLSServerName string `yaml:"tlsServerName,omitempty" validate:"empty=true | format=hostname | format=ip"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
