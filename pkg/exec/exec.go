@@ -125,7 +125,7 @@ func (o *Options) AddOutput(prefix, s string) {
 // AllowWinStderr exec option allows command to output to stderr without failing
 func AllowWinStderr() Option {
 	return func(o *Options) {
-		o.AllowWinStderr = false
+		o.AllowWinStderr = true
 	}
 }
 
