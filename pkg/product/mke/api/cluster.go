@@ -40,14 +40,18 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func (c *ClusterConfig) Validate() error {
 	validator := validator.New()
-	validator.RegisterStructValidation(requireManager, ClusterSpec{})
+	validator.RegisterStructValidation(roleChecks, ClusterSpec{})
 	return validator.Struct(c)
 }
 
-func requireManager(sl validator.StructLevel) {
-	hosts := sl.Current().Interface().(ClusterSpec).Hosts
+func roleChecks(sl validator.StructLevel) {
+	spec := sl.Current().Interface().(ClusterSpec)
+	hosts := spec.Hosts
 	if hosts.Count(func(h *Host) bool { return h.Role == "manager" }) == 0 {
 		sl.ReportError(hosts, "hosts", "", "manager required", "")
+	}
+	if spec.MSR != nil && hosts.Count(func(h *Host) bool { return h.Role == "msr" }) == 0 {
+		sl.ReportError(hosts, "hosts", "", "spec.msr configuration present but there are no hosts with role=msr", "")
 	}
 }
 
