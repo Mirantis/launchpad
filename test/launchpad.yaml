@@ -29,5 +29,7 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
+  msr:
+    version: 2.8.3 # no msr hosts, validate launchpad does not panic
   engine:
     version: $ENGINE_VERSION
