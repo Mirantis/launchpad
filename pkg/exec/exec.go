@@ -26,14 +26,15 @@ type Option func(*Options)
 
 // Options is a collection of exec options
 type Options struct {
-	Stdin        string
-	LogInfo      bool
-	LogDebug     bool
-	LogError     bool
-	LogCommand   bool
-	StreamOutput bool
-	RedactFunc   func(string) string
-	Output       *string
+	Stdin          string
+	AllowWinStderr bool
+	LogInfo        bool
+	LogDebug       bool
+	LogError       bool
+	LogCommand     bool
+	StreamOutput   bool
+	RedactFunc     func(string) string
+	Output         *string
 }
 
 // LogCmd is for logging the command to be executed
@@ -118,6 +119,13 @@ func (o *Options) AddOutput(prefix, s string) {
 			defer mutex.Unlock()
 		}
 		o.LogDebugf("%s: %s", prefix, o.Redact(s))
+	}
+}
+
+// AllowWinStderr exec option allows command to output to stderr without failing
+func AllowWinStderr() Option {
+	return func(o *Options) {
+		o.AllowWinStderr = false
 	}
 }
 

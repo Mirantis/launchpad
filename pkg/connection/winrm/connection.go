@@ -225,8 +225,8 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		log.Warnf("%s: %s", c, err.Error())
 	}
 
-	if command.ExitCode() > 0 || gotErrors {
-		return fmt.Errorf("command failed")
+	if command.ExitCode() > 0 || (!o.AllowWinStderr && gotErrors) {
+		return fmt.Errorf("command failed (received output to stderr on windows)")
 	}
 
 	return nil

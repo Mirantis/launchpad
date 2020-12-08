@@ -185,7 +185,7 @@ func (c *Connection) Exec(cmd string, opts ...exec.Option) error {
 		return err
 	}
 
-	if c.knowOs && c.isWindows && gotErrors {
+	if c.knowOs && c.isWindows && (!o.AllowWinStderr && gotErrors) {
 		return fmt.Errorf("command failed (received output to stderr on windows)")
 	}
 

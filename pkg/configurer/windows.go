@@ -190,7 +190,7 @@ func (c *WindowsConfigurer) CheckPrivilege() error {
 // AuthenticateDocker performs a docker login on the host
 func (c *WindowsConfigurer) AuthenticateDocker(user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	return c.Host.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.RedactString(user, pass))
+	return c.Host.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.RedactString(user, pass), exec.AllowWinStderr())
 }
 
 // WriteFile writes file to host with given contents. Do not use for large files.
