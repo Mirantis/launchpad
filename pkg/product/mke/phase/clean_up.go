@@ -5,9 +5,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
-// CleanUp phase implementation does all the prep work we need for the hosts
+// CleanUp phase is used by reset for performing post-uninstall cleanups
 type CleanUp struct {
-	phase.Analytics
 	phase.BasicPhase
 }
 

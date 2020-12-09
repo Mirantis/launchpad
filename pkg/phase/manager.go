@@ -1,25 +1,33 @@
 package phase
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
+type phase interface {
+	Run() error
+	Title() string
+	Prepare(interface{}) error
+	ShouldRun() bool
+	CleanUp()
+}
+
 // Manager executes phases to construct the cluster
 type Manager struct {
-	phases       []Phase
-	config       *api.ClusterConfig
+	phases       []phase
+	config       interface{}
 	IgnoreErrors bool
 	SkipCleanup  bool
 }
 
 // NewManager constructs new phase manager
-func NewManager(config *api.ClusterConfig) *Manager {
+func NewManager(config interface{}) *Manager {
 	phaseMgr := &Manager{
 		config: config,
 	}
@@ -28,62 +36,63 @@ func NewManager(config *api.ClusterConfig) *Manager {
 }
 
 // AddPhases add multiple phases to manager in one call
-func (m *Manager) AddPhases(phases ...Phase) {
+func (m *Manager) AddPhases(phases ...phase) {
 	m.phases = append(m.phases, phases...)
 }
 
 // AddPhase adds a Phase to Manager
-func (m *Manager) AddPhase(phase Phase) {
-	m.phases = append(m.phases, phase)
+func (m *Manager) AddPhase(p phase) {
+	m.phases = append(m.phases, p)
 }
 
 // Run executes all the added Phases in order
 func (m *Manager) Run() error {
-	for _, phase := range m.phases {
-		log.Debugf("preparing phase '%s'", phase.Title())
-		err := phase.Prepare(m.config)
+	for _, p := range m.phases {
+		log.Debugf("preparing phase '%s'", p.Title())
+		err := p.Prepare(m.config)
 		if err != nil {
 			return err
 		}
 
-		if !phase.ShouldRun() {
-			log.Debugf("skipping phase '%s'", phase.Title())
+		if !p.ShouldRun() {
+			log.Debugf("skipping phase '%s'", p.Title())
 			continue
 		}
 
 		text := aurora.Green("==> Running phase: %s").String()
-		log.Infof(text, phase.Title())
-		if p, ok := interface{}(phase).(Eventable); ok {
+		log.Infof(text, p.Title())
+		if e, ok := interface{}(p).(Eventable); ok {
 			start := time.Now()
+			r := reflect.ValueOf(m.config).Elem()
 			props := event.Properties{
-				"kind":        m.config.Kind,
-				"api_version": m.config.APIVersion,
+				"kind":        r.FieldByName("Kind").String(),
+				"api_version": r.FieldByName("APIVersion").String(),
 			}
 
-			err := phase.Run()
+			err := p.Run()
 
 			duration := time.Since(start)
 			props["duration"] = duration.Seconds()
-			for k, v := range p.GetEventProperties() {
+			for k, v := range e.GetEventProperties() {
 				props[k] = v
 			}
 			if err != nil {
 				props["success"] = false
-				analytics.TrackEvent(phase.Title(), props)
+				analytics.TrackEvent(p.Title(), props)
 				if !m.IgnoreErrors {
 					return err
 				}
 			}
 			props["success"] = true
-			analytics.TrackEvent(phase.Title(), props)
+			analytics.TrackEvent(p.Title(), props)
 
 		} else {
-			err := phase.Run()
+			err := p.Run()
 			if err != nil && !m.IgnoreErrors {
 				return err
 			}
 			if !m.SkipCleanup {
-				defer phase.CleanUp()
+				defer p.CleanUp()
 			}
 		}
 	}

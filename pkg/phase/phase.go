@@ -7,33 +7,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Phase interface
-type Phase interface {
-	Run() error
-	Title() string
-	Prepare(*api.ClusterConfig) error
-	ShouldRun() bool
-	CleanUp()
-}
-
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun
 type BasicPhase struct {
-	Phase
-
 	Config *api.ClusterConfig
 }
 
 // HostSelectPhase is a phase where hosts are collected before running to see if it's necessary to run the phase at all in ShouldRun
 type HostSelectPhase struct {
-	Phase
-
-	Config *api.ClusterConfig
-	Hosts  api.Hosts
+	BasicPhase
+	Hosts api.Hosts
 }
 
 // Prepare rceives the cluster config and stores it to the phase's config field
-func (p *BasicPhase) Prepare(config *api.ClusterConfig) error {
-	p.Config = config
+func (p *BasicPhase) Prepare(config interface{}) error {
+	p.Config = config.(*api.ClusterConfig)
 	return nil
 }
 
@@ -56,9 +43,9 @@ func (p *HostSelectPhase) Run() error {
 }
 
 // Prepare HostSelectPhase implementation which runs the supplied HostFilterFunc to populate the phase's hosts field
-func (p *HostSelectPhase) Prepare(config *api.ClusterConfig) error {
-	p.Config = config
-	hosts := config.Spec.Hosts.Filter(p.HostFilterFunc)
+func (p *HostSelectPhase) Prepare(config interface{}) error {
+	p.Config = config.(*api.ClusterConfig)
+	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
 	p.Hosts = hosts
 	return nil
 }

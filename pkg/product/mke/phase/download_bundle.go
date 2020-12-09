@@ -20,7 +20,6 @@ import (
 
 // DownloadBundle phase downloads the client bundle to local storage
 type DownloadBundle struct {
-	phase.Analytics
 	phase.BasicPhase
 }
 
