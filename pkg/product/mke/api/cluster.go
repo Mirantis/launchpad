@@ -50,9 +50,6 @@ func roleChecks(sl validator.StructLevel) {
 	if hosts.Count(func(h *Host) bool { return h.Role == "manager" }) == 0 {
 		sl.ReportError(hosts, "hosts", "", "manager required", "")
 	}
-	if spec.MSR != nil && hosts.Count(func(h *Host) bool { return h.Role == "msr" }) == 0 {
-		sl.ReportError(hosts, "hosts", "", "spec.msr configuration present but there are no hosts with role=msr", "")
-	}
 }
 
 // Init returns an example of configuration file contents

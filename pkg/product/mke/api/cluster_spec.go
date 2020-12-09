@@ -166,6 +166,11 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
+	if yc.MSR != nil && yc.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) == 0 {
+		yc.MSR = nil
+		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+	}
+
 	c.Engine.SetDefaults()
 
 	return nil
