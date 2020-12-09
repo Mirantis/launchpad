@@ -71,7 +71,7 @@ type Host struct {
 	PrivateInterface string             `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
 	DaemonConfig     common.GenericHash `yaml:"engineConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string  `yaml:"environment,flow,omitempty" default:"{}"`
-	Hooks            *common.Hooks      `yaml:"hooks,omitempty" default:"{}"`
+	Hooks            *common.Hooks      `yaml:"hooks,omitempty"`
 	ImageDir         string             `yaml:"imageDir,omitempty"`
 
 	WinRM     *common.WinRM `yaml:"winRM,omitempty"`

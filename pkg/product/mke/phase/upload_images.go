@@ -25,7 +25,7 @@ func (p *LoadImages) Title() string {
 	return "Upload images"
 }
 
-// HostFilterFunc returns true for hosts that have non-empty list of hooks returned by the StepListFunc
+// HostFilterFunc returns true for hosts that have images to be uploaded
 func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 	if h.ImageDir == "" {
 		return false
