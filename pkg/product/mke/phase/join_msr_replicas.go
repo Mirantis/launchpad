@@ -17,7 +17,7 @@ type JoinMSRReplicas struct {
 	phase.HostSelectPhase
 }
 
-// HostFilterFunc returns true for hosts that have non-empty list of hooks returned by the StepListFunc
+// HostFilterFunc returns true for hosts that don't have MSR configured
 func (p *JoinMSRReplicas) HostFilterFunc(h *api.Host) bool {
 	return h.MSRMetadata == nil || !h.MSRMetadata.Installed
 }

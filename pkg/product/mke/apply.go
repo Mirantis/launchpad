@@ -24,7 +24,12 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 		&mke.ValidateFacts{Force: force},
 		&mke.ValidateHosts{},
 		&mke.DownloadInstaller{},
-		&common.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.Before }},
+		&common.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string {
+			if h.Hooks == nil || h.Hooks.Apply == nil || h.Hooks.Apply.Before == nil {
+				return &[]string{}
+			}
+			return h.Hooks.Apply.Before
+		}},
 		&mke.PrepareHost{},
 		&mke.ConfigureEngine{},
 		&mke.InstallEngine{},
@@ -49,7 +54,12 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 
 		&mke.LabelNodes{},
 		&mke.RemoveNodes{},
-		&common.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Apply.After }},
+		&common.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string {
+			if h.Hooks == nil || h.Hooks.Apply == nil || h.Hooks.Apply.After == nil {
+				return &[]string{}
+			}
+			return h.Hooks.Apply.After
+		}},
 		&common.Disconnect{},
 		&mke.Info{},
 	)

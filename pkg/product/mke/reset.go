@@ -14,7 +14,12 @@ func (p *MKE) Reset() error {
 	phaseManager.AddPhases(
 		&common.Connect{},
 		&mke.GatherFacts{},
-		&common.RunHooks{Stage: "Before", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.Before }},
+		&common.RunHooks{Stage: "Before", Action: "Reset", StepListFunc: func(h *api.Host) *[]string {
+			if h.Hooks == nil || h.Hooks.Reset == nil || h.Hooks.Reset.Before == nil {
+				return &[]string{}
+			}
+			return h.Hooks.Reset.Before
+		}},
 
 		// begin MSR phases
 		&mke.UninstallMSR{},
@@ -24,7 +29,13 @@ func (p *MKE) Reset() error {
 		&mke.DownloadInstaller{},
 		&mke.UninstallEngine{},
 		&mke.CleanUp{},
-		&common.RunHooks{Stage: "After", Action: "Reset", StepListFunc: func(h *api.Host) *[]string { return h.Hooks.Reset.After }},
+		&common.RunHooks{Stage: "After", Action: "Reset", StepListFunc: func(h *api.Host) *[]string {
+			if h.Hooks == nil || h.Hooks.Reset == nil || h.Hooks.Reset.After == nil {
+				return &[]string{}
+			}
+
+			return h.Hooks.Reset.After
+		}},
 		&common.Disconnect{},
 	)
 
