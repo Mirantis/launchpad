@@ -28,7 +28,6 @@ func (p *Connect) Prepare(config interface{}) error {
 	r := reflect.ValueOf(config).Elem()
 	spec := r.FieldByName("Spec").Elem()
 	hosts := spec.FieldByName("Hosts")
-	log.Infof("%d", hosts.Len())
 	for i := 0; i < hosts.Len(); i++ {
 		h := hosts.Index(i).Interface().(connectable)
 		p.hosts = append(p.hosts, h)
