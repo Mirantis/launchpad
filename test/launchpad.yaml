@@ -13,6 +13,12 @@ spec:
       engineConfig: &engineCfg
         "insecure-registries":
           - 172.16.86.100:5000
+      hooks:
+        apply:
+          before:
+            - echo "hello" > test.txt
+          after:
+            - rm test.txt
     - address: "127.0.0.1"
       ssh:
         port: 9023

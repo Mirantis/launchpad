@@ -7,7 +7,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
@@ -24,12 +23,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 		&mke.ValidateFacts{Force: force},
 		&mke.ValidateHosts{},
 		&mke.DownloadInstaller{},
-		&common.RunHooks{Stage: "Before", Action: "Apply", StepListFunc: func(h *api.Host) *[]string {
-			if h.Hooks == nil || h.Hooks.Apply == nil || h.Hooks.Apply.Before == nil {
-				return &[]string{}
-			}
-			return h.Hooks.Apply.Before
-		}},
+		&common.RunHooks{Stage: "before", Action: "apply"},
 		&mke.PrepareHost{},
 		&mke.ConfigureEngine{},
 		&mke.InstallEngine{},
@@ -54,12 +48,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 
 		&mke.LabelNodes{},
 		&mke.RemoveNodes{},
-		&common.RunHooks{Stage: "After", Action: "Apply", StepListFunc: func(h *api.Host) *[]string {
-			if h.Hooks == nil || h.Hooks.Apply == nil || h.Hooks.Apply.After == nil {
-				return &[]string{}
-			}
-			return h.Hooks.Apply.After
-		}},
+		&common.RunHooks{Stage: "after", Action: "apply"},
 		&common.Disconnect{},
 		&mke.Info{},
 	)

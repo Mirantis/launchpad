@@ -2,48 +2,95 @@ package phase
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
+	"sync"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	log "github.com/sirupsen/logrus"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
+
+type execable interface {
+	String() string
+	ExecAll(cmds []string) error
+}
 
 // RunHooks phase runs a set of hooks configured for the host
 type RunHooks struct {
-	phase.Analytics
-	phase.HostSelectPhase
-	StepListFunc func(*api.Host) *[]string
-	Stage        string
-	Action       string
+	Action string
+	Stage  string
+
+	steps map[execable][]string
 }
 
-// HostFilterFunc returns true for hosts that have non-empty list of hooks returned by the StepListFunc
-func (p *RunHooks) HostFilterFunc(h *api.Host) bool {
-	steps := p.StepListFunc(h)
-	return len(*steps) > 0
-}
-
-// Prepare collects the hosts
+// Prepare digs out the hosts with steps from the config
 func (p *RunHooks) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
-	log.Debugf("collecting hosts for phase %s", p.Title())
-	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
-	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
-	p.Hosts = hosts
+	p.steps = make(map[execable][]string)
+	r := reflect.ValueOf(config).Elem()
+	spec := r.FieldByName("Spec").Elem()
+	hosts := spec.FieldByName("Hosts")
+	for i := 0; i < hosts.Len(); i++ {
+		h := hosts.Index(i)
+		hooksF := h.Elem().FieldByName("Hooks")
+		if hooksF.IsNil() {
+			continue
+		}
+		hooksI := hooksF.Interface().(common.Hooks)
+		if action := hooksI[p.Action]; action != nil {
+			if steps := action[p.Stage]; steps != nil {
+				he := h.Interface().(execable)
+				p.steps[he] = steps
+			}
+		}
+	}
+
 	return nil
 }
 
+// ShouldRun is true when there are hosts that need to be connected
+func (p *RunHooks) ShouldRun() bool {
+	return len(p.steps) > 0
+}
+
+// CleanUp does nothing
+func (p *RunHooks) CleanUp() {}
+
 // Title for the phase
 func (p *RunHooks) Title() string {
-	return fmt.Sprintf("Run %s %s Hooks", p.Stage, p.Action)
+	return fmt.Sprintf("Run %s %s Hooks", strings.Title(p.Stage), strings.Title(p.Action))
 }
 
 // Run does all the prep work on the hosts in parallel
 func (p *RunHooks) Run() error {
-	return p.Hosts.ParallelEach(func(h *api.Host) error {
-		if steps := p.StepListFunc(h); steps != nil {
-			return h.ExecAll(*steps)
+	var wg sync.WaitGroup
+	var errors []string
+	type erritem struct {
+		host string
+		err  error
+	}
+	ec := make(chan erritem, 1)
+
+	wg.Add(len(p.steps))
+
+	for h, steps := range p.steps {
+		go func(h execable, steps []string) {
+			ec <- erritem{h.String(), h.ExecAll(steps)}
+		}(h, steps)
+	}
+
+	go func() {
+		for e := range ec {
+			if e.err != nil {
+				errors = append(errors, fmt.Sprintf("%s: %s", e.host, e.err.Error()))
+			}
+			wg.Done()
 		}
-		return nil
-	})
+	}()
+
+	wg.Wait()
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed on %d hosts:\n - %s", len(errors), strings.Join(errors, "\n - "))
+	}
+
+	return nil
 }

@@ -3,7 +3,6 @@ package mke
 import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
 )
 
@@ -14,12 +13,7 @@ func (p *MKE) Reset() error {
 	phaseManager.AddPhases(
 		&common.Connect{},
 		&mke.GatherFacts{},
-		&common.RunHooks{Stage: "Before", Action: "Reset", StepListFunc: func(h *api.Host) *[]string {
-			if h.Hooks == nil || h.Hooks.Reset == nil || h.Hooks.Reset.Before == nil {
-				return &[]string{}
-			}
-			return h.Hooks.Reset.Before
-		}},
+		&common.RunHooks{Stage: "before", Action: "reset"},
 
 		// begin MSR phases
 		&mke.UninstallMSR{},
@@ -29,13 +23,7 @@ func (p *MKE) Reset() error {
 		&mke.DownloadInstaller{},
 		&mke.UninstallEngine{},
 		&mke.CleanUp{},
-		&common.RunHooks{Stage: "After", Action: "Reset", StepListFunc: func(h *api.Host) *[]string {
-			if h.Hooks == nil || h.Hooks.Reset == nil || h.Hooks.Reset.After == nil {
-				return &[]string{}
-			}
-
-			return h.Hooks.Reset.After
-		}},
+		&common.RunHooks{Stage: "after", Action: "reset"},
 		&common.Disconnect{},
 	)
 
