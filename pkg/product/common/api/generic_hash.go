@@ -52,3 +52,13 @@ func cleanUpMapValue(v interface{}) interface{} {
 		return fmt.Sprintf("%v", v)
 	}
 }
+
+// CleanUpGenericMap is a helper to "cleanup" generic yaml parsing where nested maps
+// are unmarshalled with type map[interface{}]interface{}
+func CleanUpGenericMap(in map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range in {
+		result[fmt.Sprintf("%v", k)] = cleanUpMapValue(v)
+	}
+	return result
+}

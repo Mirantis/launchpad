@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var reports = []string{"hosts", "mke", "msr", "config"}
+var reports = []string{"hosts", "mke", "msr", "config", "k0s"}
 
 func reportIsKnown(n string) bool {
 	for _, v := range reports {
@@ -71,7 +71,7 @@ func NewDescribeCommand() *cli.Command {
 				return err
 			}
 
-			err = product.Describe(ctx.Args().First())
+			err = product.Describe(report)
 
 			if err != nil {
 				analytics.TrackEvent("Cluster Describe Failed", nil)

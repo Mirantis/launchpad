@@ -25,6 +25,7 @@ import (
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
 	"github.com/Mirantis/mcc/pkg/product"
+	"github.com/Mirantis/mcc/pkg/product/k0s"
 	"github.com/Mirantis/mcc/pkg/product/mke"
 	log "github.com/sirupsen/logrus"
 )
@@ -72,7 +73,9 @@ func productFromYAML(data []byte) (product.Product, error) {
 
 	switch c["kind"].(string) {
 	case "mke", "mke+msr":
-		return mke.NewMKE(plain)
+		return mke.New(plain)
+	case "k0s":
+		return k0s.New(plain)
 	default:
 		return nil, fmt.Errorf("unknown configuration kind '%s'", c["kind"].(string))
 	}
@@ -83,6 +86,8 @@ func Init(kind string) (interface{}, error) {
 	switch kind {
 	case "mke", "mke+msr":
 		return mke.Init(kind), nil
+	case "k0s":
+		return k0s.Init(kind), nil
 	default:
 		return "", fmt.Errorf("unknown configuration kind '%s'", kind)
 	}
