@@ -1,14 +1,18 @@
 package configurer
 
 import (
+	"bufio"
 	"fmt"
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/exec"
 	ps "github.com/Mirantis/mcc/pkg/powershell"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hashicorp/go-version"
@@ -16,7 +20,7 @@ import (
 
 // WindowsConfigurer is a generic windows host configurer
 type WindowsConfigurer struct {
-	Host *api.Host
+	Host Host
 
 	PowerShellVersion *version.Version
 }
@@ -35,19 +39,19 @@ func (c *WindowsConfigurer) EngineConfigPath() string {
 	return `C:\ProgramData\Docker\config\daemon.json`
 }
 
-// InstallEngine install Docker EE engine on Windows
-func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
-	if c.Host.Metadata.EngineVersion == engineConfig.Version {
-		return nil
-	}
+type rebootable interface {
+	Reboot() error
+}
 
+// InstallEngine install Docker EE engine on Windows
+func (c *WindowsConfigurer) InstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
 	pwd, err := c.Host.ExecWithOutput("echo %cd%")
 	if err != nil {
 		return err
 	}
-	base := path.Base(c.Host.Metadata.EngineInstallScript)
+	base := path.Base(scriptPath)
 	installer := pwd + "\\" + base + ".ps1"
-	err = c.Host.WriteFileLarge(c.Host.Metadata.EngineInstallScript, installer)
+	err = c.Host.WriteFileLarge(scriptPath, installer)
 	if err != nil {
 		return err
 	}
@@ -65,7 +69,10 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 
 	if strings.Contains(output, "Your machine needs to be rebooted") {
 		log.Warnf("%s: host needs to be rebooted", c.Host)
-		return c.Host.Reboot()
+		if rh, ok := c.Host.(rebootable); ok {
+			return rh.Reboot()
+		}
+		return fmt.Errorf("%s: host can't be rebooted", c.Host)
 	}
 
 	return nil
@@ -74,16 +81,16 @@ func (c *WindowsConfigurer) InstallEngine(engineConfig *api.EngineConfig) error 
 // UninstallEngine uninstalls docker-ee engine
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
-func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) error {
+func (c *WindowsConfigurer) UninstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
 	err := c.Host.Exec(c.DockerCommandf("system prune --volumes --all -f"))
 	if err != nil {
 		return err
 	}
 
 	pwd := c.Pwd()
-	base := path.Base(c.Host.Metadata.EngineInstallScript)
+	base := path.Base(scriptPath)
 	uninstaller := pwd + "\\" + base + ".ps1"
-	err = c.Host.WriteFileLarge(c.Host.Metadata.EngineInstallScript, uninstaller)
+	err = c.Host.WriteFileLarge(scriptPath, uninstaller)
 	if err != nil {
 		return err
 	}
@@ -95,8 +102,17 @@ func (c *WindowsConfigurer) UninstallEngine(engineConfig *api.EngineConfig) erro
 
 // RestartEngine restarts Docker EE engine
 func (c *WindowsConfigurer) RestartEngine() error {
-	// TODO: handle restart
-	return nil
+	c.Host.Exec("net stop com.docker.service")
+	c.Host.Exec("net start com.docker.service")
+	return retry.Do(
+		func() error {
+			return c.Host.Exec(c.DockerCommandf("ps"))
+		},
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(10),
+	)
 }
 
 // ResolveHostname resolves hostname
@@ -118,17 +134,24 @@ func (c *WindowsConfigurer) ResolveLongHostname() string {
 }
 
 // ResolveInternalIP resolves internal ip from private interface
-func (c *WindowsConfigurer) ResolveInternalIP() (string, error) {
-	output, err := c.interfaceIP(c.Host.PrivateInterface)
+func (c *WindowsConfigurer) ResolveInternalIP(privateInterface, publicIP string) (string, error) {
+	output, err := c.interfaceIP(privateInterface)
 	if err != nil {
-		if !strings.HasPrefix(c.Host.PrivateInterface, "vEthernet") {
-			ve := fmt.Sprintf("vEthernet (%s)", c.Host.PrivateInterface)
-			log.Tracef("%s: trying %s as a private interface alias", c.Host.Address, ve)
+		if !strings.HasPrefix(privateInterface, "vEthernet") {
+			ve := fmt.Sprintf("vEthernet (%s)", privateInterface)
+			log.Tracef("%s: trying %s as a private interface alias", c.Host, ve)
 			return c.interfaceIP(ve)
 		}
+
 		return "", err
 	}
-	return output, nil
+	addr := strings.TrimSpace(output)
+	if addr != publicIP {
+		if util.IsValidAddress(addr) {
+			return addr, nil
+		}
+	}
+	return "", fmt.Errorf("couldn't find a valid private address for interface %s", privateInterface)
 }
 
 func (c *WindowsConfigurer) interfaceIP(iface string) (string, error) {
@@ -155,25 +178,28 @@ func (c *WindowsConfigurer) DockerCommandf(template string, args ...interface{})
 	return fmt.Sprintf("docker.exe %s", fmt.Sprintf(template, args...))
 }
 
-// ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
-func (c *WindowsConfigurer) ValidateFacts() error {
-	if !c.validateLocal("localhost") {
+// ValidateLocalhost returns an error if "localhost" is not local on the host
+func (c *WindowsConfigurer) ValidateLocalhost() error {
+	err := c.Host.Exec(ps.Cmd(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses('localhost'); Get-NetIPAddress -IPAddress $ips"`)))
+	if err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
 	}
-
-	if !c.validateLocal(c.Host.Metadata.InternalAddress) {
-		return fmt.Errorf("discovered private address %s does not seem to be a node local address. Make sure you've set correct 'privateInterface' for the host in config", c.Host.Metadata.InternalAddress)
-	}
-
 	return nil
 }
 
-func (c *WindowsConfigurer) validateLocal(address string) bool {
-	err := c.Host.Exec(ps.Cmd(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses(%s); Get-NetIPAddress -IPAddress $ips"`, ps.SingleQuote(address))))
+// LocalAddresses returns a list of local addresses
+func (c *WindowsConfigurer) LocalAddresses() ([]string, error) {
+	output, err := c.Host.ExecWithOutput(ps.Cmd(`(Get-NetIPAddress).IPV4Address`))
 	if err != nil {
-		log.Tracef("%s: not a node local address '%s': %s", c.Host.Address, address, err.Error())
+		return nil, err
 	}
-	return err == nil
+	var lines []string
+	// bufio used to split lines on windows
+	sc := bufio.NewScanner(strings.NewReader(output))
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+	}
+	return lines, nil
 }
 
 // CheckPrivilege returns an error if the user does not have admin access to the host
@@ -239,8 +265,8 @@ func (c *WindowsConfigurer) FileExist(path string) bool {
 }
 
 // UpdateEnvironment updates the hosts's environment variables
-func (c *WindowsConfigurer) UpdateEnvironment() error {
-	for k, v := range c.Host.Environment {
+func (c *WindowsConfigurer) UpdateEnvironment(env map[string]string) error {
+	for k, v := range env {
 		err := c.Host.Exec(fmt.Sprintf(`setx %s %s`, ps.DoubleQuote(k), ps.DoubleQuote(v)))
 		if err != nil {
 			return err
@@ -250,8 +276,8 @@ func (c *WindowsConfigurer) UpdateEnvironment() error {
 }
 
 // CleanupEnvironment removes environment variable configuration
-func (c *WindowsConfigurer) CleanupEnvironment() error {
-	for k := range c.Host.Environment {
+func (c *WindowsConfigurer) CleanupEnvironment(env map[string]string) error {
+	for k := range env {
 		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'User')"`, ps.SingleQuote(k)))
 		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')"`, ps.SingleQuote(k)))
 	}

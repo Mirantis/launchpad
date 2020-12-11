@@ -2,7 +2,8 @@ package ubuntu
 
 import (
 	"github.com/Mirantis/mcc/pkg/configurer"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/mcc/pkg/configurer/resolver"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
@@ -11,8 +12,8 @@ type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-// InstallBasePackages installs the needed base packages on Ubuntu
-func (c *Configurer) InstallBasePackages() error {
+// InstallMKEBasePackages installs the needed base packages on Ubuntu
+func (c *Configurer) InstallMKEBasePackages() error {
 	err := c.FixContainerizedHost()
 	if err != nil {
 		return err
@@ -21,7 +22,7 @@ func (c *Configurer) InstallBasePackages() error {
 }
 
 // UninstallEngine uninstalls docker-ee engine
-func (c *Configurer) UninstallEngine(engineConfig *api.EngineConfig) error {
+func (c *Configurer) UninstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
 	err := c.Host.Exec("sudo docker system prune -f")
 	if err != nil {
 		return err
@@ -37,11 +38,11 @@ func (c *Configurer) UninstallEngine(engineConfig *api.EngineConfig) error {
 	return c.Host.Exec("sudo apt-get remove -y docker-ee docker-ee-cli && sudo apt autoremove -y")
 }
 
-func resolveUbuntuConfigurer(h *api.Host) api.HostConfigurer {
-	if h.Metadata.Os.ID != "ubuntu" {
+func resolveUbuntuConfigurer(h configurer.Host, os *common.OsRelease) interface{} {
+	if os.ID != "ubuntu" {
 		return nil
 	}
-	switch h.Metadata.Os.Version {
+	switch os.Version {
 	case "18.04":
 		configurer := &BionicConfigurer{
 			Configurer: Configurer{
@@ -66,5 +67,5 @@ func resolveUbuntuConfigurer(h *api.Host) api.HostConfigurer {
 }
 
 func init() {
-	api.RegisterHostConfigurer(resolveUbuntuConfigurer)
+	resolver.RegisterHostConfigurer(resolveUbuntuConfigurer)
 }

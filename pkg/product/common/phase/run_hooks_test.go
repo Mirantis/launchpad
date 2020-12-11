@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Mirantis/mcc/pkg/exec"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +25,18 @@ type testhost struct {
 
 func (t *testhost) String() string {
 	return "foo"
+}
+
+func (t *testhost) Exec(cmd string, opts ...exec.Option) error {
+	return nil
+}
+
+func (t *testhost) ExecWithOutput(cmd string, opts ...exec.Option) (string, error) {
+	return "", nil
+}
+
+func (t *testhost) WriteFileLarge(src, dest string) error {
+	return nil
 }
 
 func (t *testhost) ExecAll(cmds []string) error {

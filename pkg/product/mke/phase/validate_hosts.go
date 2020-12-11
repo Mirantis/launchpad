@@ -11,6 +11,7 @@ import (
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/mcc/pkg/util"
 
 	"crypto/rand"
 
@@ -32,30 +33,26 @@ func (p *ValidateHosts) Title() string {
 func (p *ValidateHosts) Run() error {
 	if mcclog.Trace {
 		if err := p.validateHostConnection(); err != nil {
-			return p.formatErrors(p.Config)
+			return p.formatErrors()
 		}
 	}
 
-	if err := p.validateHostFacts(); err != nil {
-		return p.formatErrors(p.Config)
-	}
+	p.validateHostLocalAddresses()
+	p.validateHostnameUniqueness()
+	p.validateLocalhost()
 
-	if err := p.validateHostnameUniqueness(); err != nil {
-		return p.formatErrors(p.Config)
-	}
-
-	return p.formatErrors(p.Config)
+	return p.formatErrors()
 }
 
-func (p *ValidateHosts) formatErrors(conf *api.ClusterConfig) error {
-	errorHosts := conf.Spec.Hosts.Filter(func(h *api.Host) bool { return h.Errors.Count() > 0 })
+func (p *ValidateHosts) formatErrors() error {
+	errorHosts := p.Config.Spec.Hosts.Filter(func(h *api.Host) bool { return h.Errors.Count() > 0 })
 
 	if len(errorHosts) > 0 {
 		messages := errorHosts.MapString(func(h *api.Host) string {
 			return fmt.Sprintf("%s:\n%s\n", h, h.Errors.String())
 		})
 
-		return fmt.Errorf("%d of %d hosts failed validation:\n%s", len(errorHosts), len(conf.Spec.Hosts), strings.Join(messages, ""))
+		return fmt.Errorf("%d of %d hosts failed validation:\n%s", len(errorHosts), len(p.Config.Spec.Hosts), strings.Join(messages, "\n"))
 	}
 
 	return nil
@@ -115,18 +112,35 @@ func (p *ValidateHosts) validateHostConnection() error {
 	})
 }
 
-func (p *ValidateHosts) validateHostFacts() error {
-	return p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
-		log.Infof("%s: validating host facts", h)
-		if err := h.Configurer.ValidateFacts(); err != nil {
+func (p *ValidateHosts) validateLocalhost() {
+	p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+		if err := h.Configurer.ValidateLocalhost(); err != nil {
 			h.Errors.Add(err.Error())
-			return err
 		}
 		return nil
 	})
 }
 
-func (p *ValidateHosts) validateHostnameUniqueness() error {
+func (p *ValidateHosts) validateHostLocalAddresses() {
+	p.Config.Spec.Hosts.ParallelEach(p.validateHostLocalAddress)
+}
+
+func (p *ValidateHosts) validateHostLocalAddress(h *api.Host) error {
+	localAddresses, err := h.Configurer.LocalAddresses()
+	if err != nil {
+		h.Errors.Add(fmt.Sprintf("failed to find host local addresses: %s", err.Error()))
+		return err
+	}
+
+	if !util.StringSliceContains(localAddresses, h.Metadata.InternalAddress) {
+		h.Errors.Add(fmt.Sprintf("discovered private address %s does not seem to be a node local address (%s). Make sure you've set correct 'privateInterface' for the host in config", h.Metadata.InternalAddress, strings.Join(localAddresses, ",")))
+		return err
+	}
+
+	return nil
+}
+
+func (p *ValidateHosts) validateHostnameUniqueness() {
 	log.Infof("validating hostname uniqueness")
 	hostnames := make(map[string]api.Hosts)
 
@@ -144,6 +158,4 @@ func (p *ValidateHosts) validateHostnameUniqueness() error {
 			})
 		}
 	}
-
-	return p.formatErrors(p.Config)
 }

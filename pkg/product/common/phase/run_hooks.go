@@ -6,25 +6,21 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Mirantis/mcc/pkg/configurer"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
-
-type execable interface {
-	String() string
-	ExecAll(cmds []string) error
-}
 
 // RunHooks phase runs a set of hooks configured for the host
 type RunHooks struct {
 	Action string
 	Stage  string
 
-	steps map[execable][]string
+	steps map[configurer.Host][]string
 }
 
 // Prepare digs out the hosts with steps from the config
 func (p *RunHooks) Prepare(config interface{}) error {
-	p.steps = make(map[execable][]string)
+	p.steps = make(map[configurer.Host][]string)
 	r := reflect.ValueOf(config).Elem()
 	spec := r.FieldByName("Spec").Elem()
 	hosts := spec.FieldByName("Hosts")
@@ -37,7 +33,7 @@ func (p *RunHooks) Prepare(config interface{}) error {
 		hooksI := hooksF.Interface().(common.Hooks)
 		if action := hooksI[p.Action]; action != nil {
 			if steps := action[p.Stage]; steps != nil {
-				he := h.Interface().(execable)
+				he := h.Interface().(configurer.Host)
 				p.steps[he] = steps
 			}
 		}
@@ -72,7 +68,7 @@ func (p *RunHooks) Run() error {
 	wg.Add(len(p.steps))
 
 	for h, steps := range p.steps {
-		go func(h execable, steps []string) {
+		go func(h configurer.Host, steps []string) {
 			ec <- erritem{h.String(), h.ExecAll(steps)}
 		}(h, steps)
 	}

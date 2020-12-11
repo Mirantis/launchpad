@@ -27,7 +27,7 @@ func (p *CleanUp) Run() error {
 
 func (p *CleanUp) cleanupEnv(h *api.Host, c *api.ClusterConfig) error {
 	if len(h.Environment) > 0 {
-		return h.Configurer.CleanupEnvironment()
+		return h.Configurer.CleanupEnvironment(h.Environment)
 	}
 	return nil
 }

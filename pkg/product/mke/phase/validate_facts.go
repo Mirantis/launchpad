@@ -38,7 +38,7 @@ func (p *ValidateFacts) Run() error {
 		return nil
 	})
 
-	if err := p.validateMKEVersionJump(p.Config); err != nil {
+	if err := p.validateMKEVersionJump(); err != nil {
 		if p.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
@@ -46,7 +46,7 @@ func (p *ValidateFacts) Run() error {
 		}
 	}
 
-	if err := p.validateMSRVersionJump(p.Config); err != nil {
+	if err := p.validateMSRVersionJump(); err != nil {
 		if p.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
@@ -54,7 +54,7 @@ func (p *ValidateFacts) Run() error {
 		}
 	}
 
-	if err := p.validateDataPlane(p.Config); err != nil {
+	if err := p.validateDataPlane(); err != nil {
 		if p.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
 		} else {
@@ -75,13 +75,13 @@ func (p *ValidateFacts) populateSan() {
 }
 
 // validateMSRVersionJump validates MKE upgrade path
-func (p *ValidateFacts) validateMKEVersionJump(conf *api.ClusterConfig) error {
-	if conf.Spec.MKE.Metadata.Installed && conf.Spec.MKE.Metadata.InstalledVersion != "" {
-		installedMKE, err := version.NewVersion(conf.Spec.MKE.Metadata.InstalledVersion)
+func (p *ValidateFacts) validateMKEVersionJump() error {
+	if p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
+		installedMKE, err := version.NewVersion(p.Config.Spec.MKE.Metadata.InstalledVersion)
 		if err != nil {
 			return err
 		}
-		targetMKE, err := version.NewVersion(conf.Spec.MKE.Version)
+		targetMKE, err := version.NewVersion(p.Config.Spec.MKE.Version)
 		if err != nil {
 			return err
 		}
@@ -103,14 +103,14 @@ func (p *ValidateFacts) validateMKEVersionJump(conf *api.ClusterConfig) error {
 }
 
 // validateMSRVersionJump validates MSR upgrade path
-func (p *ValidateFacts) validateMSRVersionJump(conf *api.ClusterConfig) error {
-	msrLeader := conf.Spec.MSRLeader()
-	if conf.Spec.MSR != nil && msrLeader.MSRMetadata != nil && msrLeader.MSRMetadata.Installed && msrLeader.MSRMetadata.InstalledVersion != "" {
+func (p *ValidateFacts) validateMSRVersionJump() error {
+	msrLeader := p.Config.Spec.MSRLeader()
+	if p.Config.Spec.MSR != nil && msrLeader.MSRMetadata != nil && msrLeader.MSRMetadata.Installed && msrLeader.MSRMetadata.InstalledVersion != "" {
 		installedMSR, err := version.NewVersion(msrLeader.MSRMetadata.InstalledVersion)
 		if err != nil {
 			return err
 		}
-		targetMSR, err := version.NewVersion(conf.Spec.MSR.Version)
+		targetMSR, err := version.NewVersion(p.Config.Spec.MSR.Version)
 		if err != nil {
 			return err
 		}
@@ -132,15 +132,15 @@ func (p *ValidateFacts) validateMSRVersionJump(conf *api.ClusterConfig) error {
 }
 
 // validateDataPlane checks if the calico data plane would get changed (VXLAN <-> VPIP)
-func (p *ValidateFacts) validateDataPlane(conf *api.ClusterConfig) error {
+func (p *ValidateFacts) validateDataPlane() error {
 	log.Debug("validating data plane settings")
 
-	idx := conf.Spec.MKE.InstallFlags.Index("--calico-vxlan")
+	idx := p.Config.Spec.MKE.InstallFlags.Index("--calico-vxlan")
 	if idx < 0 {
 		return nil
 	}
 
-	val := conf.Spec.MKE.InstallFlags.GetValue("--calico-vxlan")
+	val := p.Config.Spec.MKE.InstallFlags.GetValue("--calico-vxlan")
 	var valB bool
 	if val == "" {
 		valB = true
@@ -154,20 +154,20 @@ func (p *ValidateFacts) validateDataPlane(conf *api.ClusterConfig) error {
 
 	// User has explicitly defined --calico-vxlan=false but there is a windows host in the config
 	if !valB {
-		if conf.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
+		if p.Config.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
 			return fmt.Errorf("calico IPIP can't be used on Windows")
 		}
 
 		log.Debug("no windows hosts found")
 	}
 
-	if !conf.Spec.MKE.Metadata.Installed {
+	if !p.Config.Spec.MKE.Metadata.Installed {
 		log.Debug("no existing MKE installation")
 		return nil
 	}
 
 	// User has explicitly defined --calico-vxlan=false but there is already a calico with vxlan
-	if conf.Spec.MKE.Metadata.VXLAN {
+	if p.Config.Spec.MKE.Metadata.VXLAN {
 		log.Debug("mke has been installed with calico + vxlan")
 		if !valB {
 			return fmt.Errorf("calico configured with VXLAN, can't automatically change to IPIP")

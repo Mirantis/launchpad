@@ -2,7 +2,7 @@ package enterpriselinux
 
 import (
 	"github.com/Mirantis/mcc/pkg/configurer"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -12,8 +12,8 @@ type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-// InstallBasePackages install all the needed base packages on the host
-func (c *Configurer) InstallBasePackages() error {
+// InstallMKEBasePackages install all the needed base packages on the host
+func (c *Configurer) InstallMKEBasePackages() error {
 	err := c.FixContainerizedHost()
 	if err != nil {
 		return err
@@ -23,7 +23,7 @@ func (c *Configurer) InstallBasePackages() error {
 }
 
 // UninstallEngine uninstalls docker-ee engine
-func (c *Configurer) UninstallEngine(engineConfig *api.EngineConfig) error {
+func (c *Configurer) UninstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
 	err := c.Host.Exec("sudo docker system prune -f")
 	if err != nil {
 		return err
@@ -40,7 +40,7 @@ func (c *Configurer) UninstallEngine(engineConfig *api.EngineConfig) error {
 }
 
 // InstallEngine install Docker EE engine on Linux
-func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
+func (c *Configurer) InstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
 	if c.Host.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
 		if c.Host.Exec("sudo yum install -q -y rh-amazon-rhui-client") == nil {
 			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", c.Host)
@@ -51,5 +51,5 @@ func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
 		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", c.Host)
 	}
 
-	return c.LinuxConfigurer.InstallEngine(engineConfig)
+	return c.LinuxConfigurer.InstallEngine(scriptPath, engineConfig)
 }

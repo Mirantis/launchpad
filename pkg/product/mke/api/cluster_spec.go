@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,11 +19,11 @@ type Cluster struct {
 
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
-	Hosts   Hosts        `yaml:"hosts" validate:"required,dive,min=1"`
-	MKE     MKEConfig    `yaml:"mke,omitempty"`
-	MSR     *MSRConfig   `yaml:"msr,omitempty"`
-	Engine  EngineConfig `yaml:"engine,omitempty"`
-	Cluster Cluster      `yaml:"cluster"`
+	Hosts   Hosts               `yaml:"hosts" validate:"required,dive,min=1"`
+	MKE     MKEConfig           `yaml:"mke,omitempty"`
+	MSR     *MSRConfig          `yaml:"msr,omitempty"`
+	Engine  common.EngineConfig `yaml:"engine,omitempty"`
+	Cluster Cluster             `yaml:"cluster"`
 }
 
 // Workers filters only the workers from the cluster config
@@ -159,7 +160,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type spec ClusterSpec
 	yc := (*spec)(c)
-	c.Engine = EngineConfig{}
+	c.Engine = common.EngineConfig{}
 	c.MKE = NewMKEConfig()
 
 	if err := unmarshal(yc); err != nil {

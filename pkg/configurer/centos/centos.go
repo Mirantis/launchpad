@@ -3,7 +3,8 @@ package centos
 import (
 	"github.com/Mirantis/mcc/pkg/configurer"
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/mcc/pkg/configurer/resolver"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // Configurer is the CentOS specific implementation of a host configurer
@@ -11,8 +12,8 @@ type Configurer struct {
 	enterpriselinux.Configurer
 }
 
-// InstallBasePackages install all the needed base packages on the host
-func (c *Configurer) InstallBasePackages() error {
+// InstallMKEBasePackages install all the needed base packages on the host
+func (c *Configurer) InstallMKEBasePackages() error {
 	err := c.FixContainerizedHost()
 	if err != nil {
 		return err
@@ -20,8 +21,8 @@ func (c *Configurer) InstallBasePackages() error {
 	return c.Host.Exec("sudo yum install -y curl socat iptables iputils gzip")
 }
 
-func resolveCentosConfigurer(h *api.Host) api.HostConfigurer {
-	if h.Metadata.Os.ID == "centos" {
+func resolveCentosConfigurer(h configurer.Host, os *common.OsRelease) interface{} {
+	if os.ID == "centos" {
 		return &Configurer{
 			Configurer: enterpriselinux.Configurer{
 				LinuxConfigurer: configurer.LinuxConfigurer{
@@ -35,5 +36,5 @@ func resolveCentosConfigurer(h *api.Host) api.HostConfigurer {
 }
 
 func init() {
-	api.RegisterHostConfigurer(resolveCentosConfigurer)
+	resolver.RegisterHostConfigurer(resolveCentosConfigurer)
 }

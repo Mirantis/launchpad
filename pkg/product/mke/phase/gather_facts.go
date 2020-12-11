@@ -142,7 +142,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		h.PrivateInterface = i
 	}
 
-	a, err := h.Configurer.ResolveInternalIP()
+	a, err := h.Configurer.ResolveInternalIP(h.PrivateInterface, h.Address)
 	if err != nil {
 		return fmt.Errorf("%s: failed to resolve internal address: %s", h, err.Error())
 	}

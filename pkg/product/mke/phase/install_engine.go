@@ -49,7 +49,7 @@ func (p *InstallEngine) installEngine(h *api.Host) error {
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: installing engine (%s)", h, p.Config.Spec.Engine.Version)
-			return h.Configurer.InstallEngine(&p.Config.Spec.Engine)
+			return h.Configurer.InstallEngine(h.Metadata.EngineInstallScript, p.Config.Spec.Engine)
 		},
 	)
 	if err != nil {

@@ -2,7 +2,8 @@ package windows
 
 import (
 	"github.com/Mirantis/mcc/pkg/configurer"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/mcc/pkg/configurer/resolver"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // Windows2019Configurer is a Windows 2019 configurer implementation.
@@ -10,16 +11,16 @@ type Windows2019Configurer struct {
 	configurer.WindowsConfigurer
 }
 
-// InstallBasePackages installs the needed base packages on Ubuntu
-func (c *Windows2019Configurer) InstallBasePackages() error {
+// InstallMKEBasePackages installs the needed base packages on Ubuntu
+func (c *Windows2019Configurer) InstallMKEBasePackages() error {
 	return nil
 }
 
-func resolveWindowsConfigurer(h *api.Host) api.HostConfigurer {
-	if h.Metadata.Os.ID != "windows-10.0.17763" {
+func resolveWindowsConfigurer(h configurer.Host, os *common.OsRelease) interface{} {
+	if os.ID != "windows-10.0.17763" {
 		return nil
 	}
-	switch h.Metadata.Os.Version {
+	switch os.Version {
 	case "10.0.17763":
 		configurer := &Windows2019Configurer{
 			WindowsConfigurer: configurer.WindowsConfigurer{
@@ -33,5 +34,5 @@ func resolveWindowsConfigurer(h *api.Host) api.HostConfigurer {
 }
 
 func init() {
-	api.RegisterHostConfigurer(resolveWindowsConfigurer)
+	resolver.RegisterHostConfigurer(resolveWindowsConfigurer)
 }
