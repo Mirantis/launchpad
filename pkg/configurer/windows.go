@@ -148,10 +148,14 @@ func (c *WindowsConfigurer) ResolveInternalIP(privateInterface, publicIP string)
 	addr := strings.TrimSpace(output)
 	if addr != publicIP {
 		if util.IsValidAddress(addr) {
+			log.Infof("%s: using %s as private IP", c.Host, addr)
 			return addr, nil
 		}
 	}
-	return "", fmt.Errorf("couldn't find a valid private address for interface %s", privateInterface)
+
+	log.Infof("%s: using %s as private IP", c.Host, publicIP)
+
+	return publicIP, nil
 }
 
 func (c *WindowsConfigurer) interfaceIP(iface string) (string, error) {

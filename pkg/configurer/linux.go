@@ -96,13 +96,16 @@ func (c *LinuxConfigurer) ResolveInternalIP(privateInterface, publicIP string) (
 		}
 		addr := items[3][:strings.Index(items[3], "/")]
 		if addr != publicIP {
+			log.Infof("%s: using %s as private IP", c.Host, addr)
 			if util.IsValidAddress(addr) {
 				return addr, nil
 			}
 		}
 	}
 
-	return "", fmt.Errorf("couldn't find a valid private address for interface %s", privateInterface)
+	log.Infof("%s: using %s as private IP", c.Host, publicIP)
+
+	return publicIP, nil
 }
 
 // IsContainerized checks if host is actually a container
