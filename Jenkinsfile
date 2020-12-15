@@ -197,15 +197,15 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MKE3.3.4-rc2 MSR2.8 ENG19.03.13 from private repos") {
+            stage("Upgrade MKE3.3.5-054980c MSR2.8.5-0a43eee0 ENG19.03.13 from private repos") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
-                MKE_VERSION = "3.3.4-rc2"
+                MKE_VERSION = "3.3.5-054980c"
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
-                MSR_VERSION = "2.8.3-73b55aac"
+                MSR_VERSION = "2.8.5-0a43eee0"
                 ENGINE_VERSION = "19.03.13"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
