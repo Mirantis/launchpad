@@ -29,6 +29,15 @@ func (p *ValidateFacts) Run() error {
 		p.populateSan()
 	}
 
+	p.Config.Spec.Hosts.Each(func(h *api.Host) error {
+		if h.Configurer != nil && h.Configurer.SELinuxEnabled() {
+			h.DaemonConfig["selinux-enabled"] = true
+			log.Infof("%s: adding 'selinux-enabled=true' to host engine config", h)
+		}
+
+		return nil
+	})
+
 	if err := p.validateMKEVersionJump(p.Config); err != nil {
 		if p.Force {
 			log.Warnf("%s - continuing anyway because --force given", err.Error())
