@@ -46,6 +46,7 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
+      - --force-recent-backup
   engine:
     version: $ENGINE_VERSION
   msr:
