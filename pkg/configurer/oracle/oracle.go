@@ -6,7 +6,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
-// Configurer is the CentOS specific implementation of a host configurer
+// Configurer is the Oracle Linux  specific implementation of a host configurer
 type Configurer struct {
 	enterpriselinux.Configurer
 }
