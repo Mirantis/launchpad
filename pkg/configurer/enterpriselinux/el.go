@@ -41,10 +41,6 @@ func (c *Configurer) UninstallEngine(engineConfig *api.EngineConfig) error {
 
 // InstallEngine install Docker EE engine on Linux
 func (c *Configurer) InstallEngine(engineConfig *api.EngineConfig) error {
-	if c.SELinuxEnabled() {
-		c.Host.DaemonConfig["selinux-enabled"] = true
-	}
-
 	if c.Host.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
 		if c.Host.Exec("sudo yum install -q -y rh-amazon-rhui-client") == nil {
 			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", c.Host)
