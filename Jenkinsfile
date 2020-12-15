@@ -128,7 +128,7 @@ pipeline {
             }
           }
         }
-        stage("MKE3.3.3 VXLAN switch") {
+        stage("MKE3.3.4 VXLAN switch") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -181,12 +181,12 @@ pipeline {
             }
           }
           stages {
-            stage("Install MKE3.3.3 MSR2.7 ENG19.03.8") {
+            stage("Install MKE3.3.4 MSR2.7 ENG19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
-                MKE_VERSION = "3.3.3"
+                MKE_VERSION = "3.3.4"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
@@ -197,7 +197,7 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MKE3.3.4-rc2 MSR2.8 ENG19.03.12 from private repos") {
+            stage("Upgrade MKE3.3.4-rc2 MSR2.8 ENG19.03.13 from private repos") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
@@ -206,7 +206,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.8.3-73b55aac"
-                ENGINE_VERSION = "19.03.12"
+                ENGINE_VERSION = "19.03.13"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
@@ -244,16 +244,16 @@ pipeline {
                 sh "make smoke-apply-local-repo-test"
               }
             }
-            stage("Upgrade MKE3.3 MSR2.8 ENG19.03.12") {
+            stage("Upgrade MKE3.3 MSR2.8 ENG19.03.13") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
-                MKE_VERSION = "3.3.3"
+                MKE_VERSION = "3.3.4"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.8.3"
-                ENGINE_VERSION = "19.03.12"
+                MSR_VERSION = "2.8.4"
+                ENGINE_VERSION = "19.03.13"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
