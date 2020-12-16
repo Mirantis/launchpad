@@ -30,7 +30,7 @@ func (p *UninstallEngine) uninstallEngine(h *api.Host, c *api.ClusterConfig) err
 		return nil
 	}
 	log.Infof("%s: uninstalling engine", h)
-	err = h.Configurer.UninstallEngine(&c.Spec.Engine)
+	err = h.Configurer.UninstallEngine(h.Metadata.EngineInstallScript, c.Spec.Engine)
 	if err == nil {
 		log.Infof("%s: engine uninstalled", h)
 	}

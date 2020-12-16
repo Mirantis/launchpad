@@ -10,7 +10,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/util"
 
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	log "github.com/sirupsen/logrus"
 
 	escape "github.com/alessio/shellescape"
@@ -18,7 +18,7 @@ import (
 
 // LinuxConfigurer is a generic linux host configurer
 type LinuxConfigurer struct {
-	Host *api.Host
+	Host Host
 }
 
 // SbinPath is for adding sbin directories to current $PATH
@@ -30,14 +30,11 @@ func (c *LinuxConfigurer) EngineConfigPath() string {
 }
 
 // InstallEngine install Docker EE engine on Linux
-func (c *LinuxConfigurer) InstallEngine(engineConfig *api.EngineConfig) error {
-	if c.Host.Metadata.EngineVersion == engineConfig.Version {
-		return nil
-	}
+func (c *LinuxConfigurer) InstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
 	pwd := c.Pwd()
-	base := path.Base(c.Host.Metadata.EngineInstallScript)
+	base := path.Base(scriptPath)
 	installer := pwd + "/" + base
-	err := c.Host.WriteFileLarge(c.Host.Metadata.EngineInstallScript, installer)
+	err := c.Host.WriteFileLarge(scriptPath, installer)
 	if err != nil {
 		log.Errorf("failed: %s", err.Error())
 		return err
@@ -84,34 +81,31 @@ func (c *LinuxConfigurer) ResolveLongHostname() string {
 }
 
 // ResolveInternalIP resolves internal ip from private interface
-func (c *LinuxConfigurer) ResolveInternalIP() (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, c.Host.PrivateInterface))
+func (c *LinuxConfigurer) ResolveInternalIP(privateInterface, publicIP string) (string, error) {
+	output, err := c.Host.ExecWithOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, privateInterface))
 	if err != nil {
-		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", c.Host.PrivateInterface, output)
+		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", privateInterface, output)
 	}
-	return c.ParseInternalIPFromIPOutput(output)
-}
 
-// ParseInternalIPFromIPOutput parses internal ip from ip command output
-func (c *LinuxConfigurer) ParseInternalIPFromIPOutput(output string) (string, error) {
-	lines := strings.Split(output, "\r\n")
+	lines := strings.Split(output, "\n")
 	for _, line := range lines {
 		items := strings.Fields(line)
 		if len(items) < 4 {
 			log.Debugf("not enough items in ip address line (%s), skipping...", items)
 			continue
 		}
-		addrItems := strings.Split(items[3], "/")
-		if addrItems[0] != c.Host.Address {
-			if util.IsValidAddress(addrItems[0]) {
-				return addrItems[0], nil
+		addr := items[3][:strings.Index(items[3], "/")]
+		if addr != publicIP {
+			log.Infof("%s: using %s as private IP", c.Host, addr)
+			if util.IsValidAddress(addr) {
+				return addr, nil
 			}
-
-			return "", fmt.Errorf("found address %s for interface %s but it does not seem to be valid address", addrItems[0], c.Host.PrivateInterface)
 		}
 	}
-	// FIXME If we get this far should we just bail out with error!?!?
-	return c.Host.Address, nil
+
+	log.Infof("%s: using %s as private IP", c.Host, publicIP)
+
+	return publicIP, nil
 }
 
 // IsContainerized checks if host is actually a container
@@ -137,22 +131,11 @@ func (c *LinuxConfigurer) DockerCommandf(template string, args ...interface{}) s
 	return fmt.Sprintf("sudo docker %s", fmt.Sprintf(template, args...))
 }
 
-// ValidateFacts validates all the collected facts so we're sure we can proceed with the installation
-func (c *LinuxConfigurer) ValidateFacts() error {
-	err := c.Host.Exec("sudo ping -c 1 -w 1 -r localhost")
-	if err != nil {
+// ValidateLocalhost returns an error if "localhost" is not a local address
+func (c *LinuxConfigurer) ValidateLocalhost() error {
+	if err := c.Host.Exec("ping -c 1 -w 1 -r localhost"); err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
 	}
-
-	localAddresses, err := c.getHostLocalAddresses()
-	if err != nil {
-		return fmt.Errorf("failed to find host local addresses: %w", err)
-	}
-
-	if !util.StringSliceContains(localAddresses, c.Host.Metadata.InternalAddress) {
-		return fmt.Errorf("discovered private address %s does not seem to be a node local address (%s). Make sure you've set correct 'privateInterface' for the host in config", c.Host.Metadata.InternalAddress, strings.Join(localAddresses, ","))
-	}
-
 	return nil
 }
 
@@ -174,7 +157,8 @@ func (c *LinuxConfigurer) SELinuxEnabled() bool {
 	return strings.ToLower(strings.TrimSpace(output)) == "enforcing"
 }
 
-func (c *LinuxConfigurer) getHostLocalAddresses() ([]string, error) {
+// LocalAddresses returns a list of local addresses
+func (c *LinuxConfigurer) LocalAddresses() ([]string, error) {
 	output, err := c.Host.ExecWithOutput("sudo hostname --all-ip-addresses")
 	if err != nil {
 		return nil, err
@@ -240,8 +224,8 @@ func (c *LinuxConfigurer) LineIntoFile(path, matcher, newLine string) error {
 }
 
 // UpdateEnvironment updates the hosts's environment variables
-func (c *LinuxConfigurer) UpdateEnvironment() error {
-	for k, v := range c.Host.Environment {
+func (c *LinuxConfigurer) UpdateEnvironment(env map[string]string) error {
+	for k, v := range env {
 		err := c.LineIntoFile("/etc/environment", fmt.Sprintf("^%s=", k), fmt.Sprintf("%s=%s", k, v))
 		if err != nil {
 			return err
@@ -254,12 +238,12 @@ func (c *LinuxConfigurer) UpdateEnvironment() error {
 		return err
 	}
 
-	return c.ConfigureDockerProxy()
+	return c.ConfigureDockerProxy(env)
 }
 
 // CleanupEnvironment removes environment variable configuration
-func (c *LinuxConfigurer) CleanupEnvironment() error {
-	for k := range c.Host.Environment {
+func (c *LinuxConfigurer) CleanupEnvironment(env map[string]string) error {
+	for k := range env {
 		err := c.LineIntoFile("/etc/environment", fmt.Sprintf("^%s=", k), "")
 		if err != nil {
 			return err
@@ -270,10 +254,10 @@ func (c *LinuxConfigurer) CleanupEnvironment() error {
 }
 
 // ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables
-func (c *LinuxConfigurer) ConfigureDockerProxy() error {
+func (c *LinuxConfigurer) ConfigureDockerProxy(env map[string]string) error {
 	proxyenvs := make(map[string]string)
 
-	for k, v := range c.Host.Environment {
+	for k, v := range env {
 		if !strings.HasSuffix(k, "_PROXY") && !strings.HasSuffix(k, "_proxy") {
 			continue
 		}

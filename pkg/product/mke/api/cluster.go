@@ -61,7 +61,7 @@ func Init(kind string) *ClusterConfig {
 			Name: "my-mke-cluster",
 		},
 		Spec: &ClusterSpec{
-			Engine: EngineConfig{
+			Engine: common.EngineConfig{
 				Version: constant.EngineVersion,
 			},
 			MKE: MKEConfig{

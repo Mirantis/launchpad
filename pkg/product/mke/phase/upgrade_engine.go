@@ -137,7 +137,7 @@ func (p *UpgradeEngine) upgradeEngine(h *api.Host) error {
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: upgrading engine (%s -> %s)", h, h.Metadata.EngineVersion, p.Config.Spec.Engine.Version)
-			return h.Configurer.InstallEngine(&p.Config.Spec.Engine)
+			return h.Configurer.InstallEngine(h.Metadata.EngineInstallScript, p.Config.Spec.Engine)
 		},
 	)
 	if err != nil {

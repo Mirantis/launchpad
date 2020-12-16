@@ -6,7 +6,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	de "github.com/Mirantis/mcc/pkg/product/mke/phase"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -22,8 +21,6 @@ func (p *MKE) Describe(reportName string) error {
 	if reportName == "mke" {
 		mke = true
 	}
-
-	log.Debugf("loaded cluster cfg: %+v", p.ClusterConfig)
 
 	if reportName == "config" {
 		encoder := yaml.NewEncoder(os.Stdout)

@@ -2,6 +2,9 @@ package api
 
 import (
 	"fmt"
+
+	"github.com/Mirantis/mcc/pkg/configurer/resolver"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
@@ -11,19 +14,20 @@ type HostConfigurer interface {
 	ResolveHostname() string
 	ResolveLongHostname() string
 	ResolvePrivateInterface() (string, error)
-	ResolveInternalIP() (string, error)
+	ResolveInternalIP(string, string) (string, error)
 	IsContainerized() bool
 	SELinuxEnabled() bool
-	InstallBasePackages() error
-	UpdateEnvironment() error
-	CleanupEnvironment() error
+	InstallMKEBasePackages() error
+	UpdateEnvironment(map[string]string) error
+	CleanupEnvironment(map[string]string) error
 	EngineConfigPath() string
-	InstallEngine(engineConfig *EngineConfig) error
-	UninstallEngine(engineConfig *EngineConfig) error
+	InstallEngine(string, common.EngineConfig) error
+	UninstallEngine(string, common.EngineConfig) error
 	DockerCommandf(template string, args ...interface{}) string
 	RestartEngine() error
-	ValidateFacts() error
 	AuthenticateDocker(user, pass, repo string) error
+	LocalAddresses() ([]string, error)
+	ValidateLocalhost() error
 	WriteFile(path, content, permissions string) error
 	ReadFile(path string) (string, error)
 	DeleteFile(path string) error
@@ -34,32 +38,15 @@ type HostConfigurer interface {
 	RebootCommand() string
 }
 
-// HostConfigurerBuilder defines the builder function signature
-type HostConfigurerBuilder func(h *Host) HostConfigurer
-
-var hostConfigurers []HostConfigurerBuilder
-
-// RegisterHostConfigurer registers a known host OS specific configurer builder
-func RegisterHostConfigurer(adapter HostConfigurerBuilder) {
-	hostConfigurers = append(hostConfigurers, adapter)
-}
-
-// GetHostConfigurers gives out all the registered configurer builders
-func GetHostConfigurers() []HostConfigurerBuilder {
-	return hostConfigurers
-}
-
-// ResolveHostConfigurer resolves a configurer for a host
+// ResolveHostConfigurer will resolve and cast a configurer for the MKE configurer interface
 func ResolveHostConfigurer(h *Host) error {
-	configurers := GetHostConfigurers()
-	for _, resolver := range configurers {
-		configurer := resolver(h)
-		if configurer != nil {
-			h.Configurer = configurer
-		}
+	if h.Metadata == nil || h.Metadata.Os == nil {
+		return fmt.Errorf("%s: OS not known", h)
 	}
-	if h.Configurer == nil {
-		return fmt.Errorf("%s: has unsupported OS (%s)", h, h.Metadata.Os.Name)
+	r, err := resolver.ResolveHostConfigurer(h, h.Metadata.Os)
+	if err != nil {
+		return err
 	}
+	h.Configurer = r.(HostConfigurer)
 	return nil
 }

@@ -46,7 +46,7 @@ func (p *PrepareHost) installBasePackages(h *api.Host, c *api.ClusterConfig) err
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: installing base packages", h)
-			err := h.Configurer.InstallBasePackages()
+			err := h.Configurer.InstallMKEBasePackages()
 
 			return err
 		},
@@ -63,7 +63,7 @@ func (p *PrepareHost) installBasePackages(h *api.Host, c *api.ClusterConfig) err
 func (p *PrepareHost) updateEnvironment(h *api.Host, c *api.ClusterConfig) error {
 	if len(h.Environment) > 0 {
 		log.Infof("%s: updating environment", h)
-		return h.Configurer.UpdateEnvironment()
+		return h.Configurer.UpdateEnvironment(h.Environment)
 	}
 
 	log.Debugf("%s: no environment variables specified for the host", h)
