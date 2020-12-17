@@ -20,6 +20,8 @@ import (
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
 	// needed to load the build func in package init
+	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
+	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	"github.com/cobaugh/osrelease"
 	log "github.com/sirupsen/logrus"
