@@ -14,6 +14,8 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
 	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v2"
@@ -245,7 +247,7 @@ func TestMigrateFromV1Beta1(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1beta1
 kind: mke
 spec:
-  mcr:
+  engine:
     installURL: http://example.com/
   hosts:
   - address: "1.2.3.4"
@@ -272,7 +274,7 @@ func TestMigrateFromV1Beta2(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1beta2
 kind: mke
 spec:
-  mcr:
+  engine:
     installURL: http://example.com/
   hosts:
   - address: "1.2.3.4"
@@ -294,7 +296,7 @@ func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1beta1
 kind: mke
 spec:
-  mcr:
+  engine:
     version: 1.2.3
   hosts:
   - address: "1.2.3.4"
@@ -302,9 +304,6 @@ spec:
     sshKeyPath: /path/to/nonexisting
     user: foofoo
     role: manager
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
@@ -327,9 +326,6 @@ spec:
       role: manager
       winRM:
         caCertPath: /path/to/nonexisting
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -348,9 +344,6 @@ spec:
       role: manager
       winRM:
         certPath: /path/to/nonexisting
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -369,9 +362,6 @@ spec:
       role: manager
       winRM:
         keyPath: /path/to/nonexisting
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -388,9 +378,6 @@ spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -409,9 +396,6 @@ spec:
       role: manager
       winRM:
         user: User
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -436,9 +420,6 @@ spec:
       role: weirdrole
     - address: "1.2.3.5"
       role: manager
-  mke:
-    username: foofoo
-    password: barbar
 `
 		c := loadYaml(t, data)
 		require.Error(t, c.Validate())
@@ -458,9 +439,6 @@ spec:
       role: manager
       winRM:
         user: User
-  mke:
-    username: foofoo
-    password: barbar
 `
 		c := loadYaml(t, data)
 		require.NoError(t, c.Validate())
