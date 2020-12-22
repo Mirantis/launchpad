@@ -20,15 +20,15 @@ import (
 
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
-	Hostname              string
-	LongHostname          string
-	InternalAddress       string
-	EngineVersion         string
-	EngineInstallScript   string
-	EngineRestartRequired bool
-	Os                    *common.OsRelease
-	ImagesToUpload        []string
-	TotalImageBytes       uint64
+	Hostname           string
+	LongHostname       string
+	InternalAddress    string
+	MCRVersion         string
+	MCRInstallScript   string
+	MCRRestartRequired bool
+	Os                 *common.OsRelease
+	ImagesToUpload     []string
+	TotalImageBytes    uint64
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
@@ -69,7 +69,7 @@ type Host struct {
 	Address          string             `yaml:"address" validate:"required,hostname|ip"`
 	Role             string             `yaml:"role" validate:"oneof=manager worker msr"`
 	PrivateInterface string             `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
-	DaemonConfig     common.GenericHash `yaml:"engineConfig,flow,omitempty" default:"{}"`
+	DaemonConfig     common.GenericHash `yaml:"mcrConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string  `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            common.Hooks       `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
 	ImageDir         string             `yaml:"imageDir,omitempty"`
@@ -252,11 +252,11 @@ func (h *Host) IsWindows() bool {
 	return strings.HasPrefix(h.Metadata.Os.ID, "windows-")
 }
 
-// EngineVersion returns the current engine version installed on the host
-func (h *Host) EngineVersion() (string, error) {
+// MCRVersion returns the current engine version installed on the host
+func (h *Host) MCRVersion() (string, error) {
 	version, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
-		return "", fmt.Errorf("failed to get docker engine version: %s", err.Error())
+		return "", fmt.Errorf("failed to get container runtime version: %s", err.Error())
 	}
 
 	return version, nil
@@ -337,8 +337,8 @@ func (h *Host) Reboot() error {
 	return nil
 }
 
-// ConfigureEngine writes the docker engine daemon.json and toggles the host Metadata EngineRestartRequired flag if changed
-func (h *Host) ConfigureEngine() error {
+// ConfigureMCR writes the docker engine daemon.json and toggles the host Metadata MCRRestartRequired flag if changed
+func (h *Host) ConfigureMCR() error {
 	if len(h.DaemonConfig) > 0 {
 		daemonJSONData, err := json.Marshal(h.DaemonConfig)
 		if err != nil {
@@ -346,7 +346,7 @@ func (h *Host) ConfigureEngine() error {
 		}
 		daemonJSON := string(daemonJSONData)
 
-		cfg := h.Configurer.EngineConfigPath()
+		cfg := h.Configurer.MCRConfigPath()
 		oldConfig := ""
 		if h.Configurer.FileExist(cfg) {
 			f, err := h.Configurer.ReadFile(cfg)
@@ -365,8 +365,8 @@ func (h *Host) ConfigureEngine() error {
 		if err := h.Configurer.WriteFile(cfg, daemonJSON, "0700"); err != nil {
 			return err
 		}
-		if h.Metadata.EngineVersion != "" && oldConfig != daemonJSON {
-			h.Metadata.EngineRestartRequired = true
+		if h.Metadata.MCRVersion != "" && oldConfig != daemonJSON {
+			h.Metadata.MCRRestartRequired = true
 		}
 	}
 	return nil

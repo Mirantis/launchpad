@@ -15,19 +15,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UpgradeEngine phase implementation
-type UpgradeEngine struct {
+// UpgradeMCR phase implementation
+type UpgradeMCR struct {
 	phase.Analytics
 	phase.HostSelectPhase
 }
 
 // HostFilterFunc returns true for hosts that do not have engine installed
-func (p *UpgradeEngine) HostFilterFunc(h *api.Host) bool {
-	return h.Metadata.EngineVersion != p.Config.Spec.Engine.Version
+func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
+	return h.Metadata.MCRVersion != p.Config.Spec.MCR.Version
 }
 
 // Prepare collects the hosts
-func (p *UpgradeEngine) Prepare(config interface{}) error {
+func (p *UpgradeMCR) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 	log.Debugf("collecting hosts for phase %s", p.Title())
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
@@ -37,21 +37,21 @@ func (p *UpgradeEngine) Prepare(config interface{}) error {
 }
 
 // Title for the phase
-func (p *UpgradeEngine) Title() string {
-	return "Upgrade Docker EE Engine on the hosts"
+func (p *UpgradeMCR) Title() string {
+	return "Upgrade Mirntis Container Runtime on the hosts"
 }
 
 // Run installs the engine on each host
-func (p *UpgradeEngine) Run() error {
+func (p *UpgradeMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
-		"engine_version": p.Config.Spec.Engine.Version,
+		"engine_version": p.Config.Spec.MCR.Version,
 	}
-	return p.upgradeEngines()
+	return p.upgradeMCRs()
 }
 
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
 // TODO: should we drain?
-func (p *UpgradeEngine) upgradeEngines() error {
+func (p *UpgradeMCR) upgradeMCRs() error {
 	var managers api.Hosts
 	var workers api.Hosts
 	var msrs api.Hosts
@@ -70,7 +70,7 @@ func (p *UpgradeEngine) upgradeEngines() error {
 
 	// Upgrade managers individually
 	for _, h := range managers {
-		err := p.upgradeEngine(h)
+		err := p.upgradeMCR(h)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ func (p *UpgradeEngine) upgradeEngines() error {
 
 	// Upgrade MSR hosts individually
 	for _, h := range msrs {
-		err := p.upgradeEngine(h)
+		err := p.upgradeMCR(h)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func (p *UpgradeEngine) upgradeEngines() error {
 	for _, w := range workers {
 		h := w
 		wp.Submit(func() {
-			err := p.upgradeEngine(h)
+			err := p.upgradeMCR(h)
 			if err != nil {
 				mu.Lock()
 				installErrors.Errors = append(installErrors.Errors, err)
@@ -133,48 +133,48 @@ func (p *UpgradeEngine) upgradeEngines() error {
 	return nil
 }
 
-func (p *UpgradeEngine) upgradeEngine(h *api.Host) error {
+func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: upgrading engine (%s -> %s)", h, h.Metadata.EngineVersion, p.Config.Spec.Engine.Version)
-			return h.Configurer.InstallEngine(h.Metadata.EngineInstallScript, p.Config.Spec.Engine)
+			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
+			return h.Configurer.InstallMCR(h.Metadata.MCRInstallScript, p.Config.Spec.MCR)
 		},
 	)
 	if err != nil {
-		log.Errorf("%s: failed to update engine -> %s", h, err.Error())
+		log.Errorf("%s: failed to update container runtime -> %s", h, err.Error())
 		return err
 	}
 
-	// TODO: This excercise is duplicated in InstallEngine, maybe
+	// TODO: This excercise is duplicated in InstallMCR, maybe
 	// combine into some kind of "EnsureVersion"
-	currentVersion, err := h.EngineVersion()
+	currentVersion, err := h.MCRVersion()
 	if err != nil {
 		if err := h.Reboot(); err != nil {
 			return err
 		}
-		currentVersion, err = h.EngineVersion()
+		currentVersion, err = h.MCRVersion()
 		if err != nil {
-			return fmt.Errorf("%s: failed to query engine version after installation: %s", h, err.Error())
+			return fmt.Errorf("%s: failed to query container runtime version after installation: %s", h, err.Error())
 		}
 	}
 
-	if currentVersion != p.Config.Spec.Engine.Version {
-		err = h.Configurer.RestartEngine()
+	if currentVersion != p.Config.Spec.MCR.Version {
+		err = h.Configurer.RestartMCR()
 		if err != nil {
-			return fmt.Errorf("%s: failed to restart engine", h)
+			return fmt.Errorf("%s: failed to restart container runtime", h)
 		}
-		currentVersion, err = h.EngineVersion()
+		currentVersion, err = h.MCRVersion()
 		if err != nil {
-			return fmt.Errorf("%s: failed to query engine version after restart: %s", h, err.Error())
+			return fmt.Errorf("%s: failed to query container runtime version after restart: %s", h, err.Error())
 		}
 	}
 
-	if currentVersion != p.Config.Spec.Engine.Version {
-		return fmt.Errorf("%s: engine version not %s after upgrade", h, p.Config.Spec.Engine.Version)
+	if currentVersion != p.Config.Spec.MCR.Version {
+		return fmt.Errorf("%s: container runtime version not %s after upgrade", h, p.Config.Spec.MCR.Version)
 	}
 
-	log.Infof("%s: upgraded to engine version %s", h, p.Config.Spec.Engine.Version)
-	h.Metadata.EngineVersion = p.Config.Spec.Engine.Version
-	h.Metadata.EngineRestartRequired = false
+	log.Infof("%s: upgraded to mirantis container runtime version %s", h, p.Config.Spec.MCR.Version)
+	h.Metadata.MCRVersion = p.Config.Spec.MCR.Version
+	h.Metadata.MCRRestartRequired = false
 	return nil
 }

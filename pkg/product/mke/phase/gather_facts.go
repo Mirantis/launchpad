@@ -49,7 +49,7 @@ func (p *GatherFacts) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 
 	// If engine is installed, we can collect some MKE & Swarm related info too
-	if swarmLeader.Metadata.EngineVersion != "" {
+	if swarmLeader.Metadata.MCRVersion != "" {
 		err := mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing MKE details: %s", swarmLeader, err.Error())
@@ -69,7 +69,7 @@ func (p *GatherFacts) Run() error {
 
 		msrHosts := p.Config.Spec.MSRs()
 		msrHosts.ParallelEach(func(h *api.Host) error {
-			if h.Metadata != nil && h.Metadata.EngineVersion != "" {
+			if h.Metadata != nil && h.Metadata.MCRVersion != "" {
 				msrMeta, err := msr.CollectFacts(h)
 				if err != nil {
 					log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
@@ -123,14 +123,14 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 
-	version, err := h.EngineVersion()
+	version, err := h.MCRVersion()
 	if err != nil || version == "" {
-		log.Infof("%s: docker engine not installed", h)
+		log.Infof("%s: mirantis container runtime not installed", h)
 	} else {
-		log.Infof("%s: is running docker engine version %s", h, version)
+		log.Infof("%s: is running mirantis container runtime version %s", h, version)
 	}
 
-	h.Metadata.EngineVersion = version
+	h.Metadata.MCRVersion = version
 
 	h.Metadata.Hostname = h.Configurer.ResolveHostname()
 	h.Metadata.LongHostname = h.Configurer.ResolveLongHostname()

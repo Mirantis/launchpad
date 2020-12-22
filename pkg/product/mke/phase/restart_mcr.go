@@ -11,19 +11,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// RestartEngine phase implementation
-type RestartEngine struct {
+// RestartMCR phase implementation
+type RestartMCR struct {
 	phase.Analytics
 	phase.HostSelectPhase
 }
 
 // HostFilterFunc returns true for hosts that need their engine to be restarted
-func (p *RestartEngine) HostFilterFunc(h *api.Host) bool {
-	return h.Metadata.EngineRestartRequired
+func (p *RestartMCR) HostFilterFunc(h *api.Host) bool {
+	return h.Metadata.MCRRestartRequired
 }
 
 // Prepare collects the hosts
-func (p *RestartEngine) Prepare(config interface{}) error {
+func (p *RestartMCR) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 	log.Debugf("collecting hosts for phase %s", p.Title())
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
@@ -33,20 +33,20 @@ func (p *RestartEngine) Prepare(config interface{}) error {
 }
 
 // Title for the phase
-func (p *RestartEngine) Title() string {
-	return "Restart Docker EE Engine on the hosts"
+func (p *RestartMCR) Title() string {
+	return "Restart Mirntis Container Runtime on the hosts"
 }
 
 // Run installs the engine on each host
-func (p *RestartEngine) Run() error {
+func (p *RestartMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
-		"engine_version": p.Config.Spec.Engine.Version,
+		"engine_version": p.Config.Spec.MCR.Version,
 	}
-	return p.restartEngines()
+	return p.restartMCRs()
 }
 
 // Restarts host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
-func (p *RestartEngine) restartEngines() error {
+func (p *RestartMCR) restartMCRs() error {
 	var managers api.Hosts
 	var others api.Hosts
 	for _, h := range p.Hosts {
@@ -58,7 +58,7 @@ func (p *RestartEngine) restartEngines() error {
 	}
 
 	for _, h := range managers {
-		if err := h.Configurer.RestartEngine(); err != nil {
+		if err := h.Configurer.RestartMCR(); err != nil {
 			return err
 		}
 	}
@@ -74,13 +74,13 @@ func (p *RestartEngine) restartEngines() error {
 	for _, w := range others {
 		h := w
 		wp.Submit(func() {
-			err := h.Configurer.RestartEngine()
+			err := h.Configurer.RestartMCR()
 			if err != nil {
 				mu.Lock()
 				restartErrors.Errors = append(restartErrors.Errors, err)
 				mu.Unlock()
 			}
-			h.Metadata.EngineRestartRequired = false
+			h.Metadata.MCRRestartRequired = false
 		})
 	}
 	wp.StopWait()

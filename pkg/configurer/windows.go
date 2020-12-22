@@ -34,8 +34,8 @@ func (c *WindowsConfigurer) Pwd() string {
 	return pwd
 }
 
-// EngineConfigPath returns the configuration file path
-func (c *WindowsConfigurer) EngineConfigPath() string {
+// MCRConfigPath returns the configuration file path
+func (c *WindowsConfigurer) MCRConfigPath() string {
 	return `C:\ProgramData\Docker\config\daemon.json`
 }
 
@@ -43,8 +43,8 @@ type rebootable interface {
 	Reboot() error
 }
 
-// InstallEngine install Docker EE engine on Windows
-func (c *WindowsConfigurer) InstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
+// InstallMCR install MCR on Windows
+func (c *WindowsConfigurer) InstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	pwd, err := c.Host.ExecWithOutput("echo %cd%")
 	if err != nil {
 		return err
@@ -78,10 +78,10 @@ func (c *WindowsConfigurer) InstallEngine(scriptPath string, engineConfig common
 	return nil
 }
 
-// UninstallEngine uninstalls docker-ee engine
+// UninstallMCR uninstalls docker-ee engine
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
-func (c *WindowsConfigurer) UninstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
+func (c *WindowsConfigurer) UninstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	err := c.Host.Exec(c.DockerCommandf("system prune --volumes --all -f"))
 	if err != nil {
 		return err
@@ -100,8 +100,8 @@ func (c *WindowsConfigurer) UninstallEngine(scriptPath string, engineConfig comm
 	return c.Host.Exec(uninstallCommand)
 }
 
-// RestartEngine restarts Docker EE engine
-func (c *WindowsConfigurer) RestartEngine() error {
+// RestartMCR restarts Docker EE engine
+func (c *WindowsConfigurer) RestartMCR() error {
 	c.Host.Exec("net stop com.docker.service")
 	c.Host.Exec("net start com.docker.service")
 	return retry.Do(

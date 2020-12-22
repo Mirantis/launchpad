@@ -23,4 +23,4 @@ spec:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
   engine:
-    version: $ENGINE_VERSION
+    version: $MCR_VERSION
