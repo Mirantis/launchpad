@@ -32,7 +32,7 @@ func (p *ValidateFacts) Run() error {
 	p.Config.Spec.Hosts.Each(func(h *api.Host) error {
 		if h.Configurer != nil && h.Configurer.SELinuxEnabled() {
 			h.DaemonConfig["selinux-enabled"] = true
-			log.Infof("%s: adding 'selinux-enabled=true' to host engine config", h)
+			log.Infof("%s: adding 'selinux-enabled=true' to host container runtime config", h)
 		}
 
 		return nil

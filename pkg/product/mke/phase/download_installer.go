@@ -25,12 +25,12 @@ type DownloadInstaller struct {
 
 // Title for the phase
 func (p *DownloadInstaller) Title() string {
-	return "Download Docker Engine - Enterprise installer"
+	return "Download Mirantis Container Runtime installer"
 }
 
 // Run does all the prep work on the hosts in parallel
 func (p *DownloadInstaller) Run() error {
-	linuxScript, err := p.getScript(p.Config.Spec.Engine.InstallURLLinux)
+	linuxScript, err := p.getScript(p.Config.Spec.MCR.InstallURLLinux)
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (p *DownloadInstaller) Run() error {
 
 	wincount := p.Config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() })
 	if wincount > 0 {
-		winScript, err := p.getScript(p.Config.Spec.Engine.InstallURLWindows)
+		winScript, err := p.getScript(p.Config.Spec.MCR.InstallURLWindows)
 		if err != nil {
 			return err
 		}
@@ -65,9 +65,9 @@ func (p *DownloadInstaller) Run() error {
 
 	for _, h := range p.Config.Spec.Hosts {
 		if h.IsWindows() {
-			h.Metadata.EngineInstallScript = p.winPath
+			h.Metadata.MCRInstallScript = p.winPath
 		} else {
-			h.Metadata.EngineInstallScript = p.linuxPath
+			h.Metadata.MCRInstallScript = p.linuxPath
 		}
 	}
 
@@ -104,18 +104,18 @@ func (p *DownloadInstaller) getScript(uri string) (string, error) {
 
 	if len(data) < 10 {
 		// cant fit an installer into that!
-		return "", fmt.Errorf("invalid engine install script in %s", uri)
+		return "", fmt.Errorf("invalid container runtime install script in %s", uri)
 	}
 
 	if !strings.HasPrefix(data, "#") {
-		log.Warnf("possibly invalid engine install script in %s", uri)
+		log.Warnf("possibly invalid container runtime install script in %s", uri)
 	}
 
 	return data, nil
 }
 
 func (p *DownloadInstaller) downloadFile(url string) (string, error) {
-	log.Infof("downloading engine install script from %s", url)
+	log.Infof("downloading container runtime install script from %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -130,7 +130,7 @@ func (p *DownloadInstaller) downloadFile(url string) (string, error) {
 }
 
 func (p *DownloadInstaller) readFile(path string) (string, error) {
-	log.Infof("reading engine install script from %s", path)
+	log.Infof("reading container runtime install script from %s", path)
 
 	data, err := util.LoadExternalFile(path)
 	return string(data), err

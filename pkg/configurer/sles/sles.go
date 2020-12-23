@@ -21,8 +21,8 @@ func (c *Configurer) InstallMKEBasePackages() error {
 	return c.Host.Exec("sudo zypper -n install -y curl socat")
 }
 
-// UninstallEngine uninstalls docker-ee engine
-func (c *Configurer) UninstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
+// UninstallMCR uninstalls docker-ee engine
+func (c *Configurer) UninstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	err := c.Host.Exec("sudo docker system prune -f")
 	if err != nil {
 		return err

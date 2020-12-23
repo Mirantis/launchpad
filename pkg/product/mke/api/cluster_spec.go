@@ -19,11 +19,11 @@ type Cluster struct {
 
 // ClusterSpec defines cluster spec
 type ClusterSpec struct {
-	Hosts   Hosts               `yaml:"hosts" validate:"required,dive,min=1"`
-	MKE     MKEConfig           `yaml:"mke,omitempty"`
-	MSR     *MSRConfig          `yaml:"msr,omitempty"`
-	Engine  common.EngineConfig `yaml:"engine,omitempty"`
-	Cluster Cluster             `yaml:"cluster"`
+	Hosts   Hosts            `yaml:"hosts" validate:"required,dive,min=1"`
+	MKE     MKEConfig        `yaml:"mke,omitempty"`
+	MSR     *MSRConfig       `yaml:"msr,omitempty"`
+	MCR     common.MCRConfig `yaml:"mcr,omitempty"`
+	Cluster Cluster          `yaml:"cluster"`
 }
 
 // Workers filters only the workers from the cluster config
@@ -160,7 +160,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type spec ClusterSpec
 	yc := (*spec)(c)
-	c.Engine = common.EngineConfig{}
+	c.MCR = common.MCRConfig{}
 	c.MKE = NewMKEConfig()
 
 	if err := unmarshal(yc); err != nil {
@@ -172,7 +172,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
 	}
 
-	c.Engine.SetDefaults()
+	c.MCR.SetDefaults()
 
 	return nil
 }

@@ -21,7 +21,7 @@ func (p *MKE) Reset() error {
 
 		&mke.UninstallMKE{},
 		&mke.DownloadInstaller{},
-		&mke.UninstallEngine{},
+		&mke.UninstallMCR{},
 		&mke.CleanUp{},
 		&common.RunHooks{Stage: "after", Action: "reset"},
 		&common.Disconnect{},

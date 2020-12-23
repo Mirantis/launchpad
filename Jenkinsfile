@@ -181,7 +181,7 @@ pipeline {
             }
           }
           stages {
-            stage("Install MKE3.3.3 MSR2.7 ENG19.03.8") {
+            stage("Install MKE3.3.3 MSR2.7 MCR19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
@@ -190,7 +190,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                ENGINE_VERSION = "19.03.8"
+                MCR_VERSION = "19.03.8"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
@@ -206,7 +206,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.8.5-rc1"
-                ENGINE_VERSION = "19.03.13"
+                MCR_VERSION = "19.03.13"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }

@@ -20,11 +20,11 @@ type HostConfigurer interface {
 	InstallMKEBasePackages() error
 	UpdateEnvironment(map[string]string) error
 	CleanupEnvironment(map[string]string) error
-	EngineConfigPath() string
-	InstallEngine(string, common.EngineConfig) error
-	UninstallEngine(string, common.EngineConfig) error
+	MCRConfigPath() string
+	InstallMCR(string, common.MCRConfig) error
+	UninstallMCR(string, common.MCRConfig) error
 	DockerCommandf(template string, args ...interface{}) string
-	RestartEngine() error
+	RestartMCR() error
 	AuthenticateDocker(user, pass, repo string) error
 	LocalAddresses() ([]string, error)
 	ValidateLocalhost() error

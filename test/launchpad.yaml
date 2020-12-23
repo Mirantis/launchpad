@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 metadata:
   name: $CLUSTER_NAME
@@ -10,7 +10,7 @@ spec:
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "manager"
-      engineConfig: &engineCfg
+      mcrConfig: &engineCfg
         "insecure-registries":
           - 172.16.86.100:5000
       hooks:
@@ -25,7 +25,7 @@ spec:
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "worker"
-      engineConfig: &engineCfg
+      mcrConfig: &engineCfg
   mke:
     version: $MKE_VERSION
     imageRepo: $MKE_IMAGE_REPO
@@ -35,5 +35,5 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
-  engine:
-    version: $ENGINE_VERSION
+  mcr:
+    version: $MCR_VERSION

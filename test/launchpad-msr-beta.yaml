@@ -49,8 +49,8 @@ spec:
     upgradeFlags:
       - --force-minimums
       - --force-recent-backup
-  engine:
-    version: $ENGINE_VERSION
+  mcr:
+    version: $MCR_VERSION
   msr:
     version: $MSR_VERSION
     imageRepo: $MSR_IMAGE_REPO
