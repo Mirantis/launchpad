@@ -14,6 +14,7 @@ type MSRConfig struct {
 	Version      string       `yaml:"version"`
 	ImageRepo    string       `yaml:"imageRepo,omitempty"`
 	InstallFlags common.Flags `yaml:"installFlags,flow,omitempty"`
+	UpgradeFlags common.Flags `yaml:"upgradeFlags,flow,omitempty"`
 	ReplicaIDs   string       `yaml:"replicaIDs,omitempty"  default:"random"`
 }
 

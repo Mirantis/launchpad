@@ -9,16 +9,16 @@ const (
 	MKEVersion = "3.3.5"
 	// MSRVersion is the default MSR version to use
 	MSRVersion = "2.8.5"
-	// EngineVersion is the default engine version
-	EngineVersion = "19.03.14"
-	// EngineChannel is the default engine channel
-	EngineChannel = "stable"
-	// EngineRepoURL is the default engine repo
-	EngineRepoURL = "https://repos.mirantis.com"
-	// EngineInstallURLLinux is the default engine install script location for linux
-	EngineInstallURLLinux = "https://get.mirantis.com/"
-	// EngineInstallURLWindows is the default engine install script location for windows
-	EngineInstallURLWindows = "https://get.mirantis.com/install.ps1"
+	// MCRVersion is the default engine version
+	MCRVersion = "19.03.14"
+	// MCRChannel is the default engine channel
+	MCRChannel = "stable"
+	// MCRRepoURL is the default engine repo
+	MCRRepoURL = "https://repos.mirantis.com"
+	// MCRInstallURLLinux is the default engine install script location for linux
+	MCRInstallURLLinux = "https://get.mirantis.com/"
+	// MCRInstallURLWindows is the default engine install script location for windows
+	MCRInstallURLWindows = "https://get.mirantis.com/install.ps1"
 	// StateBaseDir defines the base dir for all local state
 	StateBaseDir = ".mirantis-launchpad"
 	// ManagedLabelCmd marks the node as being managed by launchpad

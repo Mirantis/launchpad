@@ -4,8 +4,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 )
 
-// EngineConfig holds the engine installation specific options
-type EngineConfig struct {
+// MCRConfig holds the Mirantis Container Runtime installation specific options
+type MCRConfig struct {
 	Version           string `yaml:"version"`
 	RepoURL           string `yaml:"repoURL,omitempty"`
 	InstallURLLinux   string `yaml:"installURLLinux,omitempty"`
@@ -14,9 +14,9 @@ type EngineConfig struct {
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml
-func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type engineConfig EngineConfig
-	yc := (*engineConfig)(c)
+func (c *MCRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type mcrConfig MCRConfig
+	yc := (*mcrConfig)(c)
 
 	if err := unmarshal(yc); err != nil {
 		return err
@@ -28,25 +28,25 @@ func (c *EngineConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // SetDefaults sets defaults on the object
-func (c *EngineConfig) SetDefaults() {
+func (c *MCRConfig) SetDefaults() {
 	// Constants can't be used in tags, so yaml defaults can't be used here.
 	if c.Version == "" {
-		c.Version = constant.EngineVersion
+		c.Version = constant.MCRVersion
 	}
 
 	if c.Channel == "" {
-		c.Channel = constant.EngineChannel
+		c.Channel = constant.MCRChannel
 	}
 
 	if c.RepoURL == "" {
-		c.RepoURL = constant.EngineRepoURL
+		c.RepoURL = constant.MCRRepoURL
 	}
 
 	if c.InstallURLLinux == "" {
-		c.InstallURLLinux = constant.EngineInstallURLLinux
+		c.InstallURLLinux = constant.MCRInstallURLLinux
 	}
 
 	if c.InstallURLWindows == "" {
-		c.InstallURLWindows = constant.EngineInstallURLWindows
+		c.InstallURLWindows = constant.MCRInstallURLWindows
 	}
 }

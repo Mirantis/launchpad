@@ -22,8 +22,8 @@ func (c *Configurer) InstallMKEBasePackages() error {
 	return c.Host.Exec("sudo yum install -y curl socat iptables iputils gzip")
 }
 
-// UninstallEngine uninstalls docker-ee engine
-func (c *Configurer) UninstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
+// UninstallMCR uninstalls docker-ee engine
+func (c *Configurer) UninstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	err := c.Host.Exec("sudo docker system prune -f")
 	if err != nil {
 		return err
@@ -39,8 +39,8 @@ func (c *Configurer) UninstallEngine(scriptPath string, engineConfig common.Engi
 	return c.Host.Exec("sudo yum remove -y docker-ee docker-ee-cli")
 }
 
-// InstallEngine install Docker EE engine on Linux
-func (c *Configurer) InstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
+// InstallMCR install Docker EE engine on Linux
+func (c *Configurer) InstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	if c.Host.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
 		if c.Host.Exec("sudo yum install -q -y rh-amazon-rhui-client") == nil {
 			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", c.Host)
@@ -51,5 +51,5 @@ func (c *Configurer) InstallEngine(scriptPath string, engineConfig common.Engine
 		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", c.Host)
 	}
 
-	return c.LinuxConfigurer.InstallEngine(scriptPath, engineConfig)
+	return c.LinuxConfigurer.InstallMCR(scriptPath, engineConfig)
 }

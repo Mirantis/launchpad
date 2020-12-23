@@ -56,6 +56,7 @@ func (p *UpgradeMSR) Run() error {
 	for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallUpgradeFlags) {
 		upgradeFlags.AddOrReplace(f)
 	}
+	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.UpgradeFlags)
 
 	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
 	log.Debugf("%s: Running msr upgrade via bootstrapper", h)

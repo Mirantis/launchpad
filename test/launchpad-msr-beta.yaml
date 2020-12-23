@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/mke/v1.2
+apiVersion: launchpad.mirantis.com/mke/v1.1
 kind: mke+msr
 metadata:
   name: $CLUSTER_NAME
@@ -10,7 +10,7 @@ spec:
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "manager"
-      mcrConfig: &engineCfg
+      engineConfig: &engineCfg
         "insecure-registries":
           - 172.16.86.100:5000
     - address: "127.0.0.1"
@@ -19,21 +19,21 @@ spec:
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "worker"
-      mcrConfig: *engineCfg
+      engineConfig: *engineCfg
     - address: "127.0.0.1"
       ssh:
         port: 9024
         keyPath: "./id_rsa_launchpad"
         user: "root"
       role: "msr"
-      mcrConfig: *engineCfg
+      engineConfig: *engineCfg
     - address: "127.0.0.1" # REMOVE_THIS
       ssh: # REMOVE_THIS
         port: 9025 # REMOVE_THIS
         keyPath: "./id_rsa_launchpad" # REMOVE_THIS
         user: "root" # REMOVE_THIS
       role: "msr" # REMOVE_THIS
-      mcrConfig: *engineCfg # REMOVE_THIS
+      engineConfig: *engineCfg # REMOVE_THIS
   cluster:
     prune: false
   mke:
@@ -46,6 +46,9 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
+    upgradeFlags:
+      - --force-minimums
+      - --force-recent-backup
   mcr:
     version: $MCR_VERSION
   msr:
@@ -56,4 +59,6 @@ spec:
       - --ucp-insecure-tls
       - --replica-http-port 81
       - --replica-https-port 444
+    upgradeFlags:
+      - --debug
     replicaIDs: sequential

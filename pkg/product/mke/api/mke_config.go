@@ -18,6 +18,7 @@ type MKEConfig struct {
 	AdminUsername   string       `yaml:"adminUsername,omitempty"`
 	AdminPassword   string       `yaml:"adminPassword,omitempty"`
 	InstallFlags    common.Flags `yaml:"installFlags,omitempty,flow"`
+	UpgradeFlags    common.Flags `yaml:"upgradeFlags,omitempty,flow"`
 	ConfigFile      string       `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData      string       `yaml:"configData,omitempty"`
 	LicenseFilePath string       `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
@@ -92,6 +93,24 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			raw.InstallFlags.Delete("--admin-password")
 		} else if flagValue != raw.AdminPassword {
 			return fmt.Errorf("both Spec.mke.AdminPassword and Spec.mke.InstallFlags --admin-password set, only one allowed")
+		}
+	}
+
+	if flagValue := raw.UpgradeFlags.GetValue("--admin-username"); flagValue != "" {
+		if raw.AdminUsername == "" {
+			raw.AdminUsername = flagValue
+			raw.UpgradeFlags.Delete("--admin-username")
+		} else if flagValue != raw.AdminUsername {
+			return fmt.Errorf("both Spec.mke.AdminUsername and Spec.mke.UpgradeFlags --admin-username set, only one allowed")
+		}
+	}
+
+	if flagValue := raw.UpgradeFlags.GetValue("--admin-password"); flagValue != "" {
+		if raw.AdminPassword == "" {
+			raw.AdminPassword = flagValue
+			raw.UpgradeFlags.Delete("--admin-password")
+		} else if flagValue != raw.AdminPassword {
+			return fmt.Errorf("both Spec.mke.AdminPassword and Spec.mke.UpgradeFlags --admin-password set, only one allowed")
 		}
 	}
 

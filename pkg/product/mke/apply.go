@@ -12,7 +12,7 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// Apply - installs Docker Enterprise (MKE, MSR, Engine) on the hosts that are defined in the config
+// Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are defined in the config
 func (p *MKE) Apply(disableCleanup, force bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.SkipCleanup = disableCleanup
@@ -25,10 +25,10 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 		&mke.DownloadInstaller{},
 		&common.RunHooks{Stage: "before", Action: "apply"},
 		&mke.PrepareHost{},
-		&mke.ConfigureEngine{},
-		&mke.InstallEngine{},
-		&mke.UpgradeEngine{},
-		&mke.RestartEngine{},
+		&mke.ConfigureMCR{},
+		&mke.InstallMCR{},
+		&mke.UpgradeMCR{},
+		&mke.RestartMCR{},
 		&mke.LoadImages{},
 		&mke.AuthenticateDocker{},
 		&mke.PullMKEImages{},
@@ -75,7 +75,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 		"dtrs":            len(p.ClusterConfig.Spec.MSRs()),
 		"linux_workers":   linuxWorkersCount,
 		"windows_workers": windowsWorkersCount,
-		"engine_version":  p.ClusterConfig.Spec.Engine.Version,
+		"engine_version":  p.ClusterConfig.Spec.MCR.Version,
 		"cluster_id":      clusterID,
 		// send mke analytics user id as ucp_instance_id property
 		"ucp_instance_id": fmt.Sprintf("%x", sha1.Sum([]byte(clusterID))),

@@ -11,6 +11,8 @@ import (
 
 // Migrate migrates an v1 format configuration into the v1.1 api format and replaces the contents of the supplied data byte slice
 func Migrate(plain map[string]interface{}) error {
+	plain["apiVersion"] = "launchpad.mirantis.com/mke/v1.1"
+
 	// Need to marshal back to yaml to find $VARIABLES.
 	s, _ := yaml.Marshal(plain)
 	re := regexp.MustCompile(`([^$])(\$[a-zA-Z_{}]{1,20})`)
@@ -23,8 +25,6 @@ func Migrate(plain map[string]interface{}) error {
 	if varsFound {
 		yaml.Unmarshal(re.ReplaceAll(s, []byte("$1$$$2")), plain)
 	}
-
-	plain["apiVersion"] = "launchpad.mirantis.com/mke/v1.1"
 
 	var hasMsr = false
 
@@ -170,8 +170,6 @@ func Migrate(plain map[string]interface{}) error {
 	}
 
 	log.Debugf("migrated configuration from launchpad.mirantis.com/v1 to launchpad.mirantis.com/mke/v1.1")
-	log.Infof("Note: The configuration has been migrated from a previous version")
-	log.Infof("      to see the migrated configuration use: launchpad describe config")
 	return nil
 }
 

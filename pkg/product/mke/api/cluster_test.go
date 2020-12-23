@@ -14,6 +14,8 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
 	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
 	"gopkg.in/yaml.v2"
@@ -23,7 +25,7 @@ import (
 
 func TestHostRequireManagerValidationPass(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/mke/v1.1"
+apiVersion: "launchpad.mirantis.com/mke/v1.2"
 kind: mke
 spec:
   hosts:
@@ -44,7 +46,7 @@ spec:
 
 func TestHostRequireManagerValidationFail(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/mke/v1.1"
+apiVersion: "launchpad.mirantis.com/mke/v1.2"
 kind: mke
 spec:
   hosts:
@@ -67,7 +69,7 @@ spec:
 
 func TestNonExistingHostsFails(t *testing.T) {
 	data := `
-apiVersion: "launchpad.mirantis.com/mke/v1.1"
+apiVersion: "launchpad.mirantis.com/mke/v1.2"
 kind: mke
 spec:
   hosts:
@@ -84,7 +86,7 @@ spec:
 
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -102,7 +104,7 @@ spec:
 
 func TestHostAddressValidationWithValidIP(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -119,7 +121,7 @@ spec:
 
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -155,7 +157,7 @@ spec:
 
 func TestHostSshPortValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -176,7 +178,7 @@ spec:
 
 func TestHostSshKeyValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -197,7 +199,7 @@ spec:
 
 func TestHostRoleValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -215,9 +217,9 @@ spec:
 	validateErrorField(t, err, "Role")
 }
 
-func TestHostWithComplexEngineConfig(t *testing.T) {
+func TestHostWithComplexMCRConfig(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -225,7 +227,7 @@ spec:
     ssh:
       port: 22
     role: worker
-    engineConfig:
+    mcrConfig:
       debug: true
       log-opts:
         max-size: 10m
@@ -260,9 +262,9 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.1", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.2", c.APIVersion)
 
-	require.Equal(t, c.Spec.Engine.InstallURLLinux, "http://example.com/")
+	require.Equal(t, c.Spec.MCR.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
 }
@@ -286,7 +288,7 @@ spec:
 `
 	c := loadAndMigrateYaml(t, data)
 	require.NoError(t, c.Validate())
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.1", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.2", c.APIVersion)
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
@@ -302,24 +304,21 @@ spec:
     sshKeyPath: /path/to/nonexisting
     user: foofoo
     role: manager
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.Error(t, err)
 	validateErrorField(t, err, "KeyPath")
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.1", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.2", c.APIVersion)
 
-	require.Equal(t, constant.EngineInstallURLLinux, c.Spec.Engine.InstallURLLinux)
+	require.Equal(t, constant.MCRInstallURLLinux, c.Spec.MCR.InstallURLLinux)
 	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
 	require.Equal(t, "foofoo", c.Spec.Hosts[0].SSH.User)
 }
 
 func TestHostWinRMCACertPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -327,9 +326,6 @@ spec:
       role: manager
       winRM:
         caCertPath: /path/to/nonexisting
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -340,7 +336,7 @@ spec:
 
 func TestHostWinRMCertPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -348,9 +344,6 @@ spec:
       role: manager
       winRM:
         certPath: /path/to/nonexisting
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -361,7 +354,7 @@ spec:
 
 func TestHostWinRMKeyPathValidation(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -369,9 +362,6 @@ spec:
       role: manager
       winRM:
         keyPath: /path/to/nonexisting
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -382,15 +372,12 @@ spec:
 
 func TestHostSSHDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
     - address: "1.2.3.4"
       role: manager
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -401,7 +388,7 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -409,9 +396,6 @@ spec:
       role: manager
       winRM:
         user: User
-  mke:
-    username: foofoo
-    password: barbar
 `
 	c := loadYaml(t, data)
 
@@ -428,7 +412,7 @@ func TestValidationWithMSRRole(t *testing.T) {
 
 	t.Run("the role is not ucp, worker or msr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke
 spec:
   hosts:
@@ -436,9 +420,6 @@ spec:
       role: weirdrole
     - address: "1.2.3.5"
       role: manager
-  mke:
-    username: foofoo
-    password: barbar
 `
 		c := loadYaml(t, data)
 		require.Error(t, c.Validate())
@@ -446,7 +427,7 @@ spec:
 
 	t.Run("the role is msr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.1
+apiVersion: launchpad.mirantis.com/mke/v1.2
 kind: mke+msr
 spec:
   hosts:
@@ -458,9 +439,6 @@ spec:
       role: manager
       winRM:
         user: User
-  mke:
-    username: foofoo
-    password: barbar
 `
 		c := loadYaml(t, data)
 		require.NoError(t, c.Validate())

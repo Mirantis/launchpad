@@ -24,13 +24,13 @@ type LinuxConfigurer struct {
 // SbinPath is for adding sbin directories to current $PATH
 const SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
 
-// EngineConfigPath returns the configuration file path
-func (c *LinuxConfigurer) EngineConfigPath() string {
+// MCRConfigPath returns the configuration file path
+func (c *LinuxConfigurer) MCRConfigPath() string {
 	return "/etc/docker/daemon.json"
 }
 
-// InstallEngine install Docker EE engine on Linux
-func (c *LinuxConfigurer) InstallEngine(scriptPath string, engineConfig common.EngineConfig) error {
+// InstallMCR install MCR on Linux
+func (c *LinuxConfigurer) InstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	pwd := c.Pwd()
 	base := path.Base(scriptPath)
 	installer := pwd + "/" + base
@@ -61,8 +61,8 @@ func (c *LinuxConfigurer) InstallEngine(scriptPath string, engineConfig common.E
 	return nil
 }
 
-// RestartEngine restarts Docker EE engine
-func (c *LinuxConfigurer) RestartEngine() error {
+// RestartMCR restarts Docker EE engine
+func (c *LinuxConfigurer) RestartMCR() error {
 	return c.Host.Exec("sudo systemctl restart docker")
 }
 
