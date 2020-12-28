@@ -41,7 +41,7 @@ func (p *StartK0s) startK0s(h *api.Host, c *api.ClusterConfig) error {
 				return err
 			}
 		} else if initctl == "rc-system" {
-			if err := h.Exec("sudo /etc/init.d/k0s start"); err != nil {
+			if err := h.Exec("sudo rc-service k0s start"); err != nil {
 				return err
 			}
 		} else {
