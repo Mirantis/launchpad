@@ -133,7 +133,7 @@ func (c *LinuxConfigurer) DockerCommandf(template string, args ...interface{}) s
 
 // ValidateLocalhost returns an error if "localhost" is not a local address
 func (c *LinuxConfigurer) ValidateLocalhost() error {
-	if err := c.Host.Exec("ping -c 1 -w 1 -r localhost"); err != nil {
+	if err := c.Host.Exec("sudo ping -c 1 -w 1 -r localhost"); err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
 	}
 	return nil
