@@ -36,10 +36,6 @@ func New(data []byte) (*K0s, error) {
 		return nil, err
 	}
 
-	// if err := c.Validate(); err != nil {
-	// 	fmt.Print("HERE k0s")
-	// 	return nil, err
-	// }
 	return &K0s{ClusterConfig: c}, nil
 }
 
@@ -48,7 +44,7 @@ func Init(kind string) *api.ClusterConfig {
 	return api.Init(kind)
 }
 
-//Apply installs k0s on the desired host
+// Apply installs k0s on the desired host
 func (p *K0s) Apply(disableCleanup, force bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.SkipCleanup = disableCleanup
@@ -69,17 +65,15 @@ func (p *K0s) Apply(disableCleanup, force bool) error {
 	return nil
 }
 
-//ClientConfig ...
+// ClientConfig ...
 func (p *K0s) ClientConfig() error {
 	return nil
 }
 
-//Describe dumps information about the hosts
+// Describe dumps information about the hosts
 func (p *K0s) Describe(reportName string) error {
 
 	log.Debugf("loaded cluster cfg: %+v", p.ClusterConfig)
-	// cleaned := gh.CleanUpGenericMap()
-
 	if reportName == "config" {
 		encoder := yaml.NewEncoder(os.Stdout)
 		return encoder.Encode(p.ClusterConfig)
@@ -97,7 +91,7 @@ func (p *K0s) Describe(reportName string) error {
 	return phaseManager.Run()
 }
 
-//Exec ...
+// Exec ...
 func (p *K0s) Exec(target string, interactive, first bool, role, cmd string) error {
 	var host *api.Host
 	if target == "" {
@@ -185,7 +179,7 @@ func (p *K0s) Exec(target string, interactive, first bool, role, cmd string) err
 	return host.Exec(cmd, exec.Stdin(stdin), exec.StreamOutput())
 }
 
-//Reset ...
+// Reset ...
 func (p *K0s) Reset() error {
 	return fmt.Errorf("not supported")
 }

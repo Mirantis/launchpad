@@ -19,7 +19,7 @@ type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-//UploadK0s uploads k0s binary to the host
+// UploadK0s uploads k0s binary to the host
 func (c *Configurer) UploadK0s(version string, k0sConfig *common.GenericHash) error {
 	localpath := c.Host.K0sBinary
 	if len(localpath) == 0 {
@@ -62,12 +62,12 @@ func (c *Configurer) WriteFileLarge(src, dst string) error {
 	return nil
 }
 
-//K0sConfigPath returns location of k0s configuration file
+// K0sConfigPath returns location of k0s configuration file
 func (c *Configurer) K0sConfigPath() string {
 	return "/etc/k0s/k0s.yaml"
 }
 
-//K0sJoinToken returns location of k0s join token file
+// K0sJoinToken returns location of k0s join token file
 func (c *Configurer) K0sJoinToken() string {
 	return "/etc/k0s/k0stoken"
 }

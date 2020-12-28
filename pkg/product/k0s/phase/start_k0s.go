@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//StartK0s start phase
+// StartK0s start phase
 type StartK0s struct {
 	phase.Analytics
 	BasicPhase
@@ -19,10 +19,8 @@ func (p *StartK0s) Title() string {
 	return "Start K0s"
 }
 
-//Run executes phase on the hosts
+// Run executes phase on the hosts
 func (p *StartK0s) Run() error {
-	// return RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.startK0s)
-
 	for _, host := range p.Config.Spec.Hosts {
 		if err := p.startK0s(host, p.Config); err != nil {
 			return err

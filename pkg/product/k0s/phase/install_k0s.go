@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//InstallK0s install phase
+// InstallK0s install phase
 type InstallK0s struct {
 	phase.Analytics
 	BasicPhase
@@ -17,7 +17,7 @@ func (p *InstallK0s) Title() string {
 	return "Install K0s"
 }
 
-//Run executes installK0s phase
+// Run executes installK0s phase
 func (p *InstallK0s) Run() error {
 	err := RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.installK0s)
 	if err != nil {

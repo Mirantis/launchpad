@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//PrepareConfig phase
+// PrepareConfig phase
 type PrepareConfig struct {
 	phase.Analytics
 	BasicPhase
@@ -17,7 +17,7 @@ func (p *PrepareConfig) Title() string {
 	return "Prepare K0s config"
 }
 
-//Run ...
+// Run ...
 func (p *PrepareConfig) Run() error {
 	return RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.prepareConfig)
 }

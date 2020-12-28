@@ -24,7 +24,7 @@ type LinuxConfigurer struct {
 // SbinPath is for adding sbin directories to current $PATH
 const SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
 
-//InstallK0s installs k0s binaries and sets up service either as systemd or openrc
+// InstallK0s installs k0s binaries and sets up service either as systemd or openrc
 func (c *LinuxConfigurer) InstallK0s(version string, k0sConfig *common.GenericHash) error {
 
 	if c.Host.UploadBinary {
@@ -44,12 +44,12 @@ func (c *LinuxConfigurer) InstallK0s(version string, k0sConfig *common.GenericHa
 	return nil
 }
 
-//DownloadK0s downloads k0s binaries
+// DownloadK0s downloads k0s binaries
 func (c *LinuxConfigurer) DownloadK0s(version string, k0sConfig *common.GenericHash) error {
 	return c.Host.Exec(fmt.Sprintf("curl get.k0s.sh | K0S_VERSION=v%s sh", version))
 }
 
-//K0sSetupService sets up k0s as a systemd/openrc service
+// K0sSetupService sets up k0s as a systemd/openrc service
 func (c *LinuxConfigurer) K0sSetupService() error {
 	return c.Host.Exec(fmt.Sprintf("sudo k0s install --config %s --role %s", c.Host.Configurer.K0sConfigPath(), c.Host.Role))
 }

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-//DownloadK0s gets k0s binaries from github
+// DownloadK0s gets k0s binaries from github
 func DownloadK0s(version, arch string) (string, error) {
 	switch arch {
 	case "x86_64":
@@ -18,7 +18,6 @@ func DownloadK0s(version, arch string) (string, error) {
 
 	url := fmt.Sprintf("https://github.com/k0sproject/k0s/releases/download/v%s/k0s-v%s-%s", version, version, arch)
 
-	// Now download the bundle
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err

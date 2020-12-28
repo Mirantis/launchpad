@@ -13,7 +13,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/prometheus/common/log"
 	"gopkg.in/yaml.v2"
-	// "github.com/prometheus/common/log"
 )
 
 // Host contains all the needed details to work with hosts
@@ -106,13 +105,10 @@ func (h *Host) Connect() error {
 
 	c.SetName(h.String())
 
-	// log.Infof("%s: opening %s connection", h, proto)
 	if err := c.Connect(); err != nil {
 		h.Connection = nil
 		return err
 	}
-
-	// log.Infof("%s: %s connection opened", h, proto)
 
 	h.Connection = c
 
@@ -127,7 +123,7 @@ func (h *Host) Disconnect() {
 	h.Connection = nil
 }
 
-//PrepareConfig persists k0s.yaml config to the host
+// PrepareConfig persists k0s.yaml config to the host
 func (h *Host) PrepareConfig(config *common.GenericHash) error {
 	output, err := yaml.Marshal(config)
 	if err != nil {
