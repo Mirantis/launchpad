@@ -31,8 +31,3 @@ func New(data []byte) (*K0s, error) {
 func Init(kind string) *api.ClusterConfig {
 	return api.Init(kind)
 }
-
-// ClientConfig ...
-func (p *K0s) ClientConfig() error {
-	return nil
-}
