@@ -4,21 +4,28 @@ import (
 	"fmt"
 	"testing"
 
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/stretchr/testify/require"
 )
 
 var hosts = Hosts{
 	{
-		Address: "man1",
-		Role:    "manager",
+		ConnectableHost: common.ConnectableHost{
+			Address: "man1",
+		},
+		Role: "manager",
 	},
 	{
-		Address: "man2",
-		Role:    "manager",
+		ConnectableHost: common.ConnectableHost{
+			Address: "man2",
+		},
+		Role: "manager",
 	},
 	{
-		Address: "work1",
-		Role:    "worker",
+		ConnectableHost: common.ConnectableHost{
+			Address: "work1",
+		},
+		Role: "worker",
 	},
 }
 

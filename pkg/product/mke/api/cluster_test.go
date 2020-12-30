@@ -36,10 +36,11 @@ spec:
       role: worker
       localhost: true
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
+	t.Logf("%+v", c.Spec.Hosts[0].Role)
 	err := c.Validate()
 	require.NoError(t, err)
 }
@@ -57,8 +58,8 @@ spec:
       role: worker
       localhost: true
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 	err := c.Validate()
@@ -74,8 +75,8 @@ kind: mke
 spec:
   hosts:
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 	err := c.Validate()
@@ -92,8 +93,8 @@ spec:
   hosts:
     - address: "512.1.2.3"
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 
@@ -110,8 +111,8 @@ spec:
   hosts:
     - address: "10.10.10.10"
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 
@@ -127,8 +128,8 @@ spec:
   hosts:
     - address: "1-2-foo"
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 
@@ -145,8 +146,8 @@ spec:
   hosts:
     - address: "foo.example.com"
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 
@@ -166,8 +167,8 @@ spec:
       ssh:
         port: 0
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 
@@ -187,8 +188,8 @@ spec:
         port: 22
         keyPath: /path/to/nonexisting/key
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 
@@ -208,8 +209,8 @@ spec:
       port: 22
     role: foobar
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 	err := c.Validate()
@@ -233,8 +234,8 @@ spec:
         max-size: 10m
         max-files: 5
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadYaml(t, data)
 
@@ -256,8 +257,8 @@ spec:
     user: foofoo
     role: manager
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
@@ -281,10 +282,10 @@ spec:
     role: manager
     winRM:
       user: foo
-      password: foo
+      adminPassword: foo
   mke:
-    username: foofoo
-    password: barbar
+    adminUsername: foofoo
+    adminPassword: barbar
 `
 	c := loadAndMigrateYaml(t, data)
 	require.NoError(t, c.Validate())

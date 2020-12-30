@@ -26,8 +26,8 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 	c.Spec = &ClusterSpec{}
 
-	type spec ClusterConfig
-	yc := (*spec)(c)
+	type clusterConfig ClusterConfig
+	yc := (*clusterConfig)(c)
 
 	if err := unmarshal(yc); err != nil {
 		return err
@@ -65,18 +65,22 @@ func Init(kind string) *ClusterConfig {
 				Config:   api.GenericHash{}},
 			Hosts: []*Host{
 				{
-					Address: "10.0.0.1",
-					Role:    "manager",
-					SSH: &common.SSH{
-						User:    "root",
-						Port:    22,
-						KeyPath: "~/.ssh/id_rsa",
+					ConnectableHost: common.ConnectableHost{
+						Address: "10.0.0.1",
+						SSH: &common.SSH{
+							User:    "root",
+							Port:    22,
+							KeyPath: "~/.ssh/id_rsa",
+						},
 					},
+					Role: "manager",
 				},
 				{
-					Address: "10.0.0.2",
-					Role:    "worker",
-					SSH:     common.DefaultSSH(),
+					ConnectableHost: common.ConnectableHost{
+						Address: "10.0.0.2",
+						SSH:     common.DefaultSSH(),
+					},
+					Role: "worker",
 				},
 			},
 		},

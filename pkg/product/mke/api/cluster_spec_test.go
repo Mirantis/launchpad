@@ -3,13 +3,14 @@ package api
 import (
 	"testing"
 
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMKEClusterSpecMKEURLWithoutSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{},
@@ -22,7 +23,7 @@ func TestMKEClusterSpecMKEURLWithoutSan(t *testing.T) {
 func TestMKEClusterSpecMKEURLWithSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
 		},
 		MKE: MKEConfig{
 			InstallFlags: []string{"--san=mke.acme.com"},
@@ -38,7 +39,7 @@ func TestMKEClusterSpecMKEURLWithSan(t *testing.T) {
 func TestMKEClusterSpecMKEURLWithMultiSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
 		},
 		MKE: MKEConfig{
 			InstallFlags: []string{"--san=mke.acme.com", "--san=admin.acme.com"},
@@ -52,8 +53,8 @@ func TestMKEClusterSpecMKEURLWithMultiSan(t *testing.T) {
 func TestMKEClusterSpecMKEURLWithNoMSRMetadata(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "msr"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.3"}, Role: "msr"},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{},
@@ -67,8 +68,8 @@ func TestMKEClusterSpecMKEURLWithNoMSRMetadata(t *testing.T) {
 func TestMKEClusterSpecMSRURLWithNoMSRMetadata(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "msr"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.3"}, Role: "msr"},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{},
@@ -82,7 +83,7 @@ func TestMKEClusterSpecMSRURLWithNoMSRMetadata(t *testing.T) {
 func TestMKEClusterSpecMSRURLWithNoMSRHostRoleButConfig(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{},
@@ -94,8 +95,8 @@ func TestMKEClusterSpecMSRURLWithNoMSRHostRoleButConfig(t *testing.T) {
 func TestMKEClusterSpecMSRURLWithoutExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "msr", MSRMetadata: &MSRMetadata{Installed: true}},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.3"}, Role: "msr", MSRMetadata: &MSRMetadata{Installed: true}},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{},
@@ -108,8 +109,8 @@ func TestMKEClusterSpecMSRURLWithoutExternalURL(t *testing.T) {
 func TestMKEClusterSpecMSRURLWithExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "msr"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.3"}, Role: "msr"},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
@@ -124,8 +125,8 @@ func TestMKEClusterSpecMSRURLWithExternalURL(t *testing.T) {
 func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "msr"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.3"}, Role: "msr"},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
@@ -140,7 +141,7 @@ func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 func TestMKEClusterSpecMKEURLWithPort(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
 		},
 		MKE: MKEConfig{
 			InstallFlags: []string{"--controller-port 999"},
@@ -154,8 +155,8 @@ func TestMKEClusterSpecMKEURLWithPort(t *testing.T) {
 func TestMKEClusterSpecMKEURLFromMSRMKEUrl(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
-			{Address: "192.168.1.2", Role: "manager"},
-			{Address: "192.168.1.3", Role: "msr"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.2"}, Role: "manager"},
+			{ConnectableHost: common.ConnectableHost{Address: "192.168.1.3"}, Role: "msr"},
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{

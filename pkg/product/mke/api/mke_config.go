@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/creasty/defaults"
 
 	"github.com/hashicorp/go-version"
 )
@@ -53,110 +54,114 @@ type MKECloud struct {
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type mke MKEConfig
-	config := NewMKEConfig()
-	raw := mke(config)
-	raw.Metadata = &MKEMetadata{}
+	defaults.Set(c)
 
-	if err := unmarshal(&raw); err != nil {
+	type mkeConfig MKEConfig
+	yc := (*mkeConfig)(c)
+
+	if err := unmarshal(yc); err != nil {
 		return err
 	}
 
-	if raw.ConfigFile != "" {
-		configData, err := util.LoadExternalFile(raw.ConfigFile)
+	if c.ConfigFile != "" {
+		configData, err := util.LoadExternalFile(c.ConfigFile)
 		if err != nil {
 			return err
 		}
-		raw.ConfigData = string(configData)
+		c.ConfigData = string(configData)
 	}
 
-	if raw.Cloud != nil && raw.Cloud.ConfigFile != "" {
-		cloudConfigData, err := util.LoadExternalFile(raw.Cloud.ConfigFile)
+	if c.Cloud != nil && c.Cloud.ConfigFile != "" {
+		cloudConfigData, err := util.LoadExternalFile(c.Cloud.ConfigFile)
 		if err != nil {
 			return err
 		}
-		raw.Cloud.ConfigData = string(cloudConfigData)
+		c.Cloud.ConfigData = string(cloudConfigData)
 	}
 
-	if flagValue := raw.InstallFlags.GetValue("--admin-username"); flagValue != "" {
-		if raw.AdminUsername == "" {
-			raw.AdminUsername = flagValue
-			raw.InstallFlags.Delete("--admin-username")
-		} else if flagValue != raw.AdminUsername {
+	if flagValue := c.InstallFlags.GetValue("--admin-username"); flagValue != "" {
+		if c.AdminUsername == "" {
+			c.AdminUsername = flagValue
+			c.InstallFlags.Delete("--admin-username")
+		} else if flagValue != c.AdminUsername {
 			return fmt.Errorf("both Spec.mke.AdminUsername and Spec.mke.InstallFlags --admin-username set, only one allowed")
 		}
 	}
 
-	if flagValue := raw.InstallFlags.GetValue("--admin-password"); flagValue != "" {
-		if raw.AdminPassword == "" {
-			raw.AdminPassword = flagValue
-			raw.InstallFlags.Delete("--admin-password")
-		} else if flagValue != raw.AdminPassword {
+	if flagValue := c.InstallFlags.GetValue("--admin-password"); flagValue != "" {
+		if c.AdminPassword == "" {
+			c.AdminPassword = flagValue
+			c.InstallFlags.Delete("--admin-password")
+		} else if flagValue != c.AdminPassword {
 			return fmt.Errorf("both Spec.mke.AdminPassword and Spec.mke.InstallFlags --admin-password set, only one allowed")
 		}
 	}
 
-	if flagValue := raw.UpgradeFlags.GetValue("--admin-username"); flagValue != "" {
-		if raw.AdminUsername == "" {
-			raw.AdminUsername = flagValue
-			raw.UpgradeFlags.Delete("--admin-username")
-		} else if flagValue != raw.AdminUsername {
+	if flagValue := c.UpgradeFlags.GetValue("--admin-username"); flagValue != "" {
+		if c.AdminUsername == "" {
+			c.AdminUsername = flagValue
+			c.UpgradeFlags.Delete("--admin-username")
+		} else if flagValue != c.AdminUsername {
 			return fmt.Errorf("both Spec.mke.AdminUsername and Spec.mke.UpgradeFlags --admin-username set, only one allowed")
 		}
 	}
 
-	if flagValue := raw.UpgradeFlags.GetValue("--admin-password"); flagValue != "" {
-		if raw.AdminPassword == "" {
-			raw.AdminPassword = flagValue
-			raw.UpgradeFlags.Delete("--admin-password")
-		} else if flagValue != raw.AdminPassword {
+	if flagValue := c.UpgradeFlags.GetValue("--admin-password"); flagValue != "" {
+		if c.AdminPassword == "" {
+			c.AdminPassword = flagValue
+			c.UpgradeFlags.Delete("--admin-password")
+		} else if flagValue != c.AdminPassword {
 			return fmt.Errorf("both Spec.mke.AdminPassword and Spec.mke.UpgradeFlags --admin-password set, only one allowed")
 		}
 	}
 
-	if raw.CACertPath != "" {
-		caCertData, err := util.LoadExternalFile(raw.CACertPath)
+	if c.CACertPath != "" {
+		caCertData, err := util.LoadExternalFile(c.CACertPath)
 		if err != nil {
 			return err
 		}
-		raw.CACertData = string(caCertData)
+		c.CACertData = string(caCertData)
 	}
 
-	if raw.CertPath != "" {
-		certData, err := util.LoadExternalFile(raw.CertPath)
+	if c.CertPath != "" {
+		certData, err := util.LoadExternalFile(c.CertPath)
 		if err != nil {
 			return err
 		}
-		raw.CertData = string(certData)
+		c.CertData = string(certData)
 	}
 
-	if raw.KeyPath != "" {
-		keyData, err := util.LoadExternalFile(raw.KeyPath)
+	if c.KeyPath != "" {
+		keyData, err := util.LoadExternalFile(c.KeyPath)
 		if err != nil {
 			return err
 		}
-		raw.KeyData = string(keyData)
+		c.KeyData = string(keyData)
 	}
 
-	v, err := version.NewVersion(raw.Version)
+	v, err := version.NewVersion(c.Version)
 	if err != nil {
 		return err
 	}
 
-	if raw.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
-		raw.ImageRepo = constant.ImageRepoLegacy
+	if c.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
+		c.ImageRepo = constant.ImageRepoLegacy
 	}
 
-	*c = MKEConfig(raw)
 	return nil
 }
 
-// NewMKEConfig creates new config with sane defaults
-func NewMKEConfig() MKEConfig {
-	return MKEConfig{
-		Version:   constant.MKEVersion,
-		ImageRepo: constant.ImageRepo,
-		Metadata:  &MKEMetadata{},
+func (c *MKEConfig) SetDefaults() {
+	if defaults.CanUpdate(c.Version) {
+		c.Version = constant.MKEVersion
+	}
+
+	if defaults.CanUpdate(c.ImageRepo) {
+		c.ImageRepo = constant.ImageRepo
+	}
+
+	if defaults.CanUpdate(c.Metadata) {
+		c.Metadata = &MKEMetadata{}
 	}
 }
 

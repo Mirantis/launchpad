@@ -1,6 +1,8 @@
 package api
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // GenericHash is an alias of map[string]interface{} to tweak the yaml parsing
 type GenericHash map[string]interface{}

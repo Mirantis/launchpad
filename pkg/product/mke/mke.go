@@ -1,6 +1,9 @@
 package mke
 
 import (
+	"bytes"
+	"io"
+
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"gopkg.in/yaml.v2"
 )
@@ -20,7 +23,10 @@ func (p *MKE) ClusterName() string {
 // New returns a new instance of the Docker Enterprise product
 func New(data []byte) (*MKE, error) {
 	c := api.ClusterConfig{}
-	if err := yaml.UnmarshalStrict(data, &c); err != nil {
+
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	dec.SetStrict(true)
+	if err := dec.Decode(&c); err != nil && err != io.EOF {
 		return nil, err
 	}
 

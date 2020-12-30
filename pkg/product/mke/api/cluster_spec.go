@@ -9,6 +9,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
+	"github.com/creasty/defaults"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,6 +25,25 @@ type ClusterSpec struct {
 	MSR     *MSRConfig       `yaml:"msr,omitempty"`
 	MCR     common.MCRConfig `yaml:"mcr,omitempty"`
 	Cluster Cluster          `yaml:"cluster"`
+}
+
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
+func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	defaults.Set(c)
+
+	type clusterSpec ClusterSpec
+	yc := (*clusterSpec)(c)
+
+	if err := unmarshal(yc); err != nil {
+		return err
+	}
+
+	if c.MSR != nil && c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) == 0 {
+		c.MSR = nil
+		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+	}
+
+	return nil
 }
 
 // Workers filters only the workers from the cluster config
@@ -154,27 +174,6 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 		Path:   "/",
 		Host:   msrAddr,
 	}, nil
-}
-
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
-func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type spec ClusterSpec
-	yc := (*spec)(c)
-	c.MCR = common.MCRConfig{}
-	c.MKE = NewMKEConfig()
-
-	if err := unmarshal(yc); err != nil {
-		return err
-	}
-
-	if yc.MSR != nil && yc.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) == 0 {
-		yc.MSR = nil
-		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
-	}
-
-	c.MCR.SetDefaults()
-
-	return nil
 }
 
 func isSwarmLeader(h *Host) bool {

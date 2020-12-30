@@ -13,7 +13,7 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cobaugh/osrelease v0.0.0-20181218015638-a93a0a55a249
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
-	github.com/creasty/defaults v1.3.0
+	github.com/creasty/defaults v1.5.1
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/gammazero/deque v0.0.0-20200310222745-50fa758af896 // indirect
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
@@ -46,6 +46,5 @@ require (
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
-	gopkg.in/yaml.v2 v2.3.0
-	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	gopkg.in/yaml.v2 v2.2.4
 )

@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/creasty/defaults"
 )
 
 // MCRConfig holds the Mirantis Container Runtime installation specific options
@@ -17,7 +18,6 @@ type MCRConfig struct {
 func (c *MCRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type mcrConfig MCRConfig
 	yc := (*mcrConfig)(c)
-
 	if err := unmarshal(yc); err != nil {
 		return err
 	}
@@ -29,24 +29,23 @@ func (c *MCRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // SetDefaults sets defaults on the object
 func (c *MCRConfig) SetDefaults() {
-	// Constants can't be used in tags, so yaml defaults can't be used here.
-	if c.Version == "" {
+	if defaults.CanUpdate(c.Version) {
 		c.Version = constant.MCRVersion
 	}
 
-	if c.Channel == "" {
+	if defaults.CanUpdate(c.Channel) {
 		c.Channel = constant.MCRChannel
 	}
 
-	if c.RepoURL == "" {
+	if defaults.CanUpdate(c.RepoURL) {
 		c.RepoURL = constant.MCRRepoURL
 	}
 
-	if c.InstallURLLinux == "" {
+	if defaults.CanUpdate(c.InstallURLLinux) {
 		c.InstallURLLinux = constant.MCRInstallURLLinux
 	}
 
-	if c.InstallURLWindows == "" {
+	if defaults.CanUpdate(c.InstallURLWindows) {
 		c.InstallURLWindows = constant.MCRInstallURLWindows
 	}
 }
