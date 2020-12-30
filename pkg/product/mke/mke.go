@@ -20,7 +20,7 @@ func (p *MKE) ClusterName() string {
 	return p.ClusterConfig.Metadata.Name
 }
 
-// New returns a new instance of the Docker Enterprise product
+// New returns a new instance of MKE
 func New(data []byte) (*MKE, error) {
 	c := api.ClusterConfig{}
 

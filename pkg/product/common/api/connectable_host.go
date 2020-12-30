@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ConnectableHost is a host that can be connected to via winrm, ssh or using the "localhost" connection
 type ConnectableHost struct {
 	Address    string                `yaml:"address" validate:"required,hostname|ip"`
 	WinRM      *WinRM                `yaml:"winRM,omitempty"`

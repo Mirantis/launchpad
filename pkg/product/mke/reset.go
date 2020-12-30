@@ -6,7 +6,7 @@ import (
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
 )
 
-// Reset uninstalls a Docker Enterprise cluster
+// Reset uninstalls an MKE cluster
 func (p *MKE) Reset() error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 

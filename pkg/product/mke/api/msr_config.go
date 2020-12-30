@@ -41,6 +41,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// SetDefaults implements the defaults package Setter interface
 func (c *MSRConfig) SetDefaults() {
 	if defaults.CanUpdate(c.Version) {
 		c.Version = constant.MSRVersion

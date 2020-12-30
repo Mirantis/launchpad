@@ -20,7 +20,7 @@ func (p *K0s) ClusterName() string {
 	return p.ClusterConfig.Metadata.Name
 }
 
-// New returns a new instance of the Docker Enterprise product
+// New returns a new instance of K0S
 func New(data []byte) (*K0s, error) {
 	c := api.ClusterConfig{}
 

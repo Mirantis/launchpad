@@ -12,7 +12,7 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are defined in the config
+// Apply - installs MKE on the hosts that are defined in the config
 func (p *MKE) Apply(disableCleanup, force bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.SkipCleanup = disableCleanup

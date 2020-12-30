@@ -151,6 +151,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
+// SetDefaults implements the defaults package Setter interface
 func (c *MKEConfig) SetDefaults() {
 	if defaults.CanUpdate(c.Version) {
 		c.Version = constant.MKEVersion
