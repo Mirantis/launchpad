@@ -82,6 +82,7 @@ type Host struct {
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
+	defaults.Set(h.ConnectableHost)
 
 	type host Host
 	yh := (*host)(h)

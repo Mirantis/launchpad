@@ -30,6 +30,10 @@ func New(data []byte) (*K0s, error) {
 		return nil, err
 	}
 
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+
 	return &K0s{ClusterConfig: c}, nil
 }
 

@@ -10,7 +10,7 @@ import (
 type Host struct {
 	Role         string         `yaml:"role" validate:"oneof=server worker"`
 	UploadBinary bool           `yaml:"uploadBinary,omitempty"`
-	K0sBinary    string         `yaml:"k0sBinary,omitempty" validate:"file"`
+	K0sBinary    string         `yaml:"k0sBinary,omitempty" validate:"omitempty,file"`
 	Configurer   HostConfigurer `yaml:"-"`
 	Metadata     *HostMetadata  `yaml:"-"`
 
@@ -31,6 +31,7 @@ type HostMetadata struct {
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	defaults.Set(h)
+	defaults.Set(h.ConnectableHost)
 
 	type host Host
 	yh := (*host)(h)

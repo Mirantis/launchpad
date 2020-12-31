@@ -43,5 +43,6 @@ func (s *SSH) NewConnection(address string) *ssh.Connection {
 func DefaultSSH() *SSH {
 	ssh := SSH{}
 	defaults.Set(&ssh)
+	ssh.KeyPath, _ = homedir.Expand(ssh.KeyPath)
 	return &ssh
 }
