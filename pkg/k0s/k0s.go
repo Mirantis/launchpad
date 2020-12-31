@@ -1,4 +1,4 @@
-package util
+package k0s
 
 import (
 	"fmt"

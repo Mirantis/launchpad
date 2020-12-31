@@ -21,6 +21,15 @@ func (c *Configurer) InstallMKEBasePackages() error {
 	return c.Host.Exec("sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl apt-utils socat iputils-ping")
 }
 
+// InstallK0sBasePackages installs the needed base packages on Ubuntu
+func (c *Configurer) InstallK0sBasePackages() error {
+	err := c.FixContainerizedHost()
+	if err != nil {
+		return err
+	}
+	return c.Host.Exec("sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q curl")
+}
+
 // UninstallMCR uninstalls docker-ee engine
 func (c *Configurer) UninstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	err := c.Host.Exec("sudo docker system prune -f")

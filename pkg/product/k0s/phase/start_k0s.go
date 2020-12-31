@@ -36,6 +36,7 @@ func (p *StartK0s) startK0s(h *api.Host, c *api.ClusterConfig) error {
 	}
 
 	if h.Role == "server" {
+		// TODO: belongs to configurer
 		if initctl == "systemd" {
 			if err := h.Exec("sudo systemctl start k0s"); err != nil {
 				return err
@@ -48,6 +49,7 @@ func (p *StartK0s) startK0s(h *api.Host, c *api.ClusterConfig) error {
 			return fmt.Errorf("k0s is not installed as systemd or openrc service")
 		}
 
+		// TODO: belongs to configurer
 		token, err := h.ExecWithOutput("sudo k0s token create --role worker --wait")
 		if err != nil {
 			return err
@@ -62,14 +64,16 @@ func (p *StartK0s) startK0s(h *api.Host, c *api.ClusterConfig) error {
 		}
 
 		if output != "" {
-			if err := h.Configurer.WriteFile(h.Configurer.K0sJoinToken(), c.Spec.K0s.Metadata.JoinToken, "0700"); err != nil {
+			if err := h.Configurer.WriteFile(h.Configurer.K0sJoinTokenPath(), c.Spec.K0s.Metadata.JoinToken, "0700"); err != nil {
 				return err
 			}
 
-			if err := h.Exec(fmt.Sprintf("sed -i 's^REPLACEME^%s^g' %s", h.Configurer.K0sJoinToken(), output)); err != nil {
+			// TODO: belongs to configurer as it wont work on all platforms
+			if err := h.Exec(fmt.Sprintf("sed -i 's^REPLACEME^%s^g' %s", h.Configurer.K0sJoinTokenPath(), output)); err != nil {
 				return err
 			}
 
+			// TODO: belongs to configurer as it wont work on all platforms
 			if initctl == "systemd" {
 				if err := h.Exec("systemctl daemon-reload"); err != nil {
 					return err
@@ -77,6 +81,7 @@ func (p *StartK0s) startK0s(h *api.Host, c *api.ClusterConfig) error {
 			}
 		}
 
+		// TODO: belongs to configurer
 		if initctl == "systemd" {
 			if err := h.Exec("sudo systemctl start k0s"); err != nil {
 				return err

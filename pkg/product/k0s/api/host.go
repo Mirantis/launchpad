@@ -8,11 +8,13 @@ import (
 
 // Host contains all the needed details to work with hosts
 type Host struct {
-	Role         string         `yaml:"role" validate:"oneof=server worker"`
-	UploadBinary bool           `yaml:"uploadBinary,omitempty"`
-	K0sBinary    string         `yaml:"k0sBinary,omitempty" validate:"omitempty,file"`
-	Configurer   HostConfigurer `yaml:"-"`
-	Metadata     *HostMetadata  `yaml:"-"`
+	Role         string            `yaml:"role" validate:"oneof=server worker"`
+	UploadBinary bool              `yaml:"uploadBinary,omitempty"`
+	K0sBinary    string            `yaml:"k0sBinary,omitempty" validate:"omitempty,file"`
+	Configurer   HostConfigurer    `yaml:"-"`
+	Metadata     *HostMetadata     `yaml:"-"`
+	Environment  map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
+	Hooks        common.Hooks      `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
 
 	common.ConnectableHost `yaml:",inline"`
 
@@ -48,12 +50,13 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // K0sVersion returns installed version of k0s
+// TODO: need to be in configurer
 func (h *Host) K0sVersion() (string, error) {
 	return h.ExecWithOutput("k0s version")
 }
 
-// PrepareConfig persists k0s.yaml config to the host
-func (h *Host) PrepareConfig(config *common.GenericHash) error {
+// ConfigureK0s persists k0s.yaml config to the host
+func (h *Host) ConfigureK0s(config *common.GenericHash) error {
 	output, err := yaml.Marshal(config)
 	if err != nil {
 		return err

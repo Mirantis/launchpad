@@ -21,6 +21,15 @@ func (c *Configurer) InstallMKEBasePackages() error {
 	return c.Host.Exec("sudo zypper -n install -y curl socat")
 }
 
+// InstallK0sBasePackages installs the needed base packages on Ubuntu
+func (c *Configurer) InstallK0sBasePackages() error {
+	err := c.FixContainerizedHost()
+	if err != nil {
+		return err
+	}
+	return c.Host.Exec("sudo zypper -n install -y curl")
+}
+
 // UninstallMCR uninstalls docker-ee engine
 func (c *Configurer) UninstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	err := c.Host.Exec("sudo docker system prune -f")

@@ -9,7 +9,15 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/k0s/api"
 
 	// needed to load the build func in package init
-	_ "github.com/Mirantis/mcc/pkg/configurer/k0s/ubuntu"
+	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
+	// needed to load the build func in package init
+	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	// needed to load the build func in package init
+	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
+	// needed to load the build func in package init
+	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
+	// needed to load the build func in package init
+	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
 	"github.com/cobaugh/osrelease"
 	log "github.com/sirupsen/logrus"
 )

@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/configurer/resolver"
 	"github.com/Mirantis/mcc/pkg/product/common/api"
-	// "github.com/Mirantis/mcc/pkg/product/k0s/api"
 )
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
@@ -14,9 +14,11 @@ type HostConfigurer interface {
 	ResolveHostname() string
 	ResolveLongHostname() string
 	SELinuxEnabled() bool
-	InstallBasePackages() error
+	InstallK0sBasePackages() error
+	UpdateEnvironment(map[string]string) error
+	CleanupEnvironment(map[string]string) error
 	K0sConfigPath() string
-	K0sJoinToken() string
+	K0sJoinTokenPath() string
 	InstallK0s(version string, k0sConfig *api.GenericHash) error
 	UploadK0s(version string, k0sConfig *api.GenericHash) error
 	ValidateFacts() error
@@ -27,33 +29,20 @@ type HostConfigurer interface {
 	FileExist(path string) bool
 }
 
-// HostConfigurerBuilder defines the builder function signature
-type HostConfigurerBuilder func(h *Host) HostConfigurer
-
-var hostConfigurers []HostConfigurerBuilder
-
-// RegisterHostConfigurer registers a known host OS specific configurer builder
-func RegisterHostConfigurer(adapter HostConfigurerBuilder) {
-	hostConfigurers = append(hostConfigurers, adapter)
-}
-
-// GetHostConfigurers gives out all the registered configurer builders
-func GetHostConfigurers() []HostConfigurerBuilder {
-	return hostConfigurers
-}
-
-// ResolveHostConfigurer resolves a configurer for a host
+// ResolveHostConfigurer will resolve and cast a configurer for the MKE configurer interface
 func ResolveHostConfigurer(h *Host) error {
-	configurers := GetHostConfigurers()
+	if h.Metadata == nil || h.Metadata.Os == nil {
+		return fmt.Errorf("%s: OS not known", h)
+	}
+	r, err := resolver.ResolveHostConfigurer(h, h.Metadata.Os)
+	if err != nil {
+		return err
+	}
 
-	for _, resolver := range configurers {
-		configurer := resolver(h)
-		if configurer != nil {
-			h.Configurer = configurer
-		}
+	if configurer, ok := r.(HostConfigurer); ok {
+		h.Configurer = configurer
+		return nil
 	}
-	if h.Configurer == nil {
-		return fmt.Errorf("%s: has unsupported OS (%s)", h, h.Metadata.Os.Name)
-	}
-	return nil
+
+	return fmt.Errorf("%s: has unsupported OS (%s)", h, h.Metadata.Os)
 }

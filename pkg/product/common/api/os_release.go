@@ -7,3 +7,8 @@ type OsRelease struct {
 	Name    string
 	Version string
 }
+
+// String implements Stringer
+func (o *OsRelease) String() string {
+	return o.Name
+}

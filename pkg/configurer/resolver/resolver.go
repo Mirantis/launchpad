@@ -31,5 +31,5 @@ func ResolveHostConfigurer(h configurer.Host, os *common.OsRelease) (interface{}
 		}
 	}
 
-	return nil, fmt.Errorf("%s: has unsupported OS (%s)", h, os.Name)
+	return nil, fmt.Errorf("%s: has unsupported OS (%s)", h, os)
 }

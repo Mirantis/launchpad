@@ -22,6 +22,16 @@ func (c *Configurer) InstallMKEBasePackages() error {
 	return c.Host.Exec("sudo yum install -y curl socat iptables iputils gzip")
 }
 
+// InstallK0sBasePackages install all the needed base packages on the host
+func (c *Configurer) InstallK0sBasePackages() error {
+	err := c.FixContainerizedHost()
+	if err != nil {
+		return err
+	}
+
+	return c.Host.Exec("sudo yum install -y curl gzip")
+}
+
 // UninstallMCR uninstalls docker-ee engine
 func (c *Configurer) UninstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
 	err := c.Host.Exec("sudo docker system prune -f")

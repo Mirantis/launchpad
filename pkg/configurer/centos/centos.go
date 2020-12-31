@@ -21,6 +21,15 @@ func (c *Configurer) InstallMKEBasePackages() error {
 	return c.Host.Exec("sudo yum install -y curl socat iptables iputils gzip")
 }
 
+// InstallK0sBasePackages install all the needed base packages on the host
+func (c *Configurer) InstallK0sBasePackages() error {
+	err := c.FixContainerizedHost()
+	if err != nil {
+		return err
+	}
+	return c.Host.Exec("sudo yum install -y curl gzip")
+}
+
 func resolveCentosConfigurer(h configurer.Host, os *common.OsRelease) interface{} {
 	if os.ID == "centos" {
 		return &Configurer{
