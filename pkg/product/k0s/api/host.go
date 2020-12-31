@@ -26,7 +26,6 @@ type HostMetadata struct {
 	InternalAddress string
 	K0sVersion      string
 	Os              *common.OsRelease
-	JoinToken       string
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml

@@ -13,7 +13,7 @@ type ClusterMeta struct {
 
 // ClusterConfig describes launchpad.yaml configuration
 type ClusterConfig struct {
-	APIVersion string       `yaml:"apiVersion"`
+	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/k0s/v1beta1"`
 	Kind       string       `yaml:"kind" validate:"eq=k0s"`
 	Metadata   *ClusterMeta `yaml:"metadata"`
 	Spec       *ClusterSpec `yaml:"spec"`
@@ -40,21 +40,13 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func (c *ClusterConfig) Validate() error {
 	validator := validator.New()
-	validator.RegisterStructValidation(requireManager, ClusterSpec{})
 	return validator.Struct(c)
-}
-
-func requireManager(sl validator.StructLevel) {
-	// hosts := sl.Current().Interface().(ClusterSpec).Hosts
-	// if hosts.Count(func(h *Host) bool { return h.Role == "manager" }) == 0 {
-	// 	sl.ReportError(hosts, "hosts", "", "manager required", "")
-	// }
 }
 
 // Init returns an example of configuration file contents
 func Init(kind string) *ClusterConfig {
 	config := &ClusterConfig{
-		APIVersion: "launchpad.mirantis.com/k0s/v0.8.1",
+		APIVersion: "launchpad.mirantis.com/k0s/v1beta1",
 		Kind:       kind,
 		Metadata: &ClusterMeta{
 			Name: "my-k0s-cluster",
