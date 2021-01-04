@@ -29,8 +29,9 @@ func (p *Connect) Prepare(config interface{}) error {
 	spec := r.FieldByName("Spec").Elem()
 	hosts := spec.FieldByName("Hosts")
 	for i := 0; i < hosts.Len(); i++ {
-		h := hosts.Index(i).Interface().(connectable)
-		p.hosts = append(p.hosts, h)
+		if h, ok := hosts.Index(i).Interface().(connectable); ok {
+			p.hosts = append(p.hosts, h)
+		}
 	}
 
 	return nil

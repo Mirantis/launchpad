@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/configurer/resolver"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
@@ -250,4 +251,22 @@ func (h *Host) waitForHost(state bool) error {
 		return fmt.Errorf("failed to wait for host to go offline")
 	}
 	return nil
+}
+
+// ResolveHostConfigurer will resolve and cast a configurer for the MKE configurer interface
+func (h *Host) ResolveHostConfigurer() error {
+	if h.Metadata == nil || h.Metadata.Os == nil {
+		return fmt.Errorf("%s: OS not known", h)
+	}
+	r, err := resolver.ResolveHostConfigurer(h, h.Metadata.Os)
+	if err != nil {
+		return err
+	}
+
+	if configurer, ok := r.(HostConfigurer); ok {
+		h.Configurer = configurer
+		return nil
+	}
+
+	return fmt.Errorf("%s: has unsupported OS (%s)", h, h.Metadata.Os)
 }

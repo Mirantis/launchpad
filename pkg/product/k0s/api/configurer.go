@@ -1,9 +1,6 @@
 package api
 
 import (
-	"fmt"
-
-	"github.com/Mirantis/mcc/pkg/configurer/resolver"
 	"github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
@@ -27,22 +24,4 @@ type HostConfigurer interface {
 	ReadFile(path string) (string, error)
 	DeleteFile(path string) error
 	FileExist(path string) bool
-}
-
-// ResolveHostConfigurer will resolve and cast a configurer for the MKE configurer interface
-func ResolveHostConfigurer(h *Host) error {
-	if h.Metadata == nil || h.Metadata.Os == nil {
-		return fmt.Errorf("%s: OS not known", h)
-	}
-	r, err := resolver.ResolveHostConfigurer(h, h.Metadata.Os)
-	if err != nil {
-		return err
-	}
-
-	if configurer, ok := r.(HostConfigurer); ok {
-		h.Configurer = configurer
-		return nil
-	}
-
-	return fmt.Errorf("%s: has unsupported OS (%s)", h, h.Metadata.Os)
 }

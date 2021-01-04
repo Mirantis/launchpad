@@ -1,9 +1,6 @@
 package api
 
 import (
-	"fmt"
-
-	"github.com/Mirantis/mcc/pkg/configurer/resolver"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
@@ -36,17 +33,4 @@ type HostConfigurer interface {
 	Pwd() string
 	JoinPath(...string) string
 	RebootCommand() string
-}
-
-// ResolveHostConfigurer will resolve and cast a configurer for the MKE configurer interface
-func ResolveHostConfigurer(h *Host) error {
-	if h.Metadata == nil || h.Metadata.Os == nil {
-		return fmt.Errorf("%s: OS not known", h)
-	}
-	r, err := resolver.ResolveHostConfigurer(h, h.Metadata.Os)
-	if err != nil {
-		return err
-	}
-	h.Configurer = r.(HostConfigurer)
-	return nil
 }

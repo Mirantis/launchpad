@@ -1,6 +1,9 @@
 package api
 
 import (
+	"fmt"
+
+	"github.com/Mirantis/mcc/pkg/configurer/resolver"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/creasty/defaults"
 	"gopkg.in/yaml.v2"
@@ -23,11 +26,8 @@ type Host struct {
 
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
-	Hostname        string
-	LongHostname    string
-	InternalAddress string
-	K0sVersion      string
-	Os              *common.OsRelease
+	K0sVersion string
+	Os         *common.OsRelease
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
@@ -62,4 +62,22 @@ func (h *Host) ConfigureK0s(config *common.GenericHash) error {
 		return err
 	}
 	return h.Configurer.WriteFile(h.Configurer.K0sConfigPath(), string(output), "0700")
+}
+
+// ResolveHostConfigurer will resolve and cast a configurer for the K0s configurer interface
+func (h *Host) ResolveHostConfigurer() error {
+	if h.Metadata == nil || h.Metadata.Os == nil {
+		return fmt.Errorf("%s: OS not known", h)
+	}
+	r, err := resolver.ResolveHostConfigurer(h, h.Metadata.Os)
+	if err != nil {
+		return err
+	}
+
+	if configurer, ok := r.(HostConfigurer); ok {
+		h.Configurer = configurer
+		return nil
+	}
+
+	return fmt.Errorf("%s: has unsupported OS (%s)", h, h.Metadata.Os)
 }

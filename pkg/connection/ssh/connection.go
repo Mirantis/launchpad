@@ -52,14 +52,14 @@ func (c *Connection) Disconnect() {
 	c.client.Close()
 }
 
-// SetWindows can be used to tell the SSH connection to consider the host to be running Windows
-func (c *Connection) SetWindows(v bool) {
-	c.knowOs = true
-	c.isWindows = v
-}
-
-// IsWindows is true when SetWindows(true) has been used
+// IsWindows is true when the host is running windows
 func (c *Connection) IsWindows() bool {
+	if !c.knowOs {
+		c.knowOs = true
+
+		c.isWindows = c.Exec("cmd /c exit 0") == nil
+	}
+
 	return c.isWindows
 }
 

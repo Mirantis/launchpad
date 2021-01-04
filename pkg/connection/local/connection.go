@@ -38,9 +38,6 @@ func (c *Connection) String() string {
 	return c.name
 }
 
-// SetWindows on local connection does nothing
-func (c *Connection) SetWindows(bool) {}
-
 // IsWindows is true when SetWindows(true) has been used
 func (c *Connection) IsWindows() bool {
 	return runtime.GOOS == "windows"

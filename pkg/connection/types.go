@@ -8,7 +8,6 @@ import (
 type Connection interface {
 	Connect() error
 	Disconnect()
-	SetWindows(bool)
 	Upload(source string, destination string) error
 	IsWindows() bool
 	Exec(string, ...exec.Option) error

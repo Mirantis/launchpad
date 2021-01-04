@@ -20,6 +20,7 @@ func (p *K0s) Apply(disableCleanup, force bool) error {
 
 	phaseManager.AddPhases(
 		&common.Connect{},
+		&common.DetectOS{},
 		&k0s.GatherFacts{},
 		&common.RunHooks{Stage: "before", Action: "apply"},
 		&k0s.PrepareHost{},

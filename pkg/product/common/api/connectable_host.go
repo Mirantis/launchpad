@@ -24,6 +24,11 @@ type ConnectableHost struct {
 	name string
 }
 
+// IsWindows returns true on windows hosts
+func (h *ConnectableHost) IsWindows() bool {
+	return h.Connection.IsWindows()
+}
+
 // Exec a command on the host
 func (h *ConnectableHost) Exec(cmd string, opts ...exec.Option) error {
 	return h.Connection.Exec(cmd, opts...)

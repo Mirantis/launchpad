@@ -50,10 +50,6 @@ func (c *Connection) String() string {
 	return c.name
 }
 
-// SetWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
-func (c *Connection) SetWindows(v bool) {
-}
-
 // IsWindows is here to satisfy the interface, WinRM hosts are expected to always run windows
 func (c *Connection) IsWindows() bool {
 	return true

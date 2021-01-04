@@ -30,14 +30,11 @@ func (p *Describe) hostReport() {
 	// minwidth, tabwidth, padding, padchar, flags
 	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
-	// fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "INTERNAL_IP", "HOSTNAME", "ROLE", "OS", "k0s")
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "HOSTNAME", "ROLE", "OS", "k0s")
+	fmt.Fprintf(w, "%s\t\t%s\t%s\t%s\t\n", "ADDRESS", "ROLE", "OS", "k0s")
 
 	for _, h := range p.Config.Spec.Hosts {
 		ev := "n/a"
 		os := "n/a"
-		// ia := "n/a"
-		hn := "n/a"
 		if h.Metadata != nil {
 			if h.Metadata.K0sVersion != "" {
 				ev = h.Metadata.K0sVersion
@@ -45,15 +42,10 @@ func (p *Describe) hostReport() {
 			if h.Metadata.Os != nil {
 				os = fmt.Sprintf("%s/%s", h.Metadata.Os.ID, h.Metadata.Os.Version)
 			}
-
-			if h.Metadata.Hostname != "" {
-				hn = h.Metadata.Hostname
-			}
 		}
 		fmt.Fprintf(w,
-			"%s\t%s\t%s\t%s\t%s\t\n",
+			"%s\t\t%s\t%s\t%s\t\n",
 			h.Address,
-			hn,
 			h.Role,
 			os,
 			ev,
