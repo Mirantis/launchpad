@@ -391,5 +391,5 @@ func (c *LinuxConfigurer) InitSystem() (common.InitSystem, error) {
 		return &common.OpenRC{Host: c.Host}, nil
 	}
 
-	return nil, fmt.Errorf("%s: unable to detect OS init-system")
+	return nil, fmt.Errorf("%s: unable to detect OS init-system", c.Host)
 }

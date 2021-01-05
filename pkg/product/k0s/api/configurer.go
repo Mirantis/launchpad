@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/Mirantis/mcc/pkg/product/common/api"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
@@ -16,7 +16,7 @@ type HostConfigurer interface {
 	K0sJoinTokenPath() string
 	K0sBinaryPath() string
 	K0sCmdf(...string) string
-	UploadK0s(version string, k0sConfig *api.GenericHash) error
+	UploadK0s(version string, k0sConfig *common.GenericHash) error
 	ValidateFacts() error
 	WriteFile(path, content, permissions string) error
 	WriteFileLarge(content, permissions string) error
