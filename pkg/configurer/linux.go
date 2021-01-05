@@ -332,3 +332,64 @@ func (c *LinuxConfigurer) JoinPath(parts ...string) string {
 func (c *LinuxConfigurer) RebootCommand() string {
 	return "sudo systemctl start reboot.target"
 }
+
+// Arch returns host's CPU architecture
+func (c *LinuxConfigurer) Arch() (string, error) {
+	arch, err := c.Host.ExecWithOutput("uname -m")
+	if err != nil {
+		return "", err
+	}
+	switch arch {
+	case "x86_64":
+		return "amd64", nil
+	case "aarch64":
+		return "arm64", nil
+	default:
+		return arch, nil
+	}
+}
+
+// RunK0sDownloader downloads k0s binaries using the online script
+func (c *LinuxConfigurer) RunK0sDownloader(version string) error {
+	return c.Host.Exec(fmt.Sprintf("curl get.k0s.sh | K0S_VERSION=v%s sh", version))
+}
+
+// K0sVersion returns installed version of k0s
+func (c *LinuxConfigurer) K0sVersion() (string, error) {
+	return c.Host.ExecWithOutput(c.K0sCmdf("version"))
+}
+
+func (c *LinuxConfigurer) K0sCmdf(template string, args ...interface{}) string {
+	return fmt.Sprintf("sudo %s %s", c.K0sBinaryPath(), fmt.Sprintf(template, args...))
+}
+
+// K0sConfigPath returns location of k0s configuration file
+func (c *LinuxConfigurer) K0sBinaryPath() string {
+	return "/usr/bin/k0s"
+}
+
+// K0sConfigPath returns location of k0s configuration file
+func (c *LinuxConfigurer) K0sConfigPath() string {
+	return "/etc/k0s/k0s.yaml"
+}
+
+// K0sJoinToken returns location of k0s join token file
+func (c *LinuxConfigurer) K0sJoinTokenPath() string {
+	return "/etc/k0s/k0stoken"
+}
+
+// InitSystem returns the init system
+func (c *LinuxConfigurer) InitSystem() (common.InitSystem, error) {
+	initctl, err := c.Host.ExecWithOutput("basename $(command -v rc-service systemd)")
+	if err != nil {
+		return nil, err
+	}
+	switch initctl {
+	case "systemd":
+		return &common.Systemd{Host: c.Host}, nil
+	case "rc-service":
+		return &common.OpenRC{Host: c.Host}, nil
+	}
+
+	return nil, fmt.Errorf("%s: unable to detect OS init-system")
+}

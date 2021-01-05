@@ -24,8 +24,10 @@ func (p *K0s) Apply(disableCleanup, force bool) error {
 		&k0s.GatherFacts{},
 		&common.RunHooks{Stage: "before", Action: "apply"},
 		&k0s.PrepareHost{},
+		&k0s.DownloadBinaries{}, // Download binaries to tempfiles for hosts that do not have a k0sBinary path but have uploadBinary: true
+		&k0s.UploadBinaries{},   // Upload binaries from host's k0sBinary path (or the tempfile from above) to host
+		&k0s.RunK0sDownloader{}, // For hosts that do not have k0sbinary nor uploadBinary - run the online k0s "downloader"
 		&k0s.ConfigureK0s{},
-		&k0s.InstallK0s{},
 		&k0s.StartK0s{},
 		&common.RunHooks{Stage: "after", Action: "apply"},
 		&common.Disconnect{},

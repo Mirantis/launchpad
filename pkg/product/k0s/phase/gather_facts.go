@@ -21,12 +21,7 @@ func (p *GatherFacts) Title() string {
 
 // Run collect all the facts from hosts in parallel
 func (p *GatherFacts) Run() error {
-	err := RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.investigateHost)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.investigateHost)
 }
 
 func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
@@ -38,7 +33,21 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		return err
 	}
 
-	version, err := h.K0sVersion()
+	arch, err := h.Configurer.Arch()
+	if err != nil {
+		return err
+	}
+
+	h.Metadata.Arch = arch
+
+	isys, err := h.Configurer.InitSystem()
+	if err != nil {
+		return err
+	}
+
+	h.InitSystem = isys
+
+	version, err := h.Configurer.K0sExecutableVersion()
 	if err != nil {
 		log.Infof("%s: K0s is not installed", h)
 	} else {

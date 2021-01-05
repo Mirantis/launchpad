@@ -6,7 +6,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/configurer/resolver"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/creasty/defaults"
-	"gopkg.in/yaml.v2"
 )
 
 // Host contains all the needed details to work with hosts
@@ -14,12 +13,14 @@ type Host struct {
 	Role         string            `yaml:"role" validate:"oneof=server worker"`
 	UploadBinary bool              `yaml:"uploadBinary,omitempty"`
 	K0sBinary    string            `yaml:"k0sBinary,omitempty" validate:"omitempty,file"`
-	Configurer   HostConfigurer    `yaml:"-"`
-	Metadata     *HostMetadata     `yaml:"-"`
 	Environment  map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks        common.Hooks      `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
 
 	common.ConnectableHost `yaml:",inline"`
+
+	InitSystem common.InitSystem `yaml:"-"`
+	Configurer HostConfigurer    `yaml:"-"`
+	Metadata   *HostMetadata     `yaml:"-"`
 
 	name string
 }
@@ -27,6 +28,7 @@ type Host struct {
 // HostMetadata resolved metadata for host
 type HostMetadata struct {
 	K0sVersion string
+	Arch       string
 	Os         *common.OsRelease
 }
 
@@ -47,21 +49,6 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	return nil
-}
-
-// K0sVersion returns installed version of k0s
-// TODO: need to be in configurer
-func (h *Host) K0sVersion() (string, error) {
-	return h.ExecWithOutput("k0s version")
-}
-
-// ConfigureK0s persists k0s.yaml config to the host
-func (h *Host) ConfigureK0s(config *common.GenericHash) error {
-	output, err := yaml.Marshal(config)
-	if err != nil {
-		return err
-	}
-	return h.Configurer.WriteFile(h.Configurer.K0sConfigPath(), string(output), "0700")
 }
 
 // ResolveHostConfigurer will resolve and cast a configurer for the K0s configurer interface

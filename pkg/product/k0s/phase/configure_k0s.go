@@ -4,6 +4,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/k0s/api"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 // ConfigureK0s phase
@@ -14,7 +15,7 @@ type ConfigureK0s struct {
 
 // Title for the phase
 func (p *ConfigureK0s) Title() string {
-	return "Configure K0s on hosts"
+	return "Configure K0s on Hosts"
 }
 
 // Run ...
@@ -26,7 +27,12 @@ func (p *ConfigureK0s) writeConfig(h *api.Host, c *api.ClusterConfig) error {
 	if h.Role == "server" {
 		log.Infof("%s: writing K0s config", h)
 
-		return h.ConfigureK0s(&p.Config.Spec.K0s.Config)
+		output, err := yaml.Marshal(c.Spec.K0s.Config)
+		if err != nil {
+			return err
+		}
+		return h.Configurer.WriteFile(h.Configurer.K0sConfigPath(), string(output), "0700")
 	}
+
 	return nil
 }
