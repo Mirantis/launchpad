@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/util"
 
 	log "github.com/sirupsen/logrus"
 )

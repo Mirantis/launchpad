@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 )
 
 // InitSystem is an interface for the OS init system

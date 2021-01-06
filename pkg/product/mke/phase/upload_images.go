@@ -7,7 +7,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/util"
 
 	"github.com/alessio/shellescape"
 	log "github.com/sirupsen/logrus"

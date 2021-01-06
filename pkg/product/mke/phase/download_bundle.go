@@ -12,7 +12,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/util"
 	"github.com/mitchellh/go-homedir"
 
 	log "github.com/sirupsen/logrus"

@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/Mirantis/mcc/pkg/connection/ssh"
 	"github.com/creasty/defaults"
+	"github.com/k0sproject/rig/connection/ssh"
 	"github.com/mitchellh/go-homedir"
 )
 

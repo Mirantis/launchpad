@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/util"
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
 )

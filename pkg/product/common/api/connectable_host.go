@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/connection"
-	"github.com/Mirantis/mcc/pkg/connection/local"
-	"github.com/Mirantis/mcc/pkg/exec"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/connection"
+	"github.com/k0sproject/rig/connection/local"
+	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/util"
 	log "github.com/sirupsen/logrus"
 )
 

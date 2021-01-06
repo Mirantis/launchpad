@@ -9,10 +9,10 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/exec"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
+	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/util"
 
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-homedir"

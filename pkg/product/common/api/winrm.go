@@ -1,8 +1,8 @@
 package api
 
 import (
-	"github.com/Mirantis/mcc/pkg/connection/winrm"
 	"github.com/creasty/defaults"
+	"github.com/k0sproject/rig/connection/winrm"
 	"github.com/mitchellh/go-homedir"
 )
 

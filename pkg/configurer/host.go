@@ -1,6 +1,6 @@
 package configurer
 
-import "github.com/Mirantis/mcc/pkg/exec"
+import "github.com/k0sproject/rig/exec"
 
 // Host defines an interface for a host that can be used as a host for a configurer
 type Host interface {

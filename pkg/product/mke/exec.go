@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )

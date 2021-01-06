@@ -9,8 +9,8 @@ import (
 
 	// needed to load the build func in package init
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 
 	// needed to load the build func in package init

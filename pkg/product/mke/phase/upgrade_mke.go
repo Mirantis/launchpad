@@ -3,11 +3,11 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 

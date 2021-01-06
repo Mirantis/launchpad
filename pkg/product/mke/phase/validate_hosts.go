@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/util"
 
 	"crypto/rand"
 

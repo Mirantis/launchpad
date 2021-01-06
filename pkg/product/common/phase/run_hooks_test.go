@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/k0sproject/rig/exec"
 	"github.com/stretchr/testify/require"
 )
 

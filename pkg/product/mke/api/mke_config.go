@@ -6,8 +6,8 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
+	"github.com/k0sproject/rig/util"
 
 	"github.com/hashicorp/go-version"
 )

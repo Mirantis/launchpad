@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	retry "github.com/avast/retry-go"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 

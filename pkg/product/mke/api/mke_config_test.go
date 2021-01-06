@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/hashicorp/go-version"
+	"github.com/k0sproject/rig/util"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )

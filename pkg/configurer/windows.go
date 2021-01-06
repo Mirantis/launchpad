@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/exec"
-	ps "github.com/Mirantis/mcc/pkg/powershell"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/avast/retry-go"
+	"github.com/k0sproject/rig/exec"
+	ps "github.com/k0sproject/rig/powershell"
+	"github.com/k0sproject/rig/util"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hashicorp/go-version"
