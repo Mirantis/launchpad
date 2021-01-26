@@ -57,7 +57,7 @@ func (c *Connection) uploadLinux(src, dst string) error {
 }
 
 func (c *Connection) uploadWindows(src, dst string) error {
-	psCmd := ps.UploadCmd(dst)
+	psCmd := ps.Cmd(ps.UploadCmd(dst))
 	stat, err := os.Stat(src)
 	if err != nil {
 		return err
@@ -98,8 +98,7 @@ func (c *Connection) uploadWindows(src, dst string) error {
 		return err
 	}
 
-	psRunCmd := "powershell -ExecutionPolicy Unrestricted -EncodedCommand " + psCmd
-	if err := session.Start(psRunCmd); err != nil {
+	if err := session.Start(psCmd); err != nil {
 		return err
 	}
 
