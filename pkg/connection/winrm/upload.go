@@ -24,7 +24,7 @@ import (
 // Upload uploads a file to a host
 // Adapted from https://github.com/jbrekelmans/go-winrm/copier.go by Jasper Brekelmans
 func (c *Connection) Upload(src, dst string) error {
-	psCmd := ps.UploadCmd(dst)
+	psCmd := ps.Cmd(ps.UploadCmd(dst))
 	stat, err := os.Stat(src)
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (c *Connection) Upload(src, dst string) error {
 	}
 	defer shell.Close()
 	log.Tracef("%s: running %s", c, psCmd)
-	cmd, err := shell.Execute("powershell -ExecutionPolicy Unrestricted -EncodedCommand " + psCmd)
+	cmd, err := shell.Execute(psCmd)
 	if err != nil {
 		return err
 	}

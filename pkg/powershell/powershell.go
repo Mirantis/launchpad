@@ -1,4 +1,4 @@
-package util
+package powershell
 
 import (
 	"encoding/base64"
@@ -60,7 +60,7 @@ func Cmd(psCmd string) string {
 
 	log.Debugf("encoded powershell command: %s", psCmd)
 	// Create the powershell.exe command line to execute the script
-	return fmt.Sprintf("powershell.exe -NonInteractive -NoProfile -EncodedCommand %s", encodedCmd)
+	return fmt.Sprintf("powershell.exe -NonInteractive -ExecutionPolicy Bypass -NoProfile -EncodedCommand %s", encodedCmd)
 }
 
 // SingleQuote quotes and escapes a string in a format that is accepted by powershell scriptlets

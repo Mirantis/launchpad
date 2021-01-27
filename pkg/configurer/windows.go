@@ -117,7 +117,7 @@ func (c *WindowsConfigurer) RestartMCR() error {
 
 // ResolveHostname resolves hostname
 func (c *WindowsConfigurer) ResolveHostname() string {
-	output, err := c.Host.ExecWithOutput("powershell $env:COMPUTERNAME")
+	output, err := c.Host.ExecWithOutput(ps.Cmd("$env:COMPUTERNAME"))
 	if err != nil {
 		return "localhost"
 	}
@@ -126,7 +126,7 @@ func (c *WindowsConfigurer) ResolveHostname() string {
 
 // ResolveLongHostname resolves the FQDN (long) hostname
 func (c *WindowsConfigurer) ResolveLongHostname() string {
-	output, err := c.Host.ExecWithOutput("powershell ([System.Net.Dns]::GetHostByName(($env:COMPUTERNAME))).Hostname")
+	output, err := c.Host.ExecWithOutput(ps.Cmd("([System.Net.Dns]::GetHostByName(($env:COMPUTERNAME))).Hostname"))
 	if err != nil {
 		return "localhost"
 	}
@@ -159,7 +159,7 @@ func (c *WindowsConfigurer) ResolveInternalIP(privateInterface, publicIP string)
 }
 
 func (c *WindowsConfigurer) interfaceIP(iface string) (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress"`, ps.SingleQuote(iface)))
+	output, err := c.Host.ExecWithOutput(ps.Cmd(fmt.Sprintf(`(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress`, ps.SingleQuote(iface))))
 	if err != nil {
 		return "", err
 	}
@@ -234,18 +234,18 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 		return fmt.Errorf("empty path in WriteFile")
 	}
 
-	tempFile, err := c.Host.ExecWithOutput("powershell -Command \"New-TemporaryFile | Write-Host\"")
+	tempFile, err := c.Host.ExecWithOutput(ps.Cmd("New-TemporaryFile | Write-Host"))
 	if err != nil {
 		return err
 	}
 	defer c.Host.ExecWithOutput(fmt.Sprintf("del \"%s\"", tempFile))
 
-	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "$Input | Out-File -FilePath %s"`, ps.SingleQuote(tempFile)), exec.Stdin(data))
+	err = c.Host.Exec(ps.Cmd(fmt.Sprintf(`$Input | Out-File -FilePath %s`, ps.SingleQuote(tempFile))), exec.Stdin(data))
 	if err != nil {
 		return err
 	}
 
-	err = c.Host.Exec(fmt.Sprintf(`powershell -Command "Move-Item -Force -Path %s -Destination %s"`, ps.SingleQuote(tempFile), ps.SingleQuote(path)))
+	err = c.Host.Exec(ps.Cmd(fmt.Sprintf(`Move-Item -Force -Path %s -Destination %s`, ps.SingleQuote(tempFile), ps.SingleQuote(path))))
 	if err != nil {
 		return err
 	}
@@ -265,7 +265,7 @@ func (c *WindowsConfigurer) DeleteFile(path string) error {
 
 // FileExist checks if a file exists on the host
 func (c *WindowsConfigurer) FileExist(path string) bool {
-	return c.Host.Exec(fmt.Sprintf(`powershell -Command "if (!(Test-Path -Path \"%s\")) { exit 1 }"`, path)) == nil
+	return c.Host.Exec(ps.Cmd(fmt.Sprintf(`if (!(Test-Path -Path \"%s\")) { exit 1 }`, path))) == nil
 }
 
 // UpdateEnvironment updates the hosts's environment variables
@@ -282,17 +282,17 @@ func (c *WindowsConfigurer) UpdateEnvironment(env map[string]string) error {
 // CleanupEnvironment removes environment variable configuration
 func (c *WindowsConfigurer) CleanupEnvironment(env map[string]string) error {
 	for k := range env {
-		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'User')"`, ps.SingleQuote(k)))
-		c.Host.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')"`, ps.SingleQuote(k)))
+		c.Host.Exec(ps.Cmd(fmt.Sprintf(`[Environment]::SetEnvironmentVariable(%s, $null, 'User')`, ps.SingleQuote(k))))
+		c.Host.Exec(ps.Cmd(fmt.Sprintf(`[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')`, ps.SingleQuote(k))))
 	}
 	return nil
 }
 
 // ResolvePrivateInterface tries to find a private network interface
 func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
-	output, err := c.Host.ExecWithOutput(`powershell -Command "(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias"`)
+	output, err := c.Host.ExecWithOutput(ps.Cmd(`(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias`))
 	if err != nil || output == "" {
-		output, err = c.Host.ExecWithOutput(`powershell -Command "(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias"`)
+		output, err = c.Host.ExecWithOutput(ps.Cmd(`(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias`))
 	}
 	if err != nil || output == "" {
 		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually")
@@ -303,7 +303,7 @@ func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
 // HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
 func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
 	log.Debugf("%s: requesting %s", c.Host, url)
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`powershell "[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode"`, ps.SingleQuote(url)))
+	output, err := c.Host.ExecWithOutput(ps.Cmd(fmt.Sprintf(`[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode`, ps.SingleQuote(url))))
 	if err != nil {
 		return -1, err
 	}
