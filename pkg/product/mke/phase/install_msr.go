@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,6 +34,9 @@ func (p *InstallMSR) ShouldRun() bool {
 // Run the installer container
 func (p *InstallMSR) Run() error {
 	h := p.Config.Spec.MSRLeader()
+	if h.MSRMetadata == nil {
+		h.MSRMetadata = &api.MSRMetadata{}
+	}
 
 	err := p.Config.Spec.CheckMKEHealthRemote(h)
 	if err != nil {
