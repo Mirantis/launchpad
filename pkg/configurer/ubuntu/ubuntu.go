@@ -43,6 +43,15 @@ func resolveUbuntuConfigurer(h configurer.Host, os *common.OsRelease) interface{
 		return nil
 	}
 	switch os.Version {
+	case "20.04":
+		configurer := &FocalConfigurer{
+			Configurer: Configurer{
+				LinuxConfigurer: configurer.LinuxConfigurer{
+					Host: h,
+				},
+			},
+		}
+	return configurer
 	case "18.04":
 		configurer := &BionicConfigurer{
 			Configurer: Configurer{
