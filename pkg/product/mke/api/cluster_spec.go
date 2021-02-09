@@ -90,7 +90,7 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 		if len(mgrs) < 1 {
 			return nil, fmt.Errorf("unable to generate a url for mke")
 		}
-		mkeAddr = mgrs[0].Address
+		mkeAddr = mgrs[0].Address()
 	}
 
 	if portstr := c.MKE.InstallFlags.GetValue("--controller-port"); portstr != "" {
@@ -137,7 +137,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 	if msrLeader == nil {
 		return nil, fmt.Errorf("unable to generate a MSR URL - no MSR nodes found")
 	}
-	msrAddr = msrLeader.Address
+	msrAddr = msrLeader.Address()
 
 	if c.MSR != nil {
 		if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
@@ -179,7 +179,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 func isSwarmLeader(h *Host) bool {
 	// We can by-pass the Configurer interface as managers are always linux boxes
-	output, err := h.ExecWithOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
+	output, err := h.ExecOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
 	if err != nil {
 		log.Debugf("%s: failed to get host's swarm leader status, probably not part of swarm", h)
 		return false

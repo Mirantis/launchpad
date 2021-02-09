@@ -4,6 +4,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	validator "github.com/go-playground/validator/v10"
+	"github.com/k0sproject/rig"
 )
 
 // ClusterMeta defines cluster metadata
@@ -69,18 +70,18 @@ func Init(kind string) *ClusterConfig {
 			},
 			Hosts: []*Host{
 				{
-					Address: "10.0.0.1",
-					Role:    "manager",
-					SSH: &common.SSH{
-						User:    "root",
-						Port:    22,
-						KeyPath: "~/.ssh/id_rsa",
+					Role: "manager",
+					Connection: rig.Connection{
+						SSH: &rig.SSH{
+							Address: "10.0.0.1",
+							User:    "root",
+							Port:    22,
+							KeyPath: "~/.ssh/id_rsa",
+						},
 					},
 				},
 				{
-					Address: "10.0.0.2",
-					Role:    "worker",
-					SSH:     common.DefaultSSH(),
+					Role: "worker",
 				},
 			},
 		},
@@ -93,9 +94,7 @@ func Init(kind string) *ClusterConfig {
 
 		config.Spec.Hosts = append(config.Spec.Hosts,
 			&Host{
-				Address: "10.0.0.3",
-				Role:    "msr",
-				SSH:     common.DefaultSSH(),
+				Role: "msr",
 			},
 		)
 	}

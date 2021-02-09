@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"

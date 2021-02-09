@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/Mirantis/mcc/pkg/config/migration"
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"

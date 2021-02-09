@@ -57,7 +57,7 @@ func (p *PullMKEImages) ListImages() ([]*docker.Image, error) {
 			return []*docker.Image{}, err
 		}
 	}
-	output, err := manager.ExecWithOutput(manager.Configurer.DockerCommandf("run -v /var/run/docker.sock:/var/run/docker.sock --rm %s images --list", bootstrap))
+	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run -v /var/run/docker.sock:/var/run/docker.sock --rm %s images --list", bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MKE image list", manager)
 	}

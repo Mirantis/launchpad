@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/util"
 
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -68,21 +68,21 @@ func (c *LinuxConfigurer) RestartMCR() error {
 
 // ResolveHostname resolves the short hostname
 func (c *LinuxConfigurer) ResolveHostname() string {
-	hostname, _ := c.Host.ExecWithOutput("hostname -s")
+	hostname, _ := c.Host.ExecOutput("hostname -s")
 
 	return hostname
 }
 
 // ResolveLongHostname resolves the FQDN (long) hostname
 func (c *LinuxConfigurer) ResolveLongHostname() string {
-	longHostname, _ := c.Host.ExecWithOutput("hostname")
+	longHostname, _ := c.Host.ExecOutput("hostname")
 
 	return longHostname
 }
 
 // ResolveInternalIP resolves internal ip from private interface
 func (c *LinuxConfigurer) ResolveInternalIP(privateInterface, publicIP string) (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, privateInterface))
+	output, err := c.Host.ExecOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, privateInterface))
 	if err != nil {
 		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", privateInterface, output)
 	}
@@ -150,7 +150,7 @@ func (c *LinuxConfigurer) CheckPrivilege() error {
 
 // SELinuxEnabled is SELinux enabled
 func (c *LinuxConfigurer) SELinuxEnabled() bool {
-	output, err := c.Host.ExecWithOutput("sudo getenforce")
+	output, err := c.Host.ExecOutput("sudo getenforce")
 	if err != nil {
 		return false
 	}
@@ -159,7 +159,7 @@ func (c *LinuxConfigurer) SELinuxEnabled() bool {
 
 // LocalAddresses returns a list of local addresses
 func (c *LinuxConfigurer) LocalAddresses() ([]string, error) {
-	output, err := c.Host.ExecWithOutput("sudo hostname --all-ip-addresses")
+	output, err := c.Host.ExecOutput("sudo hostname --all-ip-addresses")
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string
 		return fmt.Errorf("empty path in WriteFile")
 	}
 
-	tempFile, err := c.Host.ExecWithOutput("mktemp")
+	tempFile, err := c.Host.ExecOutput("mktemp")
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (c *LinuxConfigurer) WriteFile(path string, data string, permissions string
 
 // ReadFile reads a files contents from the host.
 func (c *LinuxConfigurer) ReadFile(path string) (string, error) {
-	return c.Host.ExecWithOutput(fmt.Sprintf("sudo cat %s", escape.Quote(path)))
+	return c.Host.ExecOutput(fmt.Sprintf("sudo cat %s", escape.Quote(path)))
 }
 
 // DeleteFile deletes a file from the host.
@@ -286,7 +286,7 @@ func (c *LinuxConfigurer) ConfigureDockerProxy(env map[string]string) error {
 
 // ResolvePrivateInterface tries to find a private network interface
 func (c *LinuxConfigurer) ResolvePrivateInterface() (string, error) {
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`%s; (ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`, SbinPath))
+	output, err := c.Host.ExecOutput(fmt.Sprintf(`%s; (ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`, SbinPath))
 	if err == nil {
 		re := regexp.MustCompile(`\bdev (\w+)`)
 		match := re.FindSubmatch([]byte(output))
@@ -302,7 +302,7 @@ func (c *LinuxConfigurer) ResolvePrivateInterface() (string, error) {
 // HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
 func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
 	log.Debugf("%s: requesting %s", c.Host, url)
-	output, err := c.Host.ExecWithOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))
+	output, err := c.Host.ExecOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))
 	if err != nil {
 		return -1, err
 	}
@@ -316,7 +316,7 @@ func (c *LinuxConfigurer) HTTPStatus(url string) (int, error) {
 
 // Pwd returns the current working directory of the session
 func (c *LinuxConfigurer) Pwd() string {
-	pwd, err := c.Host.ExecWithOutput("pwd")
+	pwd, err := c.Host.ExecOutput("pwd")
 	if err != nil {
 		return ""
 	}

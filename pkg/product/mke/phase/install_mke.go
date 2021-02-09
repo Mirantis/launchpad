@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -116,7 +116,7 @@ func (p *InstallMKE) Run() (err error) {
 	}
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
-	output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
+	output, err := swarmLeader.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: %s", swarmLeader, err.Error())
 	}
@@ -156,7 +156,7 @@ func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
 			}
 		}
 
-		dir, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
+		dir, err := h.ExecOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
 		if err != nil {
 			return err
 		}
@@ -203,7 +203,7 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 }
 
 func cleanupmke(h *api.Host) error {
-	containersToRemove, err := h.ExecWithOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
+	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
 		return err
 	}

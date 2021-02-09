@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 	ps "github.com/Mirantis/mcc/pkg/powershell"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
@@ -27,7 +27,7 @@ type WindowsConfigurer struct {
 
 // Pwd returns the current working directory
 func (c *WindowsConfigurer) Pwd() string {
-	pwd, err := c.Host.ExecWithOutput("echo %cd%")
+	pwd, err := c.Host.ExecOutput("echo %cd%")
 	if err != nil {
 		return ""
 	}
@@ -45,7 +45,7 @@ type rebootable interface {
 
 // InstallMCR install MCR on Windows
 func (c *WindowsConfigurer) InstallMCR(scriptPath string, engineConfig common.MCRConfig) error {
-	pwd, err := c.Host.ExecWithOutput("echo %cd%")
+	pwd, err := c.Host.ExecOutput("echo %cd%")
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (c *WindowsConfigurer) InstallMCR(scriptPath string, engineConfig common.MC
 
 	log.Infof("%s: running installer", c.Host)
 
-	output, err := c.Host.ExecWithOutput(installCommand)
+	output, err := c.Host.ExecOutput(installCommand)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (c *WindowsConfigurer) RestartMCR() error {
 
 // ResolveHostname resolves hostname
 func (c *WindowsConfigurer) ResolveHostname() string {
-	output, err := c.Host.ExecWithOutput(ps.Cmd("$env:COMPUTERNAME"))
+	output, err := c.Host.ExecOutput(ps.Cmd("$env:COMPUTERNAME"))
 	if err != nil {
 		return "localhost"
 	}
@@ -126,7 +126,7 @@ func (c *WindowsConfigurer) ResolveHostname() string {
 
 // ResolveLongHostname resolves the FQDN (long) hostname
 func (c *WindowsConfigurer) ResolveLongHostname() string {
-	output, err := c.Host.ExecWithOutput(ps.Cmd("([System.Net.Dns]::GetHostByName(($env:COMPUTERNAME))).Hostname"))
+	output, err := c.Host.ExecOutput(ps.Cmd("([System.Net.Dns]::GetHostByName(($env:COMPUTERNAME))).Hostname"))
 	if err != nil {
 		return "localhost"
 	}
@@ -159,7 +159,7 @@ func (c *WindowsConfigurer) ResolveInternalIP(privateInterface, publicIP string)
 }
 
 func (c *WindowsConfigurer) interfaceIP(iface string) (string, error) {
-	output, err := c.Host.ExecWithOutput(ps.Cmd(fmt.Sprintf(`(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress`, ps.SingleQuote(iface))))
+	output, err := c.Host.ExecOutput(ps.Cmd(fmt.Sprintf(`(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress`, ps.SingleQuote(iface))))
 	if err != nil {
 		return "", err
 	}
@@ -193,7 +193,7 @@ func (c *WindowsConfigurer) ValidateLocalhost() error {
 
 // LocalAddresses returns a list of local addresses
 func (c *WindowsConfigurer) LocalAddresses() ([]string, error) {
-	output, err := c.Host.ExecWithOutput(ps.Cmd(`(Get-NetIPAddress).IPV4Address`))
+	output, err := c.Host.ExecOutput(ps.Cmd(`(Get-NetIPAddress).IPV4Address`))
 	if err != nil {
 		return nil, err
 	}
@@ -234,11 +234,11 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 		return fmt.Errorf("empty path in WriteFile")
 	}
 
-	tempFile, err := c.Host.ExecWithOutput(ps.Cmd("New-TemporaryFile | Write-Host"))
+	tempFile, err := c.Host.ExecOutput(ps.Cmd("New-TemporaryFile | Write-Host"))
 	if err != nil {
 		return err
 	}
-	defer c.Host.ExecWithOutput(fmt.Sprintf("del \"%s\"", tempFile))
+	defer c.Host.ExecOutput(fmt.Sprintf("del \"%s\"", tempFile))
 
 	err = c.Host.Exec(ps.Cmd(fmt.Sprintf(`$Input | Out-File -FilePath %s`, ps.SingleQuote(tempFile))), exec.Stdin(data))
 	if err != nil {
@@ -255,7 +255,7 @@ func (c *WindowsConfigurer) WriteFile(path string, data string, permissions stri
 
 // ReadFile reads a files contents from the host.
 func (c *WindowsConfigurer) ReadFile(path string) (string, error) {
-	return c.Host.ExecWithOutput(fmt.Sprintf(`type %s`, ps.DoubleQuote(path)))
+	return c.Host.ExecOutput(fmt.Sprintf(`type %s`, ps.DoubleQuote(path)))
 }
 
 // DeleteFile deletes a file from the host.
@@ -290,9 +290,9 @@ func (c *WindowsConfigurer) CleanupEnvironment(env map[string]string) error {
 
 // ResolvePrivateInterface tries to find a private network interface
 func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
-	output, err := c.Host.ExecWithOutput(ps.Cmd(`(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias`))
+	output, err := c.Host.ExecOutput(ps.Cmd(`(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias`))
 	if err != nil || output == "" {
-		output, err = c.Host.ExecWithOutput(ps.Cmd(`(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias`))
+		output, err = c.Host.ExecOutput(ps.Cmd(`(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias`))
 	}
 	if err != nil || output == "" {
 		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually")
@@ -303,7 +303,7 @@ func (c *WindowsConfigurer) ResolvePrivateInterface() (string, error) {
 // HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
 func (c *WindowsConfigurer) HTTPStatus(url string) (int, error) {
 	log.Debugf("%s: requesting %s", c.Host, url)
-	output, err := c.Host.ExecWithOutput(ps.Cmd(fmt.Sprintf(`[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode`, ps.SingleQuote(url))))
+	output, err := c.Host.ExecOutput(ps.Cmd(fmt.Sprintf(`[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode`, ps.SingleQuote(url))))
 	if err != nil {
 		return -1, err
 	}

@@ -54,7 +54,7 @@ func (p *PullMSRImages) ListImages() ([]*docker.Image, error) {
 			return []*docker.Image{}, err
 		}
 	}
-	output, err := msrLeader.ExecWithOutput(msrLeader.Configurer.DockerCommandf("run --rm %s images", bootstrap))
+	output, err := msrLeader.ExecOutput(msrLeader.Configurer.DockerCommandf("run --rm %s images", bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MSR image list", msrLeader)
 	}

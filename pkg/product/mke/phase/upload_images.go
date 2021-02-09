@@ -30,11 +30,11 @@ func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 	if h.ImageDir == "" {
 		return false
 	}
-	log.Debugf("%s: listing images in imageDir '%s'", h.Address, h.ImageDir)
+	log.Debugf("%s: listing images in imageDir '%s'", h, h.ImageDir)
 
 	files, err := ioutil.ReadDir(h.ImageDir)
 	if err != nil {
-		log.Errorf("%s: failed to list images in imageDir '%s': %s", h.Address, h.ImageDir, err.Error())
+		log.Errorf("%s: failed to list images in imageDir '%s': %s", h, h.ImageDir, err.Error())
 		return false
 	}
 
@@ -78,7 +78,7 @@ func (p *LoadImages) Run() error {
 
 	return p.Hosts.Each(func(h *api.Host) error {
 		for idx, f := range h.Metadata.ImagesToUpload {
-			log.Debugf("%s: uploading image %d/%d", h.Address, idx+1, len(h.Metadata.ImagesToUpload))
+			log.Debugf("%s: uploading image %d/%d", h, idx+1, len(h.Metadata.ImagesToUpload))
 
 			base := path.Base(f)
 			df := h.Configurer.JoinPath(h.Configurer.Pwd(), base)
@@ -87,7 +87,7 @@ func (p *LoadImages) Run() error {
 				return err
 			}
 
-			log.Infof("%s: loading image %d/%d : %s", h.Address, idx+1, len(h.Metadata.ImagesToUpload), base)
+			log.Infof("%s: loading image %d/%d : %s", h, idx+1, len(h.Metadata.ImagesToUpload), base)
 			err = h.Exec(h.Configurer.DockerCommandf("load -i %s", shellescape.Quote(base)))
 			if err != nil {
 				return err

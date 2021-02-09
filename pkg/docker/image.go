@@ -53,7 +53,7 @@ func (i *Image) Pull(h *api.Host) error {
 				log.Infof("%s: already exists: %s", h, i)
 				return nil
 			}
-			output, err := h.ExecWithOutput(h.Configurer.DockerCommandf("pull %s", i))
+			output, err := h.ExecOutput(h.Configurer.DockerCommandf("pull %s", i))
 			if err != nil {
 				return fmt.Errorf("%s: failed to pull image: %s", h, output)
 			}

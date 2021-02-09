@@ -113,7 +113,7 @@ func (p *Describe) hostReport() {
 		}
 		fmt.Fprintf(w,
 			"%s\t%s\t%s\t%s\t%s\t%s\t\n",
-			h.Address,
+			h.Address(),
 			ia,
 			hn,
 			h.Role,

@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
 
 	"crypto/rand"
 
@@ -151,7 +151,7 @@ func (p *ValidateHosts) validateHostnameUniqueness() {
 
 	for hn, hosts := range hostnames {
 		if len(hosts) > 1 {
-			others := strings.Join(hosts.MapString(func(h *api.Host) string { return h.Address }), ", ")
+			others := strings.Join(hosts.MapString(func(h *api.Host) string { return h.Address() }), ", ")
 			hosts.Each(func(h *api.Host) error {
 				h.Errors.Addf("duplicate hostname '%s' found on hosts %s", hn, others)
 				return nil

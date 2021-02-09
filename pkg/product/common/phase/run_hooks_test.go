@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +31,7 @@ func (t *testhost) Exec(cmd string, opts ...exec.Option) error {
 	return nil
 }
 
-func (t *testhost) ExecWithOutput(cmd string, opts ...exec.Option) (string, error) {
+func (t *testhost) ExecOutput(cmd string, opts ...exec.Option) (string, error) {
 	return "", nil
 }
 

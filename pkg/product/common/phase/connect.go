@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )

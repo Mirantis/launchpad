@@ -89,22 +89,16 @@ func (p *GatherFacts) Run() error {
 }
 
 func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
-	if h.Connection == nil {
-		return fmt.Errorf("%s: not connected", h)
-	}
-
 	log.Infof("%s: gathering host facts", h)
 
 	os := &common.OsRelease{}
 	if p.isWindows(h) {
-		h.Connection.SetWindows(true)
 		winOs, err := p.resolveWindowsOsRelease(h)
 		if err != nil {
 			return err
 		}
 		os = winOs
 	} else {
-		h.Connection.SetWindows(false)
 		linuxOs, err := p.resolveLinuxOsRelease(h)
 		if err != nil {
 			return err
@@ -144,7 +138,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		h.PrivateInterface = i
 	}
 
-	a, err := h.Configurer.ResolveInternalIP(h.PrivateInterface, h.Address)
+	a, err := h.Configurer.ResolveInternalIP(h.PrivateInterface, h.Address())
 	if err != nil {
 		return fmt.Errorf("%s: failed to resolve internal address: %s", h, err.Error())
 	}
@@ -167,10 +161,10 @@ func (p *GatherFacts) isWindows(h *api.Host) bool {
 
 // ResolveWindowsOsRelease ... TODO: this implementation belongs somewhere else
 func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*common.OsRelease, error) {
-	osName, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
-	osMajor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
-	osMinor, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMinorVersionNumber"`)
-	osBuild, _ := h.ExecWithOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentBuild"`)
+	osName, _ := h.ExecOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName"`)
+	osMajor, _ := h.ExecOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMajorVersionNumber"`)
+	osMinor, _ := h.ExecOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentMinorVersionNumber"`)
+	osBuild, _ := h.ExecOutput(`powershell -Command "(Get-ItemProperty \"HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").CurrentBuild"`)
 
 	version := fmt.Sprintf("%s.%s.%s", osMajor, osMinor, osBuild)
 	osRelease := &common.OsRelease{
@@ -184,7 +178,7 @@ func (p *GatherFacts) resolveWindowsOsRelease(h *api.Host) (*common.OsRelease, e
 
 // ResolveLinuxOsRelease ...
 func (p *GatherFacts) resolveLinuxOsRelease(h *api.Host) (*common.OsRelease, error) {
-	output, err := h.ExecWithOutput("cat /etc/os-release")
+	output, err := h.ExecOutput("cat /etc/os-release")
 	if err != nil {
 		return nil, err
 	}
