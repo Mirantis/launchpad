@@ -37,3 +37,4 @@ spec:
       - --admin-password=orcaorcaorca
   mcr:
     version: $MCR_VERSION
+    installURLLinux: https://repos-stage.mirantis.com

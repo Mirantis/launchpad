@@ -190,7 +190,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.8"
+                MCR_VERSION = "20.10.0-tp3"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
@@ -206,7 +206,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.8.5-rc1"
-                MCR_VERSION = "19.03.13"
+                MCR_VERSION = "20.10.0-tp3"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
