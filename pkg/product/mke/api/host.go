@@ -12,6 +12,7 @@ import (
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/rig"
+	"github.com/k0sproject/rig/os/registry"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -24,7 +25,6 @@ type HostMetadata struct {
 	MCRVersion         string
 	MCRInstallScript   string
 	MCRRestartRequired bool
-	Os                 *common.OsRelease
 	ImagesToUpload     []string
 	TotalImageBytes    uint64
 }
@@ -120,7 +120,7 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		if strings.HasPrefix(imageRepo, "docker.io/") { // docker.io is a special case for auth
 			imageRepo = ""
 		}
-		return h.Configurer.AuthenticateDocker(user, pass, imageRepo)
+		return h.Configurer.AuthenticateDocker(h, user, pass, imageRepo)
 	}
 	return nil
 }
@@ -128,17 +128,6 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 // SwarmAddress determines the swarm address for the host
 func (h *Host) SwarmAddress() string {
 	return fmt.Sprintf("%s:%d", h.Metadata.InternalAddress, 2377)
-}
-
-// IsWindows returns true if host has been detected running windows
-func (h *Host) IsWindows() bool {
-	if h.Metadata == nil {
-		return false
-	}
-	if h.Metadata.Os == nil {
-		return false
-	}
-	return strings.HasPrefix(h.Metadata.Os.ID, "windows-")
 }
 
 // MCRVersion returns the current engine version installed on the host
@@ -153,7 +142,7 @@ func (h *Host) MCRVersion() (string, error) {
 
 // CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected
 func (h *Host) CheckHTTPStatus(url string, expected int) error {
-	status, err := h.Configurer.HTTPStatus(url)
+	status, err := h.Configurer.HTTPStatus(h, url)
 	if err != nil {
 		return err
 	}
@@ -237,21 +226,21 @@ func (h *Host) ConfigureMCR() error {
 
 		cfg := h.Configurer.MCRConfigPath()
 		oldConfig := ""
-		if h.Configurer.FileExist(cfg) {
-			f, err := h.Configurer.ReadFile(cfg)
+		if h.Configurer.FileExist(h, cfg) {
+			f, err := h.Configurer.ReadFile(h, cfg)
 			if err != nil {
 				return err
 			}
 			oldConfig = f
 
 			log.Debugf("deleting %s", cfg)
-			if err := h.Configurer.DeleteFile(cfg); err != nil {
+			if err := h.Configurer.DeleteFile(h, cfg); err != nil {
 				return err
 			}
 		}
 
 		log.Debugf("writing %s", cfg)
-		if err := h.Configurer.WriteFile(cfg, daemonJSON, "0700"); err != nil {
+		if err := h.Configurer.WriteFile(h, cfg, daemonJSON, "0700"); err != nil {
 			return err
 		}
 		if h.Metadata.MCRVersion != "" && oldConfig != daemonJSON {
@@ -282,4 +271,20 @@ func (h *Host) waitForHost(state bool) error {
 		return fmt.Errorf("failed to wait for host to go offline")
 	}
 	return nil
+}
+
+// ResolveConfigurer assigns a rig-style configurer to the Host (see configurer/)
+func (h *Host) ResolveConfigurer() error {
+	bf, err := registry.GetOSModuleBuilder(h.OSVersion)
+	if err != nil {
+		return err
+	}
+
+	if c, ok := bf().(HostConfigurer); ok {
+		h.Configurer = c
+
+		return nil
+	}
+
+	return fmt.Errorf("unsupported OS")
 }

@@ -81,7 +81,7 @@ func (p *LoadImages) Run() error {
 			log.Debugf("%s: uploading image %d/%d", h, idx+1, len(h.Metadata.ImagesToUpload))
 
 			base := path.Base(f)
-			df := h.Configurer.JoinPath(h.Configurer.Pwd(), base)
+			df := h.Configurer.JoinPath(h.Configurer.Pwd(h), base)
 			err := h.WriteFileLarge(f, df)
 			if err != nil {
 				return err

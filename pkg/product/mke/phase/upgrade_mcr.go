@@ -137,7 +137,7 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
-			return h.Configurer.InstallMCR(h.Metadata.MCRInstallScript, p.Config.Spec.MCR)
+			return h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR)
 		},
 	)
 	if err != nil {
@@ -159,7 +159,7 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	}
 
 	if currentVersion != p.Config.Spec.MCR.Version {
-		err = h.Configurer.RestartMCR()
+		err = h.Configurer.RestartMCR(h)
 		if err != nil {
 			return fmt.Errorf("%s: failed to restart container runtime", h)
 		}

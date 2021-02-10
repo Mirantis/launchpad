@@ -45,7 +45,13 @@ func (p *DownloadInstaller) Run() error {
 	}
 	p.linuxPath = f.Name()
 
-	wincount := p.Config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() })
+	wincount := p.Config.Spec.Hosts.Count(func(h *api.Host) bool {
+		w, err := h.IsWindows()
+		if err != nil {
+			log.Errorf("%s: %s", h, err.Error())
+		}
+		return w
+	})
 	if wincount > 0 {
 		winScript, err := p.getScript(p.Config.Spec.MCR.InstallURLWindows)
 		if err != nil {
@@ -64,7 +70,11 @@ func (p *DownloadInstaller) Run() error {
 	}
 
 	for _, h := range p.Config.Spec.Hosts {
-		if h.IsWindows() {
+		w, err := h.IsWindows()
+		if err != nil {
+			return err
+		}
+		if w {
 			h.Metadata.MCRInstallScript = p.winPath
 		} else {
 			h.Metadata.MCRInstallScript = p.linuxPath

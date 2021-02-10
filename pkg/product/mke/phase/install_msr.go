@@ -3,11 +3,11 @@ package phase
 import (
 	"fmt"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -62,7 +62,7 @@ func (p *InstallMSR) Run() error {
 	image := p.Config.Spec.MSR.GetBootstrapperImage()
 	runFlags := common.Flags{"--rm", "-i"}
 
-	if h.Configurer.SELinuxEnabled() {
+	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
 	installFlags := p.Config.Spec.MSR.InstallFlags

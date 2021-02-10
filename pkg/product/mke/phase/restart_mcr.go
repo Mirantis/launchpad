@@ -58,7 +58,7 @@ func (p *RestartMCR) restartMCRs() error {
 	}
 
 	for _, h := range managers {
-		if err := h.Configurer.RestartMCR(); err != nil {
+		if err := h.Configurer.RestartMCR(h); err != nil {
 			return err
 		}
 	}
@@ -74,7 +74,7 @@ func (p *RestartMCR) restartMCRs() error {
 	for _, w := range others {
 		h := w
 		wp.Submit(func() {
-			err := h.Configurer.RestartMCR()
+			err := h.Configurer.RestartMCR(h)
 			if err != nil {
 				mu.Lock()
 				restartErrors.Errors = append(restartErrors.Errors, err)

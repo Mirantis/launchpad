@@ -30,7 +30,7 @@ func (p *ValidateFacts) Run() error {
 	}
 
 	p.Config.Spec.Hosts.Each(func(h *api.Host) error {
-		if h.Configurer != nil && h.Configurer.SELinuxEnabled() {
+		if h.Configurer != nil && h.Configurer.SELinuxEnabled(h) {
 			h.DaemonConfig["selinux-enabled"] = true
 			log.Infof("%s: adding 'selinux-enabled=true' to host container runtime config", h)
 		}
@@ -154,7 +154,14 @@ func (p *ValidateFacts) validateDataPlane() error {
 
 	// User has explicitly defined --calico-vxlan=false but there is a windows host in the config
 	if !valB {
-		if p.Config.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
+		hasW := p.Config.Spec.Hosts.Include(func(h *api.Host) bool {
+			w, err := h.IsWindows()
+			if err != nil {
+				log.Errorf("%s: %s", h, err.Error())
+			}
+			return w
+		})
+		if hasW {
 			return fmt.Errorf("calico IPIP can't be used on Windows")
 		}
 

@@ -19,6 +19,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 
 	phaseManager.AddPhases(
 		&common.Connect{},
+		&mke.DetectOS{},
 		&mke.GatherFacts{},
 		&mke.ValidateFacts{Force: force},
 		&mke.ValidateHosts{},
@@ -60,7 +61,8 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 	windowsWorkersCount := 0
 	linuxWorkersCount := 0
 	for _, h := range p.ClusterConfig.Spec.Workers() {
-		if h.IsWindows() {
+		w, _ := h.IsWindows()
+		if w {
 			windowsWorkersCount++
 		} else {
 			linuxWorkersCount++

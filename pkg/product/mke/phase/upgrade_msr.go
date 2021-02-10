@@ -3,10 +3,10 @@ package phase
 import (
 	"fmt"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -47,7 +47,7 @@ func (p *UpgradeMSR) Run() error {
 	}
 
 	runFlags := common.Flags{"--rm", "-i"}
-	if h.Configurer.SELinuxEnabled() {
+	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
 	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.ReplicaID)}

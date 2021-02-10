@@ -5,12 +5,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -103,7 +103,7 @@ func (p *InstallMKE) Run() (err error) {
 		installFlags.AddUnlessExist("--pull never")
 	}
 	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if swarmLeader.Configurer.SELinuxEnabled() {
+	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
 
@@ -162,15 +162,15 @@ func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
 		}
 
 		log.Infof("%s: installing certificate files to %s", h, dir)
-		err = h.Configurer.WriteFile(fmt.Sprintf("%s/ca.pem", dir), config.Spec.MKE.CACertData, "0600")
+		err = h.Configurer.WriteFile(h, fmt.Sprintf("%s/ca.pem", dir), config.Spec.MKE.CACertData, "0600")
 		if err != nil {
 			return err
 		}
-		err = h.Configurer.WriteFile(fmt.Sprintf("%s/cert.pem", dir), config.Spec.MKE.CertData, "0600")
+		err = h.Configurer.WriteFile(h, fmt.Sprintf("%s/cert.pem", dir), config.Spec.MKE.CertData, "0600")
 		if err != nil {
 			return err
 		}
-		err = h.Configurer.WriteFile(fmt.Sprintf("%s/key.pem", dir), config.Spec.MKE.KeyData, "0600")
+		err = h.Configurer.WriteFile(h, fmt.Sprintf("%s/key.pem", dir), config.Spec.MKE.KeyData, "0600")
 		if err != nil {
 			return err
 		}
@@ -196,7 +196,7 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 
 	err := phase.RunParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, c *api.ClusterConfig) error {
 		log.Infof("%s: copying cloud provider (%s) config to %s", h, provider, destFile)
-		return h.Configurer.WriteFile(destFile, configData, "0700")
+		return h.Configurer.WriteFile(h, destFile, configData, "0700")
 	})
 
 	return err

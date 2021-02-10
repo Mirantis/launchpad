@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	retry "github.com/avast/retry-go"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,7 +40,11 @@ func (p *JoinWorkers) Run() error {
 			return fmt.Errorf("Failed to join worker %s node to swarm", h)
 		}
 		log.Infof("%s: joined succesfully", h)
-		if h.IsWindows() {
+		w, err := h.IsWindows()
+		if err != nil {
+			return err
+		}
+		if w {
 			// This is merely a workaround for the fact that we cannot reliably now detect if the connection is actually broken
 			// with current ssh client config etc. the commands tried will timeout after several minutes only
 			log.Infof("%s: wait for reconnect as swarm join on windows breaks existing connections", h)

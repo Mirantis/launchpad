@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -17,6 +16,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -215,7 +215,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 	mkeFlags := msr.BuildMKEFlags(config)
 
 	runFlags := common.Flags{"--rm", "-i"}
-	if msrLeader.Configurer.SELinuxEnabled() {
+	if msrLeader.Configurer.SELinuxEnabled(msrLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
 

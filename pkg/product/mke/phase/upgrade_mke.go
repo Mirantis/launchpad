@@ -3,11 +3,11 @@ package phase
 import (
 	"fmt"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,7 +36,7 @@ func (p *UpgradeMKE) Run() error {
 
 	swarmClusterID := swarm.ClusterID(swarmLeader)
 	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if swarmLeader.Configurer.SELinuxEnabled() {
+	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), swarmClusterID, p.Config.Spec.MKE.UpgradeFlags.Join())

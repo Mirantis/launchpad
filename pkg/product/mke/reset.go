@@ -12,6 +12,7 @@ func (p *MKE) Reset() error {
 
 	phaseManager.AddPhases(
 		&common.Connect{},
+		&mke.DetectOS{},
 		&mke.GatherFacts{},
 		&common.RunHooks{Stage: "before", Action: "reset"},
 

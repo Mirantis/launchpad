@@ -32,6 +32,7 @@ func (p *MKE) Describe(reportName string) error {
 
 	phaseManager.AddPhases(
 		&common.Connect{},
+		&de.DetectOS{},
 		&de.GatherFacts{},
 		&common.Disconnect{},
 		&de.Describe{MKE: mke, MSR: msr},

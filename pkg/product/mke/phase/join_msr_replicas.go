@@ -3,11 +3,11 @@ package phase
 import (
 	"fmt"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -57,7 +57,7 @@ func (p *JoinMSRReplicas) Run() error {
 
 		// Run the join with the appropriate flags taken from the install spec
 		runFlags := common.Flags{"--rm", "-i"}
-		if msrLeader.Configurer.SELinuxEnabled() {
+		if msrLeader.Configurer.SELinuxEnabled(h) {
 			runFlags.Add("--security-opt label=disable")
 		}
 		joinFlags := common.Flags{}
