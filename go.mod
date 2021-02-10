@@ -1,13 +1,12 @@
 module github.com/Mirantis/mcc
 
-go 1.13
+go 1.15
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
 	github.com/Azure/go-ntlmssp v0.0.0-20191115210519-2b2be6cc8ed4 // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20190607011252-c5096ec8773d // indirect
 	github.com/a8m/envsubst v1.2.0
-	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/alessio/shellescape v1.4.1
 	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
@@ -21,12 +20,11 @@ require (
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
-	github.com/k0sproject/rig v0.3.3
+	github.com/k0sproject/rig v0.3.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/masterzen/simplexml v0.0.0-20190410153822-31eea3082786 // indirect
-	github.com/masterzen/winrm v0.0.0-20201030141608-56ca5c5f2380
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12
 	github.com/mitchellh/go-homedir v1.1.0
@@ -37,7 +35,6 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/urfave/cli/v2 v2.2.0
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20201029055024-942e2f445f3c // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect

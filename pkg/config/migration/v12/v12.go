@@ -16,10 +16,16 @@ func Migrate(plain map[string]interface{}) error {
 				host, ok := h.(map[interface{}]interface{})
 				if ok {
 					if addr, ok := host["address"].(string); ok {
-						if ssh, ok := host["ssh"].(map[interface{}]interface{}); ok {
+						if ssh, ok := host["ssh"].(map[string]interface{}); ok {
+							ssh["address"] = addr
+							log.Debugf("migrated v1.2 spec.hosts[*].address to v1.3 spec.hosts[*].ssh.address")
+						} else if ssh, ok := host["ssh"].(map[interface{}]interface{}); ok {
 							ssh["address"] = addr
 							log.Debugf("migrated v1.2 spec.hosts[*].address to v1.3 spec.hosts[*].ssh.address")
 						} else if winrm, ok := host["winRM"].(map[interface{}]interface{}); ok {
+							winrm["address"] = addr
+							log.Debugf("migrated v1.2 spec.hosts[*].address to v1.3 spec.hosts[*].winrm.address")
+						} else if winrm, ok := host["winRM"].(map[string]interface{}); ok {
 							winrm["address"] = addr
 							log.Debugf("migrated v1.2 spec.hosts[*].address to v1.3 spec.hosts[*].winrm.address")
 						} else {

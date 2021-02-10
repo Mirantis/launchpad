@@ -153,11 +153,11 @@ func TestParallelEach(t *testing.T) {
 }
 
 func TestFirst(t *testing.T) {
-	require.Equal(t, hosts.First().Address, "man1")
+	require.Equal(t, hosts.First().Address(), "man1")
 }
 
 func TestLast(t *testing.T) {
-	require.Equal(t, hosts.Last().Address, "work1")
+	require.Equal(t, hosts.Last().Address(), "work1")
 }
 
 func ExampleHosts_Filter() {
