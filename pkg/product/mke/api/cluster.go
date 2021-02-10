@@ -14,7 +14,7 @@ type ClusterMeta struct {
 
 // ClusterConfig describes launchpad.yaml configuration
 type ClusterConfig struct {
-	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.2"`
+	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.3"`
 	Kind       string       `yaml:"kind" validate:"oneof=mke mke+msr"`
 	Metadata   *ClusterMeta `yaml:"metadata"`
 	Spec       *ClusterSpec `yaml:"spec"`
@@ -56,7 +56,7 @@ func roleChecks(sl validator.StructLevel) {
 // Init returns an example of configuration file contents
 func Init(kind string) *ClusterConfig {
 	config := &ClusterConfig{
-		APIVersion: "launchpad.mirantis.com/mke/v1.2",
+		APIVersion: "launchpad.mirantis.com/mke/v1.3",
 		Kind:       kind,
 		Metadata: &ClusterMeta{
 			Name: "my-mke-cluster",
