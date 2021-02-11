@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/k0sproject/rig/exec"
 	retry "github.com/avast/retry-go"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,8 +29,9 @@ func (p *Connect) Prepare(config interface{}) error {
 	spec := r.FieldByName("Spec").Elem()
 	hosts := spec.FieldByName("Hosts")
 	for i := 0; i < hosts.Len(); i++ {
-		h := hosts.Index(i).Interface().(connectable)
-		p.hosts = append(p.hosts, h)
+		if h, ok := hosts.Index(i).Interface().(connectable); ok {
+			p.hosts = append(p.hosts, h)
+		}
 	}
 
 	return nil
