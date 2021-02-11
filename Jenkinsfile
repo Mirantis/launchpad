@@ -191,6 +191,8 @@ pipeline {
                 MSR_VERSION = "2.8.5"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
                 MCR_VERSION = "19.03.8"
+                MCR_CHANNEL = "stable"
+                MCR_REPO_URL = "https://repos.mirantis.com"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
@@ -207,7 +209,8 @@ pipeline {
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.9.0-tp3"
                 MCR_VERSION = "20.10.0-tp3"
-                INSTALL_URL_LINUX = "https://repos-stage.mirantis.com"
+                MCR_CHANNEL = "test"
+                MCR_REPO_URL = "https://repos-stage.mirantis.com"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
