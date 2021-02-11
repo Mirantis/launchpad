@@ -50,6 +50,7 @@ spec:
       - --force-minimums
       - --force-recent-backup
   mcr:
+    installURLLinux: $INSTALL_URL_LINUX
     version: $MCR_VERSION
   msr:
     version: $MSR_VERSION

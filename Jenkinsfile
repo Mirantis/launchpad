@@ -206,7 +206,8 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.9.0-tp3"
-                MCR_VERSION = "20.10.0-tp2"
+                MCR_VERSION = "20.10.0-tp3"
+                INSTALL_URL_LINUX = "https://repos-stage.mirantis.com"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
