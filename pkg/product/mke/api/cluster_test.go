@@ -420,6 +420,7 @@ spec:
       role: msr
     - ssh:
         address: "10.0.0.2"
+				keyPath: ` + kf.Name() + `
       role: manager
 `
 		c := loadYaml(t, data)
