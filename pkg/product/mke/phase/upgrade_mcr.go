@@ -38,7 +38,7 @@ func (p *UpgradeMCR) Prepare(config interface{}) error {
 
 // Title for the phase
 func (p *UpgradeMCR) Title() string {
-	return "Upgrade Mirntis Container Runtime on the hosts"
+	return "Upgrade Mirantis Container Runtime on the hosts"
 }
 
 // Run installs the engine on each host
