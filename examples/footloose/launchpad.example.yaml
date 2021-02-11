@@ -1,10 +1,10 @@
-apiVersion: "launchpad.mirantis.com/mke/v1.2"
+apiVersion: "launchpad.mirantis.com/mke/v1.3"
 kind: mke+msr
 spec:
   hosts:
   - role: "manager"
-    address: "127.0.0.1"
     ssh:
+      address: "127.0.0.1"
       port: 9022
       user: "root"
     mcrConfig: &linuxEngineConfig
@@ -18,11 +18,11 @@ spec:
           - echo hello > foo.txt
         after:
           - rm foo.txt
-  - address: "127.0.0.1"
+  - role: "msr"
     ssh:
+      address: "127.0.0.1"
       port: 9023
       user: "root"
-    role: "msr"
     mcrConfig: *linuxEngineConfig
   mke:
     adminUsername: admin
