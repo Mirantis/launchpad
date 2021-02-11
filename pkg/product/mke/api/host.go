@@ -181,7 +181,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 // Reboot reboots the host and waits for it to become responsive
 func (h *Host) Reboot() error {
 	log.Infof("%s: rebooting", h)
-	if err := h.Configurer.Reboot(); err != nil {
+	if err := h.Configurer.Reboot(h); err != nil {
 		return err
 	}
 	log.Infof("%s: waiting for host to go offline", h)
