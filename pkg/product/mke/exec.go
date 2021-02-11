@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -32,7 +32,7 @@ func (p *MKE) Exec(target string, interactive, first bool, role, cmd string) err
 		}
 	} else if target == "localhost" {
 		host = p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
-			return h.Localhost
+			return h.Protocol() == "Local"
 		})
 	} else if strings.Contains(target, ":") {
 		parts := strings.SplitN(target, ":", 2)
@@ -43,7 +43,7 @@ func (p *MKE) Exec(target string, interactive, first bool, role, cmd string) err
 		}
 
 		host = p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
-			if h.Address != addr || h.Localhost {
+			if h.Address() != addr || h.Protocol() == "Local" {
 				return false
 			}
 			if h.WinRM != nil {
@@ -53,7 +53,7 @@ func (p *MKE) Exec(target string, interactive, first bool, role, cmd string) err
 		})
 	} else {
 		host = p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
-			return h.Address == target
+			return h.Address() == target
 		})
 	}
 	if host == nil {

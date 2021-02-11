@@ -4,21 +4,34 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/k0sproject/rig"
 	"github.com/stretchr/testify/require"
 )
 
 var hosts = Hosts{
 	{
-		Address: "man1",
-		Role:    "manager",
+		Connection: rig.Connection{
+			SSH: &rig.SSH{
+				Address: "man1",
+			},
+		},
+		Role: "manager",
 	},
 	{
-		Address: "man2",
-		Role:    "manager",
+		Connection: rig.Connection{
+			SSH: &rig.SSH{
+				Address: "man2",
+			},
+		},
+		Role: "manager",
 	},
 	{
-		Address: "work1",
-		Role:    "worker",
+		Connection: rig.Connection{
+			SSH: &rig.SSH{
+				Address: "work1",
+			},
+		},
+		Role: "worker",
 	},
 }
 
@@ -40,13 +53,13 @@ func TestFilter(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	require.Equal(t, hosts.Find(func(h *Host) bool { return h.Address == "man2" }), hosts[1])
-	require.Nil(t, hosts.Find(func(h *Host) bool { return h.Address == "man3" }))
+	require.Equal(t, hosts.Find(func(h *Host) bool { return h.Address() == "man2" }), hosts[1])
+	require.Nil(t, hosts.Find(func(h *Host) bool { return h.Address() == "man3" }))
 }
 
 func TestIndex(t *testing.T) {
-	require.Equal(t, hosts.Index(func(h *Host) bool { return h.Address == "man2" }), 1)
-	require.Equal(t, hosts.Index(func(h *Host) bool { return h.Address == "man3" }), -1)
+	require.Equal(t, hosts.Index(func(h *Host) bool { return h.Address() == "man2" }), 1)
+	require.Equal(t, hosts.Index(func(h *Host) bool { return h.Address() == "man3" }), -1)
 }
 
 func TestIndexAll(t *testing.T) {
@@ -59,14 +72,14 @@ func TestIndexAll(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	addresses := hosts.Map(func(h *Host) interface{} { return h.Address })
+	addresses := hosts.Map(func(h *Host) interface{} { return h.Address() })
 	require.Len(t, addresses, 3)
 	require.Equal(t, addresses[0], "man1")
 	require.Equal(t, addresses[1], "man2")
 }
 
 func TestMapString(t *testing.T) {
-	addresses := hosts.MapString(func(h *Host) string { return h.Address })
+	addresses := hosts.MapString(func(h *Host) string { return h.Address() })
 	require.Len(t, addresses, 3)
 	require.Equal(t, addresses[0], "man1")
 	require.Equal(t, addresses[1], "man2")
@@ -97,7 +110,7 @@ func TestEach(t *testing.T) {
 
 	err = hosts.Each(func(h *Host) error {
 		h.PrivateInterface = "test2"
-		if h.Address == "man2" {
+		if h.Address() == "man2" {
 			return fmt.Errorf("error")
 		}
 
@@ -125,7 +138,7 @@ func TestParallelEach(t *testing.T) {
 
 	err = hosts.ParallelEach(func(h *Host) error {
 		h.PrivateInterface = "test2"
-		if h.Address == "man2" {
+		if h.Address() == "man2" {
 			return fmt.Errorf("error")
 		}
 
@@ -140,11 +153,11 @@ func TestParallelEach(t *testing.T) {
 }
 
 func TestFirst(t *testing.T) {
-	require.Equal(t, hosts.First().Address, "man1")
+	require.Equal(t, hosts.First().Address(), "man1")
 }
 
 func TestLast(t *testing.T) {
-	require.Equal(t, hosts.Last().Address, "work1")
+	require.Equal(t, hosts.Last().Address(), "work1")
 }
 
 func ExampleHosts_Filter() {

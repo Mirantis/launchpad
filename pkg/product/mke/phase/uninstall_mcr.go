@@ -30,7 +30,7 @@ func (p *UninstallMCR) uninstallMCR(h *api.Host, c *api.ClusterConfig) error {
 		return nil
 	}
 	log.Infof("%s: uninstalling container runtime", h)
-	err = h.Configurer.UninstallMCR(h.Metadata.MCRInstallScript, c.Spec.MCR)
+	err = h.Configurer.UninstallMCR(h, h.Metadata.MCRInstallScript, c.Spec.MCR)
 	if err == nil {
 		log.Infof("%s: mirantis container runtime uninstalled", h)
 	}

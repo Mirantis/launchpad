@@ -1,9 +1,8 @@
 package enterpriselinux
 
 import (
-	"github.com/Mirantis/mcc/pkg/configurer"
-	"github.com/Mirantis/mcc/pkg/configurer/resolver"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/k0sproject/rig"
+	"github.com/k0sproject/rig/os/registry"
 )
 
 // Rhel RedHat Enterprise Linux
@@ -11,20 +10,13 @@ type Rhel struct {
 	Configurer
 }
 
-func resolveRedhatConfigurer(h configurer.Host, os *common.OsRelease) interface{} {
-	if os.ID == "rhel" {
-		return &Rhel{
-			Configurer: Configurer{
-				LinuxConfigurer: configurer.LinuxConfigurer{
-					Host: h,
-				},
-			},
-		}
-	}
-
-	return nil
-}
-
 func init() {
-	resolver.RegisterHostConfigurer(resolveRedhatConfigurer)
+	registry.RegisterOSModule(
+		func(os rig.OSVersion) bool {
+			return os.ID == "rhel"
+		},
+		func() interface{} {
+			return Rhel{}
+		},
+	)
 }

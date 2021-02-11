@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -17,6 +16,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -100,7 +100,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 					p.cleanupMSRs = msrs
 				}
 				// Get the hostname from the nodeID inspect
-				hostname, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Description.Hostname}}`, nodeID))
+				hostname, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Description.Hostname}}`, nodeID))
 				if err != nil {
 					return fmt.Errorf("failed to obtain hostname of MSR managed node: %s from swarm: %s", nodeID, err)
 				}
@@ -165,7 +165,7 @@ func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error
 }
 
 func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
-	output, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node ls --format="{{.ID}}"`))
+	output, err := h.ExecOutput(h.Configurer.DockerCommandf(`node ls --format="{{.ID}}"`))
 	if err != nil {
 		log.Errorln(output)
 		return []string{}, err
@@ -174,12 +174,12 @@ func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
 }
 
 func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
-	nodeAddr, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Status.Addr}}`, nodeID))
+	nodeAddr, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Status.Addr}}`, nodeID))
 	if err != nil {
 		return err
 	}
 	log.Infof("%s: removing orphan node %s", h, nodeAddr)
-	nodeRole, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Spec.Role}}`, nodeID))
+	nodeRole, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Spec.Role}}`, nodeID))
 	if err != nil {
 		return err
 	}
@@ -215,7 +215,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 	mkeFlags := msr.BuildMKEFlags(config)
 
 	runFlags := common.Flags{"--rm", "-i"}
-	if msrLeader.Configurer.SELinuxEnabled() {
+	if msrLeader.Configurer.SELinuxEnabled(msrLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
 
@@ -240,7 +240,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 // isManagedByUs returns a struct of isManaged which contains two bools, one
 // which declares node wide management and one which declares msr management
 func (p *RemoveNodes) isManagedByUs(h *api.Host, nodeID string) isManaged {
-	labels, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
+	labels, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
 	var managed isManaged
 	if err != nil {
 		return managed

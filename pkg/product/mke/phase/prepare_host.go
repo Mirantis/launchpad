@@ -32,6 +32,11 @@ func (p *PrepareHost) Run() error {
 		return err
 	}
 
+	err = phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.fixContainerized)
+	if err != nil {
+		return err
+	}
+
 	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.ReplicaIDs == "sequential" {
 		err = msr.AssignSequentialReplicaIDs(p.Config)
 		if err != nil {
@@ -46,7 +51,7 @@ func (p *PrepareHost) installBasePackages(h *api.Host, c *api.ClusterConfig) err
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: installing base packages", h)
-			err := h.Configurer.InstallMKEBasePackages()
+			err := h.Configurer.InstallMKEBasePackages(h)
 
 			return err
 		},
@@ -63,9 +68,17 @@ func (p *PrepareHost) installBasePackages(h *api.Host, c *api.ClusterConfig) err
 func (p *PrepareHost) updateEnvironment(h *api.Host, c *api.ClusterConfig) error {
 	if len(h.Environment) > 0 {
 		log.Infof("%s: updating environment", h)
-		return h.Configurer.UpdateEnvironment(h.Environment)
+		return h.Configurer.UpdateEnvironment(h, h.Environment)
 	}
 
 	log.Debugf("%s: no environment variables specified for the host", h)
+	return nil
+}
+
+func (p *PrepareHost) fixContainerized(h *api.Host, c *api.ClusterConfig) error {
+	if h.Configurer.IsContainer(h) {
+		log.Infof("%s: is a container, applying a fix", h)
+		return h.Configurer.FixContainer(h)
+	}
 	return nil
 }

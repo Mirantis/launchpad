@@ -6,7 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/exec"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )

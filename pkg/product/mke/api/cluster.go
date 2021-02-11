@@ -4,6 +4,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	validator "github.com/go-playground/validator/v10"
+	"github.com/k0sproject/rig"
 )
 
 // ClusterMeta defines cluster metadata
@@ -13,7 +14,7 @@ type ClusterMeta struct {
 
 // ClusterConfig describes launchpad.yaml configuration
 type ClusterConfig struct {
-	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.2"`
+	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.3"`
 	Kind       string       `yaml:"kind" validate:"oneof=mke mke+msr"`
 	Metadata   *ClusterMeta `yaml:"metadata"`
 	Spec       *ClusterSpec `yaml:"spec"`
@@ -55,7 +56,7 @@ func roleChecks(sl validator.StructLevel) {
 // Init returns an example of configuration file contents
 func Init(kind string) *ClusterConfig {
 	config := &ClusterConfig{
-		APIVersion: "launchpad.mirantis.com/mke/v1.2",
+		APIVersion: "launchpad.mirantis.com/mke/v1.3",
 		Kind:       kind,
 		Metadata: &ClusterMeta{
 			Name: "my-mke-cluster",
@@ -69,18 +70,18 @@ func Init(kind string) *ClusterConfig {
 			},
 			Hosts: []*Host{
 				{
-					Address: "10.0.0.1",
-					Role:    "manager",
-					SSH: &common.SSH{
-						User:    "root",
-						Port:    22,
-						KeyPath: "~/.ssh/id_rsa",
+					Role: "manager",
+					Connection: rig.Connection{
+						SSH: &rig.SSH{
+							Address: "10.0.0.1",
+							User:    "root",
+							Port:    22,
+							KeyPath: "~/.ssh/id_rsa",
+						},
 					},
 				},
 				{
-					Address: "10.0.0.2",
-					Role:    "worker",
-					SSH:     common.DefaultSSH(),
+					Role: "worker",
 				},
 			},
 		},
@@ -93,9 +94,7 @@ func Init(kind string) *ClusterConfig {
 
 		config.Spec.Hosts = append(config.Spec.Hosts,
 			&Host{
-				Address: "10.0.0.3",
-				Role:    "msr",
-				SSH:     common.DefaultSSH(),
+				Role: "msr",
 			},
 		)
 	}

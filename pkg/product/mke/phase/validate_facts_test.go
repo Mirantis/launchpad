@@ -6,6 +6,7 @@ import (
 
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig"
 	"github.com/stretchr/testify/require"
 )
 
@@ -156,9 +157,9 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: api.Hosts{
-				&api.Host{Address: "10.0.0.1", Role: "manager"},
-				&api.Host{Address: "10.0.0.2", Role: "manager"},
-				&api.Host{Address: "10.0.0.3", Role: "worker"},
+				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
+				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MKE: api.MKEConfig{
 				Metadata: &api.MKEMetadata{},
@@ -189,9 +190,9 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: api.Hosts{
-				&api.Host{Address: "10.0.0.1", Role: "manager"},
-				&api.Host{Address: "10.0.0.2", Role: "manager"},
-				&api.Host{Address: "10.0.0.3", Role: "worker"},
+				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
+				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MKE: api.MKEConfig{
 				Metadata: &api.MKEMetadata{},

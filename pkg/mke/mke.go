@@ -12,9 +12,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -36,7 +36,7 @@ type Credentials struct {
 // Currently we only need to know the existing version and whether mke is installed or not.
 // In future we probably need more.
 func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
-	output, err := swarmLeader.ExecWithOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
+	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
 		if strings.Contains(output, "No such object") {
 			mkeMeta.Installed = false
@@ -58,7 +58,7 @@ func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
 
 	// Find out calico data plane by inspecting the calico container's env variables
 	cmd := swarmLeader.Configurer.DockerCommandf(`ps --filter label=name="Calico node" --format {{.ID}}`)
-	calicoContainer, err := swarmLeader.ExecWithOutput(cmd)
+	calicoContainer, err := swarmLeader.ExecOutput(cmd)
 
 	if calicoContainer != "" && err != nil {
 		log.Debugf("%s: calico container found: %s", swarmLeader, calicoContainer)
@@ -145,10 +145,10 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 // GetTLSConfigFrom retrieves the valid tlsConfig from the given mke manager
 func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Config, error) {
 	runFlags := common.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if manager.Configurer.SELinuxEnabled() {
+	if manager.Configurer.SELinuxEnabled(manager) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	output, err := manager.ExecWithOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, runFlags.Join(), imageRepo, mkeVersion), exec.Redact(`[A-Za-z0-9+/=_\-]{64}`))
+	output, err := manager.ExecOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, runFlags.Join(), imageRepo, mkeVersion), exec.Redact(`[A-Za-z0-9+/=_\-]{64}`))
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
 	}

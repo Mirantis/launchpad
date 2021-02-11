@@ -30,7 +30,7 @@ func (p *ValidateFacts) Run() error {
 	}
 
 	p.Config.Spec.Hosts.Each(func(h *api.Host) error {
-		if h.Configurer != nil && h.Configurer.SELinuxEnabled() {
+		if h.Configurer != nil && h.Configurer.SELinuxEnabled(h) {
 			h.DaemonConfig["selinux-enabled"] = true
 			log.Infof("%s: adding 'selinux-enabled=true' to host container runtime config", h)
 		}
@@ -68,7 +68,7 @@ func (p *ValidateFacts) Run() error {
 func (p *ValidateFacts) populateSan() {
 	mgrs := p.Config.Spec.Managers()
 	for _, h := range mgrs {
-		f := fmt.Sprintf("--san=%s", h.Address)
+		f := fmt.Sprintf("--san=%s", h.Address())
 		p.Config.Spec.MKE.InstallFlags.Add(f)
 		log.Warnf("%s: added manager node's public address to mke installFlag SANs: %s", h, f)
 	}

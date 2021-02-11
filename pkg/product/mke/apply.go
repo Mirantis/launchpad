@@ -19,6 +19,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 
 	phaseManager.AddPhases(
 		&common.Connect{},
+		&mke.DetectOS{},
 		&mke.GatherFacts{},
 		&mke.ValidateFacts{Force: force},
 		&mke.ValidateHosts{},

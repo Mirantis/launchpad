@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
 
 	"crypto/rand"
 
@@ -73,8 +73,8 @@ func (p *ValidateHosts) validateHostConnection() error {
 
 	err = p.Config.Spec.Hosts.Each(func(h *api.Host) error {
 		log.Infof("%s: testing file upload", h)
-		defer h.Configurer.DeleteFile("launchpad.test")
-		err := h.WriteFileLarge(f.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(), "launchpad.test"))
+		defer h.Configurer.DeleteFile(h, "launchpad.test")
+		err := h.WriteFileLarge(f.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(h), "launchpad.test"))
 		if err != nil {
 			h.Errors.Add(err.Error())
 		}
@@ -87,7 +87,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 	return p.Config.Spec.Hosts.Each(func(h *api.Host) error {
 		fn := "launchpad.test"
 		testStr := "hello world!\n"
-		defer h.Configurer.DeleteFile(fn)
+		defer h.Configurer.DeleteFile(h, fn)
 		log.Infof("%s: testing stdin redirection", h)
 		if h.IsWindows() {
 			err := h.Exec(fmt.Sprintf(`findstr "^" > %s`, fn), exec.Stdin(testStr))
@@ -100,7 +100,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 				return err
 			}
 		}
-		content, err := h.Configurer.ReadFile(fn)
+		content, err := h.Configurer.ReadFile(h, fn)
 		if err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 
 func (p *ValidateHosts) validateLocalhost() {
 	p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
-		if err := h.Configurer.ValidateLocalhost(); err != nil {
+		if err := h.Configurer.ValidateLocalhost(h); err != nil {
 			h.Errors.Add(err.Error())
 		}
 		return nil
@@ -126,7 +126,7 @@ func (p *ValidateHosts) validateHostLocalAddresses() {
 }
 
 func (p *ValidateHosts) validateHostLocalAddress(h *api.Host) error {
-	localAddresses, err := h.Configurer.LocalAddresses()
+	localAddresses, err := h.Configurer.LocalAddresses(h)
 	if err != nil {
 		h.Errors.Add(fmt.Sprintf("failed to find host local addresses: %s", err.Error()))
 		return err
@@ -151,7 +151,7 @@ func (p *ValidateHosts) validateHostnameUniqueness() {
 
 	for hn, hosts := range hostnames {
 		if len(hosts) > 1 {
-			others := strings.Join(hosts.MapString(func(h *api.Host) string { return h.Address }), ", ")
+			others := strings.Join(hosts.MapString(func(h *api.Host) string { return h.Address() }), ", ")
 			hosts.Each(func(h *api.Host) error {
 				h.Errors.Addf("duplicate hostname '%s' found on hosts %s", hn, others)
 				return nil

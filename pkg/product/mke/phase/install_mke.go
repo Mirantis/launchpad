@@ -5,12 +5,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/exec"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -103,7 +103,7 @@ func (p *InstallMKE) Run() (err error) {
 		installFlags.AddUnlessExist("--pull never")
 	}
 	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if swarmLeader.Configurer.SELinuxEnabled() {
+	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
 
@@ -116,7 +116,7 @@ func (p *InstallMKE) Run() (err error) {
 	}
 
 	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
-	output, err := swarmLeader.ExecWithOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
+	output, err := swarmLeader.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: %s", swarmLeader, err.Error())
 	}
@@ -156,21 +156,21 @@ func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
 			}
 		}
 
-		dir, err := h.ExecWithOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
+		dir, err := h.ExecOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
 		if err != nil {
 			return err
 		}
 
 		log.Infof("%s: installing certificate files to %s", h, dir)
-		err = h.Configurer.WriteFile(fmt.Sprintf("%s/ca.pem", dir), config.Spec.MKE.CACertData, "0600")
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600")
 		if err != nil {
 			return err
 		}
-		err = h.Configurer.WriteFile(fmt.Sprintf("%s/cert.pem", dir), config.Spec.MKE.CertData, "0600")
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600")
 		if err != nil {
 			return err
 		}
-		err = h.Configurer.WriteFile(fmt.Sprintf("%s/key.pem", dir), config.Spec.MKE.KeyData, "0600")
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600")
 		if err != nil {
 			return err
 		}
@@ -195,15 +195,20 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 	}
 
 	err := phase.RunParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, c *api.ClusterConfig) error {
+		if h.IsWindows() {
+			log.Warnf("%s: cloud provider configuration is not suppported on windows", h)
+			return nil
+		}
+
 		log.Infof("%s: copying cloud provider (%s) config to %s", h, provider, destFile)
-		return h.Configurer.WriteFile(destFile, configData, "0700")
+		return h.Configurer.WriteFile(h, destFile, configData, "0700")
 	})
 
 	return err
 }
 
 func cleanupmke(h *api.Host) error {
-	containersToRemove, err := h.ExecWithOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
+	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
 		return err
 	}
