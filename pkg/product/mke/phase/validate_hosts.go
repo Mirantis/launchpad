@@ -89,11 +89,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 		testStr := "hello world!\n"
 		defer h.Configurer.DeleteFile(h, fn)
 		log.Infof("%s: testing stdin redirection", h)
-		w, err := h.IsWindows()
-		if err != nil {
-			return err
-		}
-		if w {
+		if h.IsWindows() {
 			err := h.Exec(fmt.Sprintf(`findstr "^" > %s`, fn), exec.Stdin(testStr))
 			if err != nil {
 				return err

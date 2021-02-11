@@ -229,8 +229,3 @@ func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	}
 	return status, nil
 }
-
-// RebootCommand returns a command string that will reboot the host
-func (c WindowsConfigurer) RebootCommand() string {
-	return "shutdown /r /t 5"
-}

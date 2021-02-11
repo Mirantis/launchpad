@@ -50,21 +50,16 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 		return err
 	}
 
-	err = h.Exec("sudo systemctl enable docker")
-	if err != nil {
+	if err := c.riglinux.EnableService(h, "docker"); err != nil {
 		return err
 	}
 
-	err = h.Exec("sudo systemctl start docker")
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.riglinux.StartService(h, "docker")
 }
 
 // RestartMCR restarts Docker EE engine
 func (c LinuxConfigurer) RestartMCR(h os.Host) error {
-	return h.Exec("sudo systemctl restart docker")
+	return c.riglinux.RestartService(h, "docker")
 }
 
 // ResolveInternalIP resolves internal ip from private interface
@@ -235,9 +230,4 @@ func (c LinuxConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	}
 
 	return status, nil
-}
-
-// RebootCommand returns a command string that will reboot the host
-func (c LinuxConfigurer) RebootCommand() string {
-	return "sudo systemctl start reboot.target"
 }

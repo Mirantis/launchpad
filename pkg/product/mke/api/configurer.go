@@ -34,5 +34,5 @@ type HostConfigurer interface {
 	HTTPStatus(os.Host, string) (int, error)
 	Pwd(os.Host) string
 	JoinPath(...string) string
-	RebootCommand() string
+	Reboot(os.Host) error
 }

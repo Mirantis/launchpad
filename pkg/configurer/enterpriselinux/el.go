@@ -17,7 +17,7 @@ type Configurer struct {
 
 // InstallMKEBasePackages install all the needed base packages on the host
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
-	return h.Exec("sudo yum install -y curl socat iptables iputils gzip")
+	return c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip")
 }
 
 // UninstallMCR uninstalls docker-ee engine
@@ -26,12 +26,10 @@ func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig comm
 	if err != nil {
 		return err
 	}
-	err = h.Exec("sudo systemctl stop docker")
-	if err != nil {
+	if err := c.StopService(h, "docker"); err != nil {
 		return err
 	}
-	err = h.Exec("sudo systemctl stop containerd")
-	if err != nil {
+	if err := c.StopService(h, "containerd"); err != nil {
 		return err
 	}
 	return h.Exec("sudo yum remove -y docker-ee docker-ee-cli")
@@ -40,7 +38,7 @@ func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig comm
 // InstallMCR install Docker EE engine on Linux
 func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
 	if h.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
-		if h.Exec("sudo yum install -q -y rh-amazon-rhui-client") == nil {
+		if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
 			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
 		}
 	}

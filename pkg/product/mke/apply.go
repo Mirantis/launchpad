@@ -61,8 +61,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 	windowsWorkersCount := 0
 	linuxWorkersCount := 0
 	for _, h := range p.ClusterConfig.Spec.Workers() {
-		w, _ := h.IsWindows()
-		if w {
+		if h.IsWindows() {
 			windowsWorkersCount++
 		} else {
 			linuxWorkersCount++

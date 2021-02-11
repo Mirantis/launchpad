@@ -162,15 +162,15 @@ func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
 		}
 
 		log.Infof("%s: installing certificate files to %s", h, dir)
-		err = h.Configurer.WriteFile(h, fmt.Sprintf("%s/ca.pem", dir), config.Spec.MKE.CACertData, "0600")
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600")
 		if err != nil {
 			return err
 		}
-		err = h.Configurer.WriteFile(h, fmt.Sprintf("%s/cert.pem", dir), config.Spec.MKE.CertData, "0600")
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600")
 		if err != nil {
 			return err
 		}
-		err = h.Configurer.WriteFile(h, fmt.Sprintf("%s/key.pem", dir), config.Spec.MKE.KeyData, "0600")
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600")
 		if err != nil {
 			return err
 		}
@@ -195,6 +195,11 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 	}
 
 	err := phase.RunParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, c *api.ClusterConfig) error {
+		if h.IsWindows() {
+			log.Warnf("%s: cloud provider configuration is not suppported on windows", h)
+			return nil
+		}
+
 		log.Infof("%s: copying cloud provider (%s) config to %s", h, provider, destFile)
 		return h.Configurer.WriteFile(h, destFile, configData, "0700")
 	})

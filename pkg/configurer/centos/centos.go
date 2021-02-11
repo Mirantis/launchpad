@@ -14,7 +14,7 @@ type Configurer struct {
 
 // InstallMKEBasePackages install all the needed base packages on the host
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
-	return h.Exec("sudo yum install -y curl socat iptables iputils gzip")
+	return c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip")
 }
 
 func init() {

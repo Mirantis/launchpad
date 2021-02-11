@@ -154,14 +154,7 @@ func (p *ValidateFacts) validateDataPlane() error {
 
 	// User has explicitly defined --calico-vxlan=false but there is a windows host in the config
 	if !valB {
-		hasW := p.Config.Spec.Hosts.Include(func(h *api.Host) bool {
-			w, err := h.IsWindows()
-			if err != nil {
-				log.Errorf("%s: %s", h, err.Error())
-			}
-			return w
-		})
-		if hasW {
+		if p.Config.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
 			return fmt.Errorf("calico IPIP can't be used on Windows")
 		}
 

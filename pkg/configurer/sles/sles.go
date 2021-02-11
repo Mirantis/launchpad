@@ -18,7 +18,7 @@ type Configurer struct {
 
 // InstallMKEBasePackages installs the needed base packages on Ubuntu
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
-	return h.Exec("sudo zypper -n install -y curl socat")
+	return c.InstallPackage(h, "curl", "socat")
 }
 
 // UninstallMCR uninstalls docker-ee engine
@@ -27,14 +27,15 @@ func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig comm
 	if err != nil {
 		return err
 	}
-	err = h.Exec("sudo systemctl stop docker")
-	if err != nil {
+
+	if err := c.StopService(h, "docker"); err != nil {
 		return err
 	}
-	err = h.Exec("sudo systemctl stop containerd")
-	if err != nil {
+
+	if err := c.StopService(h, "containerd"); err != nil {
 		return err
 	}
+
 	return h.Exec("sudo zypper -n remove -y --clean-deps docker-ee docker-ee-cli")
 }
 
