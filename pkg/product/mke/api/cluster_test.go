@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -28,6 +29,8 @@ import (
 )
 
 func TestHostRequireManagerValidationPass(t *testing.T) {
+	kf, _ := ioutil.TempFile("", "testkey")
+	defer kf.Close()
 	data := `
 apiVersion: "launchpad.mirantis.com/mke/v1.3"
 kind: mke
@@ -35,9 +38,11 @@ spec:
   hosts:
     - ssh:
         address: 10.0.0.1
+				keyPath: ` + kf.Name() + `
       role: manager
     - ssh:
         address: 10.0.0.2
+				keyPath: ` + kf.Name() + `
       role: worker
 `
 	c := loadYaml(t, data)
@@ -46,6 +51,8 @@ spec:
 }
 
 func TestHostRequireManagerValidationFail(t *testing.T) {
+	kf, _ := ioutil.TempFile("", "testkey")
+	defer kf.Close()
 	data := `
 apiVersion: "launchpad.mirantis.com/mke/v1.3"
 kind: mke
@@ -53,9 +60,11 @@ spec:
   hosts:
     - ssh:
         address: 10.0.0.1
+				keyPath: ` + kf.Name() + `
       role: worker
     - ssh:
         address: 10.0.0.2
+				keyPath: ` + kf.Name() + `
       role: worker
 `
 	c := loadYaml(t, data)
@@ -379,7 +388,8 @@ spec:
 }
 
 func TestValidationWithMSRRole(t *testing.T) {
-
+	kf, _ := ioutil.TempFile("", "testkey")
+	defer kf.Close()
 	t.Run("the role is not ucp, worker or msr", func(t *testing.T) {
 		data := `
 apiVersion: launchpad.mirantis.com/mke/v1.3
@@ -388,6 +398,7 @@ spec:
   hosts:
     - ssh:
         address: "10.0.0.1"
+				keyPath: ` + kf.Name() + `
       role: weirdrole
     - ssh:
         address: "10.0.0.2"
@@ -405,6 +416,7 @@ spec:
   hosts:
     - ssh:
         address: "10.0.0.1"
+				keyPath: ` + kf.Name() + `
       role: msr
     - ssh:
         address: "10.0.0.2"
