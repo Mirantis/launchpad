@@ -16,6 +16,8 @@ import (
 type InstallMSR struct {
 	phase.Analytics
 	MSRPhase
+
+	leader *api.Host
 }
 
 // Title prints the phase title
@@ -25,13 +27,14 @@ func (p *InstallMSR) Title() string {
 
 // ShouldRun should return true only when there is an installation to be performed
 func (p *InstallMSR) ShouldRun() bool {
-	h := p.Config.Spec.MSRLeader()
-	return p.Config.Spec.ContainsMSR() && (h.MSRMetadata == nil || !h.MSRMetadata.Installed)
+	p.leader = p.Config.Spec.MSRLeader()
+	return p.Config.Spec.ContainsMSR() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
 }
 
 // Run the installer container
 func (p *InstallMSR) Run() error {
-	h := p.Config.Spec.MSRLeader()
+	h := p.leader
+
 	if h.MSRMetadata == nil {
 		h.MSRMetadata = &api.MSRMetadata{}
 	}
@@ -84,7 +87,7 @@ func (p *InstallMSR) Run() error {
 
 func (p *InstallMSR) CleanUp() {
 	log.Infof("Cleaning up for '%s'", p.Title())
-	if err := msr.Destroy(h); err != nil {
+	if err := msr.Destroy(p.leader); err != nil {
 		log.Warnf("Error while cleaning-up resources for '%s': %s", p.Title(), err.Error())
 	}
 }

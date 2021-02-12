@@ -24,24 +24,6 @@ func (p *BasicPhase) Prepare(config interface{}) error {
 	return nil
 }
 
-// ShouldRun for BasicPhases is always true
-func (p *BasicPhase) ShouldRun() bool {
-	return true
-}
-
-// CleanUp basic implementation
-func (p *BasicPhase) CleanUp() {}
-
-// Title default implementation
-func (p *HostSelectPhase) Title() string {
-	return ""
-}
-
-// Run default implementation
-func (p *HostSelectPhase) Run() error {
-	return nil
-}
-
 // Prepare HostSelectPhase implementation which runs the supplied HostFilterFunc to populate the phase's hosts field
 func (p *HostSelectPhase) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)

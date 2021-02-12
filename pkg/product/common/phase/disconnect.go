@@ -36,9 +36,6 @@ func (p *Disconnect) ShouldRun() bool {
 	return len(p.hosts) > 0
 }
 
-// CleanUp does nothing
-func (p *Disconnect) CleanUp() {}
-
 // Title for the phase
 func (p *Disconnect) Title() string {
 	return "Close Connection"

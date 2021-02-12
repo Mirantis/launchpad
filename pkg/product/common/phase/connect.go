@@ -42,9 +42,6 @@ func (p *Connect) ShouldRun() bool {
 	return len(p.hosts) > 0
 }
 
-// CleanUp does nothing
-func (p *Connect) CleanUp() {}
-
 // Title for the phase
 func (p *Connect) Title() string {
 	return "Open Remote Connection"
