@@ -85,6 +85,7 @@ func (p *InstallMSR) Run() error {
 	return nil
 }
 
+// CleanUp removes remnants of MSR after a failed installation
 func (p *InstallMSR) CleanUp() {
 	log.Infof("Cleaning up for '%s'", p.Title())
 	if err := msr.Destroy(p.leader); err != nil {

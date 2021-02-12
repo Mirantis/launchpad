@@ -215,6 +215,7 @@ func cleanupmke(h *api.Host) error {
 	return nil
 }
 
+// CleanUp removes ucp containers after a failed installation
 func (p *InstallMKE) CleanUp() {
 	log.Infof("Cleaning up for '%s'", p.Title())
 	if err := cleanupmke(p.leader); err != nil {
