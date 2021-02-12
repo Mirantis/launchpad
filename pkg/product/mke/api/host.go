@@ -11,6 +11,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/util"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
+	"github.com/k0sproject/dig"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/os/registry"
 
@@ -66,12 +67,12 @@ func (errors *errors) String() string {
 type Host struct {
 	rig.Connection `yaml:",inline"`
 
-	Role             string             `yaml:"role" validate:"oneof=manager worker msr"`
-	PrivateInterface string             `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
-	DaemonConfig     common.GenericHash `yaml:"mcrConfig,flow,omitempty" default:"{}"`
-	Environment      map[string]string  `yaml:"environment,flow,omitempty" default:"{}"`
-	Hooks            common.Hooks       `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
-	ImageDir         string             `yaml:"imageDir,omitempty"`
+	Role             string            `yaml:"role" validate:"oneof=manager worker msr"`
+	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
+	DaemonConfig     dig.Mapping       `yaml:"mcrConfig,flow,omitempty" default:"{}"`
+	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
+	Hooks            common.Hooks      `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
+	ImageDir         string            `yaml:"imageDir,omitempty"`
 
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
