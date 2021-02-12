@@ -8,8 +8,6 @@ import (
 // MKE is the product
 type MKE struct {
 	ClusterConfig api.ClusterConfig
-	SkipCleanup   bool
-	Debug         bool
 }
 
 // ClusterName returns the cluster name

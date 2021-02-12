@@ -17,7 +17,7 @@ type InstallMSR struct {
 	phase.Analytics
 	MSRPhase
 
-	SkipCleanup bool
+	leader *api.Host
 }
 
 // Title prints the phase title
@@ -27,13 +27,14 @@ func (p *InstallMSR) Title() string {
 
 // ShouldRun should return true only when there is an installation to be performed
 func (p *InstallMSR) ShouldRun() bool {
-	h := p.Config.Spec.MSRLeader()
-	return p.Config.Spec.ContainsMSR() && (h.MSRMetadata == nil || !h.MSRMetadata.Installed)
+	p.leader = p.Config.Spec.MSRLeader()
+	return p.Config.Spec.ContainsMSR() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
 }
 
 // Run the installer container
 func (p *InstallMSR) Run() error {
-	h := p.Config.Spec.MSRLeader()
+	h := p.leader
+
 	if h.MSRMetadata == nil {
 		h.MSRMetadata = &api.MSRMetadata{}
 	}
@@ -41,18 +42,6 @@ func (p *InstallMSR) Run() error {
 	err := p.Config.Spec.CheckMKEHealthRemote(h)
 	if err != nil {
 		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", h)
-	}
-
-	if !p.SkipCleanup {
-		defer func() {
-			if err != nil {
-				log.Println("Cleaning-up")
-				if cleanupErr := msr.Destroy(h); cleanupErr != nil {
-					log.Warnln("Error while cleaning-up resources")
-					log.Debugf("Cleanup resources error: %s", err)
-				}
-			}
-		}()
 	}
 
 	p.EventProperties = map[string]interface{}{
@@ -94,4 +83,12 @@ func (p *InstallMSR) Run() error {
 	}
 	h.MSRMetadata = msrMeta
 	return nil
+}
+
+// CleanUp removes remnants of MSR after a failed installation
+func (p *InstallMSR) CleanUp() {
+	log.Infof("Cleaning up for '%s'", p.Title())
+	if err := msr.Destroy(p.leader); err != nil {
+		log.Warnf("Error while cleaning-up resources for '%s': %s", p.Title(), err.Error())
+	}
 }

@@ -13,9 +13,18 @@ import (
 type phase interface {
 	Run() error
 	Title() string
+}
+
+type withconfig interface {
 	Prepare(interface{}) error
-	ShouldRun() bool
+}
+
+type withcleanup interface {
 	CleanUp()
+}
+
+type conditional interface {
+	ShouldRun() bool
 }
 
 // Manager executes phases to construct the cluster
@@ -48,52 +57,57 @@ func (m *Manager) AddPhase(p phase) {
 // Run executes all the added Phases in order
 func (m *Manager) Run() error {
 	for _, p := range m.phases {
-		log.Debugf("preparing phase '%s'", p.Title())
-		err := p.Prepare(m.config)
-		if err != nil {
-			return err
+		title := p.Title()
+
+		if p, ok := p.(withconfig); ok {
+			log.Debugf("preparing phase '%s'", title)
+			if err := p.Prepare(m.config); err != nil {
+				return err
+			}
 		}
 
-		if !p.ShouldRun() {
-			log.Debugf("skipping phase '%s'", p.Title())
-			continue
+		if p, ok := p.(conditional); ok {
+			if !p.ShouldRun() {
+				log.Debugf("skipping phase '%s'", title)
+				continue
+			}
 		}
 
 		text := aurora.Green("==> Running phase: %s").String()
-		log.Infof(text, p.Title())
-		if e, ok := interface{}(p).(Eventable); ok {
-			start := time.Now()
+		log.Infof(text, title)
+		start := time.Now()
+
+		result := p.Run()
+
+		duration := time.Since(start)
+		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Minute))
+
+		if e, ok := p.(Eventable); ok {
 			r := reflect.ValueOf(m.config).Elem()
 			props := event.Properties{
 				"kind":        r.FieldByName("Kind").String(),
 				"api_version": r.FieldByName("APIVersion").String(),
+				"duration":    duration.Seconds(),
 			}
-
-			err := p.Run()
-
-			duration := time.Since(start)
-			props["duration"] = duration.Seconds()
 			for k, v := range e.GetEventProperties() {
 				props[k] = v
 			}
-			if err != nil {
-				props["success"] = false
-				analytics.TrackEvent(p.Title(), props)
-				if !m.IgnoreErrors {
-					return err
+			props["success"] = result == nil
+			defer analytics.TrackEvent(title, props)
+		}
+
+		if result != nil {
+			if p, ok := p.(withcleanup); ok {
+				if !m.SkipCleanup {
+					defer p.CleanUp()
 				}
 			}
-			props["success"] = true
-			analytics.TrackEvent(p.Title(), props)
+			if m.IgnoreErrors {
+				log.Debugf("ignoring phase '%s' error: %s", title, result.Error())
+				return nil
+			}
 
-		} else {
-			err := p.Run()
-			if err != nil && !m.IgnoreErrors {
-				return err
-			}
-			if !m.SkipCleanup {
-				defer p.CleanUp()
-			}
+			return result
 		}
 	}
 

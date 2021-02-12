@@ -34,7 +34,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 		&mke.AuthenticateDocker{},
 		&mke.PullMKEImages{},
 		&mke.InitSwarm{},
-		&mke.InstallMKE{SkipCleanup: disableCleanup},
+		&mke.InstallMKE{},
 		&mke.UpgradeMKE{},
 		&mke.JoinManagers{},
 		&mke.JoinWorkers{},
@@ -42,7 +42,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 		// begin MSR phases
 		&mke.PullMSRImages{},
 		&mke.ValidateMKEHealth{},
-		&mke.InstallMSR{SkipCleanup: disableCleanup},
+		&mke.InstallMSR{},
 		&mke.UpgradeMSR{},
 		&mke.JoinMSRReplicas{},
 		// end MSR phases

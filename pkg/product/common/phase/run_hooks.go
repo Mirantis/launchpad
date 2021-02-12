@@ -51,9 +51,6 @@ func (p *RunHooks) ShouldRun() bool {
 	return len(p.steps) > 0
 }
 
-// CleanUp does nothing
-func (p *RunHooks) CleanUp() {}
-
 // Title for the phase
 func (p *RunHooks) Title() string {
 	return fmt.Sprintf("Run %s %s Hooks", strings.Title(p.Stage), strings.Title(p.Action))

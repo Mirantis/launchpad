@@ -20,7 +20,8 @@ const configName string = "com.docker.ucp.config"
 type InstallMKE struct {
 	phase.Analytics
 	phase.BasicPhase
-	SkipCleanup bool
+
+	leader *api.Host
 }
 
 // Title prints the phase title
@@ -30,25 +31,15 @@ func (p *InstallMKE) Title() string {
 
 // Run the installer container
 func (p *InstallMKE) Run() (err error) {
-	swarmLeader := p.Config.Spec.SwarmLeader()
-
-	if !p.SkipCleanup {
-		defer func() {
-			if err != nil {
-				log.Println("Cleaning-up")
-				if cleanupErr := cleanupmke(swarmLeader); cleanupErr != nil {
-					log.Warnln("Error while cleaning-up resources")
-				}
-			}
-		}()
-	}
+	p.leader = p.Config.Spec.SwarmLeader()
+	h := p.leader
 
 	p.EventProperties = map[string]interface{}{
 		"mke_version": p.Config.Spec.MKE.Version,
 	}
 
 	if p.Config.Spec.MKE.Metadata.Installed {
-		log.Infof("%s: MKE already installed at version %s, not running installer", swarmLeader, p.Config.Spec.MKE.Metadata.InstalledVersion)
+		log.Infof("%s: MKE already installed at version %s, not running installer", h, p.Config.Spec.MKE.Metadata.InstalledVersion)
 		return nil
 	}
 
@@ -65,7 +56,7 @@ func (p *InstallMKE) Run() (err error) {
 
 	if p.Config.Spec.MKE.ConfigData != "" {
 		defer func() {
-			err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("config rm %s", configName))
+			err := h.Exec(h.Configurer.DockerCommandf("config rm %s", configName))
 			if err != nil {
 				log.Warnf("Failed to remove the temporary MKE installer configuration %s : %s", configName, err)
 			}
@@ -73,8 +64,8 @@ func (p *InstallMKE) Run() (err error) {
 
 		installFlags.AddUnlessExist("--existing-config")
 		log.Info("Creating MKE configuration")
-		configCmd := swarmLeader.Configurer.DockerCommandf("config create %s -", configName)
-		err := swarmLeader.Exec(configCmd, exec.Stdin(p.Config.Spec.MKE.ConfigData))
+		configCmd := h.Configurer.DockerCommandf("config create %s -", configName)
+		err := h.Exec(configCmd, exec.Stdin(p.Config.Spec.MKE.ConfigData))
 		if err != nil {
 			return err
 		}
@@ -103,7 +94,7 @@ func (p *InstallMKE) Run() (err error) {
 		installFlags.AddUnlessExist("--pull never")
 	}
 	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
+	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
 
@@ -115,10 +106,10 @@ func (p *InstallMKE) Run() (err error) {
 		installFlags.AddUnlessExist("--admin-password " + p.Config.Spec.MKE.AdminPassword)
 	}
 
-	installCmd := swarmLeader.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
-	output, err := swarmLeader.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
+	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
+	output, err := h.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE installer: %s", swarmLeader, err.Error())
+		return fmt.Errorf("%s: failed to run MKE installer: %s", h, err.Error())
 	}
 
 	if installFlags.GetValue("--admin-password") == "" {
@@ -134,9 +125,9 @@ func (p *InstallMKE) Run() (err error) {
 		}
 	}
 
-	err = mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata)
+	err = mke.CollectFacts(h, p.Config.Spec.MKE.Metadata)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing MKE details: %s", swarmLeader, err.Error())
+		return fmt.Errorf("%s: failed to collect existing MKE details: %s", h, err.Error())
 	}
 
 	return nil
@@ -222,4 +213,12 @@ func cleanupmke(h *api.Host) error {
 	}
 
 	return nil
+}
+
+// CleanUp removes ucp containers after a failed installation
+func (p *InstallMKE) CleanUp() {
+	log.Infof("Cleaning up for '%s'", p.Title())
+	if err := cleanupmke(p.leader); err != nil {
+		log.Warnf("Error while cleaning-up resources for '%s': %s", p.Title(), err.Error())
+	}
 }
