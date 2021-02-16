@@ -11,6 +11,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/completion"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/version"
+	"github.com/k0sproject/rig"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/urfave/cli/v2"
@@ -169,6 +170,7 @@ func initLogger() {
 
 	// stdout hook on by default of course
 	log.AddHook(mcclog.NewStdoutHook())
+	rig.SetLogger(log.StandardLogger())
 }
 
 func initAnalytics(ctx *cli.Context) {
