@@ -9,10 +9,10 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/k0sproject/rig/exec"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
+	"github.com/k0sproject/rig/exec"
 
 	"github.com/mattn/go-isatty"
 	"github.com/mitchellh/go-homedir"
@@ -114,7 +114,7 @@ func NewApplyCommand() *cli.Command {
 	}
 }
 
-const fileMode = 0700
+const fileMode = 0600
 
 func addFileLogger(clusterName string) (*os.File, error) {
 	home, err := homedir.Dir()
