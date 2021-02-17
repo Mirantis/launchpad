@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -158,6 +159,18 @@ func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Con
 	}
 
 	cert := []byte(output[i:])
+	block, _ := pem.Decode(cert)
+	if block == nil {
+		return nil, fmt.Errorf("no certificates found in output")
+	}
+
+	if block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
+		return nil, fmt.Errorf("invalid certificate: %#v", block)
+	}
+	if _, err = x509.ParseCertificate(block.Bytes); err != nil {
+		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+	}
+
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(cert)
 	if !ok {
