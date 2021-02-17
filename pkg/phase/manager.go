@@ -27,6 +27,10 @@ type conditional interface {
 	ShouldRun() bool
 }
 
+type cleanupdisabling interface {
+	DisableCleanup()
+}
+
 // Manager executes phases to construct the cluster
 type Manager struct {
 	phases       []phase
@@ -63,6 +67,13 @@ func (m *Manager) Run() error {
 			log.Debugf("preparing phase '%s'", title)
 			if err := p.Prepare(m.config); err != nil {
 				return err
+			}
+		}
+
+		if m.SkipCleanup {
+			if p, ok := p.(cleanupdisabling); ok {
+				log.Debugf("disabling in-phase cleanup for '%s'", title)
+				p.DisableCleanup()
 			}
 		}
 

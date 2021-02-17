@@ -15,6 +15,7 @@ import (
 type PullMKEImages struct {
 	phase.Analytics
 	phase.BasicPhase
+	phase.CleanupDisabling
 }
 
 // Title for the phase
@@ -58,14 +59,19 @@ func (p *PullMKEImages) ListImages() ([]*docker.Image, error) {
 			return []*docker.Image{}, err
 		}
 	}
-	runflags := common.Flags{}
-	runflags.Add("-v /var/run/docker.sock:/var/run/docker.sock")
-	runflags.Add("--rm")
-	if manager.Configurer.SELinuxEnabled(manager) {
-		runflags.Add("--security-opt label=disable")
+
+	runFlags := common.Flags{}
+	runFlags.Add("-v /var/run/docker.sock:/var/run/docker.sock")
+
+	if !p.CleanupDisabled() {
+		runFlags.Add("--rm")
 	}
 
-	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images --list", runflags.Join(), bootstrap))
+	if manager.Configurer.SELinuxEnabled(manager) {
+		runFlags.Add("--security-opt label=disable")
+	}
+
+	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images --list", runFlags.Join(), bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MKE image list", manager)
 	}

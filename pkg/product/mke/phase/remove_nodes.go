@@ -25,6 +25,7 @@ import (
 type RemoveNodes struct {
 	phase.Analytics
 	phase.BasicPhase
+	phase.CleanupDisabling
 
 	cleanupMSRs   []*api.Host
 	msrReplicaIDs []string
@@ -214,7 +215,12 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 	msrLeader := config.Spec.MSRLeader()
 	mkeFlags := msr.BuildMKEFlags(config)
 
-	runFlags := common.Flags{"--rm", "-i"}
+	runFlags := common.Flags{"-i"}
+
+	if !p.CleanupDisabled() {
+		runFlags.Add("--rm")
+	}
+
 	if msrLeader.Configurer.SELinuxEnabled(msrLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
