@@ -199,7 +199,7 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MKE3.4.0-tp2 MSR2.9.0-tp3 ENG20.10.0-tp3 from private repos") {
+            stage("Upgrade MKE3.4.0-tp2 MSR2.9.0-tp3 ENG20.10.0-rc1 from private repos") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
@@ -208,7 +208,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.9.0-tp3"
-                MCR_VERSION = "20.10.0-tp3"
+                MCR_VERSION = "20.10.0-rc1"
                 MCR_CHANNEL = "test"
                 MCR_REPO_URL = "https://repos-stage.mirantis.com"
                 REUSE_CLUSTER = "true"
