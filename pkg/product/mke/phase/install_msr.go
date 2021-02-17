@@ -15,6 +15,7 @@ import (
 // bootstrap
 type InstallMSR struct {
 	phase.Analytics
+	phase.CleanupDisabling
 	MSRPhase
 
 	leader *api.Host
@@ -49,7 +50,10 @@ func (p *InstallMSR) Run() error {
 	}
 
 	image := p.Config.Spec.MSR.GetBootstrapperImage()
-	runFlags := common.Flags{"--rm", "-i"}
+	runFlags := common.Flags{"-i"}
+	if !p.CleanupDisabled() {
+		runFlags.Add("--rm")
+	}
 
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")

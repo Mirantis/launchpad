@@ -18,6 +18,22 @@ type HostSelectPhase struct {
 	Hosts api.Hosts
 }
 
+// CleanupDisabling can be embedded to phases that perform in-phase cleanup
+// such as when using docker run --rm
+type CleanupDisabling struct {
+	disableCleanup bool
+}
+
+// DisableCleanup sets the disable cleanup flag
+func (p *CleanupDisabling) DisableCleanup() {
+	p.disableCleanup = true
+}
+
+// CleanupDisabled returns true when in-phase cleanup has been disabled
+func (p *CleanupDisabling) CleanupDisabled() bool {
+	return p.disableCleanup
+}
+
 // Prepare rceives the cluster config and stores it to the phase's config field
 func (p *BasicPhase) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)

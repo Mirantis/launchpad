@@ -20,6 +20,7 @@ const configName string = "com.docker.ucp.config"
 type InstallMKE struct {
 	phase.Analytics
 	phase.BasicPhase
+	phase.CleanupDisabling
 
 	leader *api.Host
 }
@@ -93,7 +94,11 @@ func (p *InstallMKE) Run() (err error) {
 		// In case of custom repo, don't let MKE check the images
 		installFlags.AddUnlessExist("--pull never")
 	}
-	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := common.Flags{"-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	if !p.CleanupDisabled() {
+		runFlags.Add("--rm")
+	}
+
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}

@@ -14,6 +14,7 @@ import (
 // UpgradeMSR is the phase implementation for running the actual msr upgrade container
 type UpgradeMSR struct {
 	phase.Analytics
+	phase.CleanupDisabling
 	MSRPhase
 }
 
@@ -46,7 +47,11 @@ func (p *UpgradeMSR) Run() error {
 		return nil
 	}
 
-	runFlags := common.Flags{"--rm", "-i"}
+	runFlags := common.Flags{"-i"}
+	if !p.CleanupDisabled() {
+		runFlags.Add("--rm")
+	}
+
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}

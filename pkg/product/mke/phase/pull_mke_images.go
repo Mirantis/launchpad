@@ -5,6 +5,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/docker"
 	"github.com/Mirantis/mcc/pkg/phase"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 
 	log "github.com/sirupsen/logrus"
@@ -14,6 +15,7 @@ import (
 type PullMKEImages struct {
 	phase.Analytics
 	phase.BasicPhase
+	phase.CleanupDisabling
 }
 
 // Title for the phase
@@ -57,7 +59,13 @@ func (p *PullMKEImages) ListImages() ([]*docker.Image, error) {
 			return []*docker.Image{}, err
 		}
 	}
-	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run -v /var/run/docker.sock:/var/run/docker.sock --rm %s images --list", bootstrap))
+
+	runFlags := common.Flags{"-v /var/run/docker.sock:/var/run/docker.sock"}
+	if !p.CleanupDisabled() {
+		runFlags.Add("--rm")
+	}
+
+	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images --list", runFlags.Join(), bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MKE image list", manager)
 	}
