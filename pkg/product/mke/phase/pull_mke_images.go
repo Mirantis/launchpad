@@ -60,7 +60,7 @@ func (p *PullMKEImages) ListImages() ([]*docker.Image, error) {
 	}
 	runflags := common.Flags{}
 	runflags.Add("-v /var/run/docker.sock:/var/run/docker.sock")
-	runflags.Add("-rm")
+	runflags.Add("--rm")
 	if manager.Configurer.SELinuxEnabled(manager) {
 		runflags.Add("--security-opt label=disable")
 	}
