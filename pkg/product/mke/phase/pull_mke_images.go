@@ -60,12 +60,18 @@ func (p *PullMKEImages) ListImages() ([]*docker.Image, error) {
 		}
 	}
 
-	runFlags := common.Flags{"-v /var/run/docker.sock:/var/run/docker.sock"}
+	runflags := common.Flags{}
+	runflags.Add("-v /var/run/docker.sock:/var/run/docker.sock")
+  
 	if !p.CleanupDisabled() {
 		runFlags.Add("--rm")
+	}  
+  
+	if manager.Configurer.SELinuxEnabled(manager) {
+		runflags.Add("--security-opt label=disable")
 	}
 
-	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images --list", runFlags.Join(), bootstrap))
+	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images --list", runflags.Join(), bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MKE image list", manager)
 	}
