@@ -5,7 +5,6 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/docker"
 	"github.com/Mirantis/mcc/pkg/phase"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 
 	log "github.com/sirupsen/logrus"
@@ -14,7 +13,6 @@ import (
 // PullMSRImages phase implementation
 type PullMSRImages struct {
 	phase.Analytics
-	phase.CleanupDisabling
 	MSRPhase
 }
 
@@ -56,13 +54,7 @@ func (p *PullMSRImages) ListImages() ([]*docker.Image, error) {
 			return []*docker.Image{}, err
 		}
 	}
-
-	runFlags := common.Flags{}
-	if !p.CleanupDisabled() {
-		runFlags.Add("--rm")
-	}
-
-	output, err := msrLeader.ExecOutput(msrLeader.Configurer.DockerCommandf("run %s %s images", runFlags.Join(), bootstrap))
+	output, err := msrLeader.ExecOutput(msrLeader.Configurer.DockerCommandf("run --rm %s images", bootstrap))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MSR image list", msrLeader)
 	}
