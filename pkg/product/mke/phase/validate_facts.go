@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 
@@ -86,7 +87,7 @@ func (p *ValidateFacts) validateMKEVersionJump() error {
 			return err
 		}
 
-		if installedMKE.GreaterThan(targetMKE) {
+		if mke.VersionGreaterThan(installedMKE, targetMKE) {
 			return fmt.Errorf("can't downgrade MKE %s to %s", installedMKE.String(), targetMKE.String())
 		}
 
@@ -115,7 +116,7 @@ func (p *ValidateFacts) validateMSRVersionJump() error {
 			return err
 		}
 
-		if installedMSR.GreaterThan(targetMSR) {
+		if mke.VersionGreaterThan(installedMSR, targetMSR) {
 			return fmt.Errorf("can't downgrade MSR %s to %s", installedMSR.String(), targetMSR.String())
 		}
 
