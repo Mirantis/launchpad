@@ -35,7 +35,7 @@ func (p *InitSwarm) Run() error {
 	} else {
 		log.Infof("%s: swarm already initialized", swarmLeader)
 		if p.Config.Spec.MKE.SwarmInstallFlags.Join() != "" {
-			log.Warnf("Swarm install flags ignored due to swarm cluster already existing")
+			log.Warnf("%s: swarm install flags ignored due to swarm cluster already existing", swarmLeader)
 		}
 	}
 
