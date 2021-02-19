@@ -43,6 +43,17 @@ func TestMKEConfigFlags(t *testing.T) {
 	cfg.InstallFlags.AddUnlessExist("--help")
 	require.Len(t, cfg.InstallFlags, 5)
 	require.True(t, cfg.InstallFlags.Include("--help"))
+
+	require.Nil(t, cfg.SwarmInstallFlags)
+	require.Len(t, cfg.SwarmInstallFlags, 0)
+
+	err = yaml.Unmarshal([]byte("installFlags:\n  - --san foo\n  - --ucp-insecure-tls\nswarmInstallFlags:\n  - --autolock\n  - --cert-expiry 60h0m0s"), &cfg)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.SwarmInstallFlags)
+	require.Len(t, cfg.SwarmInstallFlags, 2)
+	require.NotNil(t, cfg.InstallFlags)
+	require.Len(t, cfg.InstallFlags, 2)
+	require.True(t, cfg.SwarmInstallFlags.Include("--cert-expiry"))
 }
 
 func TestMKEConfig_YAML_ConfigData(t *testing.T) {
