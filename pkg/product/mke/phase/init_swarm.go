@@ -3,9 +3,9 @@ package phase
 import (
 	"fmt"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -27,13 +27,16 @@ func (p *InitSwarm) Run() error {
 
 	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader)
-		output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()), exec.Redact(`--token \S+`))
+		output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s %s", swarmLeader.SwarmAddress(), p.Config.Spec.MKE.SwarmInstallFlags.Join()), exec.Redact(`--token \S+`))
 		if err != nil {
 			return fmt.Errorf("failed to initialize swarm: %s", output)
 		}
 		log.Infof("%s: swarm initialized successfully", swarmLeader)
 	} else {
 		log.Infof("%s: swarm already initialized", swarmLeader)
+		if p.Config.Spec.MKE.SwarmInstallFlags.Join() != "" {
+			log.Warnf("Swarm install flags ignored due to swarm cluster already existing")
+		}
 	}
 
 	mgrToken, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"), exec.HideOutput())

@@ -23,7 +23,7 @@ func (p *UpgradeMKE) Title() string {
 	return "Upgrade MKE components"
 }
 
-// Run the installer container
+// Run the upgrade container
 func (p *UpgradeMKE) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 
