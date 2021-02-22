@@ -38,7 +38,6 @@ var (
 	telemetryFlag = &cli.BoolFlag{
 		Name:    "disable-telemetry",
 		Usage:   "Disable telemetry",
-		Aliases: []string{"t"},
 		EnvVars: []string{"DISABLE_TELEMETRY"},
 	}
 
