@@ -8,8 +8,8 @@ trap cleanup EXIT
 
 setup
 
-[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} apply --config - < ${LAUNCHPAD_CONFIG}
-${LAUNCHPAD} reset --config ${LAUNCHPAD_CONFIG} --force
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} mke
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} msr
+[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} apply --debug --config - < ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} reset --debug --config ${LAUNCHPAD_CONFIG} --force
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} mke
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} msr

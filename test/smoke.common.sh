@@ -2,7 +2,7 @@
 
 FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-"footloose.yaml.tpl"}
 LAUNCHPAD_CONFIG=${LAUNCHPAD_CONFIG:-"launchpad.yaml"}
-LAUNCHPAD="../bin/launchpad --debug"
+LAUNCHPAD="../bin/launchpad"
 
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export MKE_VERSION=${MKE_VERSION:-"3.3.3"}
