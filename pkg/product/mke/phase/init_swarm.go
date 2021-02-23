@@ -31,6 +31,17 @@ func (p *InitSwarm) Run() error {
 		if err != nil {
 			return fmt.Errorf("failed to initialize swarm: %s", output)
 		}
+
+		// Execute all swarm-post-init commands. These take care of
+		// things like setting cert-expiry which cannot be done at the
+		// time of swarm install.
+		for _, swarmCmd := range p.Config.Spec.MKE.SwarmUpdateCommands {
+			output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("%s", swarmCmd))
+			if err != nil {
+				return fmt.Errorf("post swarm init command (%s) failed: %s", swarmCmd, output)
+			}
+		}
+
 		log.Infof("%s: swarm initialized successfully", swarmLeader)
 	} else {
 		log.Infof("%s: swarm already initialized", swarmLeader)
