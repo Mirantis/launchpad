@@ -60,7 +60,7 @@ func (p *PullMKEImages) Run() error {
 				return err
 			}
 
-			log.Debugf("%h: retagging images", h)
+			log.Debugf("%s: retagging images", h)
 			return docker.RetagAllToRepository(h, list, images[0].Repository)
 		})
 	}
