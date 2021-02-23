@@ -24,32 +24,68 @@ func (p *PullMKEImages) Title() string {
 
 // Run pulls images in parallel across nodes via a workerpool of 5
 func (p *PullMKEImages) Run() error {
-	images, err := p.ListImages()
+	images, err := p.ListImages(false)
 	if err != nil {
 		return err
 	}
-	log.Debugf("loaded images list: %v", images)
+	log.Debugf("loaded linux images list: %v", images)
+
+	var winImages []*docker.Image
+	var winHosts api.Hosts = p.Config.Spec.Hosts.Filter(func(h *api.Host) bool { return h.IsWindows() })
+
+	if len(winHosts) > 0 {
+		winImages, err = p.ListImages(true)
+		if err != nil {
+			return err
+		}
+		log.Debugf("loaded windows images list: %v", winImages)
+	}
 
 	imageRepo := p.Config.Spec.MKE.ImageRepo
+
 	if api.IsCustomImageRepo(imageRepo) {
 		pullList := docker.AllToRepository(images, imageRepo)
-		// In case of custom image repo, we need to pull and retag all the images on all hosts
+		pullListWin := docker.AllToRepository(winImages, imageRepo)
 		return phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *api.Host, c *api.ClusterConfig) error {
-			if err := docker.PullImages(h, pullList); err != nil {
+			var err error
+			var list []*docker.Image
+
+			if h.IsWindows() {
+				list = pullListWin
+			} else {
+				list = pullList
+			}
+
+			if err = docker.PullImages(h, list); err != nil {
 				return err
 			}
-			return docker.RetagAllToRepository(h, pullList, images[0].Repository)
+
+			log.Debugf("%h: retagging images", h)
+			return docker.RetagAllToRepository(h, list, images[0].Repository)
 		})
 	}
 
-	// Normally we pull only on managers, let workers pull needed stuff on-demand
-	return phase.RunParallelOnHosts(p.Config.Spec.Managers(), p.Config, func(h *api.Host, c *api.ClusterConfig) error {
+	err = phase.RunParallelOnHosts(p.Config.Spec.Managers(), p.Config, func(h *api.Host, c *api.ClusterConfig) error {
+		log.Infof("%s: pulling linux images", h)
 		return docker.PullImages(h, images)
 	})
+
+	if err != nil {
+		return err
+	}
+
+	if len(winHosts) > 0 {
+		return phase.RunParallelOnHosts(winHosts, p.Config, func(h *api.Host, c *api.ClusterConfig) error {
+			log.Infof("%s: pulling windows images", h)
+			return docker.PullImages(h, winImages)
+		})
+	}
+
+	return nil
 }
 
 // ListImages obtains a list of images from MKE
-func (p *PullMKEImages) ListImages() ([]*docker.Image, error) {
+func (p *PullMKEImages) ListImages(win bool) ([]*docker.Image, error) {
 	manager := p.Config.Spec.SwarmLeader()
 	bootstrap := docker.NewImage(p.Config.Spec.MKE.GetBootstrapperImage())
 
@@ -65,7 +101,13 @@ func (p *PullMKEImages) ListImages() ([]*docker.Image, error) {
 		runFlags.Add("--security-opt label=disable")
 	}
 
-	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images --list", runFlags.Join(), bootstrap))
+	imageFlags := common.Flags{"--list"}
+
+	if win {
+		imageFlags.Add("--enable-windows")
+	}
+
+	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images %s", runFlags.Join(), bootstrap, imageFlags.Join()))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MKE image list", manager)
 	}
