@@ -12,14 +12,10 @@ func NewExecCommand() *cli.Command {
 		Name:      "exec",
 		Usage:     "Exec a command on a host",
 		ArgsUsage: "[COMMAND ..]",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:      "config",
-				Usage:     "Path to cluster config yaml",
-				Aliases:   []string{"c"},
-				Value:     "launchpad.yaml",
-				TakesFile: true,
-			},
+		Flags: append(GlobalFlags, []cli.Flag{
+			configFlag,
+			confirmFlag,
+			redactFlag,
 			&cli.StringFlag{
 				Name:    "target",
 				Usage:   "Target (example: address[:port])",
@@ -40,7 +36,8 @@ func NewExecCommand() *cli.Command {
 				Usage:   "Use the first target having this role in configuration",
 				Aliases: []string{"r"},
 			},
-		},
+		}...),
+		Before: actions(initLogger, checkLicense, initExec),
 		Action: func(ctx *cli.Context) error {
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {

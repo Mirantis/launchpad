@@ -15,4 +15,4 @@ trap registrycleanup EXIT
 
 setup && downloadTools && cloneImages
 
-${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}

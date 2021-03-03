@@ -17,9 +17,9 @@ for image in $(docker run --rm ${MKE_IMAGE_REPO}/ucp:${MKE_VERSION} images --lis
   docker save $image | gzip > images/$fn.tar.gz
 done
 
-../bin/launchpad --debug apply
+${LAUNCHPAD} apply --debug
 
 rm -rf images
 
-../bin/launchpad describe hosts
-../bin/launchpad describe mke
+${LAUNCHPAD} describe --debug hosts
+${LAUNCHPAD} describe --debug mke

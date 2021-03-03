@@ -8,11 +8,11 @@ trap cleanup EXIT
 
 setup
 
-[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} --debug apply --config ${LAUNCHPAD_CONFIG}
+[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}
 
-../bin/launchpad describe hosts
-../bin/launchpad describe mke
-../bin/launchpad describe msr
+../bin/launchpad describe --debug hosts
+../bin/launchpad describe --debug mke
+../bin/launchpad describe --debug msr
 
 export MKE_VERSION=$MKE_UPGRADE_VERSION:-"3.3.3"}
 export MKE_IMAGE_REPO=${MKE_UPGRADE_IMAGE_REPO:-"docker.io/mirantis"}
@@ -23,8 +23,8 @@ generateYaml
 
 cat launchpad.yaml
 
-${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}
 
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} mke
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} msr
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} mke
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} msr

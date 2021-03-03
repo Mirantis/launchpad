@@ -29,6 +29,9 @@ func NewInitCommand() *cli.Command {
 		Name:  "init",
 		Usage: "Initialize launchpad.yaml file",
 		Flags: []cli.Flag{
+			telemetryFlag,
+			upgradeFlag,
+			licenseFlag,
 			&cli.StringFlag{
 				Name:    "kind",
 				Usage:   "What kind of cluster definition we'll create",
@@ -36,16 +39,14 @@ func NewInitCommand() *cli.Command {
 				Value:   "mke",
 			},
 		},
+		Before: actions(startUpgradeCheck, initAnalytics, checkLicense, initExec),
+		After:  actions(closeAnalytics, upgradeCheckResult),
 		Action: func(ctx *cli.Context) error {
 			kind := ctx.String("kind")
 			if !kindIsKnown(kind) {
 				return fmt.Errorf("unknown kind %s - must be one of %s", kind, strings.Join(kinds, ","))
 			}
 			analytics.TrackEvent("Cluster Init Started", nil)
-			if err := analytics.RequireRegisteredUser(); err != nil {
-				analytics.TrackEvent("Cluster Init Failed", nil)
-				return err
-			}
 
 			cfg, err := config.Init(kind)
 			if err != nil {
