@@ -249,10 +249,11 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 	return nil
 }
 
+// WaitMSRNodeReady waits until MSR is up on the host
 func WaitMSRNodeReady(h *api.Host) error {
 	return retry.Do(
 		func() error {
-			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f dtr-nginx"))
+			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f name=dtr-nginx"))
 			if err != nil || strings.TrimSpace(output) == "" {
 				return fmt.Errorf("msr container not running")
 			}
