@@ -6,6 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
 )
 
@@ -21,30 +22,37 @@ type MSRConfig struct {
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
 func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type msr MSRConfig
-	config := NewMSRConfig()
-	raw := msr(config)
-	if err := unmarshal(&raw); err != nil {
+	yc := (*msr)(c)
+	if err := unmarshal(yc); err != nil {
 		return err
 	}
 
-	v, err := version.NewVersion(raw.Version)
-	if err != nil {
-		return err
+	if c.Version != "" {
+		if _, err := version.NewVersion(c.Version); err != nil {
+			return fmt.Errorf("invalid version: %s: %s", c.Version, err.Error())
+		}
 	}
 
-	if raw.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
-		raw.ImageRepo = constant.ImageRepoLegacy
-	}
-
-	*c = MSRConfig(raw)
-	return nil
+	return defaults.Set(c)
 }
 
-// NewMSRConfig creates new config with sane defaults
-func NewMSRConfig() MSRConfig {
-	return MSRConfig{
-		Version:   constant.MSRVersion,
-		ImageRepo: constant.ImageRepo,
+// SetDefaults sets default values
+func (c *MSRConfig) SetDefaults() {
+	if defaults.CanUpdate(c.Version) {
+		c.Version = constant.MSRVersion
+	}
+
+	if c.ImageRepo == "" {
+		c.ImageRepo = constant.ImageRepo
+	}
+
+	v, err := version.NewVersion(c.Version)
+	if err != nil {
+		return
+	}
+
+	if c.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
+		c.ImageRepo = constant.ImageRepoLegacy
 	}
 }
 
