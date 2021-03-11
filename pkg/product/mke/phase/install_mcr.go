@@ -57,6 +57,10 @@ func (p *InstallMCR) installMCR(h *api.Host) error {
 		return err
 	}
 
+	if err := h.Configurer.AuthorizeDocker(h); err != nil {
+		return err
+	}
+
 	currentVersion, err := h.MCRVersion()
 	if err != nil {
 		if err := h.Reboot(); err != nil {
