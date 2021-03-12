@@ -33,6 +33,7 @@ func RegisterCommand() *cli.Command {
 			traceFlag,
 			telemetryFlag,
 			upgradeFlag,
+			licenseFlag,
 		},
 		Before: actions(initLogger, startUpgradeCheck, initAnalytics),
 		After:  actions(closeAnalytics, upgradeCheckResult),
