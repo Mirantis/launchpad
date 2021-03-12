@@ -35,4 +35,5 @@ type HostConfigurer interface {
 	Pwd(os.Host) string
 	JoinPath(...string) string
 	Reboot(os.Host) error
+	AuthorizeDocker(os.Host) error
 }

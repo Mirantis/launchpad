@@ -37,6 +37,11 @@ func (p *PrepareHost) Run() error {
 		return err
 	}
 
+	err = phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.authorizeDocker)
+	if err != nil {
+		return err
+	}
+
 	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.ReplicaIDs == "sequential" {
 		err = msr.AssignSequentialReplicaIDs(p.Config)
 		if err != nil {
@@ -81,4 +86,8 @@ func (p *PrepareHost) fixContainerized(h *api.Host, c *api.ClusterConfig) error 
 		return h.Configurer.FixContainer(h)
 	}
 	return nil
+}
+
+func (p *PrepareHost) authorizeDocker(h *api.Host, c *api.ClusterConfig) error {
+	return h.Configurer.AuthorizeDocker(h)
 }
