@@ -50,8 +50,6 @@ spec:
       - --force-minimums
       - --force-recent-backup
   mcr:
-    repoURL: $MCR_REPO_URL
-    channel: $MCR_CHANNEL
     version: $MCR_VERSION
   msr:
     version: $MSR_VERSION
