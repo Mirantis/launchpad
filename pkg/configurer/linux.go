@@ -125,6 +125,11 @@ func (c LinuxConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 
 // AuthorizeDocker adds the current user to the docker group
 func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
+	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
+		log.Debugf("%s: current user is uid 0 - no need to authorize", h)
+		return nil
+	}
+
 	if err := h.Exec("[ -d $HOME/.docker ] && ([ ! -r $HOME/.docker ] || [ ! -w $HOME/.docker ]) && sudo chown -hR $USER:$USER $HOME/.docker"); err == nil {
 		log.Warnf("%s: changed the owner of ~/.docker to be the current user", h)
 	}
