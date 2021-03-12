@@ -188,7 +188,7 @@ pipeline {
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
                 MKE_VERSION = "3.3.3"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.7.8"
+                MSR_VERSION = "2.8.5"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
                 MCR_VERSION = "20.10.0"
                 MCR_CHANNEL = "stable"
