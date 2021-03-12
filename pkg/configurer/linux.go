@@ -130,7 +130,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return nil
 	}
 
-	if err := h.Exec("[ -d $HOME/.docker ] && ([ ! -r $HOME/.docker ] || [ ! -w $HOME/.docker ]) && sudo chown -hR $USER:$USER $HOME/.docker"); err == nil {
+	if err := h.Exec("[ -d $HOME/.docker ] && ([ ! -r $HOME/.docker ] || [ ! -w $HOME/.docker ]) && sudo chown -hR $USER:$(id -gn) $HOME/.docker"); err == nil {
 		log.Warnf("%s: changed the owner of ~/.docker to be the current user", h)
 	}
 
