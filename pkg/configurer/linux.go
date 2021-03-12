@@ -143,6 +143,15 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return err
 	}
 
+	// Trick to reload groups
+	if err := h.Exec("exec sudo su -l $USER"); err != nil {
+		return err
+	}
+
+	if err := h.Exec("groups | grep -q docker"); err != nil {
+		return fmt.Errorf("could not add the user to 'docker' group")
+	}
+
 	log.Warnf("%s: added the current user to the 'docker' group", h)
 
 	return nil
