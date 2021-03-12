@@ -10,7 +10,7 @@ const (
 	// MSRVersion is the default MSR version to use
 	MSRVersion = "2.8.5"
 	// MCRVersion is the default engine version
-	MCRVersion = "19.03.14"
+	MCRVersion = "20.10.0"
 	// MCRChannel is the default engine channel
 	MCRChannel = "stable"
 	// MCRRepoURL is the default engine repo
