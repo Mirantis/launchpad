@@ -10,7 +10,7 @@ spec:
     - address: "$WORKER_IP"
       ssh:
         keyPath: "./id_rsa_launchpad"
-        user: "root"
+        user: "launchpad"
       role: "worker"
   mke:
     version: $MKE_VERSION

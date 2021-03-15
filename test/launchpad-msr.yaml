@@ -8,7 +8,7 @@ spec:
       ssh:
         port: 9022
         keyPath: "./id_rsa_launchpad"
-        user: "root"
+        user: "launchpad"
       role: "manager"
       mcrConfig: &engineCfg
         "insecure-registries":
@@ -17,21 +17,21 @@ spec:
       ssh:
         port: 9023
         keyPath: "./id_rsa_launchpad"
-        user: "root"
+        user: "launchpad"
       role: "worker"
       mcrConfig: *engineCfg
     - address: "127.0.0.1"
       ssh:
         port: 9024
         keyPath: "./id_rsa_launchpad"
-        user: "root"
+        user: "launchpad"
       role: "msr"
       mcrConfig: *engineCfg
     - address: "127.0.0.1" # REMOVE_THIS
       ssh: # REMOVE_THIS
         port: 9025 # REMOVE_THIS
         keyPath: "./id_rsa_launchpad" # REMOVE_THIS
-        user: "root" # REMOVE_THIS
+        user: "launchpad" # REMOVE_THIS
       role: "msr" # REMOVE_THIS
       mcrConfig: *engineCfg # REMOVE_THIS
   cluster:
