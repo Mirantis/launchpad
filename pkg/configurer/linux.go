@@ -149,7 +149,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return nil
 	}
 
-	if err := h.Exec("sudo usermod -aG docker $USER"); err != nil {
+	if err := h.Exec("sudo -i usermod -aG docker $USER"); err != nil {
 		return err
 	}
 
