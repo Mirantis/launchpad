@@ -253,9 +253,9 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 func WaitMSRNodeReady(h *api.Host) error {
 	return retry.Do(
 		func() error {
-			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f name=dtr-nginx"))
+			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
 			if err != nil || strings.TrimSpace(output) == "" {
-				return fmt.Errorf("msr container not running")
+				return fmt.Errorf("msr nginx container not running")
 			}
 			if err := h.CheckHTTPStatus("https://127.0.0.1/_ping", 200); err != nil {
 				return fmt.Errorf("msr invalid ping response")
