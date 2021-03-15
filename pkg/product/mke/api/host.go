@@ -92,6 +92,10 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return defaults.Set(h)
 }
 
+func (h *Host) IsLocal() bool {
+	return h.Protocol() == "Local"
+}
+
 // ExecAll execs a slice of commands on the host
 func (h *Host) ExecAll(cmds []string) error {
 	for _, cmd := range cmds {

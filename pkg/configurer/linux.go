@@ -128,6 +128,11 @@ type reconnectable interface {
 	Reconnect() error
 }
 
+type withislocal interface {
+	os.Host
+	IsLocal() bool
+}
+
 // AuthorizeDocker adds the current user to the docker group
 func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
@@ -159,6 +164,12 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		log.Infof("%s: reconnecting", h)
 		if err := h.Reconnect(); err != nil {
 			return fmt.Errorf("failed to reconnect: %s", err.Error())
+		}
+	}
+
+	if h, ok := h.(withislocal); ok && h.IsLocal() {
+		if err := h.Exec("exec sudo -n su -l $USER"); err != nil {
+			return fmt.Errorf("failed to reload groups")
 		}
 	}
 
