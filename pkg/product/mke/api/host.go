@@ -217,8 +217,8 @@ func (h *Host) Reboot() error {
 		return err
 	}
 
-	if err != nil {
-		return fmt.Errorf("unable to reconnect after reboot")
+	if err := h.Reconnect(); err != nil {
+		return fmt.Errorf("unable to reconnect after reboot: %s", err.Error())
 	}
 
 	return nil
