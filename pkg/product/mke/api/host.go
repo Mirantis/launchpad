@@ -179,6 +179,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	return nil
 }
 
+// Reconnect disconnects and reconnects the host's connection
 func (h *Host) Reconnect() error {
 	h.Disconnect()
 
