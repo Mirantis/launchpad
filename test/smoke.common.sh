@@ -83,9 +83,9 @@ function createUsers() {
   for h in $(./footloose show -o json|grep '"hostname"'|cut -d'"' -f 4); do
     ./footloose ssh root@${h} "useradd -m launchpad"
     ./footloose ssh root@${h} "mkdir ~launchpad/.ssh && chown launchpad:launchpad ~launchpad/.ssh && chmod 0755 ~launchpad/.ssh"
-    ./footloose ssh root@${h} "cat > ~/.ssh/authorized_keys" < id_rsa_launchpad.pub
+    ./footloose ssh root@${h} "cat > ~launchpad/.ssh/authorized_keys" < id_rsa_launchpad.pub
     ./footloose ssh root@${h} "chmod 0644 ~launchpad/.ssh/authorized_keys"
-    ./footloose ssh root@${h} "echo launchpad ALL=(ALL) NOPASSWD: ALL > /etc/sudoers"
+    ./footloose ssh root@${h} "echo \"launchpad ALL=(ALL) NOPASSWD: ALL\" > /etc/sudoers"
     ./footloose ssh launchpad@${h} "pwd"
   done
 }
