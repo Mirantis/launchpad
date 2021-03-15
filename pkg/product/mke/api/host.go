@@ -179,6 +179,21 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	return nil
 }
 
+func (h *Host) Reconnect() error {
+	h.Disconnect()
+
+	log.Infof("%s: waiting for reconnection", h)
+	return retry.Do(
+		func() error {
+			return h.Connect()
+		},
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(60),
+	)
+}
+
 // Reboot reboots the host and waits for it to become responsive
 func (h *Host) Reboot() error {
 	log.Infof("%s: rebooting", h)
@@ -192,17 +207,7 @@ func (h *Host) Reboot() error {
 	h.Disconnect()
 
 	log.Infof("%s: waiting for reconnection", h)
-	err := retry.Do(
-		func() error {
-			return h.Connect()
-		},
-		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
-		retry.MaxJitter(time.Second*2),
-		retry.Delay(time.Second*3),
-		retry.Attempts(60),
-	)
-
-	if err != nil {
+	if err := h.Reconnect(); err != nil {
 		return fmt.Errorf("unable to reconnect after reboot")
 	}
 
