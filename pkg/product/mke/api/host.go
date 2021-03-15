@@ -92,6 +92,7 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return defaults.Set(h)
 }
 
+// IsLocal returns true for localhost connections
 func (h *Host) IsLocal() bool {
 	return h.Protocol() == "Local"
 }
