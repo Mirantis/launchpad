@@ -23,6 +23,20 @@ pipeline {
     }
     stage("Smoke test") {
       parallel {
+        stage("Register subcommand") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2'
+            }
+          }
+          stages {
+            stage("Register") {
+              steps {
+                sh "make smoke-register-test"
+              }
+            }
+          }
+        }
         stage("Ubuntu 18.04: apply & reset") {
           agent {
             node {
