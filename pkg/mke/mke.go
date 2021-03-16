@@ -38,7 +38,7 @@ type Credentials struct {
 // Currently we only need to know the existing version and whether mke is installed or not.
 // In future we probably need more.
 func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
-	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
+	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.Dockerf(swarmLeader, `inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
 		if strings.Contains(output, "No such object") {
 			mkeMeta.Installed = false
@@ -59,12 +59,12 @@ func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
 	mkeMeta.InstalledBootstrapImage = fmt.Sprintf("%s:/mke:%s", repo, vparts[1])
 
 	// Find out calico data plane by inspecting the calico container's env variables
-	cmd := swarmLeader.Configurer.DockerCommandf(`ps --filter label=name="Calico node" --format {{.ID}}`)
+	cmd := swarmLeader.Configurer.Dockerf(swarmLeader, `ps --filter label=name="Calico node" --format {{.ID}}`)
 	calicoContainer, err := swarmLeader.ExecOutput(cmd)
 
 	if calicoContainer != "" && err != nil {
 		log.Debugf("%s: calico container found: %s", swarmLeader, calicoContainer)
-		cmd := swarmLeader.Configurer.DockerCommandf(`inspect %s --format {{.Config.Env}}`, calicoContainer)
+		cmd := swarmLeader.Configurer.Dockerf(swarmLeader, `inspect %s --format {{.Config.Env}}`, calicoContainer)
 		err := swarmLeader.Exec(fmt.Sprintf("%s | tr ' ' '\n' | grep FELIX_VXLAN= | grep -q true", cmd))
 		if err != nil {
 			mkeMeta.VXLAN = true

@@ -24,7 +24,7 @@ func (p *UninstallMCR) Run() error {
 }
 
 func (p *UninstallMCR) uninstallMCR(h *api.Host, c *api.ClusterConfig) error {
-	err := h.Exec(h.Configurer.DockerCommandf("info"))
+	err := h.Exec(h.Configurer.Dockerf(h, "info"))
 	if err != nil {
 		log.Infof("%s: container runtime not installed, skipping", h)
 		return nil

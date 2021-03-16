@@ -42,13 +42,13 @@ func (p *LabelNodes) labelCurrentNodes(config *api.ClusterConfig, swarmLeader *a
 		log.Infof("%s: labeling node", h)
 		if h.Role == "msr" {
 			// Add the MSR label in addition to the managed label
-			msrLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedMSRLabelCmd, nodeID)
+			msrLabelCmd := swarmLeader.Configurer.Dockerf(swarmLeader, "%s %s", constant.ManagedMSRLabelCmd, nodeID)
 			err = swarmLeader.Exec(msrLabelCmd)
 			if err != nil {
 				return fmt.Errorf("Failed to label node %s as MSR (%s)", h, nodeID)
 			}
 		}
-		labelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedLabelCmd, nodeID)
+		labelCmd := swarmLeader.Configurer.Dockerf(swarmLeader, "%s %s", constant.ManagedLabelCmd, nodeID)
 		err = swarmLeader.Exec(labelCmd)
 		if err != nil {
 			return fmt.Errorf("Failed to label node %s (%s)", h, nodeID)

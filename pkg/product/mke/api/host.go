@@ -138,7 +138,7 @@ func (h *Host) SwarmAddress() string {
 
 // MCRVersion returns the current engine version installed on the host
 func (h *Host) MCRVersion() (string, error) {
-	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
+	version, err := h.ExecOutput(h.Configurer.Dockerf(*h, `version -f "{{.Server.Version}}"`))
 	if err != nil {
 		return "", fmt.Errorf("failed to get container runtime version: %s", err.Error())
 	}

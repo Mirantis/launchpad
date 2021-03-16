@@ -88,7 +88,7 @@ func (p *LoadImages) Run() error {
 			}
 
 			log.Infof("%s: loading image %d/%d : %s", h, idx+1, len(h.Metadata.ImagesToUpload), base)
-			err = h.Exec(h.Configurer.DockerCommandf("load -i %s", shellescape.Quote(base)))
+			err = h.Exec(h.Configurer.Dockerf(h, "load -i %s", shellescape.Quote(base)))
 			if err != nil {
 				return err
 			}

@@ -101,7 +101,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 					p.cleanupMSRs = msrs
 				}
 				// Get the hostname from the nodeID inspect
-				hostname, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Description.Hostname}}`, nodeID))
+				hostname, err := swarmLeader.ExecOutput(swarmLeader.Configurer.Dockerf(swarmLeader, `node inspect %s --format {{.Description.Hostname}}`, nodeID))
 				if err != nil {
 					return fmt.Errorf("failed to obtain hostname of MSR managed node: %s from swarm: %s", nodeID, err)
 				}
@@ -166,7 +166,7 @@ func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error
 }
 
 func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
-	output, err := h.ExecOutput(h.Configurer.DockerCommandf(`node ls --format="{{.ID}}"`))
+	output, err := h.ExecOutput(h.Configurer.Dockerf(h, `node ls --format="{{.ID}}"`))
 	if err != nil {
 		log.Errorln(output)
 		return []string{}, err
@@ -175,18 +175,18 @@ func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
 }
 
 func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
-	nodeAddr, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Status.Addr}}`, nodeID))
+	nodeAddr, err := h.ExecOutput(h.Configurer.Dockerf(h, `node inspect %s --format {{.Status.Addr}}`, nodeID))
 	if err != nil {
 		return err
 	}
 	log.Infof("%s: removing orphan node %s", h, nodeAddr)
-	nodeRole, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Spec.Role}}`, nodeID))
+	nodeRole, err := h.ExecOutput(h.Configurer.Dockerf(h, `node inspect %s --format {{.Spec.Role}}`, nodeID))
 	if err != nil {
 		return err
 	}
 	if nodeRole == "manager" {
 		log.Infof("%s: demoting orphan node %s", h, nodeAddr)
-		err = h.Exec(h.Configurer.DockerCommandf(`node demote %s`, nodeID))
+		err = h.Exec(h.Configurer.Dockerf(h, `node demote %s`, nodeID))
 		if err != nil {
 			return err
 		}
@@ -194,7 +194,7 @@ func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 	}
 
 	log.Infof("%s: draining orphan node %s", h, nodeAddr)
-	drainCmd := h.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
+	drainCmd := h.Configurer.Dockerf(h, "node update --availability drain %s", nodeID)
 	err = h.Exec(drainCmd)
 	if err != nil {
 		return err
@@ -202,7 +202,7 @@ func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 	time.Sleep(30 * time.Second)
 	log.Infof("%s: orphan node %s drained", h, nodeAddr)
 
-	removeCmd := h.Configurer.DockerCommandf("node rm --force %s", nodeID)
+	removeCmd := h.Configurer.Dockerf(h, "node rm --force %s", nodeID)
 	err = h.Exec(removeCmd)
 	if err != nil {
 		return err
@@ -234,7 +234,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 		removeFlags.AddOrReplace(f)
 	}
 
-	removeCmd := msrLeader.Configurer.DockerCommandf("run %s %s remove %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, removeFlags.Join())
+	removeCmd := msrLeader.Configurer.Dockerf(msrLeader, "run %s %s remove %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, removeFlags.Join())
 	log.Debugf("%s: Removing MSR replica %s from cluster", msrLeader, replicaID)
 	err := msrLeader.Exec(removeCmd, exec.StreamOutput())
 	if err != nil {
@@ -246,7 +246,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 // isManagedByUs returns a struct of isManaged which contains two bools, one
 // which declares node wide management and one which declares msr management
 func (p *RemoveNodes) isManagedByUs(h *api.Host, nodeID string) isManaged {
-	labels, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
+	labels, err := h.ExecOutput(h.Configurer.Dockerf(h, `node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
 	var managed isManaged
 	if err != nil {
 		return managed

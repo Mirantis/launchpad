@@ -53,7 +53,7 @@ func (i *Image) Pull(h *api.Host) error {
 				log.Infof("%s: already exists: %s", h, i)
 				return nil
 			}
-			output, err := h.ExecOutput(h.Configurer.DockerCommandf("pull %s", i))
+			output, err := h.ExecOutput(h.Configurer.Dockerf(h, "pull %s", i))
 			if err != nil {
 				return fmt.Errorf("%s: failed to pull image: %s", h, output)
 			}
@@ -74,12 +74,12 @@ func (i *Image) Pull(h *api.Host) error {
 // Retag retags image A to image B
 func (i *Image) Retag(h *api.Host, a, b *Image) error {
 	log.Debugf("%s: retag %s --> %s", h, a, b)
-	return h.Exec(h.Configurer.DockerCommandf("tag %s %s", a, b))
+	return h.Exec(h.Configurer.Dockerf(h, "tag %s %s", a, b))
 }
 
 // Exist returns true if a docker image exists on the host
 func (i *Image) Exist(h *api.Host) bool {
-	return h.Exec(h.Configurer.DockerCommandf("image inspect %s --format '{{.ID}}'", i)) == nil
+	return h.Exec(h.Configurer.Dockerf(h, "image inspect %s --format '{{.ID}}'", i)) == nil
 }
 
 // PullImages pulls multiple images parallelly by using a worker pool
