@@ -71,7 +71,7 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
 func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	err := h.Exec(c.Dockerf(h, "system prune --volumes --all -f"))
+	err := h.Exec(c.DockerCommandf("system prune --volumes --all -f"))
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (c WindowsConfigurer) RestartMCR(h os.Host) error {
 	h.Exec("net start com.docker.service")
 	return retry.Do(
 		func() error {
-			return h.Exec(c.Dockerf(h, "ps"))
+			return h.Exec(c.DockerCommandf("ps"))
 		},
 		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
 		retry.MaxJitter(time.Second*2),
@@ -137,9 +137,9 @@ func (c WindowsConfigurer) interfaceIP(h os.Host, iface string) (string, error) 
 	return strings.TrimSpace(output), nil
 }
 
-// Dockerf accepts a printf-like template string and arguments
+// DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host
-func (c WindowsConfigurer) Dockerf(h os.Host, template string, args ...interface{}) string {
+func (c WindowsConfigurer) DockerCommandf(template string, args ...interface{}) string {
 	return fmt.Sprintf("docker.exe %s", fmt.Sprintf(template, args...))
 }
 
@@ -181,7 +181,7 @@ func (c WindowsConfigurer) CheckPrivilege(h os.Host) error {
 // AuthenticateDocker performs a docker login on the host
 func (c WindowsConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	return h.Exec(c.Dockerf(h, "login -u %s -p %s %s", user, pass, imageRepo), exec.RedactString(user, pass), exec.AllowWinStderr())
+	return h.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.RedactString(user, pass), exec.AllowWinStderr())
 }
 
 // UpdateEnvironment updates the hosts's environment variables

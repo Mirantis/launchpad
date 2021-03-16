@@ -81,7 +81,7 @@ func (p *JoinMSRReplicas) Run() error {
 			log.Infof("%s: joining MSR replica to cluster", h)
 		}
 
-		joinCmd := msrLeader.Configurer.Dockerf(msrLeader, "run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
+		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
 		err := msrLeader.Exec(joinCmd, exec.StreamOutput())
 		if err != nil {
 			return fmt.Errorf("%s: failed to run MSR join: %s", h, err.Error())

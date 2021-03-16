@@ -57,7 +57,7 @@ func (p *InstallMKE) Run() (err error) {
 
 	if p.Config.Spec.MKE.ConfigData != "" {
 		defer func() {
-			err := h.Exec(h.Configurer.Dockerf(h, "config rm %s", configName))
+			err := h.Exec(h.Configurer.DockerCommandf("config rm %s", configName))
 			if err != nil {
 				log.Warnf("Failed to remove the temporary MKE installer configuration %s : %s", configName, err)
 			}
@@ -65,7 +65,7 @@ func (p *InstallMKE) Run() (err error) {
 
 		installFlags.AddUnlessExist("--existing-config")
 		log.Info("Creating MKE configuration")
-		configCmd := h.Configurer.Dockerf(h, "config create %s -", configName)
+		configCmd := h.Configurer.DockerCommandf("config create %s -", configName)
 		err := h.Exec(configCmd, exec.Stdin(p.Config.Spec.MKE.ConfigData))
 		if err != nil {
 			return err
@@ -111,7 +111,7 @@ func (p *InstallMKE) Run() (err error) {
 		installFlags.AddUnlessExist("--admin-password " + p.Config.Spec.MKE.AdminPassword)
 	}
 
-	installCmd := h.Configurer.Dockerf(h, "run %s %s install %s", runFlags.Join(), image, installFlags.Join())
+	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
 	output, err := h.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: %s", h, err.Error())
@@ -143,16 +143,16 @@ func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
 	log.Infof("Installing MKE certificates")
 	managers := config.Spec.Managers()
 	err := managers.ParallelEach(func(h *api.Host) error {
-		err := h.Exec(h.Configurer.Dockerf(h, "volume inspect ucp-controller-server-certs"))
+		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
 		if err != nil {
 			log.Infof("%s: creating ucp-controller-server-certs volume", h)
-			err := h.Exec(h.Configurer.Dockerf(h, "volume create ucp-controller-server-certs"))
+			err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"))
 			if err != nil {
 				return err
 			}
 		}
 
-		dir, err := h.ExecOutput(h.Configurer.Dockerf(h, `volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
+		dir, err := h.ExecOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
 		if err != nil {
 			return err
 		}
@@ -204,7 +204,7 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 }
 
 func cleanupmke(h *api.Host) error {
-	containersToRemove, err := h.ExecOutput(h.Configurer.Dockerf(h, "ps -aq --filter name=ucp-"))
+	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func cleanupmke(h *api.Host) error {
 		return nil
 	}
 	containersToRemove = strings.ReplaceAll(containersToRemove, "\n", " ")
-	if err := h.Exec(h.Configurer.Dockerf(h, "rm -f %s", containersToRemove)); err != nil {
+	if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
 		return err
 	}
 

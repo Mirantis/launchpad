@@ -13,7 +13,7 @@ import (
 
 // CollectFacts gathers the current status of the installed MSR setup
 func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
-	rethinkdbContainerID, err := h.ExecOutput(h.Configurer.Dockerf(h, `ps -aq --filter name=dtr-rethinkdb`))
+	rethinkdbContainerID, err := h.ExecOutput(h.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
 		return nil, err
 	}
@@ -21,11 +21,11 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 		return &api.MSRMetadata{Installed: false}, nil
 	}
 
-	version, err := h.ExecOutput(h.Configurer.Dockerf(h, `inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
+	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
 	if err != nil {
 		return nil, err
 	}
-	replicaID, err := h.ExecOutput(h.Configurer.Dockerf(h, `inspect %s --format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`, rethinkdbContainerID))
+	replicaID, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`, rethinkdbContainerID))
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 		// If we failed to obtain either label then this MSR version does not
 		// support the version Config.Labels or something else may have gone
 		// wrong, attempt to pull these details with the old method
-		output, err := h.ExecOutput(h.Configurer.Dockerf(h, `inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
+		output, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
 		if err != nil {
 			return nil, err
 		}
@@ -47,7 +47,7 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 	}
 
 	var bootstrapimage string
-	imagename, err := h.ExecOutput(h.Configurer.Dockerf(h, `inspect %s --format '{{ .Config.Image }}'`, rethinkdbContainerID))
+	imagename, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ .Config.Image }}'`, rethinkdbContainerID))
 	if err == nil {
 		repo := imagename[:strings.LastIndexByte(imagename, '/')]
 		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
@@ -150,7 +150,7 @@ func mkeURLHost(config *api.ClusterConfig) string {
 func Destroy(h *api.Host) error {
 	// Remove containers
 	log.Debugf("%s: Removing MSR containers", h)
-	containersToRemove, err := h.ExecOutput(h.Configurer.Dockerf(h, "ps -aq --filter name=dtr-"))
+	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
 	if err != nil {
 		return err
 	}
@@ -158,14 +158,14 @@ func Destroy(h *api.Host) error {
 		log.Debugf("No MSR containers to remove")
 	} else {
 		containersToRemove = strings.Join(strings.Fields(containersToRemove), " ")
-		if err := h.Exec(h.Configurer.Dockerf(h, "rm -f %s", containersToRemove)); err != nil {
+		if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
 			return err
 		}
 	}
 
 	// Remove volumes
 	log.Debugf("%s: Removing MSR volumes", h)
-	volumeOutput, err := h.ExecOutput(h.Configurer.Dockerf(h, "volume ls -q"))
+	volumeOutput, err := h.ExecOutput(h.Configurer.DockerCommandf("volume ls -q"))
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func Destroy(h *api.Host) error {
 			return nil
 		}
 		volumes := strings.Join(volumesToRemove, " ")
-		err = h.Exec(h.Configurer.Dockerf(h, "volume rm -f %s", volumes))
+		err = h.Exec(h.Configurer.DockerCommandf("volume rm -f %s", volumes))
 		if err != nil {
 			return err
 		}
@@ -243,6 +243,6 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 	}
 	// Remove dtr-ol via the swarmLeader
 	log.Infof("%s: Removing dtr-ol network", swarmLeader)
-	swarmLeader.Exec(swarmLeader.Configurer.Dockerf(swarmLeader, "network rm dtr-ol"))
+	swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("network rm dtr-ol"))
 	return nil
 }

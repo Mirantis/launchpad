@@ -29,7 +29,7 @@ func (p *JoinManagers) Run() error {
 			log.Infof("%s: already a swarm node", h)
 			continue
 		}
-		joinCmd := h.Configurer.Dockerf(h, "swarm join --token %s %s", p.Config.Spec.MKE.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
+		joinCmd := h.Configurer.DockerCommandf("swarm join --token %s %s", p.Config.Spec.MKE.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as manager", h)
 		err := h.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.Metadata.ManagerJoinToken))
 		if err != nil {

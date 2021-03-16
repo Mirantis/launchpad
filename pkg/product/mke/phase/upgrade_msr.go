@@ -63,7 +63,7 @@ func (p *UpgradeMSR) Run() error {
 	}
 	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.UpgradeFlags)
 
-	upgradeCmd := h.Configurer.Dockerf(h, "run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
+	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
 	log.Debugf("%s: Running msr upgrade via bootstrapper", h)
 	if err := h.Exec(upgradeCmd, exec.StreamOutput()); err != nil {
 		return fmt.Errorf("%s: failed to run msr upgrade: %s", h, err.Error())

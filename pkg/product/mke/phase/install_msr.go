@@ -75,7 +75,7 @@ func (p *InstallMSR) Run() error {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}
 
-	installCmd := h.Configurer.Dockerf(h, "run %s %s install %s", runFlags.Join(), image, installFlags.Join())
+	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
 	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %s", h, err.Error())

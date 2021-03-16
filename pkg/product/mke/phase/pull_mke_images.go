@@ -107,7 +107,7 @@ func (p *PullMKEImages) ListImages(win bool) ([]*docker.Image, error) {
 		imageFlags.Add("--enable-windows")
 	}
 
-	output, err := manager.ExecOutput(manager.Configurer.Dockerf(manager, "run %s %s images %s", runFlags.Join(), bootstrap, imageFlags.Join()))
+	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images %s", runFlags.Join(), bootstrap, imageFlags.Join()))
 	if err != nil {
 		return []*docker.Image{}, fmt.Errorf("%s: failed to get MKE image list", manager)
 	}

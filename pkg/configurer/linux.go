@@ -20,8 +20,6 @@ import (
 // LinuxConfigurer is a generic linux host configurer
 type LinuxConfigurer struct {
 	riglinux os.Linux
-
-	usesudodocker bool
 }
 
 // SbinPath is for adding sbin directories to current $PATH
@@ -92,12 +90,9 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 	return publicIP, nil
 }
 
-// Dockerf accepts a printf-like template string and arguments
+// DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host
-func (c LinuxConfigurer) Dockerf(h os.Host, template string, args ...interface{}) string {
-	if h, ok := h.(withislocal); ok && h.IsLocal() {
-		return fmt.Sprintf("sudo docker %s", fmt.Sprintf(template, args...))
-	}
+func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) string {
 	return fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
 }
 
@@ -133,20 +128,10 @@ type reconnectable interface {
 	Reconnect() error
 }
 
-type withislocal interface {
-	String() string
-	IsLocal() bool
-}
-
 // AuthorizeDocker adds the current user to the docker group
 func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
 		log.Debugf("%s: current user is uid 0 - no need to authorize", h)
-		return nil
-	}
-
-	if h, ok := h.(withislocal); ok && h.IsLocal() {
-		log.Debugf("%s: authorizing current user for docker on localhost not supported yet on launchpad, 'sudo docker' will be used", h)
 		return nil
 	}
 
@@ -186,7 +171,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 
 // AuthenticateDocker performs a docker login on the host
 func (c LinuxConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
-	return h.Exec(c.Dockerf(h, "login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.RedactString(user, pass))
+	return h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.RedactString(user, pass))
 }
 
 // LineIntoFile tries to find a matching line in a file and replace it with a new entry

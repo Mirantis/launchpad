@@ -22,7 +22,7 @@ type HostConfigurer interface {
 	MCRConfigPath() string
 	InstallMCR(os.Host, string, common.MCRConfig) error
 	UninstallMCR(os.Host, string, common.MCRConfig) error
-	Dockerf(os Host, template string, args ...interface{}) string
+	DockerCommandf(template string, args ...interface{}) string
 	RestartMCR(os.Host) error
 	AuthenticateDocker(h os.Host, user, pass, repo string) error
 	LocalAddresses(os.Host) ([]string, error)
