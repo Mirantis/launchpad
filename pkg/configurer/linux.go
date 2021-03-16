@@ -168,7 +168,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	}
 
 	if h, ok := h.(withislocal); ok && h.IsLocal() {
-		if err := h.Exec("exec sudo -n su -l $USER"); err != nil {
+		if err := h.Exec(" exec sg docker newgrp $(id -gn)"); err != nil {
 			return fmt.Errorf("failed to reload groups")
 		}
 	}
