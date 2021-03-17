@@ -7,12 +7,12 @@ spec:
     - address: "127.0.0.1"
       sshPort: 9022
       sshKeyPath: "./id_rsa_launchpad"
-      user: "root"
+      user: "launchpad"
       role: "manager"
     - address: "127.0.0.1"
       sshPort: 9023
       sshKeyPath: "./id_rsa_launchpad"
-      user: "root"
+      user: "launchpad"
       role: "worker"
   ucp:
     version: $MKE_VERSION

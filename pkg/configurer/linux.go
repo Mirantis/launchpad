@@ -123,6 +123,11 @@ func (c LinuxConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 	return strings.Split(output, " "), nil
 }
 
+type reconnectable interface {
+	String() string
+	Reconnect() error
+}
+
 // AuthorizeDocker adds the current user to the docker group
 func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
@@ -144,24 +149,17 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return nil
 	}
 
-	if err := h.Exec("sudo usermod -aG docker $USER"); err != nil {
+	if err := h.Exec("sudo -i usermod -aG docker $USER"); err != nil {
 		return err
 	}
 
 	log.Warnf("%s: added the current user to the 'docker' group", h)
 
-	log.Debugf("%s: reloading groups for the current session by trying to switch to the 'docker' group", h)
-	og, err := h.ExecOutput("id -gn")
-	if err != nil {
-		return err
-	}
-
-	if err := h.Exec("newgrp docker"); err != nil {
-		return err
-	}
-
-	if err := h.Execf("newgrp %s", og); err != nil {
-		return err
+	if h, ok := h.(reconnectable); ok {
+		log.Infof("%s: reconnecting", h)
+		if err := h.Reconnect(); err != nil {
+			return fmt.Errorf("failed to reconnect: %s", err.Error())
+		}
 	}
 
 	if err := h.Exec("groups | grep -q docker"); err != nil {
