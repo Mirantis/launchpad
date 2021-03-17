@@ -142,7 +142,7 @@ pipeline {
             }
           }
         }
-        stage("MKE3.3.4 VXLAN switch") {
+        stage("MKE3.3.7 VXLAN switch") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -153,6 +153,7 @@ pipeline {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 LAUNCHPAD_CONFIG = "launchpad-vxlan.yaml"
+                MKE_VERSION = "3.3.7"
                 CALICO_VXLAN = "false"
                 PRESERVE_CLUSTER = "true"
               }
@@ -164,6 +165,7 @@ pipeline {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 LAUNCHPAD_CONFIG = "launchpad-vxlan.yaml"
+                MKE_VERSION = "3.3.7"
                 CALICO_VXLAN = "true"
                 REUSE_CLUSTER = "true"
                 MUST_FAIL = "true"
@@ -195,16 +197,16 @@ pipeline {
             }
           }
           stages {
-            stage("Install MKE3.3.3 MSR2.8 MCR20.10.0") {
+            stage("Install MKE3.3.7 MSR2.8 MCR19.03.14") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
-                MKE_VERSION = "3.3.3"
+                MKE_VERSION = "3.3.7"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.8.5"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "20.10.0"
+                MCR_VERSION = "19.03.14"
                 MCR_CHANNEL = "stable"
                 MCR_REPO_URL = "https://repos.mirantis.com"
                 PRESERVE_CLUSTER = "true"
@@ -213,15 +215,15 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MKE3.4.0-tp2 MSR2.9.0-tp3 ENG20.10.0 from private repos") {
+            stage("Upgrade MKE3.4 beta MSR2.9 beta MCR20.10.0 from private repos") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
-                MKE_VERSION = "3.3.5-d1da376"
+                MKE_VERSION = "3.4.1-48de8b4"
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
-                MSR_VERSION = "2.9.0-tp3"
+                MSR_VERSION = "2.9.0-9c61384b"
                 MCR_VERSION = "20.10.0"
                 MCR_CHANNEL = "test"
                 MCR_REPO_URL = "https://repos.mirantis.com"
