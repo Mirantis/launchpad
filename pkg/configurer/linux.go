@@ -93,7 +93,7 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 // DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host
 func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) string {
-	return fmt.Sprintf("sg docker docker %s", fmt.Sprintf(template, args...))
+	return fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
 }
 
 // ValidateLocalhost returns an error if "localhost" is not a local address
@@ -162,7 +162,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		}
 	}
 
-	if err := h.Exec("sg docker groups | grep -q docker"); err != nil {
+	if err := h.Exec("groups | grep -q docker"); err != nil {
 		return fmt.Errorf("user is not in the 'docker' group")
 	}
 
