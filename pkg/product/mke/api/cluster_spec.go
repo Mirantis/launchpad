@@ -9,6 +9,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
+	"github.com/creasty/defaults"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -167,14 +168,19 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if yc.MSR != nil && yc.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) == 0 {
+	if c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
+		if yc.MSR == nil {
+			yc.MSR = &MSRConfig{}
+		}
+		if err := defaults.Set(yc.MSR); err != nil {
+			return err
+		}
+	} else {
 		yc.MSR = nil
 		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
 	}
 
-	c.MCR.SetDefaults()
-
-	return nil
+	return defaults.Set(c)
 }
 
 func isSwarmLeader(h *Host) bool {

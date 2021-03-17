@@ -84,8 +84,10 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 
 	// Upgrade MSR hosts individually
 	for _, h := range msrs {
-		err := p.upgradeMCR(h)
-		if err != nil {
+		if err := p.upgradeMCR(h); err != nil {
+			return err
+		}
+		if err := msr.WaitMSRNodeReady(h); err != nil {
 			return err
 		}
 		if h.MSRMetadata.Installed {

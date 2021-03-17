@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -245,4 +247,25 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 	log.Infof("%s: Removing dtr-ol network", swarmLeader)
 	swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("network rm dtr-ol"))
 	return nil
+}
+
+// WaitMSRNodeReady waits until MSR is up on the host
+func WaitMSRNodeReady(h *api.Host) error {
+	return retry.Do(
+		func() error {
+			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
+			if err != nil || strings.TrimSpace(output) == "" {
+				return fmt.Errorf("msr nginx container not running")
+			}
+			if err := h.CheckHTTPStatus("https://127.0.0.1/_ping", 200); err != nil {
+				return fmt.Errorf("msr invalid ping response")
+			}
+
+			return nil
+		},
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(60),
+	)
 }
