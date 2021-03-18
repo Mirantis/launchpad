@@ -37,7 +37,7 @@ pipeline {
             }
           }
         }
-        stage("Ubuntu 18.04: apply & reset") {
+        stage("Ubuntu 20.04: apply & reset") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -46,18 +46,20 @@ pipeline {
           stages {
             stage("Apply") {
               environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu20.04"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+                sh "make smoke-apply-test"
               }
             }
             stage("Reset") {
               environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu20.04"
                 REUSE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+                sh "make smoke-reset-test"
               }
             }
           }
@@ -117,7 +119,7 @@ pipeline {
             }
           }
         }
-        stage("Ubuntu 16.04") {
+        stage("Ubuntu 16.04 apply") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -125,53 +127,8 @@ pipeline {
           }
           stages {
             stage("Apply") {
-              environment {
-                PRESERVE_CLUSTER = "true"
-              }
               steps {
                 sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
-              }
-            }
-            stage("Reset") {
-              environment {
-                REUSE_CLUSTER = "true"
-              }
-              steps {
-                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
-              }
-            }
-          }
-        }
-        stage("MKE3.3.7 VXLAN switch") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          stages {
-            stage("VXLAN:false") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                LAUNCHPAD_CONFIG = "launchpad-vxlan.yaml"
-                MKE_VERSION = "3.3.7"
-                CALICO_VXLAN = "false"
-                PRESERVE_CLUSTER = "true"
-              }
-              steps {
-                sh "make smoke-test"
-              }
-            }
-            stage("VXLAN:true") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                LAUNCHPAD_CONFIG = "launchpad-vxlan.yaml"
-                MKE_VERSION = "3.3.7"
-                CALICO_VXLAN = "true"
-                REUSE_CLUSTER = "true"
-                MUST_FAIL = "true"
-              }
-              steps {
-                sh "make smoke-test"
               }
             }
           }
@@ -190,7 +147,7 @@ pipeline {
             sh "make smoke-apply-test-localhost LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
-        stage("Ubuntu 18.04 with MSR") {
+        stage("Ubuntu 18.04 upgrades and MSR") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -215,15 +172,15 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MKE3.4 beta MSR2.9 beta MCR20.10.0 from private repos") {
+            stage("Upgrade MCR from test channel and prune MSR") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
-                MKE_VERSION = "3.4.1-48de8b4"
-                MKE_IMAGE_REPO = "docker.io/mirantiseng"
-                MSR_IMAGE_REPO = "docker.io/mirantiseng"
-                MSR_VERSION = "2.9.0-9c61384b"
+                MKE_VERSION = "3.3.7"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.8.5"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
                 MCR_VERSION = "20.10.0"
                 MCR_CHANNEL = "test"
                 MCR_REPO_URL = "https://repos.mirantis.com"
@@ -234,7 +191,27 @@ pipeline {
                 withCredentials(docker_hub) {
                   sh "make smoke-test"
                   sh "make smoke-prune-test"
-                  sh "make smoke-reset-test"
+                  sh "make smoke-cleanup"
+                }
+              }
+            }
+            stage("Upgrade MKE3.4 beta MSR2.9 beta from private repos and re-add pruned MSR") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
+                MKE_VERSION = "3.4.1-48de8b4"
+                MKE_IMAGE_REPO = "docker.io/mirantiseng"
+                MSR_IMAGE_REPO = "docker.io/mirantiseng"
+                MSR_VERSION = "2.9.0-tp3"
+                MCR_VERSION = "20.10.0"
+                MCR_CHANNEL = "test"
+                MCR_REPO_URL = "https://repos.mirantis.com"
+                REUSE_CLUSTER = "true"
+              }
+              steps {
+                withCredentials(docker_hub) {
+                  sh "make smoke-test"
                   sh "make smoke-cleanup"
                 }
               }
