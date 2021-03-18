@@ -37,7 +37,7 @@ pipeline {
             }
           }
         }
-        stage("Ubuntu 20.04: apply & reset") {
+        stage("Ubuntu 18.04: apply & reset") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -49,7 +49,7 @@ pipeline {
                 PRESERVE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu20.04"
+                sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
               }
             }
             stage("Reset") {
@@ -57,7 +57,7 @@ pipeline {
                 REUSE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu20.04"
+                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
               }
             }
           }
