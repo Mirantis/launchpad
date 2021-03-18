@@ -132,7 +132,7 @@ pipeline {
             }
           }
           stages {
-            stage("Install MKE3.3.7 MSR2.8 MCR18.09.14") {
+            stage("Install MKE3.3.7 MSR2.8 MCR19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
@@ -141,7 +141,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.8.5"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "18.09.14"
+                MCR_VERSION = "19.03.8"
                 MCR_CHANNEL = "stable"
                 MCR_REPO_URL = "https://repos.mirantis.com"
                 PRESERVE_CLUSTER = "true"
