@@ -78,7 +78,7 @@ smoke-prune-test: build
 smoke-reset-test: build
 	./test/smoke_reset.sh
 
-smoke-cleanup: clean
+smoke-cleanup:
 	./test/smoke_cleanup.sh
 
 smoke-test: smoke-apply-test

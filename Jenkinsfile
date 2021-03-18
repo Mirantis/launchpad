@@ -46,20 +46,18 @@ pipeline {
           stages {
             stage("Apply") {
               environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu20.04"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-apply-test"
+                sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu20.04"
               }
             }
             stage("Reset") {
               environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu20.04"
                 REUSE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-reset-test"
+                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu20.04"
               }
             }
           }
