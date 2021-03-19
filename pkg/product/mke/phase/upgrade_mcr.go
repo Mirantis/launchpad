@@ -87,6 +87,10 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 		if err := p.upgradeMCR(h); err != nil {
 			return err
 		}
+	}
+	log.Debugf("MCR upgraded on all MSR hosts")
+
+	err := msrs.ParallelEach(func(h *api.Host) error {
 		if err := msr.WaitMSRNodeReady(h); err != nil {
 			return err
 		}
@@ -107,6 +111,11 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 				return err
 			}
 		}
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
 	// Upgrade worker hosts parallelly in 10% chunks
