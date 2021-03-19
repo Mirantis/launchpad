@@ -40,12 +40,9 @@ type Credentials struct {
 func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
 	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
-		if strings.Contains(output, "No such object") {
-			mkeMeta.Installed = false
-			mkeMeta.InstalledVersion = ""
-			return nil
-		}
-		return err
+		mkeMeta.Installed = false
+		mkeMeta.InstalledVersion = ""
+		return nil
 	}
 
 	vparts := strings.Split(output, ":")
