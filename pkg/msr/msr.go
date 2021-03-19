@@ -251,12 +251,26 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 
 // WaitMSRNodeReady waits until MSR is up on the host
 func WaitMSRNodeReady(h *api.Host) error {
-	return retry.Do(
+	err := retry.Do(
 		func() error {
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
 			if err != nil || strings.TrimSpace(output) == "" {
 				return fmt.Errorf("msr nginx container not running")
 			}
+			return nil
+		},
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(60),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return retry.Do(
+		func() error {
 			if err := h.CheckHTTPStatus("https://127.0.0.1/_ping", 200); err != nil {
 				return fmt.Errorf("msr invalid ping response")
 			}
@@ -266,6 +280,6 @@ func WaitMSRNodeReady(h *api.Host) error {
 		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
 		retry.MaxJitter(time.Second*2),
 		retry.Delay(time.Second*3),
-		retry.Attempts(60),
+		retry.Attempts(120),
 	)
 }
