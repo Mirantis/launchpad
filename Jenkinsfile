@@ -132,34 +132,52 @@ pipeline {
             }
           }
           stages {
-            stage("Install MKE3.3.5 MSR2.8 MCR19.03.8") {
+            stage("Install MKE3.3.5 MSR2.7 MCR19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
                 MKE_VERSION = "3.3.5"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.8.5"
+                MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.8"
-                MCR_CHANNEL = "stable"
-                MCR_REPO_URL = "https://repos.mirantis.com"
+                MCR_VERSION = "19.03.14"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MCR from test channel and prune MSR") {
+            stage("Upgrade MCR") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
                 MKE_VERSION = "3.3.5"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.8.5"
+                MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.14"
+                MCR_VERSION = "20.10.0"
+                REUSE_CLUSTER = "true"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                withCredentials(docker_hub) {
+                  sh "make smoke-test"
+                  sh "make smoke-cleanup"
+                }
+              }
+            }
+            stage("Upgrade MKE") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
+                MKE_VERSION = "3.3.7"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.7.8"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
+                MCR_VERSION = "20.10.0"
                 MCR_CHANNEL = "test"
                 MCR_REPO_URL = "https://repos.mirantis.com"
                 REUSE_CLUSTER = "true"
@@ -168,12 +186,33 @@ pipeline {
               steps {
                 withCredentials(docker_hub) {
                   sh "make smoke-test"
-                  sh "make smoke-prune-test"
                   sh "make smoke-cleanup"
                 }
               }
             }
-            stage("Upgrade MKE3.4 beta MSR2.9 beta from private repos and re-add pruned MSR") {
+            stage("Upgrade MSR") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
+                MKE_VERSION = "3.3.7"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.8.5"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
+                MCR_VERSION = "20.10.0"
+                MCR_CHANNEL = "test"
+                MCR_REPO_URL = "https://repos.mirantis.com"
+                REUSE_CLUSTER = "true"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                withCredentials(docker_hub) {
+                  sh "make smoke-test"
+                  sh "make smoke-cleanup"
+                }
+              }
+            }
+            stage("Upgrade MKE3.4 beta MSR2.9 beta from private repos and prune MSR") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
@@ -182,14 +221,13 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.9.0-tp3"
-                MCR_VERSION = "19.03.14"
-                MCR_CHANNEL = "test"
-                MCR_REPO_URL = "https://repos.mirantis.com"
+                MCR_VERSION = "20.10.0"
                 REUSE_CLUSTER = "true"
               }
               steps {
                 withCredentials(docker_hub) {
                   sh "make smoke-test"
+                  sh "make smoke-prune-test"
                   sh "make smoke-cleanup"
                 }
               }
