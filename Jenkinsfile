@@ -141,7 +141,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.14"
+                MCR_VERSION = "19.03.8"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
@@ -157,7 +157,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "20.10.0"
+                MCR_VERSION = "19.03.14"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
@@ -177,7 +177,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "20.10.0"
+                MCR_VERSION = "19.03.14"
                 MCR_CHANNEL = "test"
                 MCR_REPO_URL = "https://repos.mirantis.com"
                 REUSE_CLUSTER = "true"
@@ -212,7 +212,7 @@ pipeline {
                 }
               }
             }
-            stage("Upgrade MKE3.4 beta MSR2.9 beta from private repos and prune MSR") {
+            stage("Upgrade MKE3.4 beta MSR2.9 beta, MCR20.10 from private repos and prune MSR") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
