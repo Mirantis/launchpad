@@ -271,7 +271,7 @@ func WaitMSRNodeReady(h *api.Host) error {
 
 	return retry.Do(
 		func() error {
-			if err := h.CheckHTTPStatus("https://127.0.0.1/_ping", 200); err != nil {
+			if err := h.CheckHTTPStatus("https://localhost/_ping", 200); err != nil {
 				return fmt.Errorf("msr invalid ping response")
 			}
 
