@@ -141,53 +141,11 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.8"
+                MCR_VERSION = "19.03.14"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
                 sh "make smoke-test"
-              }
-            }
-            stage("Upgrade MCR") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
-                MKE_VERSION = "3.3.5"
-                MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.7.8"
-                MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.14"
-                REUSE_CLUSTER = "true"
-                PRESERVE_CLUSTER = "true"
-              }
-              steps {
-                withCredentials(docker_hub) {
-                  sh "make smoke-test"
-                  sh "make smoke-cleanup"
-                }
-              }
-            }
-            stage("Upgrade MKE") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
-                MKE_VERSION = "3.3.7"
-                MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.7.8"
-                MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.14"
-                MCR_CHANNEL = "test"
-                MCR_REPO_URL = "https://repos.mirantis.com"
-                REUSE_CLUSTER = "true"
-                PRESERVE_CLUSTER = "true"
-              }
-              steps {
-                withCredentials(docker_hub) {
-                  sh "make smoke-test"
-                  sh "make smoke-cleanup"
-                }
               }
             }
             stage("Upgrade MSR") {
@@ -199,7 +157,7 @@ pipeline {
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.8.5"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "20.10.0"
+                MCR_VERSION = "19.03.14"
                 MCR_CHANNEL = "test"
                 MCR_REPO_URL = "https://repos.mirantis.com"
                 REUSE_CLUSTER = "true"
@@ -208,7 +166,44 @@ pipeline {
               steps {
                 withCredentials(docker_hub) {
                   sh "make smoke-test"
-                  sh "make smoke-cleanup"
+                }
+              }
+            }
+            stage("Upgrade MCR") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
+                MKE_VERSION = "3.3.5"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.8.5"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
+                MCR_VERSION = "20.10.0"
+                REUSE_CLUSTER = "true"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                withCredentials(docker_hub) {
+                  sh "make smoke-test"
+                }
+              }
+            }
+            stage("Upgrade MKE") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
+                MKE_VERSION = "3.3.7"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.8.5"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
+                MCR_VERSION = "20.10.0"
+                REUSE_CLUSTER = "true"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                withCredentials(docker_hub) {
+                  sh "make smoke-test"
                 }
               }
             }
