@@ -62,7 +62,6 @@ pipeline {
               }
               steps {
                 sh "make smoke-prune-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-                sh "make smoke-cleanup"
               }
             }
           }
