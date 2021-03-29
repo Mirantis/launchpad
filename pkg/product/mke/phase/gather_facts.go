@@ -75,7 +75,6 @@ func (p *GatherFacts) Run() error {
 				h.MSRMetadata = msrMeta
 				if msrMeta.Installed {
 					log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
-					return msr.WaitMSRNodeReady((h))
 				} else {
 					log.Infof("%s: msr is not installed", h)
 				}
