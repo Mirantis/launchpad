@@ -192,7 +192,7 @@ pipeline {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
+                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
                 MKE_VERSION = "3.3.7"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.8.5"
