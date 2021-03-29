@@ -250,7 +250,7 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 }
 
 // WaitMSRNodeReady waits until MSR is up on the host
-func WaitMSRNodeReady(h *api.Host) error {
+func WaitMSRNodeReady(h *api.Host, port int) error {
 	err := retry.Do(
 		func() error {
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
@@ -271,12 +271,7 @@ func WaitMSRNodeReady(h *api.Host) error {
 
 	return retry.Do(
 		func() error {
-			if err := h.CheckHTTPStatus("https://localhost/_ping", 200); err != nil {
-				_ = h.Exec(h.Configurer.DockerCommandf("ps"))
-				_ = h.Exec("host localhost")
-				_ = h.Exec("host 127.0.0.1")
-				_ = h.Exec("sudo lsof -i:443")
-
+			if err := h.CheckHTTPStatus(fmt.Sprintf("https://localhost:%d/_ping", port), 200); err != nil {
 				return fmt.Errorf("msr invalid ping response")
 			}
 
