@@ -83,16 +83,15 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 		}
 	}
 
+	port := 443
+	if flagport := p.Config.Spec.MSR.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
+		if fp, err := strconv.Atoi(flagport); err == nil {
+			port = fp
+		}
+	}
+
 	// Upgrade MSR hosts individually
 	for _, h := range msrs {
-		url, err := p.Config.Spec.MSRURL()
-		if err != nil {
-			return err
-		}
-		port, err := strconv.Atoi(url.Port())
-		if err != nil || port <= 0 {
-			port = 443
-		}
 		if err := msr.WaitMSRNodeReady(h, port); err != nil {
 			return err
 		}
