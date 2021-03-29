@@ -37,7 +37,7 @@ pipeline {
             }
           }
         }
-        stage("Ubuntu 18.04: apply & reset") {
+        stage("Ubuntu 18.04: apply & prune") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -46,18 +46,23 @@ pipeline {
           stages {
             stage("Apply") {
               environment {
+                LAUNCHPAD_CONFIG = "launchpad-prune.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-prune.yaml.tpl"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
                 sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
               }
             }
-            stage("Reset") {
+            stage("Prune") {
               environment {
+                LAUNCHPAD_CONFIG = "launchpad-prune.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-prune.yaml.tpl"
                 REUSE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+                sh "make smoke-prune-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+                sh "make smoke-cleanup"
               }
             }
           }
@@ -148,51 +153,11 @@ pipeline {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MSR") {
+            stage("Upgrade MCR, MSR & MKE") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
-                MKE_VERSION = "3.3.5"
-                MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.8.5"
-                MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "19.03.14"
-                MCR_CHANNEL = "test"
-                MCR_REPO_URL = "https://repos.mirantis.com"
-                REUSE_CLUSTER = "true"
-                PRESERVE_CLUSTER = "true"
-              }
-              steps {
-                withCredentials(docker_hub) {
-                  sh "make smoke-test"
-                }
-              }
-            }
-            stage("Upgrade MCR") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
-                MKE_VERSION = "3.3.5"
-                MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.8.5"
-                MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "20.10.0"
-                REUSE_CLUSTER = "true"
-                PRESERVE_CLUSTER = "true"
-              }
-              steps {
-                withCredentials(docker_hub) {
-                  sh "make smoke-test"
-                }
-              }
-            }
-            stage("Upgrade MKE") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
-                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
                 MKE_VERSION = "3.3.7"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
                 MSR_VERSION = "2.8.5"
@@ -207,7 +172,7 @@ pipeline {
                 }
               }
             }
-            stage("Upgrade MKE3.4 beta MSR2.9 beta, MCR20.10 from private repos and prune MSR") {
+            stage("Upgrade MKE3.4 beta MSR2.9 beta, MCR20.10 from private repos") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
@@ -222,7 +187,6 @@ pipeline {
               steps {
                 withCredentials(docker_hub) {
                   sh "make smoke-test"
-                  sh "make smoke-prune-test"
                   sh "make smoke-cleanup"
                 }
               }
