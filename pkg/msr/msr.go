@@ -272,6 +272,10 @@ func WaitMSRNodeReady(h *api.Host) error {
 	return retry.Do(
 		func() error {
 			if err := h.CheckHTTPStatus("https://localhost/_ping", 200); err != nil {
+				_ = h.Exec(h.Configurer.DockerCommandf("ps"))
+				_ = h.Exec(h.Configurer.DockerCommandf("host localhost"))
+				_ = h.Exec(h.Configurer.DockerCommandf("host 127.0.0.1"))
+
 				return fmt.Errorf("msr invalid ping response")
 			}
 
