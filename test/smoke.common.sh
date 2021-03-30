@@ -69,7 +69,7 @@ function generateKey() {
 
 function deleteCluster() {
   # cleanup any existing cluster
-  envsubst < footloose-msr.yaml.tpl > footloose.yaml
+  envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
   ./footloose delete && docker volume prune -f
 }
 

@@ -6,7 +6,7 @@ const (
 	// ImageRepoLegacy is the default image repo to use for older versions
 	ImageRepoLegacy = "docker.io/docker"
 	// MKEVersion is the default MKE version to use
-	MKEVersion = "3.3.5"
+	MKEVersion = "3.3.7"
 	// MSRVersion is the default MSR version to use
 	MSRVersion = "2.8.5"
 	// MCRVersion is the default engine version

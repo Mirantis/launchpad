@@ -37,7 +37,7 @@ pipeline {
             }
           }
         }
-        stage("Ubuntu 18.04: apply & reset") {
+        stage("Ubuntu 18.04: apply & prune") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -46,40 +46,24 @@ pipeline {
           stages {
             stage("Apply") {
               environment {
+                LAUNCHPAD_CONFIG = "launchpad-prune.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-prune.yaml.tpl"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
                 sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
               }
             }
-            stage("Reset") {
+            stage("Prune") {
               environment {
+                LAUNCHPAD_CONFIG = "launchpad-prune.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-prune.yaml.tpl"
                 REUSE_CLUSTER = "true"
               }
               steps {
-                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+                sh "make smoke-prune-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
               }
             }
-          }
-        }
-        stage("Ubuntu 18.04: apply v1beta1") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          steps {
-            sh "make smoke-apply-test CONFIG_TEMPLATE=launchpad-v1beta1.yaml.tpl LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
-          }
-        }
-        stage("Ubuntu 18.04: upload images") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          steps {
-            sh "make smoke-apply-upload-test LAUNCHPAD_CONFIG=launchpad-upload.yaml LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
         stage("CentOS 7: apply") {
@@ -117,7 +101,7 @@ pipeline {
             }
           }
         }
-        stage("Ubuntu 16.04") {
+        stage("Ubuntu 16.04 apply") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
@@ -125,51 +109,8 @@ pipeline {
           }
           stages {
             stage("Apply") {
-              environment {
-                PRESERVE_CLUSTER = "true"
-              }
               steps {
                 sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
-              }
-            }
-            stage("Reset") {
-              environment {
-                REUSE_CLUSTER = "true"
-              }
-              steps {
-                sh "make smoke-reset-test LINUX_IMAGE=quay.io/footloose/ubuntu16.04"
-              }
-            }
-          }
-        }
-        stage("MKE3.3.4 VXLAN switch") {
-          agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
-            }
-          }
-          stages {
-            stage("VXLAN:false") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                LAUNCHPAD_CONFIG = "launchpad-vxlan.yaml"
-                CALICO_VXLAN = "false"
-                PRESERVE_CLUSTER = "true"
-              }
-              steps {
-                sh "make smoke-test"
-              }
-            }
-            stage("VXLAN:true") {
-              environment {
-                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
-                LAUNCHPAD_CONFIG = "launchpad-vxlan.yaml"
-                CALICO_VXLAN = "true"
-                REUSE_CLUSTER = "true"
-                MUST_FAIL = "true"
-              }
-              steps {
-                sh "make smoke-test"
               }
             }
           }
@@ -188,52 +129,63 @@ pipeline {
             sh "make smoke-apply-test-localhost LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
           }
         }
-        stage("Ubuntu 18.04 with MSR") {
+        stage("Ubuntu 18.04 upgrades and MSR") {
           agent {
             node {
               label 'amd64 && ubuntu-1804 && overlay2 && big'
             }
           }
           stages {
-            stage("Install MKE3.3.3 MSR2.8 MCR20.10.0") {
+            stage("Install MKE3.3.5 MSR2.7 MCR19.03.8") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr.yaml"
-                MKE_VERSION = "3.3.3"
+                MKE_VERSION = "3.3.5"
                 MKE_IMAGE_REPO = "docker.io/mirantis"
-                MSR_VERSION = "2.8.5"
+                MSR_VERSION = "2.7.8"
                 MSR_IMAGE_REPO = "docker.io/mirantis"
-                MCR_VERSION = "20.10.0"
-                MCR_CHANNEL = "stable"
-                MCR_REPO_URL = "https://repos.mirantis.com"
+                MCR_VERSION = "19.03.14"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
                 sh "make smoke-test"
               }
             }
-            stage("Upgrade MKE3.4.0-tp2 MSR2.9.0-tp3 ENG20.10.0 from private repos") {
+            stage("Upgrade MCR, MSR & MKE") {
               environment {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
-                MKE_VERSION = "3.3.5-d1da376"
-                MKE_IMAGE_REPO = "docker.io/mirantiseng"
-                MSR_IMAGE_REPO = "docker.io/mirantiseng"
-                MSR_VERSION = "2.9.0-tp3"
+                MKE_VERSION = "3.3.7"
+                MKE_IMAGE_REPO = "docker.io/mirantis"
+                MSR_VERSION = "2.8.5"
+                MSR_IMAGE_REPO = "docker.io/mirantis"
                 MCR_VERSION = "20.10.0"
-                MCR_CHANNEL = "test"
-                MCR_REPO_URL = "https://repos.mirantis.com"
                 REUSE_CLUSTER = "true"
                 PRESERVE_CLUSTER = "true"
               }
               steps {
                 withCredentials(docker_hub) {
                   sh "make smoke-test"
-                  sh "make smoke-prune-test"
-                  sh "make smoke-reset-test"
-                  sh "make smoke-cleanup"
+                }
+              }
+            }
+            stage("Upgrade MKE3.4 beta MSR2.9 beta, MCR20.10 from private repos") {
+              environment {
+                LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
+                FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
+                LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
+                MKE_VERSION = "3.4.1-48de8b4"
+                MKE_IMAGE_REPO = "docker.io/mirantiseng"
+                MSR_IMAGE_REPO = "docker.io/mirantiseng"
+                MSR_VERSION = "2.9.0-tp3"
+                MCR_VERSION = "20.10.0"
+                REUSE_CLUSTER = "true"
+              }
+              steps {
+                withCredentials(docker_hub) {
+                  sh "make smoke-test"
                 }
               }
             }
