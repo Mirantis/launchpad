@@ -186,7 +186,6 @@ pipeline {
               steps {
                 withCredentials(docker_hub) {
                   sh "make smoke-test"
-                  sh "make smoke-cleanup"
                 }
               }
             }
