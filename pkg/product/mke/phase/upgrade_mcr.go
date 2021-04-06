@@ -84,9 +84,11 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 	}
 
 	port := 443
-	if flagport := p.Config.Spec.MSR.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
-		if fp, err := strconv.Atoi(flagport); err == nil {
-			port = fp
+	if p.Config.Spec.MSR != nil {
+		if flagport := p.Config.Spec.MSR.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
+			if fp, err := strconv.Atoi(flagport); err == nil {
+				port = fp
+			}
 		}
 	}
 
