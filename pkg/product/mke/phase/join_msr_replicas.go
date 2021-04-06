@@ -51,7 +51,7 @@ func (p *JoinMSRReplicas) Run() error {
 		// Iterate through the msrs and determine which have MSR installed
 		// on them, if one is found which is not yet in the cluster, perform
 		// a join against msrLeader
-		if h.MSRMetadata.Installed {
+		if h.MSRMetadata != nil && h.MSRMetadata.Installed {
 			log.Infof("%s: already a MSR node", h)
 			continue
 		}
