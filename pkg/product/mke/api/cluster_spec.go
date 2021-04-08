@@ -238,7 +238,7 @@ func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
 
 // CheckMKEHealthLocal will check the local mke health on a host and return an error if it failed
 func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
-	host := "localhost"
+	host := h.Metadata.InternalAddress
 	if port := c.MKE.InstallFlags.GetValue("--controller-port"); port != "" {
 		host = host + ":" + port
 	}
