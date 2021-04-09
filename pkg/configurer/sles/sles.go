@@ -20,7 +20,7 @@ type Configurer struct {
 
 // InstallMKEBasePackages installs the needed base packages on Ubuntu
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
-	return c.InstallPackage(h, "curl", "socat", "hostname")
+	return c.InstallPackage(h, "curl", "socat")
 }
 
 // UninstallMCR uninstalls docker-ee engine
