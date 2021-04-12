@@ -6,6 +6,6 @@ type Product interface {
 	Reset() error
 	Describe(reportName string) error
 	ClientConfig() error
-	Exec(target string, interactive, first bool, role, cmd string) error
+	Exec(target []string, interactive, first, all, parallel bool, role, os, cmd string) error
 	ClusterName() string
 }
