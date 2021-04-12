@@ -16,9 +16,9 @@ func NewExecCommand() *cli.Command {
 			configFlag,
 			confirmFlag,
 			redactFlag,
-			&cli.StringFlag{
+			&cli.StringSliceFlag{
 				Name:    "target",
-				Usage:   "Target (example: address[:port])",
+				Usage:   "Target (example: address[:port]) (can be given multiple times)",
 				Aliases: []string{"t"},
 			},
 			&cli.BoolFlag{
@@ -31,10 +31,25 @@ func NewExecCommand() *cli.Command {
 				Usage:   "Use the first target found in configuration",
 				Aliases: []string{"f"},
 			},
+			&cli.BoolFlag{
+				Name:    "all",
+				Usage:   "Run on all matching targets",
+				Aliases: []string{"A"},
+			},
+			&cli.BoolFlag{
+				Name:    "parallel",
+				Usage:   "Run parallelly",
+				Aliases: []string{"p"},
+			},
 			&cli.StringFlag{
 				Name:    "role",
-				Usage:   "Use the first target having this role in configuration",
+				Usage:   "Use targets having this role in configuration",
 				Aliases: []string{"r"},
+			},
+			&cli.StringFlag{
+				Name:    "os",
+				Usage:   "Use targets running this OS ('linux', 'windows', os ID)",
+				Aliases: []string{"o"},
 			},
 		}...),
 		Before: actions(initLogger, checkLicense, initExec),
@@ -46,7 +61,7 @@ func NewExecCommand() *cli.Command {
 
 			args := ctx.Args().Slice()
 
-			return product.Exec(ctx.String("target"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.String("role"), shellquote.Join(args...))
+			return product.Exec(ctx.StringSlice("target"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.Bool("all"), ctx.Bool("parallel"), ctx.String("role"), ctx.String("os"), shellquote.Join(args...))
 		},
 	}
 }
