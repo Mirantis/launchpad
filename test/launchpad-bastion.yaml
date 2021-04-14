@@ -1,0 +1,28 @@
+apiVersion: launchpad.mirantis.com/mke/v1.4
+kind: mke
+metadata:
+  name: $CLUSTER_NAME
+spec:
+  hosts:
+    - ssh:
+        address: "$MANAGER_IP"
+        bastion: &bastion
+          address: "$BASTION_IP"
+          port: 9024
+      role: "manager"
+    - ssh:
+        address: "$WORKER_IP"
+        bastion:
+          *bastion
+      role: "worker"
+  mke:
+    version: $MKE_VERSION
+    imageRepo: $MKE_IMAGE_REPO
+    configData: |-
+      [scheduling_configuration]
+        default_node_orchestrator = "kubernetes"
+    installFlags:
+      - --admin-username=admin
+      - --admin-password=orcaorcaorca
+  mcr:
+    version: $MCR_VERSION
