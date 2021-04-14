@@ -7,6 +7,7 @@ spec:
     - ssh:
         address: "$MANAGER_IP"
         keyPath: "./id_rsa_launchpad"
+        user: launchpad
         bastion: &bastion
           address: 127.0.0.1
           keyPath: "./id_rsa_launchpad"
@@ -15,6 +16,7 @@ spec:
     - ssh:
         address: "$WORKER_IP"
         keyPath: "./id_rsa_launchpad"
+        user: launchpad
         bastion:
           *bastion
       role: "worker"
