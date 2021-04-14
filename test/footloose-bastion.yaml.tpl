@@ -20,6 +20,7 @@ machines:
       destination: /var/lib/kubelet
     networks:
     - footloose-cluster
+    portMappings:
     - containerPort: 22
       hostPort: 9122
 - count: 1
@@ -40,6 +41,7 @@ machines:
       destination: /var/lib/kubelet
     networks:
     - footloose-cluster
+    portMappings:
     - containerPort: 22
       hostPort: 9122
 - count: 1
