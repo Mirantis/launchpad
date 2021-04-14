@@ -20,6 +20,8 @@ machines:
       destination: /var/lib/kubelet
     networks:
     - footloose-cluster
+    - containerPort: 22
+      hostPort: 9122
 - count: 1
   backend: docker
   spec:
@@ -38,6 +40,8 @@ machines:
       destination: /var/lib/kubelet
     networks:
     - footloose-cluster
+    - containerPort: 22
+      hostPort: 9122
 - count: 1
   backend: docker
   spec:
