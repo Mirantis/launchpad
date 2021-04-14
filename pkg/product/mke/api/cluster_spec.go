@@ -177,8 +177,10 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 	} else {
-		yc.MSR = nil
-		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+		if yc.MSR != nil {
+			yc.MSR = nil
+			log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+		}
 	}
 
 	var bastionHosts Hosts
