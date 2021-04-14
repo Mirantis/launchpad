@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/mke/v1.3
+apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke+msr
 metadata:
   name: $CLUSTER_NAME
