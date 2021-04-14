@@ -15,4 +15,4 @@ WORKER_IP=$(./footloose status worker0 -o json | grep "\"ip\": \"172" | head -1 
 ${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}
 
 echo "Testing exec"
-${LAUNCHPAD} exec --debug --all --parallel hostname
+${LAUNCHPAD} exec --debug --all --parallel --config ${LAUNCHPAD_CONFIG} hostname

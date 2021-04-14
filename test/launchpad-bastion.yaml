@@ -6,12 +6,15 @@ spec:
   hosts:
     - ssh:
         address: "$MANAGER_IP"
+        user: launchpad
         bastion: &bastion
           address: "$BASTION_IP"
+          keyPath: "./id_rsa_launchpad"
           port: 9022
       role: "manager"
     - ssh:
         address: "$WORKER_IP"
+        user: launchpad
         bastion:
           *bastion
       role: "worker"
