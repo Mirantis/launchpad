@@ -8,7 +8,7 @@ spec:
         address: "$MANAGER_IP"
         bastion: &bastion
           address: "$BASTION_IP"
-          port: 9024
+          port: 9022
       role: "manager"
     - ssh:
         address: "$WORKER_IP"
