@@ -7,9 +7,11 @@ spec:
     - role: manager
       ssh:
         address: "$MANAGER_IP"
+        user: launchpad
     - role: worker
       ssh:
         address: "$WORKER_IP"
+        user: launchpad
   mke:
     version: $MKE_VERSION
     imageRepo: $MKE_IMAGE_REPO
