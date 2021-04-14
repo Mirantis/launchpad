@@ -54,6 +54,9 @@ machines:
     - type: bind
       source: /lib/modules
       destination: /lib/modules
+    - type: bind
+      source: $SMOKE_DIR
+      destination: /launchpad
     - type: volume
       destination: /var/lib/containerd
     - type: volume
