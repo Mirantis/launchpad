@@ -10,7 +10,7 @@ spec:
         bastion: &bastion
           address: "$BASTION_IP"
           keyPath: "./id_rsa_launchpad"
-          port: 9022
+          port: $BASTION_PORT
       role: "manager"
     - ssh:
         address: "$WORKER_IP"
