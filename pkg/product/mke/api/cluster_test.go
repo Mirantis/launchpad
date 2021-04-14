@@ -170,24 +170,6 @@ spec:
 	validateErrorField(t, err, "Port")
 }
 
-func TestHostSshKeyValidation(t *testing.T) {
-	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.4
-kind: mke
-spec:
-  hosts:
-    - ssh:
-        address: "1.2.3.4"
-        port: 22
-        keyPath: /path/to/nonexisting/key
-`
-	c := loadYaml(t, data)
-
-	err := c.Validate()
-	require.Error(t, err)
-	validateErrorField(t, err, "KeyPath")
-}
-
 func TestHostRoleValidation(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
@@ -243,8 +225,7 @@ spec:
 `
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
-	require.Error(t, err)
-	validateErrorField(t, err, "KeyPath")
+	require.NoError(t, err)
 	require.Equal(t, "launchpad.mirantis.com/mke/v1.4", c.APIVersion)
 
 	require.Equal(t, c.Spec.MCR.InstallURLLinux, "http://example.com/")
@@ -287,8 +268,7 @@ spec:
 `
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
-	require.Error(t, err)
-	validateErrorField(t, err, "KeyPath")
+	require.NoError(t, err)
 	require.Equal(t, "launchpad.mirantis.com/mke/v1.4", c.APIVersion)
 
 	require.Equal(t, constant.MCRInstallURLLinux, c.Spec.MCR.InstallURLLinux)
