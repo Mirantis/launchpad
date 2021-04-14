@@ -187,7 +187,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	})
 	if len(bastionHosts) > 0 {
 		log.Debugf("linking bastion hosts")
-		var bastions map[string]*rig.SSH
+		bastions := make(map[string]*rig.SSH)
 		for _, h := range bastionHosts {
 			if h.WinRM != nil {
 				id := fmt.Sprintf("%s@%s:%d", h.WinRM.User, h.WinRM.Address, h.WinRM.Port)
