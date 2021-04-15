@@ -66,6 +66,42 @@ pipeline {
             }
           }
         }
+        stage("Ubuntu 18.04: apply with SSH bastion host") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          stages {
+            stage("Apply") {
+              environment {
+                LAUNCHPAD_CONFIG = "launchpad-bastion.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-bastion.yaml.tpl"
+              }
+              steps {
+                sh "make smoke-apply-bastion-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+              }
+            }
+          }
+        }
+        stage("Ubuntu 18.04: apply with SSH auth forwarding") {
+          agent {
+            node {
+              label 'amd64 && ubuntu-1804 && overlay2 && big'
+            }
+          }
+          stages {
+            stage("Apply") {
+              environment {
+                LAUNCHPAD_CONFIG = "launchpad-forward.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-bastion.yaml.tpl"
+              }
+              steps {
+                sh "make smoke-apply-forward-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+              }
+            }
+          }
+        }
         stage("CentOS 7: apply") {
           agent {
               node {

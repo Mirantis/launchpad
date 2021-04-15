@@ -10,6 +10,7 @@ import (
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
+	"github.com/k0sproject/rig"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -176,8 +177,37 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			return err
 		}
 	} else {
-		yc.MSR = nil
-		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+		if yc.MSR != nil {
+			yc.MSR = nil
+			log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+		}
+	}
+
+	var bastionHosts Hosts
+	bastionHosts = c.Hosts.Filter(func(h *Host) bool {
+		return (h.SSH != nil && h.SSH.Bastion != nil) || (h.WinRM != nil && h.WinRM.Bastion != nil)
+	})
+	if len(bastionHosts) > 0 {
+		log.Debugf("linking bastion hosts")
+		bastions := make(map[string]*rig.SSH)
+		for _, h := range bastionHosts {
+			if h.WinRM != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.WinRM.User, h.WinRM.Address, h.WinRM.Port)
+				bastions[id] = h.WinRM.Bastion
+			} else if h.SSH != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.SSH.User, h.SSH.Address, h.SSH.Port)
+				bastions[id] = h.SSH.Bastion
+			}
+		}
+		for _, h := range bastionHosts {
+			if h.WinRM != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.WinRM.User, h.WinRM.Address, h.WinRM.Port)
+				h.WinRM.Bastion = bastions[id]
+			} else if h.SSH != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.SSH.User, h.SSH.Address, h.SSH.Port)
+				h.SSH.Bastion = bastions[id]
+			}
+		}
 	}
 
 	return defaults.Set(c)
