@@ -2,6 +2,8 @@
 
 set -e
 
+export SMOKE_DIR="$( pwd -P )"
+
 cd test
 . ./smoke.common.sh
 trap cleanup EXIT
