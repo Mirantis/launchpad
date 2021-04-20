@@ -6,6 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
 )
@@ -17,6 +18,12 @@ type MSRConfig struct {
 	InstallFlags common.Flags `yaml:"installFlags,flow,omitempty"`
 	UpgradeFlags common.Flags `yaml:"upgradeFlags,flow,omitempty"`
 	ReplicaIDs   string       `yaml:"replicaIDs,omitempty"  default:"random"`
+	CACertPath   string       `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
+	CertPath     string       `yaml:"certPath,omitempty" validate:"omitempty,file"`
+	KeyPath      string       `yaml:"keyPath,omitempty" validate:"omitempty,file"`
+	CACertData   string       `yaml:"caCertData,omitempty"`
+	CertData     string       `yaml:"certData,omitempty"`
+	KeyData      string       `yaml:"keyData,omitempty"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
@@ -31,6 +38,30 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		if _, err := version.NewVersion(c.Version); err != nil {
 			return fmt.Errorf("invalid version: %s: %s", c.Version, err.Error())
 		}
+	}
+
+	if c.CACertPath != "" {
+		caCertData, err := util.LoadExternalFile(c.CACertPath)
+		if err != nil {
+			return err
+		}
+		c.CACertData = string(caCertData)
+	}
+
+	if c.CertPath != "" {
+		certData, err := util.LoadExternalFile(c.CertPath)
+		if err != nil {
+			return err
+		}
+		c.CertData = string(certData)
+	}
+
+	if c.KeyPath != "" {
+		keyData, err := util.LoadExternalFile(c.KeyPath)
+		if err != nil {
+			return err
+		}
+		c.KeyData = string(keyData)
 	}
 
 	return defaults.Set(c)

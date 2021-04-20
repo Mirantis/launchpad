@@ -68,6 +68,22 @@ func (p *InstallMSR) Run() error {
 
 	installFlags.Merge(mkeFlags)
 
+	if p.Config.Spec.MSR.CACertData != "" {
+		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", p.Config.Spec.MSR.CACertData))
+	}
+
+	if p.Config.Spec.MSR.CertData != "" {
+		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", p.Config.Spec.MSR.CertData))
+	}
+
+	if p.Config.Spec.MSR.KeyData != "" {
+		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", p.Config.Spec.MSR.KeyData))
+	}
+
+	if p.Config.Spec.MKE.CACertData != "" {
+		installFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", p.Config.Spec.MKE.CACertData))
+	}
+
 	if h.MSRMetadata.ReplicaID != "" {
 		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.ReplicaID)
 		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
@@ -76,7 +92,7 @@ func (p *InstallMSR) Run() error {
 	}
 
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
-	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")))
+	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password"), p.Config.Spec.MSR.CACertData, p.Config.Spec.MSR.CertData, p.Config.Spec.MSR.KeyData, p.Config.Spec.MKE.CACertData))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %s", h, err.Error())
 	}
