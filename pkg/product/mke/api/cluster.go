@@ -82,6 +82,14 @@ func Init(kind string) *ClusterConfig {
 				},
 				{
 					Role: "worker",
+					Connection: rig.Connection{
+						SSH: &rig.SSH{
+							Address: "10.0.0.2",
+							User:    "root",
+							Port:    22,
+							KeyPath: "~/.ssh/id_rsa",
+						},
+					},
 				},
 			},
 		},
@@ -95,6 +103,14 @@ func Init(kind string) *ClusterConfig {
 		config.Spec.Hosts = append(config.Spec.Hosts,
 			&Host{
 				Role: "msr",
+				Connection: rig.Connection{
+					SSH: &rig.SSH{
+						Address: "10.0.0.2",
+						User:    "root",
+						Port:    22,
+						KeyPath: "~/.ssh/id_rsa",
+					},
+				},
 			},
 		)
 	}
