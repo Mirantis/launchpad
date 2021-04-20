@@ -13,7 +13,7 @@ import (
 
 // MKEConfig has all the bits needed to configure mke during installation
 type MKEConfig struct {
-	Version             string       `yaml:"version"`
+	Version             string       `yaml:"version" validate:"required"`
 	ImageRepo           string       `yaml:"imageRepo,omitempty"`
 	AdminUsername       string       `yaml:"adminUsername,omitempty"`
 	AdminPassword       string       `yaml:"adminPassword,omitempty"`
@@ -144,9 +144,17 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		raw.KeyData = string(keyData)
 	}
 
+	// to make it easier to set in tests
+	if c.Version != "" && raw.Version == "" {
+		raw.Version = c.Version
+	}
+
 	v, err := version.NewVersion(raw.Version)
 	if err != nil {
-		return err
+		if raw.Version == "" {
+			return fmt.Errorf("missing spec.mke.version")
+		}
+		return fmt.Errorf("error in field spec.mke.version: %s", err.Error())
 	}
 
 	if raw.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
@@ -160,7 +168,6 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewMKEConfig creates new config with sane defaults
 func NewMKEConfig() MKEConfig {
 	return MKEConfig{
-		Version:   constant.MKEVersion,
 		ImageRepo: constant.ImageRepo,
 		Metadata:  &MKEMetadata{},
 	}
