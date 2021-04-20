@@ -20,7 +20,7 @@ require (
 	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
 	github.com/k0sproject/dig v0.1.0
-	github.com/k0sproject/rig v0.3.15
+	github.com/k0sproject/rig v0.3.16
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381

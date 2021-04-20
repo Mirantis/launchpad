@@ -46,6 +46,8 @@ spec:
         address: 10.0.0.2
 				keyPath: ` + kf.Name() + `
       role: worker
+	mke:
+	  version: 3.3.7
 `
 	c := loadYaml(t, data)
 	err := c.Validate()
@@ -68,6 +70,8 @@ spec:
         address: 10.0.0.2
 				keyPath: ` + kf.Name() + `
       role: worker
+	mke:
+	  version: 3.3.7
 `
 	c := loadYaml(t, data)
 	err := c.Validate()
@@ -81,6 +85,8 @@ func TestNonExistingHostsFails(t *testing.T) {
 apiVersion: "launchpad.mirantis.com/mke/v1.4"
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
 `
 	c := loadYaml(t, data)
@@ -95,6 +101,8 @@ func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
   - ssh:
       address: "512.1.2.3"
@@ -111,6 +119,8 @@ func TestHostAddressValidationWithValidIP(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
   - ssh:
       address: "10.10.10.10"
@@ -126,6 +136,8 @@ func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - ssh:
         address: "1-2-foo"
@@ -142,6 +154,8 @@ func TestHostAddressValidationWithValidHostname(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - ssh:
         address: "foo.example.com"
@@ -158,6 +172,8 @@ func TestHostSshPortValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - ssh:
         address: "1.2.3.4"
@@ -175,6 +191,8 @@ func TestHostRoleValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
   - address: "1.2.3.4"
     ssh:
@@ -192,6 +210,8 @@ func TestHostWithComplexMCRConfig(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
   - ssh:
       address: "1.2.3.4"
@@ -214,6 +234,8 @@ func TestMigrateFromV1Beta1(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1beta1
 kind: mke
 spec:
+	ucp:
+	  version: 3.3.7
   engine:
     installURL: http://example.com/
   hosts:
@@ -238,6 +260,8 @@ func TestMigrateFromV1Beta2(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1beta2
 kind: mke
 spec:
+  ucp:
+	  version: 3.3.7
   engine:
     installURL: http://example.com/
   hosts:
@@ -257,6 +281,8 @@ func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1beta1
 kind: mke
 spec:
+	ucp:
+	  version: 3.3.7
   engine:
     version: 1.2.3
   hosts:
@@ -281,6 +307,8 @@ func TestHostWinRMCACertPathValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - role: manager
       winRM:
@@ -299,6 +327,8 @@ func TestHostWinRMCertPathValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - role: manager
       winRM:
@@ -317,6 +347,8 @@ func TestHostWinRMKeyPathValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - role: manager
       winRM:
@@ -334,6 +366,8 @@ func TestHostSSHDefaults(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - ssh:
         address: "1.2.3.4"
@@ -352,6 +386,8 @@ func TestHostWinRMDefaults(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
   hosts:
     - role: manager
       winRM:
@@ -377,6 +413,10 @@ func TestValidationWithMSRRole(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+	mke:
+	  version: 3.3.7
+	msr:
+	  version: 2.8.5
   hosts:
     - ssh:
         address: "10.0.0.1"
@@ -395,6 +435,10 @@ spec:
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke+msr
 spec:
+	mke:
+	  version: 3.3.7
+	msr:
+	  version: 2.8.5
   hosts:
     - ssh:
         address: "10.0.0.1"

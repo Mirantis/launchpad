@@ -13,11 +13,11 @@ import (
 
 // MSRConfig has all the bits needed to configure MSR during installation
 type MSRConfig struct {
-	Version      string       `yaml:"version"`
+	Version      string       `yaml:"version" validate:"required"`
 	ImageRepo    string       `yaml:"imageRepo,omitempty"`
 	InstallFlags common.Flags `yaml:"installFlags,flow,omitempty"`
 	UpgradeFlags common.Flags `yaml:"upgradeFlags,flow,omitempty"`
-	ReplicaIDs   string       `yaml:"replicaIDs,omitempty"  default:"random"`
+	ReplicaIDs   string       `yaml:"replicaIDs,omitempty" default:"random"`
 	CACertPath   string       `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
 	CertPath     string       `yaml:"certPath,omitempty" validate:"omitempty,file"`
 	KeyPath      string       `yaml:"keyPath,omitempty" validate:"omitempty,file"`
@@ -34,10 +34,11 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if c.Version != "" {
-		if _, err := version.NewVersion(c.Version); err != nil {
-			return fmt.Errorf("invalid version: %s: %s", c.Version, err.Error())
+	if _, err := version.NewVersion(c.Version); err != nil {
+		if c.Version == "" {
+			return fmt.Errorf("missing spec.msr.version")
 		}
+		return fmt.Errorf("error in field spec.msr.version: %s", err.Error())
 	}
 
 	if c.CACertPath != "" {
@@ -69,10 +70,6 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // SetDefaults sets default values
 func (c *MSRConfig) SetDefaults() {
-	if defaults.CanUpdate(c.Version) {
-		c.Version = constant.MSRVersion
-	}
-
 	if c.ImageRepo == "" {
 		c.ImageRepo = constant.ImageRepo
 	}
