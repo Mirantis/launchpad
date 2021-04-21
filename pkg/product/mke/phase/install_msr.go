@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
@@ -50,6 +51,7 @@ func (p *InstallMSR) Run() error {
 	}
 
 	image := p.Config.Spec.MSR.GetBootstrapperImage()
+
 	runFlags := common.Flags{"-i"}
 	if !p.CleanupDisabled() {
 		runFlags.Add("--rm")
@@ -59,6 +61,7 @@ func (p *InstallMSR) Run() error {
 		runFlags.Add("--security-opt label=disable")
 	}
 	installFlags := p.Config.Spec.MSR.InstallFlags
+	redacts := []string{installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")}
 
 	// Configure the mkeFlags from existing MKEConfig
 	mkeFlags := msr.BuildMKEFlags(p.Config)
@@ -69,19 +72,27 @@ func (p *InstallMSR) Run() error {
 	installFlags.Merge(mkeFlags)
 
 	if p.Config.Spec.MSR.CACertData != "" {
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", p.Config.Spec.MSR.CACertData))
+		escaped := shellescape.Quote(p.Config.Spec.MSR.CACertData)
+		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", escaped))
+		redacts = append(redacts, escaped)
 	}
 
 	if p.Config.Spec.MSR.CertData != "" {
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", p.Config.Spec.MSR.CertData))
+		escaped := shellescape.Quote(p.Config.Spec.MSR.CertData)
+		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", escaped))
+		redacts = append(redacts, escaped)
 	}
 
 	if p.Config.Spec.MSR.KeyData != "" {
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", p.Config.Spec.MSR.KeyData))
+		escaped := shellescape.Quote(p.Config.Spec.MSR.KeyData)
+		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", escaped))
+		redacts = append(redacts, escaped)
 	}
 
 	if p.Config.Spec.MKE.CACertData != "" {
-		installFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", p.Config.Spec.MKE.CACertData))
+		escaped := shellescape.Quote(p.Config.Spec.MKE.CACertData)
+		installFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
+		redacts = append(redacts, escaped)
 	}
 
 	if h.MSRMetadata.ReplicaID != "" {
@@ -92,7 +103,7 @@ func (p *InstallMSR) Run() error {
 	}
 
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
-	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password"), p.Config.Spec.MSR.CACertData, p.Config.Spec.MSR.CertData, p.Config.Spec.MSR.KeyData, p.Config.Spec.MKE.CACertData))
+	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(redacts...))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %s", h, err.Error())
 	}
