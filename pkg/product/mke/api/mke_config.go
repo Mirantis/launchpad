@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/docker/hub"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
 
@@ -44,6 +45,7 @@ type MKEMetadata struct {
 	VXLAN                   bool
 	ManagerJoinToken        string
 	WorkerJoinToken         string
+	VersionDefaulted        bool
 }
 
 // MKECloud has the cloud provider configuration
@@ -149,11 +151,17 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		raw.Version = c.Version
 	}
 
+	if raw.Version == "" && c.Version == "" && (raw.ImageRepo == "" || raw.ImageRepo == constant.ImageRepo) {
+		mkeV, err := hub.LatestTag("mirantis", "ucp", false)
+		if err != nil {
+			mkeV = constant.MKEVersion
+		}
+		raw.Version = mkeV
+		raw.Metadata.VersionDefaulted = true
+	}
+
 	v, err := version.NewVersion(raw.Version)
 	if err != nil {
-		if raw.Version == "" {
-			return fmt.Errorf("missing spec.mke.version")
-		}
 		return fmt.Errorf("error in field spec.mke.version: %s", err.Error())
 	}
 

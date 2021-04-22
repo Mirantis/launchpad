@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
@@ -33,6 +34,22 @@ func (p *UpgradeMKE) Run() error {
 	if p.Config.Spec.MKE.Version == p.Config.Spec.MKE.Metadata.InstalledVersion {
 		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader, p.Config.Spec.MKE.Version)
 		return nil
+	}
+
+	if p.Config.Spec.MKE.Metadata.VersionDefaulted {
+		mkev, err := version.NewVersion(p.Config.Spec.MKE.Version)
+		if err != nil {
+			return err
+		}
+
+		instv, err := version.NewVersion(p.Config.Spec.MKE.Metadata.InstalledVersion)
+		if err != nil {
+			return err
+		}
+
+		if mkev.GreaterThan(instv) {
+			log.Warnf("%s: a newer version of MKE is available, set configuration spec.mke.version %s to upgrade", swarmLeader, mkev.String())
+		}
 	}
 
 	swarmClusterID := swarm.ClusterID(swarmLeader)
