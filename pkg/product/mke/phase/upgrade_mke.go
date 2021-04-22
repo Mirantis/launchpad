@@ -49,6 +49,7 @@ func (p *UpgradeMKE) Run() error {
 
 		if mkev.GreaterThan(instv) {
 			log.Warnf("%s: a newer version of MKE is available, set configuration spec.mke.version %s to upgrade", swarmLeader, mkev.String())
+			return nil
 		}
 	}
 

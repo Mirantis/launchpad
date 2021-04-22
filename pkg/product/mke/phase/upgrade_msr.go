@@ -61,6 +61,7 @@ func (p *UpgradeMSR) Run() error {
 
 		if msrv.GreaterThan(instv) {
 			log.Warnf("%s: a newer version of MSR is available, set configuration spec.msr.version %s to upgrade", h, msrv.String())
+			return nil
 		}
 	}
 
