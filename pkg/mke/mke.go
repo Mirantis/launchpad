@@ -35,8 +35,6 @@ type Credentials struct {
 }
 
 // CollectFacts gathers the current status of installed mke setup
-// Currently we only need to know the existing version and whether mke is installed or not.
-// In future we probably need more.
 func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
 	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
