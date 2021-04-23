@@ -24,7 +24,7 @@ type tagListResponse struct {
 func LatestTag(org, image string, pre bool) (string, error) {
 	url := fmt.Sprintf("https://hub.docker.com/v2/repositories/%s/%s/tags", org, image)
 	client := http.Client{
-		Timeout: time.Second * 10, // Timeout after 2 seconds
+		Timeout: time.Second * 5,
 	}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
