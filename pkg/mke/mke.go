@@ -53,7 +53,7 @@ func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
 
 	mkeMeta.Installed = true
 	mkeMeta.InstalledVersion = vparts[1]
-	mkeMeta.InstalledBootstrapImage = fmt.Sprintf("%s:/mke:%s", repo, vparts[1])
+	mkeMeta.InstalledBootstrapImage = fmt.Sprintf("%s:/ucp:%s", repo, vparts[1])
 
 	// Find out calico data plane by inspecting the calico container's env variables
 	cmd := swarmLeader.Configurer.DockerCommandf(`ps --filter label=name="Calico node" --format {{.ID}}`)
