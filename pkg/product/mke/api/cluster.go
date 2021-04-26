@@ -58,7 +58,7 @@ func roleChecks(sl validator.StructLevel) {
 func Init(kind string) *ClusterConfig {
 	mkeV, err := hub.LatestTag("mirantis", "ucp", false)
 	if err != nil {
-		mkeV = constant.MKEVersion
+		mkeV = "required"
 	}
 
 	config := &ClusterConfig{
@@ -103,7 +103,7 @@ func Init(kind string) *ClusterConfig {
 	if kind == "mke+msr" {
 		msrV, err := hub.LatestTag("mirantis", "dtr", false)
 		if err != nil {
-			msrV = constant.MSRVersion
+			msrV = "required"
 		}
 		config.Spec.MSR = &MSRConfig{
 			Version:    msrV,

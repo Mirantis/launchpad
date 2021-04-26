@@ -5,12 +5,7 @@ const (
 	ImageRepo = "docker.io/mirantis"
 	// ImageRepoLegacy is the default image repo to use for older versions
 	ImageRepoLegacy = "docker.io/docker"
-	// MKEVersion is the default MKE version to use
-	MKEVersion = "3.3.7"
-	// MSRVersion is the default MSR version to use
-	MSRVersion = "2.8.5"
-	// MCRVersion is the default engine version
-	MCRVersion = "20.10.0"
+	MCRVersion      = "20.10.0"
 	// MCRChannel is the default engine channel
 	MCRChannel = "stable"
 	// MCRRepoURL is the default engine repo
