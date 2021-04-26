@@ -6,7 +6,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
@@ -46,23 +45,6 @@ func (p *UpgradeMSR) Run() error {
 	if p.Config.Spec.MSR.Version == h.MSRMetadata.InstalledVersion {
 		log.Infof("%s: msr cluster already at version %s, not running upgrade", h, p.Config.Spec.MSR.Version)
 		return nil
-	}
-
-	if p.Config.Spec.MSR.VersionDefaulted {
-		msrv, err := version.NewVersion(p.Config.Spec.MSR.Version)
-		if err != nil {
-			return err
-		}
-
-		instv, err := version.NewVersion(h.MSRMetadata.InstalledVersion)
-		if err != nil {
-			return err
-		}
-
-		if msrv.GreaterThan(instv) {
-			log.Warnf("%s: a newer version of MSR is available, set configuration spec.msr.version %s to upgrade", h, msrv.String())
-			return nil
-		}
 	}
 
 	runFlags := common.Flags{"-i"}

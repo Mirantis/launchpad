@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/docker/hub"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/creasty/defaults"
@@ -25,8 +24,6 @@ type MSRConfig struct {
 	CACertData   string       `yaml:"caCertData,omitempty"`
 	CertData     string       `yaml:"certData,omitempty"`
 	KeyData      string       `yaml:"keyData,omitempty"`
-
-	VersionDefaulted bool `yaml:"-"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
@@ -37,13 +34,8 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if c.Version == "" && (c.ImageRepo == "" || c.ImageRepo == constant.ImageRepo) {
-		msrV, err := hub.LatestTag("mirantis", "dtr", false)
-		if err != nil {
-			msrV = constant.MSRVersion
-		}
-		c.VersionDefaulted = true
-		c.Version = msrV
+	if c.Version == "" {
+		return fmt.Errorf("missing spec.msr.version")
 	}
 
 	if _, err := version.NewVersion(c.Version); err != nil {
