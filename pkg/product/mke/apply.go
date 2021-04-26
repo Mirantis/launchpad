@@ -23,6 +23,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 		&mke.GatherFacts{},
 		&mke.ValidateFacts{Force: force},
 		&mke.ValidateHosts{},
+		&mke.UpgradeCheck{},
 		&mke.DownloadInstaller{},
 		&common.RunHooks{Stage: "before", Action: "apply"},
 		&mke.PrepareHost{},
