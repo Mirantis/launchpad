@@ -18,12 +18,12 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 	phaseManager.SkipCleanup = disableCleanup
 
 	phaseManager.AddPhases(
+		&mke.UpgradeCheck{},
 		&common.Connect{},
 		&mke.DetectOS{},
 		&mke.GatherFacts{},
 		&mke.ValidateFacts{Force: force},
 		&mke.ValidateHosts{},
-		&mke.UpgradeCheck{},
 		&mke.DownloadInstaller{},
 		&common.RunHooks{Stage: "before", Action: "apply"},
 		&mke.PrepareHost{},
