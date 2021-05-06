@@ -8,7 +8,7 @@ trap cleanup EXIT
 
 setup
 
-[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+[ "${REUSE_CLUSTER}" = "" ] && ${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}
 
 UNAME=$(uname)
 if [ "${UNAME}" = "Darwin" ]; then
@@ -22,10 +22,10 @@ echo -e "Removing one MSR node from launchpad.yaml..."
 sed $SEDOPTS '/REMOVE_THIS/d' ${LAUNCHPAD_CONFIG}
 cat ${LAUNCHPAD_CONFIG}
 
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} hosts
 
 echo "Running with prune: false"
-${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}
 
 # Flip prune to true
 echo -e "Changing prune: false to prune: true..."
@@ -33,8 +33,8 @@ sed $SEDOPTS 's/prune: false/prune: true/' ${LAUNCHPAD_CONFIG}
 cat ${LAUNCHPAD_CONFIG}
 
 echo "Running with prune: true"
-${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}
 
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} mke
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} msr
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} mke
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} msr

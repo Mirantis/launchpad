@@ -9,7 +9,7 @@ trap cleanup EXIT
 setup && downloadTools
 
 set +e
-${LAUNCHPAD} apply --config ${LAUNCHPAD_CONFIG}
+${LAUNCHPAD} apply --debug --config ${LAUNCHPAD_CONFIG}
 RES=$?
 set -e
 
@@ -28,9 +28,9 @@ if [ "$RES" -ne 0 ]; then
 fi
 
 echo "Testing exec"
-../bin/launchpad --debug exec -r manager echo hello from manager
-../bin/launchpad --debug exec --role worker echo hello from worker
-../bin/launchpad --debug exec --first echo hello from first host
+${LAUNCHPAD} exec --debug -r manager echo hello from manager
+${LAUNCHPAD} exec --debug --role worker echo hello from worker
+${LAUNCHPAD} exec --debug --first echo hello from first host
 
 echo "Apply succeeded, downloading bundle"
 ${LAUNCHPAD} client-config --config ${LAUNCHPAD_CONFIG}
@@ -43,6 +43,6 @@ popd
 docker ps
 docker ps --filter name=dtr
 ./kubectl get pods --all-namespaces
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} hosts
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} mke
-${LAUNCHPAD} describe --config ${LAUNCHPAD_CONFIG} msr
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} hosts
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} mke
+${LAUNCHPAD} describe --debug --config ${LAUNCHPAD_CONFIG} msr

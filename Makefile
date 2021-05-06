@@ -53,6 +53,9 @@ lint: builder
 	$(GO) go vet ./...
 	$(GO) golint -set_exit_status ./...
 
+smoke-register-test: build
+	./test/smoke_register.sh
+
 smoke-apply-test: build
 	./test/smoke_apply.sh
 
@@ -68,6 +71,12 @@ smoke-reset-local-repo-test: build
 smoke-apply-test-localhost: build
 	./test/smoke_apply_local.sh
 
+smoke-apply-bastion-test: build
+	./test/smoke_apply_bastion.sh
+
+smoke-apply-forward-test: build
+	./test/smoke_apply_forward.sh
+
 smoke-upgrade-test: build
 	./test/smoke_upgrade.sh
 
@@ -77,7 +86,7 @@ smoke-prune-test: build
 smoke-reset-test: build
 	./test/smoke_reset.sh
 
-smoke-cleanup: clean
+smoke-cleanup:
 	./test/smoke_cleanup.sh
 
 smoke-test: smoke-apply-test

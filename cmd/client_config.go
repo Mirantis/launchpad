@@ -6,7 +6,6 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -17,37 +16,23 @@ func NewClientConfigCommand() *cli.Command {
 		Name:    "client-config",
 		Aliases: []string{"download-bundle"},
 		Usage:   "Get cluster client configuration",
-		Flags: []cli.Flag{
+		Flags: append(GlobalFlags, []cli.Flag{
+			configFlag,
+			confirmFlag,
+			redactFlag,
 			&cli.StringFlag{
-				Name:      "config",
-				Usage:     "Path to cluster config yaml",
-				Aliases:   []string{"c"},
-				Value:     "launchpad.yaml",
-				TakesFile: true,
-			},
-			&cli.StringFlag{
-				Name:    "username",
-				Usage:   "Username",
-				Aliases: []string{"u"},
-				Hidden:  true,
+				Name:   "username",
+				Usage:  "Username",
+				Hidden: true,
 			},
 			&cli.StringFlag{
-				Name:    "Password",
-				Usage:   "Password",
-				Aliases: []string{"p"},
-				Hidden:  true,
+				Name:   "Password",
+				Usage:  "Password",
+				Hidden: true,
 			},
-			&cli.BoolFlag{
-				Name:  "confirm",
-				Usage: "Ask confirmation for all commands",
-				Value: false,
-			},
-			&cli.BoolFlag{
-				Name:  "disable-redact",
-				Usage: "Do not hide sensitive information in the output",
-				Value: false,
-			},
-		},
+		}...),
+		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec, deprecateUserPass),
+		After:  actions(closeAnalytics, upgradeCheckResult),
 		Action: func(ctx *cli.Context) error {
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
@@ -63,23 +48,18 @@ func NewClientConfigCommand() *cli.Command {
 
 			return err
 		},
-		Before: func(ctx *cli.Context) error {
-			exec.Confirm = ctx.Bool("confirm")
-			exec.DisableRedact = ctx.Bool("disable-redact")
-			if strings.Contains(strings.Join(os.Args, " "), "download-bundle") {
-				log.Warn()
-				log.Warn("[DEPRECATED] The 'download-bundle' subcommand is now 'client-config'.")
-				log.Warn()
-			}
-			if ctx.String("username") != "" || ctx.String("password") != "" {
-				log.Warn("[DEPRECATED] The --username and --password flags are ignored and are now read from the configuration file")
-				log.Warn()
-			}
-
-			if !ctx.Bool("accept-license") {
-				return analytics.RequireRegisteredUser()
-			}
-			return nil
-		},
 	}
+}
+
+func deprecateUserPass(ctx *cli.Context) error {
+	if strings.Contains(strings.Join(os.Args, " "), "download-bundle") {
+		log.Warn()
+		log.Warn("[DEPRECATED] The 'download-bundle' subcommand is now 'client-config'.")
+		log.Warn()
+	}
+	if ctx.String("username") != "" || ctx.String("password") != "" {
+		log.Warn("[DEPRECATED] The --username and --password flags are ignored and are now read from the configuration file")
+		log.Warn()
+	}
+	return nil
 }

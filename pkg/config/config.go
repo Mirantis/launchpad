@@ -26,6 +26,8 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
 	// needed to load the migrators
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
+	// needed to load the migrators
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
 	"github.com/Mirantis/mcc/pkg/product"
 	"github.com/Mirantis/mcc/pkg/product/mke"
 	log "github.com/sirupsen/logrus"

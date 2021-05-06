@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"sync"
 	"time"
 
@@ -82,10 +83,24 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 		}
 	}
 
+	port := 443
+	if p.Config.Spec.MSR != nil {
+		if flagport := p.Config.Spec.MSR.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
+			if fp, err := strconv.Atoi(flagport); err == nil {
+				port = fp
+			}
+		}
+	}
+
 	// Upgrade MSR hosts individually
 	for _, h := range msrs {
-		err := p.upgradeMCR(h)
-		if err != nil {
+		if err := msr.WaitMSRNodeReady(h, port); err != nil {
+			return err
+		}
+		if err := p.upgradeMCR(h); err != nil {
+			return err
+		}
+		if err := msr.WaitMSRNodeReady(h, port); err != nil {
 			return err
 		}
 		if h.MSRMetadata.Installed {

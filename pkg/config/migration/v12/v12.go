@@ -49,8 +49,6 @@ func Migrate(plain map[string]interface{}) error {
 	}
 
 	log.Debugf("migrated configuration from launchpad.mirantis.com/v1.1 to launchpad.mirantis.com/mke/v1.2")
-	log.Infof("Note: The configuration has been migrated from a previous version")
-	log.Infof("      to see the migrated configuration use: launchpad describe config")
 	return nil
 }
 

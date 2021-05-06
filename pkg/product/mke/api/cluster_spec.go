@@ -9,6 +9,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
+	"github.com/creasty/defaults"
+	"github.com/k0sproject/rig"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -167,14 +169,48 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if yc.MSR != nil && yc.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) == 0 {
-		yc.MSR = nil
-		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+	if c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
+		if yc.MSR == nil {
+			return fmt.Errorf("configuration error: hosts with msr role present, but no spec.msr defined")
+		}
+		if err := defaults.Set(yc.MSR); err != nil {
+			return err
+		}
+	} else {
+		if yc.MSR != nil {
+			yc.MSR = nil
+			log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
+		}
 	}
 
-	c.MCR.SetDefaults()
+	var bastionHosts Hosts
+	bastionHosts = c.Hosts.Filter(func(h *Host) bool {
+		return (h.SSH != nil && h.SSH.Bastion != nil) || (h.WinRM != nil && h.WinRM.Bastion != nil)
+	})
+	if len(bastionHosts) > 0 {
+		log.Debugf("linking bastion hosts")
+		bastions := make(map[string]*rig.SSH)
+		for _, h := range bastionHosts {
+			if h.WinRM != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.WinRM.User, h.WinRM.Address, h.WinRM.Port)
+				bastions[id] = h.WinRM.Bastion
+			} else if h.SSH != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.SSH.User, h.SSH.Address, h.SSH.Port)
+				bastions[id] = h.SSH.Bastion
+			}
+		}
+		for _, h := range bastionHosts {
+			if h.WinRM != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.WinRM.User, h.WinRM.Address, h.WinRM.Port)
+				h.WinRM.Bastion = bastions[id]
+			} else if h.SSH != nil {
+				id := fmt.Sprintf("%s@%s:%d", h.SSH.User, h.SSH.Address, h.SSH.Port)
+				h.SSH.Bastion = bastions[id]
+			}
+		}
+	}
 
-	return nil
+	return defaults.Set(c)
 }
 
 func isSwarmLeader(h *Host) bool {
@@ -232,7 +268,7 @@ func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
 
 // CheckMKEHealthLocal will check the local mke health on a host and return an error if it failed
 func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
-	host := "localhost"
+	host := h.Metadata.InternalAddress
 	if port := c.MKE.InstallFlags.GetValue("--controller-port"); port != "" {
 		host = host + ":" + port
 	}

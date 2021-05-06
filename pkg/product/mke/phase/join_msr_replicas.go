@@ -15,6 +15,7 @@ import (
 type JoinMSRReplicas struct {
 	phase.Analytics
 	phase.HostSelectPhase
+	phase.CleanupDisabling
 }
 
 // HostFilterFunc returns true for hosts that don't have MSR configured
@@ -50,13 +51,17 @@ func (p *JoinMSRReplicas) Run() error {
 		// Iterate through the msrs and determine which have MSR installed
 		// on them, if one is found which is not yet in the cluster, perform
 		// a join against msrLeader
-		if h.MSRMetadata.Installed {
+		if h.MSRMetadata != nil && h.MSRMetadata.Installed {
 			log.Infof("%s: already a MSR node", h)
 			continue
 		}
 
 		// Run the join with the appropriate flags taken from the install spec
-		runFlags := common.Flags{"--rm", "-i"}
+		runFlags := common.Flags{"-i"}
+		if !p.CleanupDisabled() {
+			runFlags.Add("--rm")
+		}
+
 		if msrLeader.Configurer.SELinuxEnabled(h) {
 			runFlags.Add("--security-opt label=disable")
 		}

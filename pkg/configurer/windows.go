@@ -229,3 +229,8 @@ func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	}
 	return status, nil
 }
+
+// AuthorizeDocker does nothing on windows
+func (c WindowsConfigurer) AuthorizeDocker(h os.Host) error {
+	return nil
+}

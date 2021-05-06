@@ -1,23 +1,25 @@
-apiVersion: launchpad.mirantis.com/mke/v1.2
+apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 metadata:
   name: $CLUSTER_NAME
 spec:
   hosts:
-    - address: "127.0.0.1"
-      ssh:
-        port: 9022
+    - ssh:
+        address: "$MANAGER_IP"
         keyPath: "./id_rsa_launchpad"
-        user: "launchpad"
+        user: launchpad
+        bastion: &bastion
+          address: 127.0.0.1
+          keyPath: "./id_rsa_launchpad"
+          port: "$BASTION_PORT"
       role: "manager"
-      imageDir: ./images/
-    - address: "127.0.0.1"
-      ssh:
-        port: 9023
+    - ssh:
+        address: "$WORKER_IP"
         keyPath: "./id_rsa_launchpad"
-        user: "launchpad"
+        user: launchpad
+        bastion:
+          *bastion
       role: "worker"
-      imageDir: ./images/
   mke:
     version: $MKE_VERSION
     imageRepo: $MKE_IMAGE_REPO
@@ -29,4 +31,3 @@ spec:
       - --admin-password=orcaorcaorca
   mcr:
     version: $MCR_VERSION
-

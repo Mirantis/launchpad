@@ -36,6 +36,7 @@ func (p *ValidateHosts) Run() error {
 		}
 	}
 
+	p.validateDockerGroup()
 	p.validateHostLocalAddresses()
 	p.validateHostnameUniqueness()
 	p.validateLocalhost()
@@ -157,4 +158,28 @@ func (p *ValidateHosts) validateHostnameUniqueness() {
 			})
 		}
 	}
+}
+
+func (p *ValidateHosts) validateDockerGroup() {
+	p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+		if !h.IsLocal() || h.IsWindows() {
+			return nil
+		}
+
+		if err := h.Exec("getent group docker"); err != nil {
+			return fmt.Errorf("group 'docker' required to exist when running on localhost connection")
+		}
+
+		if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
+			return nil
+		}
+
+		if err := h.Exec("groups | grep -q docker"); err != nil {
+			log.Errorf("%s: user must be root or a member of the group 'docker' when running on localhost connection.", h)
+			log.Errorf("%s: use 'sudo groupadd -f -g 999 docker && sudo usermod -aG docker $USER' and re-login before running launchpad again.", h)
+			return fmt.Errorf("user must be root or a member of the group 'docker'")
+		}
+
+		return nil
+	})
 }

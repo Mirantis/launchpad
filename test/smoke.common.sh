@@ -2,7 +2,7 @@
 
 FOOTLOOSE_TEMPLATE=${FOOTLOOSE_TEMPLATE:-"footloose.yaml.tpl"}
 LAUNCHPAD_CONFIG=${LAUNCHPAD_CONFIG:-"launchpad.yaml"}
-LAUNCHPAD="../bin/launchpad --debug"
+LAUNCHPAD="../bin/launchpad"
 
 export LINUX_IMAGE=${LINUX_IMAGE:-"quay.io/footloose/ubuntu18.04"}
 export MKE_VERSION=${MKE_VERSION:-"3.3.3"}
@@ -69,7 +69,7 @@ function generateKey() {
 
 function deleteCluster() {
   # cleanup any existing cluster
-  envsubst < footloose-msr.yaml.tpl > footloose.yaml
+  envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
   ./footloose delete && docker volume prune -f
 }
 
@@ -78,12 +78,25 @@ function createCluster() {
   ./footloose create
 }
 
+function createUsers() {
+  envsubst < "${FOOTLOOSE_TEMPLATE}" > footloose.yaml
+  for h in $(./footloose show -o json|grep '"hostname"'|cut -d'"' -f 4); do
+    ./footloose ssh root@${h} "useradd -m launchpad"
+    ./footloose ssh root@${h} "mkdir ~launchpad/.ssh && chown launchpad:launchpad ~launchpad/.ssh && chmod 0755 ~launchpad/.ssh"
+    ./footloose ssh root@${h} "cat > ~launchpad/.ssh/authorized_keys" < id_rsa_launchpad.pub
+    ./footloose ssh root@${h} "chmod 0644 ~launchpad/.ssh/authorized_keys"
+    ./footloose ssh root@${h} "echo \"launchpad ALL=(ALL) NOPASSWD: ALL\" > /etc/sudoers"
+    ./footloose ssh launchpad@${h} "pwd"
+  done
+}
+
 function setup() {
   if [ -z "${REUSE_CLUSTER}" ]; then
     generateKey
     downloadFootloose
     deleteCluster
     createCluster
+    createUsers
   fi
   export MKE_MANAGER_IP=$(docker inspect mke-manager0 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
   if [ ! -z "${CONFIG_TEMPLATE}" ]; then

@@ -14,7 +14,7 @@ type ClusterMeta struct {
 
 // ClusterConfig describes launchpad.yaml configuration
 type ClusterConfig struct {
-	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.3"`
+	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.4"`
 	Kind       string       `yaml:"kind" validate:"oneof=mke mke+msr"`
 	Metadata   *ClusterMeta `yaml:"metadata"`
 	Spec       *ClusterSpec `yaml:"spec"`
@@ -56,7 +56,7 @@ func roleChecks(sl validator.StructLevel) {
 // Init returns an example of configuration file contents
 func Init(kind string) *ClusterConfig {
 	config := &ClusterConfig{
-		APIVersion: "launchpad.mirantis.com/mke/v1.3",
+		APIVersion: "launchpad.mirantis.com/mke/v1.4",
 		Kind:       kind,
 		Metadata: &ClusterMeta{
 			Name: "my-mke-cluster",
@@ -82,6 +82,14 @@ func Init(kind string) *ClusterConfig {
 				},
 				{
 					Role: "worker",
+					Connection: rig.Connection{
+						SSH: &rig.SSH{
+							Address: "10.0.0.2",
+							User:    "root",
+							Port:    22,
+							KeyPath: "~/.ssh/id_rsa",
+						},
+					},
 				},
 			},
 		},
@@ -95,6 +103,14 @@ func Init(kind string) *ClusterConfig {
 		config.Spec.Hosts = append(config.Spec.Hosts,
 			&Host{
 				Role: "msr",
+				Connection: rig.Connection{
+					SSH: &rig.SSH{
+						Address: "10.0.0.2",
+						User:    "root",
+						Port:    22,
+						KeyPath: "~/.ssh/id_rsa",
+					},
+				},
 			},
 		)
 	}

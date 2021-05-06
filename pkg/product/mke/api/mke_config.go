@@ -13,22 +13,24 @@ import (
 
 // MKEConfig has all the bits needed to configure mke during installation
 type MKEConfig struct {
-	Version         string       `yaml:"version"`
-	ImageRepo       string       `yaml:"imageRepo,omitempty"`
-	AdminUsername   string       `yaml:"adminUsername,omitempty"`
-	AdminPassword   string       `yaml:"adminPassword,omitempty"`
-	InstallFlags    common.Flags `yaml:"installFlags,omitempty,flow"`
-	UpgradeFlags    common.Flags `yaml:"upgradeFlags,omitempty,flow"`
-	ConfigFile      string       `yaml:"configFile,omitempty" validate:"omitempty,file"`
-	ConfigData      string       `yaml:"configData,omitempty"`
-	LicenseFilePath string       `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
-	CACertPath      string       `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
-	CertPath        string       `yaml:"certPath,omitempty" validate:"omitempty,file"`
-	KeyPath         string       `yaml:"keyPath,omitempty" validate:"omitempty,file"`
-	CACertData      string       `yaml:"caCertData,omitempty"`
-	CertData        string       `yaml:"certData,omitempty"`
-	KeyData         string       `yaml:"keyData,omitempty"`
-	Cloud           *MKECloud    `yaml:"cloud,omitempty"`
+	Version             string       `yaml:"version" validate:"required"`
+	ImageRepo           string       `yaml:"imageRepo,omitempty"`
+	AdminUsername       string       `yaml:"adminUsername,omitempty"`
+	AdminPassword       string       `yaml:"adminPassword,omitempty"`
+	InstallFlags        common.Flags `yaml:"installFlags,omitempty,flow"`
+	SwarmInstallFlags   common.Flags `yaml:"swarmInstallFlags,omitempty,flow"`
+	SwarmUpdateCommands []string     `yaml:"swarmUpdateCommands,omitempty,flow"`
+	UpgradeFlags        common.Flags `yaml:"upgradeFlags,omitempty,flow"`
+	ConfigFile          string       `yaml:"configFile,omitempty" validate:"omitempty,file"`
+	ConfigData          string       `yaml:"configData,omitempty"`
+	LicenseFilePath     string       `yaml:"licenseFilePath,omitempty" validate:"omitempty,file"`
+	CACertPath          string       `yaml:"caCertPath,omitempty" validate:"omitempty,file"`
+	CertPath            string       `yaml:"certPath,omitempty" validate:"omitempty,file"`
+	KeyPath             string       `yaml:"keyPath,omitempty" validate:"omitempty,file"`
+	CACertData          string       `yaml:"caCertData,omitempty"`
+	CertData            string       `yaml:"certData,omitempty"`
+	KeyData             string       `yaml:"keyData,omitempty"`
+	Cloud               *MKECloud    `yaml:"cloud,omitempty"`
 
 	Metadata *MKEMetadata `yaml:"-"`
 }
@@ -114,6 +116,10 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 	}
 
+	if raw.SwarmInstallFlags.Include("--advertise-addr") {
+		return fmt.Errorf("Spec.mke.SwarmInstallFlags: specifying --advertise-addr is not allowed")
+	}
+
 	if raw.CACertPath != "" {
 		caCertData, err := util.LoadExternalFile(raw.CACertPath)
 		if err != nil {
@@ -138,9 +144,17 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		raw.KeyData = string(keyData)
 	}
 
+	// to make it easier to set in tests
+	if c.Version != "" && raw.Version == "" {
+		raw.Version = c.Version
+	}
+
 	v, err := version.NewVersion(raw.Version)
 	if err != nil {
-		return err
+		if raw.Version == "" {
+			return fmt.Errorf("missing spec.mke.version")
+		}
+		return fmt.Errorf("error in field spec.mke.version: %s", err.Error())
 	}
 
 	if raw.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
@@ -154,7 +168,6 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // NewMKEConfig creates new config with sane defaults
 func NewMKEConfig() MKEConfig {
 	return MKEConfig{
-		Version:   constant.MKEVersion,
 		ImageRepo: constant.ImageRepo,
 		Metadata:  &MKEMetadata{},
 	}

@@ -3,19 +3,14 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/constant"
-	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
-	"github.com/k0sproject/rig/exec"
 
 	"github.com/mattn/go-isatty"
-	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
@@ -26,14 +21,10 @@ func NewApplyCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "apply",
 		Usage: "Apply a cluster configuration",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:      "config",
-				Usage:     "Path to cluster config yaml. Use '-' to read from stdin.",
-				Aliases:   []string{"c"},
-				Value:     "launchpad.yaml",
-				TakesFile: true,
-			},
+		Flags: append(GlobalFlags, []cli.Flag{
+			configFlag,
+			confirmFlag,
+			redactFlag,
 			&cli.BoolFlag{
 				Name:    "force",
 				Aliases: []string{"f"},
@@ -46,37 +37,18 @@ func NewApplyCommand() *cli.Command {
 				Value:  false,
 				Hidden: true,
 			},
-			&cli.BoolFlag{
-				Name:  "confirm",
-				Usage: "Ask confirmation for all commands",
-				Value: false,
-			},
-			&cli.BoolFlag{
-				Name:  "disable-redact",
-				Usage: "Do not hide sensitive information in the output",
-				Value: false,
-			},
-		},
-		Before: func(ctx *cli.Context) error {
-			exec.Confirm = ctx.Bool("confirm")
-			exec.DisableRedact = ctx.Bool("disable-redact")
-			if !ctx.Bool("accept-license") {
-				return analytics.RequireRegisteredUser()
-			}
-			return nil
-		},
-		Action: func(ctx *cli.Context) error {
-			var (
-				logFile *os.File
-				err     error
-			)
+		}...),
+		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec),
+		After:  actions(closeAnalytics, upgradeCheckResult),
+		Action: func(ctx *cli.Context) (err error) {
+			var logFile *os.File
 
 			start := time.Now()
 			analytics.TrackEvent("Cluster Apply Started", nil)
 
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
-				return err
+				return
 			}
 
 			defer func() {
@@ -87,14 +59,14 @@ func NewApplyCommand() *cli.Command {
 			}()
 
 			// Add logger to dump all log levels to file
-			logFile, err = addFileLogger(product.ClusterName())
+			logFile, err = addFileLogger(product.ClusterName(), "apply.log")
 			if err != nil {
-				return err
+				return
 			}
 
 			if isatty.IsTerminal(os.Stdout.Fd()) {
 				os.Stdout.WriteString(util.Logo)
-				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2020 Mirantis, Inc.                          v%s\n\n", version.Version))
+				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2021 Mirantis, Inc.                          v%s\n\n", version.Version))
 			}
 
 			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"))
@@ -109,32 +81,7 @@ func NewApplyCommand() *cli.Command {
 				analytics.TrackEvent("Cluster Apply Completed", props)
 			}
 
-			return err
+			return
 		},
 	}
-}
-
-const fileMode = 0600
-
-func addFileLogger(clusterName string) (*os.File, error) {
-	home, err := homedir.Dir()
-	if err != nil {
-		return nil, err
-	}
-
-	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
-	if err := util.EnsureDir(clusterDir); err != nil {
-		return nil, fmt.Errorf("error while creating directory for apply logs: %w", err)
-	}
-	logFileName := path.Join(clusterDir, "apply.log")
-	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fileMode)
-
-	if err != nil {
-		return nil, fmt.Errorf("Failed to create apply log at %s: %s", logFileName, err.Error())
-	}
-
-	// Send all logs to named file, this ensures we always have debug logs also available when needed
-	log.AddHook(mcclog.NewFileHook(logFile))
-
-	return logFile, nil
 }

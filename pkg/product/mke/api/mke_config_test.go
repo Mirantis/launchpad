@@ -11,7 +11,7 @@ import (
 )
 
 func TestMKEConfigFlags(t *testing.T) {
-	cfg := MKEConfig{}
+	cfg := MKEConfig{Version: constant.MKEVersion}
 	err := yaml.Unmarshal([]byte("installFlags:\n  - --foo=foofoo\n  - --san foo\n  - --ucp-insecure-tls"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "--ucp-insecure-tls", cfg.InstallFlags[2])
@@ -43,17 +43,28 @@ func TestMKEConfigFlags(t *testing.T) {
 	cfg.InstallFlags.AddUnlessExist("--help")
 	require.Len(t, cfg.InstallFlags, 5)
 	require.True(t, cfg.InstallFlags.Include("--help"))
+
+	require.Nil(t, cfg.SwarmInstallFlags)
+	require.Len(t, cfg.SwarmInstallFlags, 0)
+
+	err = yaml.Unmarshal([]byte("installFlags:\n  - --san foo\n  - --ucp-insecure-tls\nswarmInstallFlags:\n  - --autolock\n  - --cert-expiry 60h0m0s"), &cfg)
+	require.NoError(t, err)
+	require.NotNil(t, cfg.SwarmInstallFlags)
+	require.Len(t, cfg.SwarmInstallFlags, 2)
+	require.NotNil(t, cfg.InstallFlags)
+	require.Len(t, cfg.InstallFlags, 2)
+	require.True(t, cfg.SwarmInstallFlags.Include("--cert-expiry"))
 }
 
 func TestMKEConfig_YAML_ConfigData(t *testing.T) {
-	cfg := MKEConfig{}
+	cfg := MKEConfig{Version: constant.MKEVersion}
 	err := yaml.Unmarshal([]byte("configData: abcd"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "abcd", cfg.ConfigData)
 }
 
 func TestMKEConfig_YAML_ConfigFile(t *testing.T) {
-	cfg := MKEConfig{}
+	cfg := MKEConfig{Version: constant.MKEVersion}
 	util.LoadExternalFile = func(path string) ([]byte, error) {
 		return []byte("abcd"), nil
 	}
@@ -113,7 +124,7 @@ func TestMKEConfig_CustomRepo(t *testing.T) {
 }
 
 func TestMKEConfig_Credentials(t *testing.T) {
-	cfg := MKEConfig{}
+	cfg := MKEConfig{Version: constant.MKEVersion}
 	err := yaml.Unmarshal([]byte("adminUsername: foo\nadminPassword: bar\n"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "foo", cfg.AdminUsername)
@@ -121,7 +132,7 @@ func TestMKEConfig_Credentials(t *testing.T) {
 }
 
 func TestMKEConfig_CredentialsFromInstallFlags(t *testing.T) {
-	cfg := MKEConfig{}
+	cfg := MKEConfig{Version: constant.MKEVersion}
 	err := yaml.Unmarshal([]byte("installFlags:\n  - --admin-username=\"foo\"\n  - --admin-password bar\n"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "foo", cfg.AdminUsername)

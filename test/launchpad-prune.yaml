@@ -1,14 +1,14 @@
-apiVersion: launchpad.mirantis.com/mke/v1.2
+apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 metadata:
   name: $CLUSTER_NAME
 spec:
   hosts:
-    - address: "127.0.0.1"
-      ssh:
+    - ssh:
         port: 9022
         keyPath: "./id_rsa_launchpad"
         user: "launchpad"
+        address: 127.0.0.1
       role: "manager"
       mcrConfig: &engineCfg
         "insecure-registries":
@@ -19,13 +19,20 @@ spec:
             - echo "hello" > test.txt
           after:
             - rm test.txt
-    - address: "127.0.0.1"
-      ssh:
+    - ssh:
         port: 9023
         keyPath: "./id_rsa_launchpad"
         user: "launchpad"
+        address: 127.0.0.1
       role: "worker"
       mcrConfig: &engineCfg
+    - ssh: # REMOVE_THIS
+        port: 9024 # REMOVE_THIS
+        keyPath: "./id_rsa_launchpad" # REMOVE_THIS
+        user: "launchpad" # REMOVE_THIS
+        address: 127.0.0.1 # REMOVE_THIS
+      role: "worker" # REMOVE_THIS
+      mcrConfig: &engineCfg # REMOVE_THIS
   mke:
     version: $MKE_VERSION
     imageRepo: $MKE_IMAGE_REPO
@@ -37,3 +44,4 @@ spec:
       - --admin-password=orcaorcaorca
   mcr:
     version: $MCR_VERSION
+

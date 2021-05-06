@@ -15,6 +15,7 @@ import (
 type UpgradeMKE struct {
 	phase.Analytics
 	phase.BasicPhase
+	phase.CleanupDisabling
 }
 
 // Title prints the phase title
@@ -22,7 +23,7 @@ func (p *UpgradeMKE) Title() string {
 	return "Upgrade MKE components"
 }
 
-// Run the installer container
+// Run the upgrade container
 func (p *UpgradeMKE) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 
@@ -35,7 +36,11 @@ func (p *UpgradeMKE) Run() error {
 	}
 
 	swarmClusterID := swarm.ClusterID(swarmLeader)
-	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := common.Flags{"-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	if !p.CleanupDisabled() {
+		runFlags.Add("--rm")
+	}
+
 	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}

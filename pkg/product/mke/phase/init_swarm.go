@@ -3,9 +3,9 @@ package phase
 import (
 	"fmt"
 
-	"github.com/k0sproject/rig/exec"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/k0sproject/rig/exec"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -27,13 +27,27 @@ func (p *InitSwarm) Run() error {
 
 	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader)
-		output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s", swarmLeader.SwarmAddress()), exec.Redact(`--token \S+`))
+		output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s %s", swarmLeader.SwarmAddress(), p.Config.Spec.MKE.SwarmInstallFlags.Join()), exec.Redact(`--token \S+`))
 		if err != nil {
 			return fmt.Errorf("failed to initialize swarm: %s", output)
 		}
+
+		// Execute all swarm-post-init commands. These take care of
+		// things like setting cert-expiry which cannot be done at the
+		// time of swarm install.
+		for _, swarmCmd := range p.Config.Spec.MKE.SwarmUpdateCommands {
+			output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("%s", swarmCmd))
+			if err != nil {
+				return fmt.Errorf("post swarm init command (%s) failed: %s", swarmCmd, output)
+			}
+		}
+
 		log.Infof("%s: swarm initialized successfully", swarmLeader)
 	} else {
 		log.Infof("%s: swarm already initialized", swarmLeader)
+		if len(p.Config.Spec.MKE.SwarmInstallFlags) > 0 {
+			log.Warnf("%s: swarm install flags ignored due to swarm cluster already existing", swarmLeader)
+		}
 	}
 
 	mgrToken, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"), exec.HideOutput())

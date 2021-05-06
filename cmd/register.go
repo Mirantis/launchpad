@@ -29,7 +29,14 @@ func RegisterCommand() *cli.Command {
 				Usage:   "Email",
 				Aliases: []string{"e"},
 			},
+			debugFlag,
+			traceFlag,
+			telemetryFlag,
+			upgradeFlag,
+			licenseFlag,
 		},
+		Before: actions(initLogger, startUpgradeCheck, initAnalytics),
+		After:  actions(closeAnalytics, upgradeCheckResult),
 		Action: func(ctx *cli.Context) error {
 			if _, err := user.GetConfig(); err != nil {
 				analytics.TrackEvent("User Not Registered", nil)
