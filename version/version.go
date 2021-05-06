@@ -3,7 +3,7 @@ package version
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"runtime"
 	"sort"
@@ -109,7 +109,7 @@ func latestTag(timeout time.Duration) string {
 		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
 		return "" // ignore backend failures
 	}
-	body, readErr := ioutil.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
 		log.Debugf("%s failed to read body: %s", baseMsg, err.Error())
 		return "" // ignore reading errors
@@ -173,7 +173,7 @@ func GetLatest(timeout time.Duration) *LaunchpadRelease {
 		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
 		return nil // ignore backend failures
 	}
-	body, readErr := ioutil.ReadAll(resp.Body)
+	body, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
 		log.Debugf("%s failed to read body: %s", baseMsg, err.Error())
 		return nil // ignore reading errors

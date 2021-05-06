@@ -3,7 +3,7 @@ package phase
 import (
 	"archive/zip"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -88,7 +88,7 @@ func (p *DownloadBundle) writeBundle(bundleDir string, bundle *zip.Reader) error
 		}
 		defer src.Close()
 		var data []byte
-		data, err = ioutil.ReadAll(src)
+		data, err = io.ReadAll(src)
 		if err != nil {
 			return err
 		}
@@ -105,7 +105,7 @@ func (p *DownloadBundle) writeBundle(bundleDir string, bundle *zip.Reader) error
 			}
 		}
 
-		err = ioutil.WriteFile(filepath.Join(bundleDir, zf.Name), data, os.FileMode(mode))
+		err = io.WriteFile(filepath.Join(bundleDir, zf.Name), data, os.FileMode(mode))
 		if err != nil {
 			return err
 		}

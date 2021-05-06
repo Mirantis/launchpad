@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -29,7 +28,7 @@ import (
 )
 
 func TestHostRequireManagerValidationPass(t *testing.T) {
-	kf, _ := ioutil.TempFile("", "testkey")
+	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	data := `
 apiVersion: "launchpad.mirantis.com/mke/v1.3"
@@ -51,7 +50,7 @@ spec:
 }
 
 func TestHostRequireManagerValidationFail(t *testing.T) {
-	kf, _ := ioutil.TempFile("", "testkey")
+	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	data := `
 apiVersion: "launchpad.mirantis.com/mke/v1.3"
@@ -388,7 +387,7 @@ spec:
 }
 
 func TestValidationWithMSRRole(t *testing.T) {
-	kf, _ := ioutil.TempFile("", "testkey")
+	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	t.Run("the role is not ucp, worker or msr", func(t *testing.T) {
 		data := `

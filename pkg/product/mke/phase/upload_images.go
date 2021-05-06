@@ -1,7 +1,6 @@
 package phase
 
 import (
-	"io/ioutil"
 	"path"
 	"path/filepath"
 
@@ -32,7 +31,7 @@ func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 	}
 	log.Debugf("%s: listing images in imageDir '%s'", h, h.ImageDir)
 
-	files, err := ioutil.ReadDir(h.ImageDir)
+	files, err := io.ReadDir(h.ImageDir)
 	if err != nil {
 		log.Errorf("%s: failed to list images in imageDir '%s': %s", h, h.ImageDir, err.Error())
 		return false

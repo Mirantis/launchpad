@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 
@@ -164,7 +164,7 @@ SUPPORT:
 
 func initLogger() {
 	log.SetLevel(log.TraceLevel)
-	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+	log.SetOutput(io.Discard) // Send all logs to nowhere by default
 
 	// Send logs with level >= INFO to stdout
 

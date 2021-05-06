@@ -1,7 +1,7 @@
 package analytics
 
 import (
-	"io/ioutil"
+	"io"
 	logger "log"
 	"runtime"
 
@@ -51,7 +51,7 @@ func init() {
 
 // NewSegmentClient returns a Segment client for uploading analytics data.
 func NewSegmentClient(segmentToken string) (Analytics, error) {
-	segmentLogger := analytics.StdLogger(logger.New(ioutil.Discard, "segment ", logger.LstdFlags))
+	segmentLogger := analytics.StdLogger(logger.New(io.Discard, "segment ", logger.LstdFlags))
 	segmentConfig := analytics.Config{
 		Logger: segmentLogger,
 	}

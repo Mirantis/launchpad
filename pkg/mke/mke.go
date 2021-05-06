@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -103,7 +103,7 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 		log.Debugf("Failed to get bundle: %v", err)
 		return nil, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		if err == nil {
@@ -131,7 +131,7 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 		log.Debugf("Failed to POST %s: %v", mkeURL.String(), err)
 		return "", err
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode == 200 {
 		var authToken AuthToken

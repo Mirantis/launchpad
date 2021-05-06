@@ -3,7 +3,7 @@ package phase
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -293,7 +293,7 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 	}
 
 	var containersResponse []dockerContainer
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

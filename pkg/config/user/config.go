@@ -1,7 +1,6 @@
 package user
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -62,7 +61,7 @@ func SaveConfig(config *Config) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(configFile, d, 0644)
+	err = io.WriteFile(configFile, d, 0644)
 	if err != nil {
 		return err
 	}
