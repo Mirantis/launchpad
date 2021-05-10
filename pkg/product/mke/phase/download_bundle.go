@@ -105,7 +105,7 @@ func (p *DownloadBundle) writeBundle(bundleDir string, bundle *zip.Reader) error
 			}
 		}
 
-		err = io.WriteFile(filepath.Join(bundleDir, zf.Name), data, os.FileMode(mode))
+		err = os.WriteFile(filepath.Join(bundleDir, zf.Name), data, os.FileMode(mode))
 		if err != nil {
 			return err
 		}

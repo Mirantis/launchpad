@@ -61,7 +61,7 @@ func SaveConfig(config *Config) error {
 	if err != nil {
 		return err
 	}
-	err = io.WriteFile(configFile, d, 0644)
+	err = os.WriteFile(configFile, d, 0644)
 	if err != nil {
 		return err
 	}
