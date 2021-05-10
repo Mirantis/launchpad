@@ -25,7 +25,7 @@ var LoadExternalFile = func(path string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	filedata, err := io.ReadFile(realpath)
+	filedata, err := os.ReadFile(realpath)
 	if err != nil {
 		return []byte{}, err
 	}

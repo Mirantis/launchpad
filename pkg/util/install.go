@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -10,7 +11,7 @@ import (
 // SetupLicenseFile reads the license file and returns a license string command
 // flag to be used with MSR and MKE installers
 func SetupLicenseFile(licenseFilePath string) (string, error) {
-	license, err := io.ReadFile(licenseFilePath)
+	license, err := os.ReadFile(licenseFilePath)
 	if err != nil {
 		return "", err
 	}
