@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/docker/hub"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/k0sproject/rig"
@@ -55,6 +56,11 @@ func roleChecks(sl validator.StructLevel) {
 
 // Init returns an example of configuration file contents
 func Init(kind string) *ClusterConfig {
+	mkeV, err := hub.LatestTag("mirantis", "ucp", false)
+	if err != nil {
+		mkeV = "required"
+	}
+
 	config := &ClusterConfig{
 		APIVersion: "launchpad.mirantis.com/mke/v1.4",
 		Kind:       kind,
@@ -66,7 +72,7 @@ func Init(kind string) *ClusterConfig {
 				Version: constant.MCRVersion,
 			},
 			MKE: MKEConfig{
-				Version: constant.MKEVersion,
+				Version: mkeV,
 			},
 			Hosts: []*Host{
 				{
@@ -95,8 +101,12 @@ func Init(kind string) *ClusterConfig {
 		},
 	}
 	if kind == "mke+msr" {
+		msrV, err := hub.LatestTag("mirantis", "dtr", false)
+		if err != nil {
+			msrV = "required"
+		}
 		config.Spec.MSR = &MSRConfig{
-			Version:    constant.MSRVersion,
+			Version:    msrV,
 			ReplicaIDs: "sequential",
 		}
 

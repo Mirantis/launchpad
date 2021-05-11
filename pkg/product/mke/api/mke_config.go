@@ -149,11 +149,12 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		raw.Version = c.Version
 	}
 
+	if raw.Version == "" {
+		return fmt.Errorf("missing spec.mke.version")
+	}
+
 	v, err := version.NewVersion(raw.Version)
 	if err != nil {
-		if raw.Version == "" {
-			return fmt.Errorf("missing spec.mke.version")
-		}
 		return fmt.Errorf("error in field spec.mke.version: %s", err.Error())
 	}
 

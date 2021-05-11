@@ -18,6 +18,7 @@ func (p *MKE) Apply(disableCleanup, force bool) error {
 	phaseManager.SkipCleanup = disableCleanup
 
 	phaseManager.AddPhases(
+		&mke.UpgradeCheck{},
 		&common.Connect{},
 		&mke.DetectOS{},
 		&mke.GatherFacts{},

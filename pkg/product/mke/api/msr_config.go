@@ -34,10 +34,11 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
+	if c.Version == "" {
+		return fmt.Errorf("missing spec.msr.version")
+	}
+
 	if _, err := version.NewVersion(c.Version); err != nil {
-		if c.Version == "" {
-			return fmt.Errorf("missing spec.msr.version")
-		}
 		return fmt.Errorf("error in field spec.msr.version: %s", err.Error())
 	}
 
