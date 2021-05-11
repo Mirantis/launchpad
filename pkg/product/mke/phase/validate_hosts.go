@@ -3,7 +3,6 @@ package phase
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -60,7 +59,7 @@ func (p *ValidateHosts) formatErrors() error {
 }
 
 func (p *ValidateHosts) validateHostConnection() error {
-	f, err := ioutil.TempFile("", "uploadTest")
+	f, err := os.CreateTemp("", "uploadTest")
 	if err != nil {
 		return err
 	}

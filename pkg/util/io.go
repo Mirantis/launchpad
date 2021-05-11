@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/mitchellh/go-homedir"
@@ -26,7 +25,7 @@ var LoadExternalFile = func(path string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	filedata, err := ioutil.ReadFile(realpath)
+	filedata, err := os.ReadFile(realpath)
 	if err != nil {
 		return []byte{}, err
 	}

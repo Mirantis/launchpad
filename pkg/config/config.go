@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -97,7 +97,7 @@ func resolveClusterFile(clusterFile string) ([]byte, error) {
 		stat, err := os.Stdin.Stat()
 		if err == nil {
 			if (stat.Mode() & os.ModeCharDevice) == 0 {
-				return ioutil.ReadAll(os.Stdin)
+				return io.ReadAll(os.Stdin)
 			}
 		}
 
@@ -110,7 +110,7 @@ func resolveClusterFile(clusterFile string) ([]byte, error) {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(file)
+	return io.ReadAll(file)
 }
 
 func openClusterFile(clusterFile string) (*os.File, error) {

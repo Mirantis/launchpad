@@ -2,7 +2,7 @@ package mke
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -134,7 +134,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 		if interactive {
 			return fmt.Errorf("--interactive given but there's piped data in stdin")
 		}
-		data, err := ioutil.ReadAll(os.Stdin)
+		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			return err
 		}

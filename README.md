@@ -2,7 +2,7 @@
 
 > The Next Generation Mirantis Cluster Installer & Lifecycle Management Tool
 
-The purpose of `launchpad` is to provide amazing new user experience for anyone interested in getting started with cluster products. It will simplify the complex installation processes and provides "from zero to hero" experience in less than 5mins for IT admin / DevOps people who are experienced with various command line tools and cloud technologies. In addition, it'll provide functionality to upgrade existing clusters to new versions with no downtime or service interruptions (high availability clusters). In the future, more functionality may be added.
+The purpose of `launchpad` is to provide an amazing new user experience for anyone interested in getting started with cluster products. It will simplify the complex installation processes and provides "from zero to hero" experience in less than 5mins for IT admin / DevOps people who are experienced with various command line tools and cloud technologies. In addition, it'll provide functionality to upgrade existing clusters to new versions with no downtime or service interruptions (high availability clusters). In the future, more functionality may be added.
 
 See the public Github repo for getting started instructions, documentation and more at https://github.com/mirantis/launchpad.
 
