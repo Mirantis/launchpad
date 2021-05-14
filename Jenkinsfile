@@ -235,7 +235,7 @@ pipeline {
       }
       steps {
         withCredentials([
-          string(credentialsId: "6cc76ab5-7d9f-433a-80ab-d576cc4f8504", variable: "GITHUB_TOKEN"),
+          string(credentialsId: "00efb2fb-3e89-4d75-b225-f0c37746df54", variable: "GITHUB_TOKEN"),
           string(credentialsId: "launchpad-win-certificate", variable: "WIN_PKCS12"),
           string(credentialsId: "launchpad-win-certificate-passwd", variable: "WIN_PKCS12_PASSWD"),
         ]) {
