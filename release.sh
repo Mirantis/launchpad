@@ -14,7 +14,7 @@ sudo osslsigncode sign -pkcs12 windows.pkcs12 -pass "${WIN_PKCS12_PASSWD}" -i ht
 rm -f windows.pkcs12
 sudo mv ./bin/launchpad-signed-win-x64.exe ./bin/launchpad-win-x64.exe
 
-declare -a binaries=("launchpad-darwin-x64" "launchpad-win-x64.exe" "launchpad-linux-x64")
+declare -a binaries=("launchpad-darwin-x64" "launchpad-darwin-arm64" "launchpad-win-x64.exe" "launchpad-linux-x64" "launchpad-linux-arm64")
 
 mkdir -p tmp.sha256
 pushd bin
