@@ -34,8 +34,8 @@ bin/launchpad-darwin-x64:
 bin/launchpad-darwin-arm64:
 	GOARCH=arm64 go build ${BUILD_FLAGS} -o bin/launchpad-darwin-arm64 main.go
 
-bin/launchpad: bin/launchpad-${GOOS}-x64
-	cp bin/launchpad-${GOOS}-x64 bin/launchpad
+bin/launchpad: bin/launchpad-linux-x64
+	cp bin/launchpad-linux-x64 bin/launchpad
 
 bin/launchpad.exe: bin/launchpad-win-x64.exe
 	cp bin/launchpad-win-x64 bin/launchpad.exe
