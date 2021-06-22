@@ -53,7 +53,7 @@ jobs:
       run: make bin/launchpad-win-x64.exe
 
     - name: Build darwin
-      run: make bin/launchpad-darwin-x64.exe
+      run: make bin/launchpad-darwin-x64
 
   smoke-basic:
     strategy:
