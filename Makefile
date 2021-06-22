@@ -7,51 +7,52 @@ LAUNCHPAD_VERSION ?= $(or ${TAG_NAME},dev)
 LD_FLAGS = -s -w -X github.com/Mirantis/mcc/version.Environment=$(ENVIRONMENT) -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(LAUNCHPAD_VERSION)
 BUILD_FLAGS = -trimpath -a -tags "netgo static_build" -installsuffix netgo -ldflags "$(LD_FLAGS) -extldflags '-static'"
 ifeq ($(OS),Windows_NT)
-       uname_s := "windows"
-       TARGET ?= "bin\\launchpad.exe"
+			 GOOS ?= "windows"
+			 TARGET ?= "bin/launchpad.exe"
 else
+			 TARGET ?= "bin/launchpad"
        uname_s := $(shell uname -s | tr '[:upper:]' '[:lower:]')
-       TARGET ?= "bin/launchpad"
+       GOOS ?= ${uname_s}
 endif
-GOOS ?= ${uname_s}
-BUILDER_IMAGE = launchpad-builder
-GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
-	-w "/go/src/github.com/Mirantis/mcc" \
-	-e GOPATH\
-	-e GOOS \
-	-e GOARCH \
-	-e GOEXE \
-	$(BUILDER_IMAGE)
 gosrc = $(wildcard *.go */*.go */*/*.go */*/*/*.go)
 
 clean:
-	sudo rm -f bin/launchpad
+	rm -f bin/launchpad-*
 
-builder:
-	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
+bin/launchpad-linux-x64:
+	GOARCH=amd64 go build ${BUILD_FLAGS} -o bin/launchpad-linux-x64 main.go
 
-unit-test: builder
-	$(GO) go test -v ./...
+bin/launchpad-linux-arm64:
+	GOARCH=arm64 go build ${BUILD_FLAGS} -o bin/launchpad-linux-arm64 main.go
 
-$(TARGET): $(gosrc)
-	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
-	GOOS=${GOOS} $(GO) go build $(BUILD_FLAGS) -o $(TARGET) main.go
+bin/launchpad-win-x64.exe:
+	GOARCH=amd64 go build ${BUILD_FLAGS} -o bin/launchpad-win-x64.exe main.go
+
+bin/launchpad-darwin-x64:
+	GOARCH=amd64 go build ${BUILD_FLAGS} -o bin/launchpad-darwin-x64 main.go
+
+bin/launchpad-darwin-arm64:
+	GOARCH=arm64 go build ${BUILD_FLAGS} -o bin/launchpad-darwin-arm64 main.go
+
+bin/launchpad: bin/launchpad-${GOOS}-x64
+	cp bin/launchpad-${GOOS}-x64 bin/launchpad
+
+bin/launchpad.exe: bin/launchpad-win-x64.exe
+	cp bin/launchpad-win-x64 bin/launchpad.exe
+
+unit-test:
+	go test -v ./...
 
 build: $(TARGET)
 
-build-all: builder
-	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 main.go
-	GOOS=linux GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-arm64 main.go
-	GOOS=windows GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-win-x64.exe main.go
-	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 main.go
-	GOOS=darwin GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-arm64 main.go
+build-all: bin/launchpad-linux-x64 bin/launchpad-linux-arm64 bin/launchpad-win-x64.exe bin/launchpad-darwin-x64 bin/launchpad-darwin-arm64
 
 release: build-all
 	./release.sh
 
 lint: builder
-	$(GO) go vet ./...
-	$(GO) golint -set_exit_status ./...
+	go vet ./...
+	golint -set_exit_status ./...
 
 smoke-register-test: build
 	./test/smoke_register.sh

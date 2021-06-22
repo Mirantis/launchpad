@@ -35,14 +35,11 @@ jobs:
           #      with:
           #        version: v1.35.2
 
-    - name: Build all
-      run: make build-all
+    - name: Build
+      run: make bin/launchpad
 
     - name: Test
       run: go test -v ./...
-
-    - name: Rename linux binary
-      run: mv -f bin/launchpad-linux-x64 bin/launchpad
 
     - name: Cache the compiled binary for further testing
       uses: actions/cache@v2
@@ -52,8 +49,11 @@ jobs:
           bin/launchpad
         key: build-${{ github.run_id }}
 
-    - name: Build all
-      run: make build-all
+    - name: Build windows
+      run: make bin/launchpad-win-x64.exe
+
+    - name: Build darwin
+      run: make bin/launchpad-darwin-x64.exe
 
   smoke-basic:
     strategy:
