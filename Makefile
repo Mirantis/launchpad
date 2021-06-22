@@ -34,57 +34,52 @@ bin/launchpad-darwin-x64:
 bin/launchpad-darwin-arm64:
 	GOARCH=arm64 go build ${BUILD_FLAGS} -o bin/launchpad-darwin-arm64 main.go
 
-"bin/launchpad": bin/launchpad-linux-x64
+bin/launchpad: bin/launchpad-linux-x64
 	cp bin/launchpad-linux-x64 bin/launchpad
-
-bin/launchpad.exe: bin/launchpad-win-x64.exe
-	cp bin/launchpad-win-x64 bin/launchpad.exe
 
 unit-test:
 	go test -v ./...
-
-build: $(TARGET)
 
 build-all: bin/launchpad-linux-x64 bin/launchpad-linux-arm64 bin/launchpad-win-x64.exe bin/launchpad-darwin-x64 bin/launchpad-darwin-arm64
 
 release: build-all
 	./release.sh
 
-lint: builder
+lint:
 	go vet ./...
 	golint -set_exit_status ./...
 
-smoke-register-test: build
+smoke-register-test: bin/launchpad
 	./test/smoke_register.sh
 
-smoke-apply-test: build
+smoke-apply-test: bin/launchpad
 	./test/smoke_apply.sh
 
-smoke-apply-upload-test: build
+smoke-apply-upload-test: bin/launchpad
 	./test/smoke_upload.sh
 
-smoke-apply-local-repo-test: build
+smoke-apply-local-repo-test: bin/launchpad
 	./test/smoke_localrepo.sh
 
-smoke-reset-local-repo-test: build
+smoke-reset-local-repo-test: bin/launchpad
 	./test/smoke_localrepo_reset.sh
 
-smoke-apply-test-localhost: build
+smoke-apply-test-localhost: bin/launchpad
 	./test/smoke_apply_local.sh
 
-smoke-apply-bastion-test: build
+smoke-apply-bastion-test: bin/launchpad
 	./test/smoke_apply_bastion.sh
 
-smoke-apply-forward-test: build
+smoke-apply-forward-test: bin/launchpad
 	./test/smoke_apply_forward.sh
 
-smoke-upgrade-test: build
+smoke-upgrade-test: bin/launchpad
 	./test/smoke_upgrade.sh
 
-smoke-prune-test: build
+smoke-prune-test: bin/launchpad
 	./test/smoke_prune.sh
 
-smoke-reset-test: build
+smoke-reset-test: bin/launchpad
 	./test/smoke_reset.sh
 
 smoke-cleanup:
