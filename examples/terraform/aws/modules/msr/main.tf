@@ -13,7 +13,7 @@ resource "aws_security_group" "msr" {
 }
 
 locals {
-  subnet_count = "${length(var.subnet_ids)}"
+  subnet_count = length(var.subnet_ids)
 }
 
 
@@ -23,7 +23,7 @@ resource "aws_instance" "msr" {
   tags = tomap({
     "Name" = "${var.cluster_name}-msr-${count.index + 1}",
     "Role" = "msr",
-    "${var.kube_cluster_tag}" = "shared"
+    (var.kube_cluster_tag) = "shared"
   })
 
   instance_type          = var.msr_type

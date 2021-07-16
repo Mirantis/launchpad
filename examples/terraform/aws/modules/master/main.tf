@@ -26,7 +26,7 @@ resource "aws_security_group" "master" {
 }
 
 locals {
-  subnet_count = "${length(var.subnet_ids)}"
+  subnet_count = length(var.subnet_ids)
 }
 
 
@@ -36,7 +36,7 @@ resource "aws_instance" "mke_master" {
   tags = tomap({
     "Name" = "${var.cluster_name}-master-${count.index + 1}",
     "Role" = "manager",
-    "${var.kube_cluster_tag}" = "shared"
+    (var.kube_cluster_tag) = "shared"
   })
 
   instance_type          = var.master_type

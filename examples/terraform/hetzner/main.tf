@@ -3,7 +3,7 @@ variable "hcloud_token" {
 }
 
 provider "hcloud" {
-  token = "${var.hcloud_token}"
+  token = var.hcloud_token
 }
 
 variable "ssh_keys" {
@@ -43,24 +43,24 @@ variable "worker_type" {
 }
 
 resource "hcloud_server" "master" {
-  count       = "${var.master_count}"
+  count       = var.master_count
   name        = "${var.cluster_name}-master-${count.index}"
-  image       = "${var.image}"
-  server_type = "${var.master_type}"
-  ssh_keys    = "${var.ssh_keys}"
-  location    = "${var.location}"
+  image       = var.image
+  server_type = var.master_type
+  ssh_keys    = var.ssh_keys
+  location    = var.location
   labels = {
     role = "manager"
   }
 }
 
 resource "hcloud_server" "worker" {
-  count       = "${var.worker_count}"
+  count       = var.worker_count
   name        = "${var.cluster_name}-worker-${count.index}"
-  image       = "${var.image}"
-  server_type = "${var.worker_type}"
-  ssh_keys    = "${var.ssh_keys}"
-  location    = "${var.location}"
+  image       = var.image
+  server_type = var.worker_type
+  ssh_keys    = var.ssh_keys
+  location    = var.location
   labels = {
     role = "worker"
   }

@@ -10,9 +10,9 @@ locals {
       role    = "manager"
       privateInterface = "ens3"
       mcrConfig: {
-        bip: "${var.docker_int_net}"
+        bip: var.docker_int_net
         default-address-pools: {
-          base: "${var.docker_default_address_pool}"
+          base: var.docker_default_address_pool
         }
       }
       environment : {
@@ -32,9 +32,9 @@ locals {
       role    = "worker"
       privateInterface = "ens3"
       mcrConfig: {
-        bip: "${var.docker_int_net}"
+        bip: var.docker_int_net
         default-address-pools: {
-          base: "${var.docker_default_address_pool}"
+          base: var.docker_default_address_pool
         }
       }
       environment : {

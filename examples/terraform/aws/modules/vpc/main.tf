@@ -8,13 +8,13 @@ resource "aws_vpc" "network" {
   enable_dns_support               = true
   enable_dns_hostnames             = true
 
-  tags = tomap({"Name" = "${var.cluster_name}"})
+  tags = tomap({"Name" = var.cluster_name})
 }
 
 resource "aws_internet_gateway" "gateway" {
   vpc_id = aws_vpc.network.id
 
-  tags = tomap({"Name" = "${var.cluster_name}"})
+  tags = tomap({"Name" = var.cluster_name})
 }
 
 resource "aws_route_table" "default" {
@@ -25,7 +25,7 @@ resource "aws_route_table" "default" {
     gateway_id = aws_internet_gateway.gateway.id
   }
 
-  tags = tomap({"Name" = "${var.cluster_name}"})
+  tags = tomap({"Name" = var.cluster_name})
 }
 
 locals {
@@ -43,7 +43,7 @@ resource "aws_subnet" "public" {
   cidr_block                      = cidrsubnet(var.host_cidr, 8, count.index)
   map_public_ip_on_launch         = true
 
-  tags = tomap({local.kube_cluster_tag = "true"})
+  tags = tomap({(local.kube_cluster_tag) = "true"})
 }
 
 resource "aws_route_table_association" "public" {

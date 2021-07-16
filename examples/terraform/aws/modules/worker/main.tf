@@ -15,7 +15,7 @@ resource "aws_instance" "mke_worker" {
   tags = tomap({
     "Name" = "${var.cluster_name}-worker-${count.index + 1}",
     "Role" = "worker",
-    "${var.kube_cluster_tag}" = "shared"
+    (var.kube_cluster_tag) = "shared"
   })
 
   instance_type          = var.worker_type
