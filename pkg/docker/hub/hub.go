@@ -34,6 +34,14 @@ func LatestTag(org, image string, pre bool) (string, error) {
 
 	req.Header.Set("Accept", "application/json")
 	res, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("github request failed: %s", err.Error())
+	}
+
+	if res == nil {
+		return "", fmt.Errorf("github request failed for unknown reason")
+	}
+
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
