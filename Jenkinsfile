@@ -212,7 +212,7 @@ pipeline {
                 LINUX_IMAGE = "quay.io/footloose/ubuntu18.04"
                 FOOTLOOSE_TEMPLATE = "footloose-msr.yaml.tpl"
                 LAUNCHPAD_CONFIG = "launchpad-msr-beta.yaml"
-                MKE_VERSION = "3.4.1-48de8b4"
+                MKE_VERSION = "3.4.6-21f9b26"
                 MKE_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_IMAGE_REPO = "docker.io/mirantiseng"
                 MSR_VERSION = "2.9.0-tp3"
