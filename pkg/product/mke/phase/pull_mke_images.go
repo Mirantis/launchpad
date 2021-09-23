@@ -68,9 +68,10 @@ func (p *PullMKEImages) Run() error {
 			}
 			modV, err := version.NewVersion("3.3.7")
 
-			// MKE 3.3.8 introduced a change / bug / feature that makes it only look at images from "mirantis" repository.
-			// Before that, MKE was looking for images from the same repository as the bootstrapper. This version switch logic
-			// should make it work across MKE versions.
+			// MKE 3.3.8 introduced a change / bug / feature that makes it only look for
+			// images from "mirantis" repository.  Before that, MKE was looking for
+			// images from the same repository as the bootstrapper. This version switch
+			// logic here should make it work across MKE versions.
 			var retagRepo string
 			if mke.VersionGreaterThan(mkeV, modV) {
 				retagRepo = "mirantis"
