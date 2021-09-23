@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/docker"
+	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/hashicorp/go-version"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -60,8 +62,25 @@ func (p *PullMKEImages) Run() error {
 				return err
 			}
 
-			log.Debugf("%s: retagging images", h)
-			return docker.RetagAllToRepository(h, list, "mirantis")
+			mkeV, err := version.NewVersion(p.Config.Spec.MKE.Version)
+			if err != nil {
+				return err
+			}
+			modV, err := version.NewVersion("3.3.7")
+
+			// MKE 3.3.8 introduced a change / bug / feature that makes it only look at images from "mirantis" repository.
+			// Before that, MKE was looking for images from the same repository as the bootstrapper. This version switch logic
+			// should make it work across MKE versions.
+			var retagRepo string
+			if mke.VersionGreaterThan(mkeV, modV) {
+				retagRepo = "mirantis"
+			} else {
+				retagRepo = images[0].Repository
+			}
+
+			log.Debugf("%s: retagging images to %s", h, retagRepo)
+
+			return docker.RetagAllToRepository(h, list, retagRepo)
 		})
 	}
 
