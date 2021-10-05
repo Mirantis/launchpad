@@ -61,7 +61,7 @@ func (p *PullMKEImages) Run() error {
 			}
 
 			log.Debugf("%s: retagging images", h)
-			return docker.RetagAllToRepository(h, list, images[0].Repository)
+			return docker.RetagAllToRepository(h, list, "mirantis")
 		})
 	}
 
