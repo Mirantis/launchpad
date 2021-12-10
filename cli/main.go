@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/Mirantis/mcc/cmd"
+	"github.com/Mirantis/mcc/cli/cmd"
 	"github.com/Mirantis/mcc/pkg/completion"
 	"github.com/Mirantis/mcc/version"
 	log "github.com/sirupsen/logrus"

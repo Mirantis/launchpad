@@ -17,8 +17,8 @@ require (
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
-	github.com/google/go-cmp v0.5.1 // indirect
 	github.com/hashicorp/go-version v1.2.0
+	github.com/hashicorp/terraform-plugin-framework v0.3.0
 	github.com/k0sproject/dig v0.1.0
 	github.com/k0sproject/rig v0.3.22
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51

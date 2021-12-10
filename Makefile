@@ -1,4 +1,5 @@
 GIT_COMMIT = $(shell git rev-parse --short=7 HEAD)
+GIT_VERSION ?= $(shell git describe --tags)
 ifdef TAG_NAME
 	ENVIRONMENT = "production"
 endif
@@ -24,8 +25,10 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	$(BUILDER_IMAGE)
 gosrc = $(wildcard *.go */*.go */*/*.go */*/*/*.go)
 
+terraform_install_root = ~/.terraform.d/plugins/terraform.mirantis.com/mirantis/launchpad/$(GIT_VERSION)
+
 clean:
-	sudo rm -f bin/launchpad
+	sudo rm -rf ./bin
 
 builder:
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
@@ -40,11 +43,25 @@ $(TARGET): $(gosrc)
 build: $(TARGET)
 
 build-all: builder
-	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 main.go
-	GOOS=linux GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-arm64 main.go
-	GOOS=windows GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-win-x64.exe main.go
-	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 main.go
-	GOOS=darwin GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-arm64 main.go
+	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 ./cli/main.go
+	GOOS=linux GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-arm64 ./cli/main.go
+	GOOS=windows GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-win-x64.exe ./cli/main.go
+	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 ./cli/main.go
+	GOOS=darwin GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-arm64 ./cli/main.go
+
+terraform-build-all:
+	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/terraform-linux-amd64 ./terraform/main.go
+	GOOS=linux GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/terraform-linux-arm64 ./terraform/main.go
+	GOOS=windows GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/terraform-win-amd64.exe ./terraform/main.go
+	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/terraform-darwin-amd64 ./terraform/main.go
+	GOOS=darwin GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/terraform-darwin-arm64 ./terraform/main.go
+
+terraform-install-all: terraform-build-all
+	mkdir -p $(terraform_install_root)/linux_amd64 && cp bin/terraform-linux-amd64 $(terraform_install_root)/linux_amd64/terraform-provider-launchpad
+	mkdir -p $(terraform_install_root)/linux_arm64 && cp bin/terraform-linux-arm64 $(terraform_install_root)/linux_arm64/terraform-provider-launchpad
+	mkdir -p $(terraform_install_root)/windows_amd64 && cp bin/terraform-win-amd64.exe $(terraform_install_root)/windows_amd64/terraform-provider-launchpad
+	mkdir -p $(terraform_install_root)/darwin_amd64 && cp bin/terraform-darwin-amd64 $(terraform_install_root)/darwin_amd64/terraform-provider-launchpad
+	mkdir -p $(terraform_install_root)/darwin_arm64 && cp bin/terraform-darwin-arm64 $(terraform_install_root)/darwin_arm64/terraform-provider-launchpad
 
 release: build-all
 	./release.sh

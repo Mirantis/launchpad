@@ -42,7 +42,7 @@ func ProductFromFile(path string) (product.Product, error) {
 	return ProductFromYAML(data)
 }
 
-// ProductFromYAML returns a Product from YAML bytes, or an error
+// ProductFromYAML returns a Product of matching kind from raw Yaml instead of a file
 func ProductFromYAML(data []byte) (product.Product, error) {
 	c := make(map[string]interface{})
 	if err := yaml.Unmarshal(data, c); err != nil {
