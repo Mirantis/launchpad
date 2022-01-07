@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var Disable = false
+var DisableUpgradeCheck = false
 
 // UpgradeCheck displays a notification of an upgrade being available
 type UpgradeCheck struct {
@@ -23,7 +23,7 @@ func (p *UpgradeCheck) Title() string {
 }
 
 func (p *UpgradeCheck) ShouldRun() bool {
-	return !Disable
+	return !DisableUpgradeCheck
 }
 
 // Run the installer container

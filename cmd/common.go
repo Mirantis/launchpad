@@ -101,7 +101,7 @@ func actions(funcs ...func(*cli.Context) error) func(*cli.Context) error {
 }
 
 func startUpgradeCheck(ctx *cli.Context) error {
-	phase.Disable = ctx.Bool("disable-upgrade-check")
+	phase.DisableUpgradeCheck = ctx.Bool("disable-upgrade-check")
 
 	go func() {
 		if ctx.Command.Name != "download-launchpad" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
