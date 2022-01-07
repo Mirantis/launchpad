@@ -9,6 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var Disable = false
+
 // UpgradeCheck displays a notification of an upgrade being available
 type UpgradeCheck struct {
 	phase.Analytics
@@ -18,6 +20,10 @@ type UpgradeCheck struct {
 // Title prints the phase title
 func (p *UpgradeCheck) Title() string {
 	return "Check For Upgrades"
+}
+
+func (p *UpgradeCheck) ShouldRun() bool {
+	return !Disable
 }
 
 // Run the installer container
