@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// DisableUpgradeCheck for offline use
 var DisableUpgradeCheck = false
 
 // UpgradeCheck displays a notification of an upgrade being available
@@ -22,6 +23,7 @@ func (p *UpgradeCheck) Title() string {
 	return "Check For Upgrades"
 }
 
+// ShouldRun will return false when upgrades checks are disabled
 func (p *UpgradeCheck) ShouldRun() bool {
 	return !DisableUpgradeCheck
 }
