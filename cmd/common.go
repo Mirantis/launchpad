@@ -9,6 +9,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/constant"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
+	"github.com/Mirantis/mcc/pkg/product/mke/phase"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
 	"github.com/mitchellh/go-homedir"
@@ -100,6 +101,8 @@ func actions(funcs ...func(*cli.Context) error) func(*cli.Context) error {
 }
 
 func startUpgradeCheck(ctx *cli.Context) error {
+	phase.DisableUpgradeCheck = ctx.Bool("disable-upgrade-check")
+
 	go func() {
 		if ctx.Command.Name != "download-launchpad" && version.IsProduction() && !ctx.Bool("disable-upgrade-check") {
 			upgradeChan <- version.GetUpgrade()
