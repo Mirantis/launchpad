@@ -112,6 +112,7 @@ pipeline {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/centos7"
           }
         }
+/*
         stage("CentOS 8") {
           agent {
             node {
@@ -137,6 +138,7 @@ pipeline {
             }
           }
         }
+*/
         stage("Ubuntu 16.04 apply") {
           agent {
             node {
