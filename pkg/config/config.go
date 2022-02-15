@@ -39,7 +39,7 @@ func ProductFromFile(path string) (product.Product, error) {
 	if err != nil {
 		return nil, err
 	}
-	return productFromYAML(data)
+	return ProductFromYAML(data)
 }
 
 // ProductFromYAML returns a Product from YAML bytes, or an error
