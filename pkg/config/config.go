@@ -39,10 +39,11 @@ func ProductFromFile(path string) (product.Product, error) {
 	if err != nil {
 		return nil, err
 	}
-	return productFromYAML(data)
+	return ProductFromYAML(data)
 }
 
-func productFromYAML(data []byte) (product.Product, error) {
+// ProductFromYAML returns a Product from YAML bytes, or an error
+func ProductFromYAML(data []byte) (product.Product, error) {
 	c := make(map[string]interface{})
 	if err := yaml.Unmarshal(data, c); err != nil {
 		return nil, err
