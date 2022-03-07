@@ -109,7 +109,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 			if err = json.Unmarshal([]byte(configData), &newCfg); err == nil {
 				for k, v := range newCfg {
 					if _, ok := h.DaemonConfig[k]; !ok {
-						log.Debugf("%s: set %k = %v for spec.hosts[].daemonConfig from existing daemon.json", h, k, v)
+						log.Debugf("%s: set %s = %t for spec.hosts[].daemonConfig from existing daemon.json", h, k, v)
 						h.DaemonConfig[k] = v
 					}
 				}
