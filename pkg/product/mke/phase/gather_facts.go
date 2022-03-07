@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/k0sproject/dig"
 
 	// needed to load the build func in package init
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -101,6 +103,18 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 		log.Infof("%s: mirantis container runtime not installed", h)
 	} else {
 		log.Infof("%s: is running mirantis container runtime version %s", h, version)
+		configData, err := h.Configurer.ReadFile(h, "/etc/docker/daemon.json")
+		if err == nil {
+			var newCfg dig.Mapping
+			if err = json.Unmarshal([]byte(configData), &newCfg); err == nil {
+				for k, v := range newCfg {
+					if _, ok := h.DaemonConfig[k]; !ok {
+						log.Debugf("%s: set %k = %v for spec.hosts[].daemonConfig from existing daemon.json", h, k, v)
+						h.DaemonConfig[k] = v
+					}
+				}
+			}
+		}
 	}
 
 	h.Metadata.MCRVersion = version
