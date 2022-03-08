@@ -25,6 +25,12 @@ func NewApplyCommand() *cli.Command {
 			configFlag,
 			confirmFlag,
 			redactFlag,
+			&cli.IntFlag{
+				Name:    "concurrency",
+				Aliases: []string{"c"},
+				Usage:   "Worker upgrade concurrency (percentage)",
+				Value:   10,
+			},
 			&cli.BoolFlag{
 				Name:    "force",
 				Aliases: []string{"f"},
@@ -41,6 +47,10 @@ func NewApplyCommand() *cli.Command {
 		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec),
 		After:  actions(closeAnalytics, upgradeCheckResult),
 		Action: func(ctx *cli.Context) (err error) {
+			if ctx.Int("concurrency") < 1 || ctx.Int("concurrency") > 100 {
+				return fmt.Errorf("invalid --concurrency %d (must be 1..100)", ctx.Int("concurrency"))
+			}
+
 			var logFile *os.File
 
 			start := time.Now()
@@ -69,7 +79,7 @@ func NewApplyCommand() *cli.Command {
 				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2021 Mirantis, Inc.                          v%s\n\n", version.Version))
 			}
 
-			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"))
+			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"))
 
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
