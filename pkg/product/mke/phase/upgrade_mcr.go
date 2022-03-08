@@ -155,15 +155,21 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	err := retry.Do(
 		func() error {
-			nodeID, err := swarm.NodeID(h)
-			if err == nil && nodeID != "" {
-				log.Infof("%s: draining node", h)
-				err := h.Exec(h.Configurer.DockerCommandf("node update --availability drain %s", nodeID))
-				if err != nil {
-					return fmt.Errorf("%s: drain failed: %w", h, err)
+			var nodeID string
+			var leader *api.Host
+			if h.Role == "worker" {
+				id, err := swarm.NodeID(h)
+				if err == nil && id != "" {
+					nodeID = id
+					leader = p.Config.Spec.SwarmLeader()
+					log.Infof("%s: draining node %s (%s)", leader, h, nodeID)
+					err := leader.Exec(leader.Configurer.DockerCommandf("node update --availability drain %s", nodeID))
+					if err != nil {
+						return fmt.Errorf("%s: drain of node %s failed: %w", leader, h, err)
+					}
+					time.Sleep(30 * time.Second)
+					log.Infof("%s: drained", h)
 				}
-				time.Sleep(30 * time.Second)
-				log.Infof("%s: drained", h)
 			}
 
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
@@ -172,7 +178,10 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 			}
 
 			if nodeID != "" {
-				return h.Exec(h.Configurer.DockerCommandf("node update --availability active %s", nodeID))
+				log.Infof("%s: reactivating node %s (%s)", leader, h, nodeID)
+				if err := leader.Exec(leader.Configurer.DockerCommandf("node update --availability drain %s", nodeID)); err != nil {
+					return fmt.Errorf("%s: reactivation of node %s failed: %w", leader, h, err)
+				}
 			}
 
 			return nil
