@@ -2,7 +2,7 @@ package product
 
 // Product is an interface that represents a product that launchpad can manage.
 type Product interface {
-	Apply(disableCleanup, force bool) error
+	Apply(disableCleanup, force bool, concurrency int) error
 	Reset() error
 	Describe(reportName string) error
 	ClientConfig() error
