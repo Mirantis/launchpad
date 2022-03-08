@@ -10,6 +10,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/mcc/pkg/swarm"
 
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
@@ -51,7 +52,6 @@ func (p *UpgradeMCR) Run() error {
 }
 
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
-// TODO: should we drain?
 func (p *UpgradeMCR) upgradeMCRs() error {
 	var managers api.Hosts
 	var workers api.Hosts
@@ -153,6 +153,17 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	err := retry.Do(
 		func() error {
+			nodeID, err := swarm.NodeID(h)
+			if err == nil && nodeID != "" {
+				log.Infof("%s: draining node", h)
+				err := h.Exec(h.Configurer.DockerCommandf("node update --availability drain %s", nodeID))
+				if err != nil {
+					return fmt.Errorf("%s: drain failed: %w", h, err)
+				}
+				time.Sleep(30 * time.Second)
+				log.Infof("%s: drained", h)
+			}
+
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
 			return h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR)
 		},
