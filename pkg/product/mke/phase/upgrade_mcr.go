@@ -21,6 +21,7 @@ import (
 type UpgradeMCR struct {
 	phase.Analytics
 	phase.HostSelectPhase
+	Concurrency int
 }
 
 // HostFilterFunc returns true for hosts that do not have engine installed
@@ -125,10 +126,11 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 	}
 
 	// Upgrade worker hosts parallelly in 10% chunks
-	concurrentUpgrades := int(math.Floor(float64(len(workers)) * 0.10))
+	concurrentUpgrades := int(math.Floor(float64(len(workers)) * (float64(p.Concurrency) / 100.0)))
 	if concurrentUpgrades == 0 {
 		concurrentUpgrades = 1
 	}
+	log.Debugf("concurrently upgrading workers in batches of %d", concurrentUpgrades)
 	wp := workerpool.New(concurrentUpgrades)
 	mu := sync.Mutex{}
 	installErrors := &phase.Error{}
