@@ -179,7 +179,7 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 
 			if nodeID != "" {
 				log.Infof("%s: reactivating node %s (%s)", leader, h, nodeID)
-				if err := leader.Exec(leader.Configurer.DockerCommandf("node update --availability drain %s", nodeID)); err != nil {
+				if err := leader.Exec(leader.Configurer.DockerCommandf("node update --availability active %s", nodeID)); err != nil {
 					return fmt.Errorf("%s: reactivation of node %s failed: %w", leader, h, err)
 				}
 			}
