@@ -26,10 +26,9 @@ func NewApplyCommand() *cli.Command {
 			confirmFlag,
 			redactFlag,
 			&cli.IntFlag{
-				Name:    "concurrency",
-				Aliases: []string{"c"},
-				Usage:   "Worker upgrade concurrency (percentage)",
-				Value:   10,
+				Name:  "concurrency",
+				Usage: "Worker upgrade concurrency (percentage)",
+				Value: 10,
 			},
 			&cli.BoolFlag{
 				Name:    "force",
