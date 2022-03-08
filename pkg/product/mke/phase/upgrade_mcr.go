@@ -167,7 +167,15 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 			}
 
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
-			return h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR)
+			if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
+				return err
+			}
+
+			if nodeID != "" {
+				return h.Exec(h.Configurer.DockerCommandf("node update --availability active %s", nodeID))
+			}
+
+			return nil
 		},
 	)
 	if err != nil {
