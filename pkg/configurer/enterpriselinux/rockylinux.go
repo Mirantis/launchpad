@@ -5,7 +5,7 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// Rhel RedHat Enterprise Linux
+// RockyLinux support
 type RockyLinux struct {
 	Configurer
 }
