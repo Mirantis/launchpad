@@ -28,6 +28,7 @@ type HostMetadata struct {
 	MCRRestartRequired bool
 	ImagesToUpload     []string
 	TotalImageBytes    uint64
+	DaemonJSONChanged  bool
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
@@ -239,14 +240,7 @@ func (h *Host) ConfigureMCR() error {
 		daemonJSON := string(daemonJSONData)
 
 		cfg := h.Configurer.MCRConfigPath()
-		oldConfig := ""
 		if h.Configurer.FileExist(h, cfg) {
-			f, err := h.Configurer.ReadFile(h, cfg)
-			if err != nil {
-				return err
-			}
-			oldConfig = f
-
 			log.Debugf("deleting %s", cfg)
 			if err := h.Configurer.DeleteFile(h, cfg); err != nil {
 				return err
@@ -257,7 +251,7 @@ func (h *Host) ConfigureMCR() error {
 		if err := h.Configurer.WriteFile(h, cfg, daemonJSON, "0700"); err != nil {
 			return err
 		}
-		if h.Metadata.MCRVersion != "" && oldConfig != daemonJSON {
+		if h.Metadata.MCRVersion != "" && h.Metadata.DaemonJSONChanged {
 			h.Metadata.MCRRestartRequired = true
 		}
 	}

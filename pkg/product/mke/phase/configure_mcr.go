@@ -15,7 +15,7 @@ type ConfigureMCR struct {
 
 // HostFilterFunc returns true for hosts that need their engine to be restarted
 func (p *ConfigureMCR) HostFilterFunc(h *api.Host) bool {
-	return len(h.DaemonConfig) > 0
+	return len(h.DaemonConfig) > 0 && h.Metadata.DaemonJSONChanged
 }
 
 // Prepare collects the hosts
