@@ -264,9 +264,8 @@ func (h *Host) ConfigureMCR() error {
 				h.Metadata.MCRRestartRequired = true
 			} else {
 				oldJSON := make(dig.Mapping)
-				if err := json.Unmarshal([]byte(oldConfig), &oldJSON); err == nil {
-					h.Metadata.MCRRestartRequired = !reflect.DeepEqual(oldJSON, h.DaemonConfig)
-				}
+				err := json.Unmarshal([]byte(oldConfig), &oldJSON)
+				h.Metadata.MCRRestartRequired = err != nil || !reflect.DeepEqual(oldJSON, h.DaemonConfig)
 			}
 		}
 	}
