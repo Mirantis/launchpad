@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 
@@ -257,8 +258,16 @@ func (h *Host) ConfigureMCR() error {
 		if err := h.Configurer.WriteFile(h, cfg, daemonJSON, "0700"); err != nil {
 			return err
 		}
-		if h.Metadata.MCRVersion != "" && oldConfig != daemonJSON {
-			h.Metadata.MCRRestartRequired = true
+
+		if h.Metadata.MCRVersion != "" {
+			if oldConfig == "" {
+				h.Metadata.MCRRestartRequired = true
+			} else {
+				oldJSON := make(dig.Mapping)
+				if err := json.Unmarshal([]byte(oldConfig), &oldJSON); err == nil {
+					h.Metadata.MCRRestartRequired = !reflect.DeepEqual(oldJSON, h.DaemonConfig)
+				}
+			}
 		}
 	}
 	return nil
