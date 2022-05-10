@@ -28,5 +28,6 @@ func TestHostConfigurerInterface(t *testing.T) {
 	require.True(t, castConfigurer(windows.Windows2022Configurer{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(ubuntu.BionicConfigurer{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(ubuntu.FocalConfigurer{}), "configurer does not implement HostConfigurer")
+	require.True(t, castConfigurer(ubuntu.JammyConfigurer{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(ubuntu.XenialConfigurer{}), "configurer does not implement HostConfigurer")
 }
