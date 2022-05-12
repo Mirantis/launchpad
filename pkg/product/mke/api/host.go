@@ -297,7 +297,7 @@ func (h *Host) waitForHost(state bool) error {
 
 // ResolveConfigurer assigns a rig-style configurer to the Host (see configurer/)
 func (h *Host) ResolveConfigurer() error {
-	bf, err := registry.GetOSModuleBuilder(h.OSVersion)
+	bf, err := registry.GetOSModuleBuilder(*h.OSVersion)
 	if err != nil {
 		return err
 	}
