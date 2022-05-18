@@ -13,7 +13,7 @@ require (
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/hashicorp/go-version v1.2.0
 	github.com/k0sproject/dig v0.1.0
-	github.com/k0sproject/rig v0.6.1
+	github.com/k0sproject/rig v0.6.2
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/mattn/go-isatty v0.0.12
@@ -38,6 +38,7 @@ require (
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/gofrs/uuid v4.2.0+incompatible // indirect
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
