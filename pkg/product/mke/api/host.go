@@ -249,18 +249,24 @@ func (h *Host) ConfigureMCR() error {
 		log.Debugf("%s: failed to read existing MCR config: %s", h, err)
 	}
 
-	if reflect.DeepEqual(oldJSON, h.DaemonConfig) {
+	newJSONbytes, err := json.Marshal(h.DaemonConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal daemon.json config: %w", err)
+	}
+
+	newJSON := make(dig.Mapping)
+	if err := json.Unmarshal(newJSONbytes, &newJSON); err != nil {
+		return fmt.Errorf("failed to remarshal daemon.json: %w", err)
+	}
+
+	if reflect.DeepEqual(oldJSON, newJSON) {
 		log.Debugf("%s: no changes for daemon.json", h)
 		return nil
 	}
 
 	log.Debugf("%s: writing new daemon.json", h)
 
-	d, err := json.Marshal(h.DaemonConfig)
-	if err != nil {
-		return fmt.Errorf("failed to marshal daemon.json config: %w", err)
-	}
-	daemonJSONContent := string(d)
+	daemonJSONContent := string(newJSONbytes)
 
 	if err := h.Configurer.DeleteFile(h, cfgPath); err != nil {
 		log.Debugf("%s: failed to delete exising daemon.json: %s", h, err)
