@@ -232,43 +232,49 @@ func (h *Host) Reboot() error {
 
 // ConfigureMCR writes the docker engine daemon.json and toggles the host Metadata MCRRestartRequired flag if changed
 func (h *Host) ConfigureMCR() error {
-	if len(h.DaemonConfig) > 0 {
-		daemonJSONData, err := json.Marshal(h.DaemonConfig)
-		if err != nil {
-			return fmt.Errorf("failed to marshal daemon json config: %w", err)
-		}
-		daemonJSON := string(daemonJSONData)
-
-		cfg := h.Configurer.MCRConfigPath()
-		oldConfig := ""
-		if h.Configurer.FileExist(h, cfg) {
-			f, err := h.Configurer.ReadFile(h, cfg)
-			if err != nil {
-				return err
-			}
-			oldConfig = f
-
-			log.Debugf("deleting %s", cfg)
-			if err := h.Configurer.DeleteFile(h, cfg); err != nil {
-				return err
-			}
-		}
-
-		log.Debugf("writing %s", cfg)
-		if err := h.Configurer.WriteFile(h, cfg, daemonJSON, "0700"); err != nil {
-			return err
-		}
-
-		if h.Metadata.MCRVersion != "" {
-			if oldConfig == "" {
-				h.Metadata.MCRRestartRequired = true
-			} else {
-				oldJSON := make(dig.Mapping)
-				err := json.Unmarshal([]byte(oldConfig), &oldJSON)
-				h.Metadata.MCRRestartRequired = err != nil || !reflect.DeepEqual(oldJSON, h.DaemonConfig)
-			}
-		}
+	if len(h.DaemonConfig) == 0 {
+		return nil
 	}
+
+	cfgPath := h.Configurer.MCRConfigPath()
+
+	oldJSON := make(dig.Mapping)
+
+	if f, err := h.Configurer.ReadFile(h, cfgPath); err == nil {
+		log.Debugf("%s: parsing existing daemon.json", h)
+		if err := json.Unmarshal([]byte(f), &oldJSON); err != nil {
+			log.Debugf("%s: failed to parse existing MCR config: %s", h, err)
+		}
+	} else {
+		log.Debugf("%s: failed to read existing MCR config: %s", h, err)
+	}
+
+	if reflect.DeepEqual(oldJSON, h.DaemonConfig) {
+		log.Debugf("%s: no changes for daemon.json", h)
+		return nil
+	}
+
+	log.Debugf("%s: writing new daemon.json", h)
+
+	d, err := json.Marshal(h.DaemonConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal daemon.json config: %w", err)
+	}
+	daemonJSONContent := string(d)
+
+	if err := h.Configurer.DeleteFile(h, cfgPath); err != nil {
+		log.Debugf("%s: failed to delete exising daemon.json: %s", h, err)
+	}
+
+	if err := h.Configurer.WriteFile(h, cfgPath, daemonJSONContent, "0600"); err != nil {
+		return err
+	}
+
+	if h.Metadata.MCRVersion != "" {
+		h.Metadata.MCRRestartRequired = true
+		log.Debugf("%s: host marked for mcr restart", h)
+	}
+
 	return nil
 }
 
