@@ -2,7 +2,6 @@ package phase
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"sync"
 	"time"
@@ -125,13 +124,8 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 		}
 	}
 
-	// Upgrade worker hosts parallelly in 10% chunks
-	concurrentUpgrades := int(math.Floor(float64(len(workers)) * (float64(p.Concurrency) / 100.0)))
-	if concurrentUpgrades == 0 {
-		concurrentUpgrades = 1
-	}
-	log.Debugf("concurrently upgrading workers in batches of %d", concurrentUpgrades)
-	wp := workerpool.New(concurrentUpgrades)
+	log.Debugf("concurrently upgrading workers in batches of %d", p.Concurrency)
+	wp := workerpool.New(p.Concurrency)
 	mu := sync.Mutex{}
 	installErrors := &phase.Error{}
 	for _, w := range workers {
