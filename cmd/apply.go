@@ -27,8 +27,8 @@ func NewApplyCommand() *cli.Command {
 			redactFlag,
 			&cli.IntFlag{
 				Name:  "concurrency",
-				Usage: "Worker upgrade concurrency (percentage)",
-				Value: 10,
+				Usage: "Worker upgrade concurrency (number of simultaneous nodes)",
+				Value: 5,
 			},
 			&cli.BoolFlag{
 				Name:    "force",
@@ -46,8 +46,8 @@ func NewApplyCommand() *cli.Command {
 		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec),
 		After:  actions(closeAnalytics, upgradeCheckResult),
 		Action: func(ctx *cli.Context) (err error) {
-			if ctx.Int("concurrency") < 1 || ctx.Int("concurrency") > 100 {
-				return fmt.Errorf("invalid --concurrency %d (must be 1..100)", ctx.Int("concurrency"))
+			if ctx.Int("concurrency") < 1 {
+				return fmt.Errorf("invalid --concurrency %d (must be 1 or more)", ctx.Int("concurrency"))
 			}
 
 			var logFile *os.File
