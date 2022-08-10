@@ -12,7 +12,7 @@ require (
 	github.com/gammazero/workerpool v0.0.0-20200311205957-7b00833861c6
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/hashicorp/go-version v1.2.0
-	github.com/k0sproject/dig v0.1.0
+	github.com/k0sproject/dig v0.2.0
 	github.com/k0sproject/rig v0.6.3
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
