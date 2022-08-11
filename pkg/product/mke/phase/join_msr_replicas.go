@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
@@ -66,6 +67,7 @@ func (p *JoinMSRReplicas) Run() error {
 			runFlags.Add("--security-opt label=disable")
 		}
 		joinFlags := common.Flags{}
+		redacts := []string{}
 		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.LongHostname))
 		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))
 		joinFlags.MergeOverwrite(mkeFlags)
@@ -74,15 +76,20 @@ func (p *JoinMSRReplicas) Run() error {
 		for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallJoinFlags) {
 			joinFlags.AddOrReplace(f)
 		}
+		if p.Config.Spec.MKE.CACertData != "" {
+			escaped := shellescape.Quote(p.Config.Spec.MKE.CACertData)
+			joinFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
+			redacts = append(redacts, escaped)
+		}
 		if h.MSRMetadata != nil && h.MSRMetadata.ReplicaID != "" {
-			log.Infof("%s: joining MSR replica to cluster with with replica id: %s", h, h.MSRMetadata.ReplicaID)
+			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSRMetadata.ReplicaID)
 			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
 		} else {
 			log.Infof("%s: joining MSR replica to cluster", h)
 		}
 
 		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
-		err := msrLeader.Exec(joinCmd, exec.StreamOutput())
+		err := msrLeader.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(redacts...))
 		if err != nil {
 			return fmt.Errorf("%s: failed to run MSR join: %s", h, err.Error())
 		}
