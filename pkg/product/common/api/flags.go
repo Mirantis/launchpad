@@ -65,22 +65,7 @@ func (f Flags) Get(s string) string {
 // GetValue returns the value part of a flag such as "10.0.0.1" for a flag like "--san=10.0.0.1"
 func (f Flags) GetValue(s string) string {
 	fl := f.Get(s)
-	if fl == "" {
-		return ""
-	}
-
-	idx := strings.IndexAny(fl, "= ")
-	if idx < 0 {
-		return ""
-	}
-
-	val := fl[idx+1:]
-	s, err := strconv.Unquote(val)
-	if err == nil {
-		return s
-	}
-
-	return val
+	return FlagValue(fl)
 }
 
 // Delete removes a matching flag from the list
@@ -116,4 +101,24 @@ func (f *Flags) MergeAdd(b Flags) {
 // Join creates a string separated by spaces
 func (f *Flags) Join() string {
 	return strings.Join(*f, " ")
+}
+
+// FlagValue returns the value part of a string such as "--san 10.0.0.1" or "--san=10.0.0.1"
+func FlagValue(s string) string {
+	if s == "" {
+		return ""
+	}
+
+	idx := strings.IndexAny(s, "= ")
+	if idx < 0 {
+		return ""
+	}
+
+	val := s[idx+1:]
+	s, err := strconv.Unquote(val)
+	if err == nil {
+		return s
+	}
+
+	return val
 }
