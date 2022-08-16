@@ -27,7 +27,7 @@ pipeline {
       }
       steps {
         withCredentials([
-          string(credentialsId: "docker-ee-design-bot-token", variable: "GITHUB_TOKEN"),
+          string(credentialsId: "launchpad-github-up", variable: "GITHUB_TOKEN"),
           /*
           string(credentialsId: "launchpad-win-certificate", variable: "WIN_PKCS12"),
           string(credentialsId: "launchpad-win-certificate-passwd", variable: "WIN_PKCS12_PASSWD"),
