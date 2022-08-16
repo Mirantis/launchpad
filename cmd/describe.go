@@ -7,8 +7,8 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
+	event "github.com/segmentio/analytics-go/v3"
 	"github.com/urfave/cli/v2"
-	event "gopkg.in/segmentio/analytics-go.v3"
 
 	log "github.com/sirupsen/logrus"
 )

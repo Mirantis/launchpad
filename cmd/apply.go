@@ -11,9 +11,9 @@ import (
 	"github.com/Mirantis/mcc/version"
 
 	"github.com/mattn/go-isatty"
+	event "github.com/segmentio/analytics-go/v3"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // NewApplyCommand creates new apply command to be called from cli

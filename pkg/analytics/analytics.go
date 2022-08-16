@@ -8,8 +8,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/config/user"
 	"github.com/Mirantis/mcc/version"
 	"github.com/denisbrodbeck/machineid"
+	analytics "github.com/segmentio/analytics-go/v3"
 	log "github.com/sirupsen/logrus"
-	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
 
 const (

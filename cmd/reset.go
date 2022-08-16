@@ -9,8 +9,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/mattn/go-isatty"
+	event "github.com/segmentio/analytics-go/v3"
 	"github.com/urfave/cli/v2"
-	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // NewResetCommand creates new reset command to be called from cli
