@@ -13,7 +13,7 @@ require (
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/hashicorp/go-version v1.2.0
 	github.com/k0sproject/dig v0.2.0
-	github.com/k0sproject/rig v0.6.3
+	github.com/k0sproject/rig v0.8.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/logrusorgru/aurora v0.0.0-20200102142835-e9ef32dff381
 	github.com/mattn/go-isatty v0.0.12
@@ -30,10 +30,12 @@ require (
 require (
 	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/ChrisTrenkamp/goxpath v0.0.0-20210404020558-97928f7e12b6 // indirect
+	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/gammazero/deque v0.0.0-20200310222745-50fa758af896 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
