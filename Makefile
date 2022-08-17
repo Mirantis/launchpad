@@ -15,9 +15,7 @@ else
 endif
 GOOS ?= ${uname_s}
 BUILDER_IMAGE = launchpad-builder
-GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
-	-w "/go/src/github.com/Mirantis/mcc" \
-	-e GOPATH\
+GO = docker run --rm \
 	-e GOOS \
 	-e GOARCH \
 	-e GOEXE \
