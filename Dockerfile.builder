@@ -9,4 +9,3 @@ RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/i
 ADD go.mod go.sum ./
 RUN go mod download -x
 
-ADD . .
