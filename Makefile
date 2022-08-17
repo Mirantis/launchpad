@@ -48,8 +48,7 @@ release: build-all
 	./release.sh
 
 lint: builder
-	$(GO) go vet ./...
-	$(GO) golint -set_exit_status ./...
+	$(GO) golangci-lint run --skip-dirs=examples,bin
 
 smoke-register-test: build
 	./test/smoke_register.sh
