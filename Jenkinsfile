@@ -56,7 +56,7 @@ pipeline {
         stage("Ubuntu 18.04: apply & prune") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+              label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
           stages {
@@ -85,7 +85,7 @@ pipeline {
         stage("Ubuntu 18.04: apply with SSH bastion host") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+              label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
           stages {
@@ -103,7 +103,7 @@ pipeline {
         stage("Ubuntu 18.04: apply with SSH auth forwarding") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+              label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
           stages {
@@ -121,7 +121,7 @@ pipeline {
         stage("CentOS 7: apply") {
           agent {
               node {
-                  label 'amd64 && ubuntu-1804 && overlay2 && big'
+                  label 'amd64 && ubuntu-1804 && overlay2'
               }
           }
           steps {
@@ -132,7 +132,7 @@ pipeline {
         stage("CentOS 8") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+              label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
           stages {
@@ -158,7 +158,7 @@ pipeline {
         stage("Ubuntu 16.04 apply") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+              label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
           stages {
@@ -172,7 +172,7 @@ pipeline {
         stage("Ubuntu 18.04: local worker apply") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+              label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
           environment {
@@ -186,7 +186,7 @@ pipeline {
         stage("Ubuntu 18.04 upgrades and MSR") {
           agent {
             node {
-              label 'amd64 && ubuntu-1804 && overlay2 && big'
+              label 'amd64 && ubuntu-1804 && overlay2'
             }
           }
           stages {
