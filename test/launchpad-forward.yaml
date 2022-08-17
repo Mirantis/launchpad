@@ -21,5 +21,6 @@ spec:
     installFlags:
       - --admin-username=admin
       - --admin-password=orcaorcaorca
+      - --force-minimums
   mcr:
     version: $MCR_VERSION

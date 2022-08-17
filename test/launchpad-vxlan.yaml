@@ -30,6 +30,7 @@ spec:
         default_node_orchestrator = "kubernetes"
     installFlags:
       - --calico-vxlan=$CALICO_VXLAN
+      - --force-minimums
   mcr:
     version: $MCR_VERSION
 
