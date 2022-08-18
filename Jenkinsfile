@@ -66,8 +66,31 @@ pipeline {
           stages {
             stage("Register") {
               steps {
-                sh "make build"
                 sh "make smoke-register-test"
+              }
+            }
+          }
+        }
+        stage("Ubuntu 18.04: apply & prune") {
+          stages {
+            stage("Apply") {
+              environment {
+                LAUNCHPAD_CONFIG = "launchpad-prune.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-prune.yaml.tpl"
+                PRESERVE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-apply-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
+              }
+            }
+            stage("Prune") {
+              environment {
+                LAUNCHPAD_CONFIG = "launchpad-prune.yaml"
+                FOOTLOOSE_TEMPLATE = "footloose-prune.yaml.tpl"
+                REUSE_CLUSTER = "true"
+              }
+              steps {
+                sh "make smoke-prune-test LINUX_IMAGE=quay.io/footloose/ubuntu18.04"
               }
             }
           }
