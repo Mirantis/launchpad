@@ -20,27 +20,27 @@ pipeline {
               command:
                 - cat
               tty: true
-            - name: jnlp
-              image: docker:latest
-              command:
-                - cat
-# apk-add --update alpine-sdk && cat
-              tty: true
-              volumeMounts:
-                - name: docker-socket
-                  mountPath: /var/run
-            - name: docker-daemon
-              image: docker:dind
-              securityContext:
-                privileged: true
-              volumeMounts:
-                - name: docker-socket
-                  mountPath: /var/run
-              imagePullSecrets:
-                - name: "regcred-msr"
-          volumes:
-            - name: docker-socket
-              emptyDir: {}
+#            - name: jnlp
+#              image: docker:latest
+#              command:
+#                - cat
+## apk-add --update alpine-sdk && cat
+#              tty: true
+#              volumeMounts:
+#                - name: docker-socket
+#                  mountPath: /var/run
+#            - name: docker-daemon
+#              image: docker:dind
+#              securityContext:
+#                privileged: true
+#              volumeMounts:
+#                - name: docker-socket
+#                  mountPath: /var/run
+#              imagePullSecrets:
+#                - name: "regcred-msr"
+#          volumes:
+#            - name: docker-socket
+#              emptyDir: {}
         '''
     }
   }
@@ -56,21 +56,21 @@ pipeline {
       }
     }
 
-    stage("Smoke test") {
-      parallel {
-        stage("'Register' subcommand") {
-          stages {
-            stage("Register") {
-              steps {
-                container("runner") {
-                  sh "make bin/launchpad"
-                  sh "make smoke-register-test"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+/*    stage("Smoke test") {
+     parallel {
+       stage("'Register' subcommand") {
+         stages {
+           stage("Register") {
+             steps {
+               container("runner") {
+                 sh "make bin/launchpad"
+                 sh "make smoke-register-test"
+               }
+             }
+           }
+         }
+       }
+     }
+   } */
   }
 }
