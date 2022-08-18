@@ -17,6 +17,7 @@ pipeline {
             - name: runner
               image: ubuntu:latest
               imagePullPolicy: Always
+              command: ["/bin/sleep", "1h"]
               volumeMounts:
               - name: docker-socket
                 mountPath: /var/run
