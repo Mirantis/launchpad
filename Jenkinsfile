@@ -8,8 +8,50 @@ def docker_hub = [
 
 pipeline {
   agent {
-    node {
-      label 'amd64 && ubuntu-1804 && overlay2'
+    kubernetes {
+      yaml '''
+apiVersion: v1
+kind: Pod
+spec:
+    containers:
+    - name: jnlp
+      image: msr.ci.mirantis.com/prodeng/ci-workspace:stable
+      imagePullPolicy: Always
+      volumeMounts:
+      - name: docker-socket
+        mountPath: /var/run
+      resources:
+        limits:
+          cpu: 2
+          memory: 4Gi
+        requests:
+          cpu: 4
+          memory: 16Gi
+    - name: docker-daemon
+      image: docker:dind
+      securityContext:
+       privileged: true
+      volumeMounts:
+       - name: docker-socket
+         mountPath: /var/run
+      resources:
+        limits:
+          cpu: 2
+          memory: 4Gi
+        requests:
+          cpu: 4
+          memory: 16Gi
+    volumes:
+    - name: docker-socket
+      emptyDir: {}
+    tolerations:
+    - key: "app"
+      operator: "Equal"
+      value: "jenkins-agents"
+      effect: "NoExecute"
+    nodeSelector:
+      app: "jenkins-agents"
+```
     }
   }
 
