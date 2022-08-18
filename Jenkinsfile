@@ -22,9 +22,11 @@ pipeline {
                 - cat
               tty: true
               resources:
+                limits: 
+                  memory: "32Gi"
                 requests:
-                  memory: "512Mi"
-                  cpu: "1g"
+                  memory: "2Gi"
+                  cpu: 2
               volumeMounts:
                 - name: docker-socket
                   mountPath: /var/run
@@ -34,7 +36,8 @@ pipeline {
                 limits: 
                   memory: "32Gi"
                 requests:
-                  memory: "16Gi"
+                  memory: "8Gi"
+                  cpu: 4
               securityContext:
                 privileged: true
               volumeMounts:
