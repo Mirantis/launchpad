@@ -60,21 +60,19 @@ pipeline {
       }
     }
 
-/*    stage("Smoke test") {
-     parallel {
-       stage("'Register' subcommand") {
-         stages {
-           stage("Register") {
-             steps {
-               container("runner") {
-                 sh "make bin/launchpad"
-                 sh "make smoke-register-test"
-               }
-             }
-           }
-         }
-       }
-     }
-   } */
+    stage("Smoke test") {
+      parallel {
+        stage("'Register' subcommand") {
+          stages {
+            stage("Register") {
+              steps {
+                sh "make bin/launchpad"
+                sh "make smoke-register-test"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
