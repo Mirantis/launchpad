@@ -23,8 +23,8 @@ pipeline {
             - name: jnlp
               image: docker:latest
               command:
-                - apk-add --update alpine-sdk
                 - cat
+# apk-add --update alpine-sdk && cat
               tty: true
               volumeMounts:
                 - name: docker-socket
