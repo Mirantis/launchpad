@@ -15,44 +15,46 @@ pipeline {
         kind: Pod
         spec:
           containers:
-            - name: builder
-              image: golang:1.19
+            - name: jnlp
+              image: docker:latest
               command:
+                - apk add --update make
                 - cat
               tty: true
-#            - name: jnlp
-#              image: docker:latest
-#              command:
-#                - cat
-## apk-add --update alpine-sdk && cat
-#              tty: true
-#              volumeMounts:
-#                - name: docker-socket
-#                  mountPath: /var/run
-#            - name: docker-daemon
-#              image: docker:dind
-#              securityContext:
-#                privileged: true
-#              volumeMounts:
-#                - name: docker-socket
-#                  mountPath: /var/run
-#              imagePullSecrets:
-#                - name: "regcred-msr"
-#          volumes:
-#            - name: docker-socket
-#              emptyDir: {}
-        '''
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "1g"
+              volumeMounts:
+                - name: docker-socket
+                  mountPath: /var/run
+            - name: docker-daemon
+              image: docker:dind
+              resources:
+                limits: 
+                  memory: "32Gi"
+                requests:
+                  memory: "16Gi"
+              securityContext:
+                privileged: true
+              volumeMounts:
+                - name: docker-socket
+                  mountPath: /var/run
+              imagePullSecrets:
+                - name: "regcred-msr"
+          volumes:
+            - name: docker-socket
+              emptyDir: {}
+      '''
     }
   }
 
   stages {
     stage("Build") {
       steps {
-        container("builder") {
-          sh "make unit-test"
-          sh "make lint || echo 'Lint failed'"
-          sh "make build-all"
-        }
+        sh "make unit-test"
+        sh "make lint || echo 'Lint failed'"
+        sh "make build-all"
       }
     }
 
