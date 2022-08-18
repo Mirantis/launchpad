@@ -6,6 +6,8 @@ def docker_hub = [
   )
 ]
 
+def smokeRunner = 
+
 pipeline {
   agent {
     kubernetes {
@@ -14,37 +16,10 @@ pipeline {
         kind: Pod
         spec:
             containers:
-            - name: runner
+            - name: builder
               image: golang:1.19
               imagePullPolicy: Always
               command: ["/bin/sleep", "1h"]
-              volumeMounts:
-              - name: docker-socket
-                mountPath: /var/run
-              resources:
-                limits:
-                  cpu: 4
-                  memory: 16Gi
-                requests:
-                  cpu: 2
-                  memory: 4Gi
-            - name: docker-daemon
-              image: docker:dind
-              securityContext:
-               privileged: true
-              volumeMounts:
-               - name: docker-socket
-                 mountPath: /var/run
-              resources:
-                limits:
-                  cpu: 4
-                  memory: 16Gi
-                requests:
-                  cpu: 2
-                  memory: 4Gi
-            volumes:
-            - name: docker-socket
-              emptyDir: {}
             tolerations:
             - key: "app"
               operator: "Equal"
@@ -59,9 +34,11 @@ pipeline {
   stages {
     stage("Build") {
       steps {
-        sh "make unit-test"
-        sh "make lint || echo 'Lint failed'"
-        sh "make build-all"
+        container("builder") {
+          sh "make unit-test"
+          sh "make lint || echo 'Lint failed'"
+          sh "make build-all"
+        }
       }
     }
     stage('Release') {
@@ -69,38 +46,41 @@ pipeline {
         buildingTag()
       }
       steps {
-        withCredentials([
-          string(credentialsId: "launchpad-github-up", variable: "GITHUB_TOKEN"),
-          /*
-          string(credentialsId: "launchpad-win-certificate", variable: "WIN_PKCS12"),
-          string(credentialsId: "launchpad-win-certificate-passwd", variable: "WIN_PKCS12_PASSWD"),
-          */
-        ]) {
-          sh "make release"
+        container("builder") {
+          withCredentials([
+            string(credentialsId: "launchpad-github-up", variable: "GITHUB_TOKEN"),
+            /*
+            string(credentialsId: "launchpad-win-certificate", variable: "WIN_PKCS12"),
+            string(credentialsId: "launchpad-win-certificate-passwd", variable: "WIN_PKCS12_PASSWD"),
+            */
+          ]) {
+            sh "make release"
+          }
         }
       }
     }
     stage("Smoke test") {
+      agent {
+        podTemplate(yaml: readTrusted("smokerunner.yaml"))
+      }
       parallel {
         stage("Register subcommand") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           stages {
             stage("Register") {
               steps {
-                sh "make smoke-register-test"
+                container("runner") {
+                  sh "make smoke-register-test"
+                }
               }
             }
           }
         }
         stage("Ubuntu 18.04: apply & prune") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           stages {
             stage("Apply") {
@@ -127,9 +107,7 @@ pipeline {
         }
         stage("Ubuntu 18.04: apply with SSH bastion host") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           stages {
             stage("Apply") {
@@ -145,9 +123,7 @@ pipeline {
         }
         stage("Ubuntu 18.04: apply with SSH auth forwarding") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           stages {
             stage("Apply") {
@@ -163,9 +139,7 @@ pipeline {
         }
         stage("CentOS 7: apply") {
           agent {
-              node {
-                  label 'amd64 && ubuntu-1804 && overlay2'
-              }
+            node(POD_LABEL)
           }
           steps {
             sh "make smoke-test LINUX_IMAGE=quay.io/footloose/centos7"
@@ -174,9 +148,7 @@ pipeline {
 /*
         stage("CentOS 8") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           stages {
             stage("Apply") {
@@ -200,9 +172,7 @@ pipeline {
 */
         stage("Ubuntu 16.04 apply") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           stages {
             stage("Apply") {
@@ -214,9 +184,7 @@ pipeline {
         }
         stage("Ubuntu 18.04: local worker apply") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           environment {
             LAUNCHPAD_CONFIG = "launchpad-local.yaml"
@@ -228,9 +196,7 @@ pipeline {
         }
         stage("Ubuntu 18.04 upgrades and MSR") {
           agent {
-            node {
-              label 'amd64 && ubuntu-1804 && overlay2'
-            }
+            node(POD_LABEL)
           }
           stages {
             stage("Install MKE3.3.5 MSR2.7 MCR19.03.8") {
