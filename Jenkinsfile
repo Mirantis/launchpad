@@ -16,10 +16,8 @@ pipeline {
         spec:
           containers:
             - name: jnlp
-              image: docker:latest
-              command:
-                - apk add --update make
-                - cat
+              image: msr.ci.mirantis.com/prodeng/ci-workspace:stable
+              imagePullPolicy: Always
               tty: true
               resources:
                 limits: 
