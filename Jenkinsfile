@@ -22,11 +22,11 @@ pipeline {
                 mountPath: /var/run
               resources:
                 limits:
-                  cpu: 2
-                  memory: 4Gi
-                requests:
                   cpu: 4
                   memory: 16Gi
+                requests:
+                  cpu: 2
+                  memory: 4Gi
             - name: docker-daemon
               image: docker:dind
               securityContext:
@@ -36,11 +36,11 @@ pipeline {
                  mountPath: /var/run
               resources:
                 limits:
-                  cpu: 2
-                  memory: 4Gi
-                requests:
                   cpu: 4
                   memory: 16Gi
+                requests:
+                  cpu: 2
+                  memory: 4Gi
             volumes:
             - name: docker-socket
               emptyDir: {}
