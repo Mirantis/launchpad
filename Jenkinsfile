@@ -15,7 +15,7 @@ pipeline {
         spec:
             containers:
             - name: runner
-              image: ubuntu:latest
+              image: golang:1.19
               imagePullPolicy: Always
               command: ["/bin/sleep", "1h"]
               volumeMounts:
