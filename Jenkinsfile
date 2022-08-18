@@ -16,6 +16,9 @@ pipeline {
         spec:
           containers:
             - name: jnlp
+              image: msr.ci.mirantis.com/prodeng/ci-workspace:stable
+              imagePullSecrets:
+                - name: "regcred-msr"
               imagePullPolicy: Always
               tty: true
               resources:
