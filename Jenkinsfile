@@ -66,7 +66,7 @@ pipeline {
           stages {
             stage("Register") {
               steps {
-                sh "make launchpad && mv launchpad bin/launchpad"
+                sh "make build"
                 sh "make smoke-register-test"
               }
             }
