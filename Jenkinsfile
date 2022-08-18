@@ -16,7 +16,6 @@ pipeline {
         spec:
           containers:
             - name: jnlp
-              image: msr.ci.mirantis.com/prodeng/ci-workspace:stable
               imagePullPolicy: Always
               tty: true
               resources:
@@ -30,6 +29,7 @@ pipeline {
                   mountPath: /var/run
             - name: docker-daemon
               image: docker:dind
+              imagePullPolicy: Always
               resources:
                 limits: 
                   memory: "32Gi"
