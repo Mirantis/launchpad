@@ -14,8 +14,8 @@ pipeline {
         kind: Pod
         spec:
             containers:
-            - name: jnlp
-              image: golang:1.19
+            - name: runner
+              image: ubuntu:latest
               imagePullPolicy: Always
               volumeMounts:
               - name: docker-socket
