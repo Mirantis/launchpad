@@ -15,7 +15,7 @@ pipeline {
         spec:
             containers:
             - name: jnlp
-              image: msr.ci.mirantis.com/prodeng/ci-workspace:stable
+              image: golang:1.19
               imagePullPolicy: Always
               volumeMounts:
               - name: docker-socket
