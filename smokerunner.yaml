@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Pod
+spec:
+    containers:
+    - name: runner
+      image: golang:1.19
+      imagePullPolicy: Always
+      command: ["/bin/sleep", "1h"]
+      volumeMounts:
+      - name: docker-socket
+        mountPath: /var/run
+      resources:
+        limits:
+          cpu: 4 
+          memory: 8Gi
+        requests:
+          cpu: 2
+          memory: 4Gi
+    - name: docker-daemon
+      image: docker:dind
+      securityContext:
+       privileged: true
+      volumeMounts:
+       - name: docker-socket
+         mountPath: /var/run
+      resources:
+        limits:
+          cpu: 8
+          memory: 16Gi
+        requests:
+          cpu: 4
+          memory: 8Gi
+    volumes:
+    - name: docker-socket
+      emptyDir: {}
+    tolerations:
+    - key: "app"
+      operator: "Equal"
+      value: "jenkins-agents"
+      effect: "NoExecute"
+    nodeSelector:
+      app: "jenkins-agents"
