@@ -17,8 +17,6 @@ pipeline {
           containers:
             - name: jnlp
               image: msr.ci.mirantis.com/prodeng/ci-workspace:stable
-              imagePullSecrets:
-                - name: "regcred-msr"
               imagePullPolicy: Always
               tty: true
               resources:
@@ -44,8 +42,8 @@ pipeline {
               volumeMounts:
                 - name: docker-socket
                   mountPath: /var/run
-              imagePullSecrets:
-                - name: "regcred-msr"
+          imagePullSecrets:
+            - name: "regcred-msr"
           volumes:
             - name: docker-socket
               emptyDir: {}
