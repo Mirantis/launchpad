@@ -67,7 +67,7 @@ func (p *InstallMSR) Run() error {
 	mkeFlags := msr.BuildMKEFlags(p.Config)
 	// Conduct the install passing the --ucp-node flag for the host provided in
 	// msrLeader.
-	mkeFlags.AddOrReplace(fmt.Sprintf("--ucp-node %s", h.Metadata.LongHostname))
+	mkeFlags.AddOrReplace(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
 
 	installFlags.Merge(mkeFlags)
 
