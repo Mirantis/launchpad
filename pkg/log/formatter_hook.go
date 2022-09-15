@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/shiena/ansicolor"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -46,7 +45,7 @@ func (hook *FormatterWriterHook) Levels() []log.Level {
 func NewStdoutHook() *FormatterWriterHook {
 	stdoutHook := &FormatterWriterHook{
 		Writer:    os.Stdout,
-		Formatter: &log.TextFormatter{ForceColors: true, DisableTimestamp: true},
+		Formatter: &log.TextFormatter{DisableTimestamp: true, ForceColors: runtime.GOOS != "windows"},
 		LogLevels: []log.Level{
 			log.InfoLevel,
 			log.PanicLevel,
@@ -54,10 +53,6 @@ func NewStdoutHook() *FormatterWriterHook {
 			log.ErrorLevel,
 			log.WarnLevel,
 		},
-	}
-
-	if runtime.GOOS == "windows" {
-		stdoutHook.Writer = ansicolor.NewAnsiColorWriter(os.Stdout)
 	}
 
 	// Add debug level to stdout hook if set by user
