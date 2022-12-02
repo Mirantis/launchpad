@@ -64,7 +64,7 @@ module "windows_workers" {
   subnet_ids                     = module.vpc.public_subnet_ids
   security_group_id              = module.common.security_group_id
   image_id                       = module.common.windows_2019_image_id
-  kube_cluster_tag               = module.common.kube_cluster_tag
+  kube_cluster_tag      = module.common.kube_cluster_tag
   instance_profile_name          = module.common.instance_profile_name
   worker_type                    = var.worker_type
   windows_administrator_password = var.windows_administrator_password

@@ -2,6 +2,9 @@ resource "aws_security_group" "master" {
   name        = "${var.cluster_name}-managers"
   description = "mke cluster managers"
   vpc_id      = var.vpc_id
+  tags = tomap({
+    (var.kube_cluster_tag) = "shared"
+  })
 
   ingress {
     from_port = 2379

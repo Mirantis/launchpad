@@ -2,6 +2,9 @@ resource "aws_security_group" "worker" {
   name        = "${var.cluster_name}-win-workers"
   description = "mke cluster windows workers"
   vpc_id      = var.vpc_id
+  tags = tomap({
+    (var.kube_cluster_tag) = "shared"
+  })
 
   ingress {
     from_port   = 5985

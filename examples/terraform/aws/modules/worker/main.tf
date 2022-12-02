@@ -2,6 +2,9 @@ resource "aws_security_group" "worker" {
   name        = "${var.cluster_name}-workers"
   description = "mke cluster workers"
   vpc_id      = var.vpc_id
+  tags = tomap({
+    (var.kube_cluster_tag) = "shared"
+  })
 }
 
 locals {

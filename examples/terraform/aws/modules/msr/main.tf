@@ -2,6 +2,9 @@ resource "aws_security_group" "msr" {
   name        = "${var.cluster_name}-msr"
   description = "mke cluster msrs"
   vpc_id      = var.vpc_id
+  tags = tomap({
+    (var.kube_cluster_tag) = "shared"
+  })
 
   ingress {
     from_port   = 443
