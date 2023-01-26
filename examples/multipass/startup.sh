@@ -2,7 +2,7 @@
 echo "Spinning up machines"
 
 # Get the host RSA key
-mykey=`cat ~/.ssh/id_rsa.pub`
+export mykey=`cat ~/.ssh/id_rsa.pub`
 cp cloud-init.template.yaml cloud-init.yaml
 echo "  - " $mykey >> cloud-init.yaml
 
@@ -22,13 +22,8 @@ else
 fi
 
 # # Get the IP address of the VMs
-cp launchpad.template.yaml launchpad.yaml
-
-MANAGER_IP=`multipass info manager --format json | jq .info.manager.ipv4[0]`
-sed -i "s/{{MANAGER_IP}}/$MANAGER_IP/g" launchpad.yaml
-
-WORKER_IP=`multipass info worker --format json | jq .info.worker.ipv4[0]`
-sed -i "s/{{WORKER_IP}}/$WORKER_IP/g" launchpad.yaml
+export MANAGER_IP=`multipass info manager --format json | jq .info.manager.ipv4[0]`
+export WORKER_IP=`multipass info worker --format json | jq .info.worker.ipv4[0]`
 
 # Deploy using launchpad
 ../../bin/launchpad apply -c ./launchpad.yml

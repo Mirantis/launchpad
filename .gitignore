@@ -2,4 +2,3 @@ bin/
 .idea/
 
 examples/multipass/cloud-init.yaml
-examples/multipass/launchpad.yaml

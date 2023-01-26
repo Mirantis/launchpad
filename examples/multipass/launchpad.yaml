@@ -2,11 +2,11 @@ apiVersion: "launchpad.mirantis.com/mke/v1.2"
 kind: mke
 spec:
   hosts:
-    - address: {{MANAGER_IP}}
+    - address: $MANAGER_IP
       ssh:
         user: "ubuntu"
       role: "manager"
-    - address: {{WORKER_IP}}
+    - address: $WORKER_IP
       role: "worker"
       ssh:
         user: "ubuntu"
