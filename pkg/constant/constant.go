@@ -6,7 +6,7 @@ const (
 	// ImageRepoLegacy is the default image repo to use for older versions
 	ImageRepoLegacy = "docker.io/docker"
 	// MCRVersion is the default engine version
-	MCRVersion = "20.10.0"
+	MCRVersion = "20.10.13"
 	// MCRChannel is the default engine channel
 	MCRChannel = "stable"
 	// MCRRepoURL is the default engine repo
