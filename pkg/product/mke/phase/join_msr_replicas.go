@@ -68,7 +68,7 @@ func (p *JoinMSRReplicas) Run() error {
 		}
 		joinFlags := common.Flags{}
 		redacts := []string{}
-		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.LongHostname))
+		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
 		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))
 		joinFlags.MergeOverwrite(mkeFlags)
 		// We can't just append the installFlags to joinFlags because they
