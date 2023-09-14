@@ -22,9 +22,22 @@ func (p *PullMKEImages) Title() string {
 	return "Pull MKE images"
 }
 
+func (p *PullMKEImages) isMKESwarmOnly() bool {
+	for _, flag := range p.Config.Spec.MKE.InstallFlags {
+	        if flag == "--swarm-only" {
+                        return true
+	        }
+	}
+
+	return false
+}
+
 // Run pulls images in parallel across nodes via a workerpool of 5
 func (p *PullMKEImages) Run() error {
-	images, err := p.ListImages(false)
+
+        swarmOnly := p.isMKESwarmOnly()
+
+	images, err := p.ListImages(false, swarmOnly)
 	if err != nil {
 		return err
 	}
@@ -34,7 +47,7 @@ func (p *PullMKEImages) Run() error {
 	var winHosts api.Hosts = p.Config.Spec.Hosts.Filter(func(h *api.Host) bool { return h.IsWindows() })
 
 	if len(winHosts) > 0 {
-		winImages, err = p.ListImages(true)
+		winImages, err = p.ListImages(true, swarmOnly)
 		if err != nil {
 			return err
 		}
@@ -85,7 +98,7 @@ func (p *PullMKEImages) Run() error {
 }
 
 // ListImages obtains a list of images from MKE
-func (p *PullMKEImages) ListImages(win bool) ([]*docker.Image, error) {
+func (p *PullMKEImages) ListImages(win, swarmOnly bool) ([]*docker.Image, error) {
 	manager := p.Config.Spec.SwarmLeader()
 	bootstrap := docker.NewImage(p.Config.Spec.MKE.GetBootstrapperImage())
 
@@ -105,6 +118,10 @@ func (p *PullMKEImages) ListImages(win bool) ([]*docker.Image, error) {
 
 	if win {
 		imageFlags.Add("--enable-windows")
+	}
+
+	if swarmOnly {
+		imageFlags.Add("--swarm-only")
 	}
 
 	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images %s", runFlags.Join(), bootstrap, imageFlags.Join()))
