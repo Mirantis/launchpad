@@ -51,7 +51,6 @@ release: build-all
 
 lint: builder
 	$(GO) go vet ./...
-	$(GO) golint -set_exit_status ./...
 
 smoke-register-test: build
 	./test/smoke_register.sh
