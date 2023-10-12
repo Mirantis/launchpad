@@ -31,6 +31,7 @@ type MKEConfig struct {
 	CertData            string       `yaml:"certData,omitempty"`
 	KeyData             string       `yaml:"keyData,omitempty"`
 	Cloud               *MKECloud    `yaml:"cloud,omitempty"`
+	NodesHealthRetry    uint         `yaml:"nodesHealthRetry,omitempty" default:"0"`
 
 	Metadata *MKEMetadata `yaml:"-"`
 }
