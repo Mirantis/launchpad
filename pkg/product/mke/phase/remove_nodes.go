@@ -282,8 +282,12 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 
 	// Build the query
 	mkeURL.Path = "/containers/json"
-	mkeURL.Query().Add("filters", fmt.Sprintf(`{"ancestor": ["dtr-nginx:%s"]}`, config.Spec.MSR.Version))
-	mkeURL.Query().Add("size", "false")
+
+	q := mkeURL.Query()
+	q.Add("filters", fmt.Sprintf(`{"ancestor": ["dtr-nginx:%s"]}`, config.Spec.MSR.Version))
+	q.Add("size", "false")
+	mkeURL.RawQuery = q.Encode()
+
 	req, err := http.NewRequest("GET", mkeURL.String(), nil)
 	if err != nil {
 		return "", err

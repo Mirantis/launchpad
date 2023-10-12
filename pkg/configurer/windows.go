@@ -145,7 +145,7 @@ func (c WindowsConfigurer) DockerCommandf(template string, args ...interface{}) 
 
 // ValidateLocalhost returns an error if "localhost" is not local on the host.
 func (c WindowsConfigurer) ValidateLocalhost(h os.Host) error {
-	err := h.Exec(ps.Cmd(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses('localhost'); Get-NetIPAddress -IPAddress $ips"`)))
+	err := h.Exec(ps.Cmd(`"$ips=[System.Net.Dns]::GetHostAddresses('localhost'); Get-NetIPAddress -IPAddress $ips"`))
 	if err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
 	}
