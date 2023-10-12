@@ -6,7 +6,7 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// Configurer is the Oracle Linux  specific implementation of a host configurer
+// Configurer is the Oracle Linux  specific implementation of a host configurer.
 type Configurer struct {
 	enterpriselinux.Configurer
 }

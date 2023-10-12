@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// HostMetadata resolved metadata for host
+// HostMetadata resolved metadata for host.
 type HostMetadata struct {
 	Hostname           string
 	LongHostname       string
@@ -32,7 +32,7 @@ type HostMetadata struct {
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
-// the GatherFacts phase and at the end of each configuration phase
+// the GatherFacts phase and at the end of each configuration phase.
 type MSRMetadata struct {
 	Installed               bool
 	InstalledVersion        string
@@ -64,7 +64,7 @@ func (errors *errors) String() string {
 	return "- " + strings.Join(errors.errors, "\n- ")
 }
 
-// Host contains all the needed details to work with hosts
+// Host contains all the needed details to work with hosts.
 type Host struct {
 	rig.Connection `yaml:",inline"`
 
@@ -81,7 +81,7 @@ type Host struct {
 	Errors      errors         `yaml:"-"`
 }
 
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type host Host
 	yh := (*host)(h)
@@ -97,12 +97,12 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return defaults.Set(h)
 }
 
-// IsLocal returns true for localhost connections
+// IsLocal returns true for localhost connections.
 func (h *Host) IsLocal() bool {
 	return h.Protocol() == "Local"
 }
 
-// ExecAll execs a slice of commands on the host
+// ExecAll execs a slice of commands on the host.
 func (h *Host) ExecAll(cmds []string) error {
 	for _, cmd := range cmds {
 		log.Infof("%s: Executing: %s", h, cmd)
@@ -119,7 +119,7 @@ func (h *Host) ExecAll(cmds []string) error {
 }
 
 // AuthenticateDocker performs a docker login on the host using local REGISTRY_USERNAME
-// and REGISTRY_PASSWORD when set
+// and REGISTRY_PASSWORD when set.
 func (h *Host) AuthenticateDocker(imageRepo string) error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
@@ -136,12 +136,12 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 	return nil
 }
 
-// SwarmAddress determines the swarm address for the host
+// SwarmAddress determines the swarm address for the host.
 func (h *Host) SwarmAddress() string {
 	return fmt.Sprintf("%s:%d", h.Metadata.InternalAddress, 2377)
 }
 
-// MCRVersion returns the current engine version installed on the host
+// MCRVersion returns the current engine version installed on the host.
 func (h *Host) MCRVersion() (string, error) {
 	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
@@ -151,7 +151,7 @@ func (h *Host) MCRVersion() (string, error) {
 	return version, nil
 }
 
-// CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected
+// CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected.
 func (h *Host) CheckHTTPStatus(url string, expected int) error {
 	status, err := h.Configurer.HTTPStatus(h, url)
 	if err != nil {
@@ -167,7 +167,7 @@ func (h *Host) CheckHTTPStatus(url string, expected int) error {
 }
 
 // WriteFileLarge copies a larger file to the host.
-// Use instead of configurer.WriteFile when it seems appropriate
+// Use instead of configurer.WriteFile when it seems appropriate.
 func (h *Host) WriteFileLarge(src, dst string) error {
 	startTime := time.Now()
 	stat, err := os.Stat(src)
@@ -184,12 +184,12 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 
 	duration := time.Since(startTime).Seconds()
 	speed := float64(size) / duration
-	log.Infof("%s: transfered %s in %.1f seconds (%s/s)", h, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
+	log.Infof("%s: transferred %s in %.1f seconds (%s/s)", h, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
 
 	return nil
 }
 
-// Reconnect disconnects and reconnects the host's connection
+// Reconnect disconnects and reconnects the host's connection.
 func (h *Host) Reconnect() error {
 	h.Disconnect()
 
@@ -205,7 +205,7 @@ func (h *Host) Reconnect() error {
 	)
 }
 
-// Reboot reboots the host and waits for it to become responsive
+// Reboot reboots the host and waits for it to become responsive.
 func (h *Host) Reboot() error {
 	log.Infof("%s: rebooting", h)
 	if err := h.Configurer.Reboot(h); err != nil {
@@ -234,7 +234,7 @@ func (h *Host) Reboot() error {
 	return nil
 }
 
-// ConfigureMCR writes the docker engine daemon.json and toggles the host Metadata MCRRestartRequired flag if changed
+// ConfigureMCR writes the docker engine daemon.json and toggles the host Metadata MCRRestartRequired flag if changed.
 func (h *Host) ConfigureMCR() error {
 	if len(h.DaemonConfig) == 0 {
 		return nil
@@ -273,7 +273,7 @@ func (h *Host) ConfigureMCR() error {
 	daemonJSONContent := string(newJSONbytes)
 
 	if err := h.Configurer.DeleteFile(h, cfgPath); err != nil {
-		log.Debugf("%s: failed to delete exising daemon.json: %s", h, err)
+		log.Debugf("%s: failed to delete existing daemon.json: %s", h, err)
 	}
 
 	if err := h.Configurer.WriteFile(h, cfgPath, daemonJSONContent, "0600"); err != nil {
@@ -288,7 +288,7 @@ func (h *Host) ConfigureMCR() error {
 	return nil
 }
 
-// when state is true wait for host to become active, when state is false, wait for connection to go down
+// when state is true wait for host to become active, when state is false, wait for connection to go down.
 func (h *Host) waitForHost(state bool) error {
 	err := retry.Do(
 		func() error {
@@ -311,7 +311,7 @@ func (h *Host) waitForHost(state bool) error {
 	return nil
 }
 
-// ResolveConfigurer assigns a rig-style configurer to the Host (see configurer/)
+// ResolveConfigurer assigns a rig-style configurer to the Host (see configurer/).
 func (h *Host) ResolveConfigurer() error {
 	bf, err := registry.GetOSModuleBuilder(*h.OSVersion)
 	if err != nil {

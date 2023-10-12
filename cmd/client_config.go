@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewClientConfigCommand creates a download bundle command to be called via the CLI
+// NewClientConfigCommand creates a download bundle command to be called via the CLI.
 func NewClientConfigCommand() *cli.Command {
 	return &cli.Command{
 		Name:    "client-config",

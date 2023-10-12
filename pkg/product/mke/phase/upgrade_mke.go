@@ -11,19 +11,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UpgradeMKE is the phase implementation for running the actual MKE upgrade container
+// UpgradeMKE is the phase implementation for running the actual MKE upgrade container.
 type UpgradeMKE struct {
 	phase.Analytics
 	phase.BasicPhase
 	phase.CleanupDisabling
 }
 
-// Title prints the phase title
+// Title prints the phase title.
 func (p *UpgradeMKE) Title() string {
 	return "Upgrade MKE components"
 }
 
-// Run the upgrade container
+// Run the upgrade container.
 func (p *UpgradeMKE) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 

@@ -10,18 +10,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PullMSRImages phase implementation
+// PullMSRImages phase implementation.
 type PullMSRImages struct {
 	phase.Analytics
 	MSRPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *PullMSRImages) Title() string {
 	return "Pull MSR images"
 }
 
-// Run pulls images in parallel across nodes via a workerpool of 5
+// Run pulls images in parallel across nodes via a workerpool of 5.
 func (p *PullMSRImages) Run() error {
 	images, err := p.ListImages()
 	if err != nil {
@@ -44,7 +44,7 @@ func (p *PullMSRImages) Run() error {
 	return docker.PullImages(p.Config.Spec.MSRLeader(), images)
 }
 
-// ListImages obtains a list of images from MSR
+// ListImages obtains a list of images from MSR.
 func (p *PullMSRImages) ListImages() ([]*docker.Image, error) {
 	msrLeader := p.Config.Spec.MSRLeader()
 	bootstrap := docker.NewImage(p.Config.Spec.MSR.GetBootstrapperImage())

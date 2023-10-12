@@ -12,7 +12,7 @@ type Windows2022Configurer struct {
 	configurer.WindowsConfigurer
 }
 
-// InstallMKEBasePackages installs the needed base packages on Ubuntu
+// InstallMKEBasePackages installs the needed base packages on Ubuntu.
 func (c Windows2022Configurer) InstallMKEBasePackages(_ os.Host) error {
 	return nil
 }

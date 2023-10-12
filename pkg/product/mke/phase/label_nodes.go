@@ -12,18 +12,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// LabelNodes phase implementation
+// LabelNodes phase implementation.
 type LabelNodes struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *LabelNodes) Title() string {
 	return "Label nodes"
 }
 
-// Run labels all nodes with launchpad label
+// Run labels all nodes with launchpad label.
 func (p *LabelNodes) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 

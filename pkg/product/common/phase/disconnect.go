@@ -12,12 +12,12 @@ type disconnectable interface {
 	String() string
 }
 
-// Disconnect phase implementation
+// Disconnect phase implementation.
 type Disconnect struct {
 	hosts []disconnectable
 }
 
-// Prepare digs out the hosts from the config
+// Prepare digs out the hosts from the config.
 func (p *Disconnect) Prepare(config interface{}) error {
 	r := reflect.ValueOf(config).Elem()
 	spec := r.FieldByName("Spec").Elem()
@@ -31,17 +31,17 @@ func (p *Disconnect) Prepare(config interface{}) error {
 	return nil
 }
 
-// ShouldRun is true when there are hosts that need to be connected
+// ShouldRun is true when there are hosts that need to be connected.
 func (p *Disconnect) ShouldRun() bool {
 	return len(p.hosts) > 0
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *Disconnect) Title() string {
 	return "Close Connection"
 }
 
-// Run disconnects from all the hosts
+// Run disconnects from all the hosts.
 func (p *Disconnect) Run() error {
 	var wg sync.WaitGroup
 	wg.Add(len(p.hosts))

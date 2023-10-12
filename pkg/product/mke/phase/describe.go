@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Describe shows information about the current status of the cluster
+// Describe shows information about the current status of the cluster.
 type Describe struct {
 	phase.BasicPhase
 
@@ -17,12 +17,12 @@ type Describe struct {
 	MSR bool
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *Describe) Title() string {
 	return "Display cluster status"
 }
 
-// Run does the actual saving of the local state file
+// Run does the actual saving of the local state file.
 func (p *Describe) Run() error {
 	if p.MKE {
 		p.mkeReport()

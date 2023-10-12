@@ -14,7 +14,7 @@ type host interface {
 	String() string
 }
 
-// RunHooks phase runs a set of hooks configured for the host
+// RunHooks phase runs a set of hooks configured for the host.
 type RunHooks struct {
 	Action string
 	Stage  string
@@ -22,7 +22,7 @@ type RunHooks struct {
 	steps map[host][]string
 }
 
-// Prepare digs out the hosts with steps from the config
+// Prepare digs out the hosts with steps from the config.
 func (p *RunHooks) Prepare(config interface{}) error {
 	p.steps = make(map[host][]string)
 	r := reflect.ValueOf(config).Elem()
@@ -46,17 +46,17 @@ func (p *RunHooks) Prepare(config interface{}) error {
 	return nil
 }
 
-// ShouldRun is true when there are hosts that need to be connected
+// ShouldRun is true when there are hosts that need to be connected.
 func (p *RunHooks) ShouldRun() bool {
 	return len(p.steps) > 0
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *RunHooks) Title() string {
-	return fmt.Sprintf("Run %s %s Hooks", strings.Title(p.Stage), strings.Title(p.Action))
+	return fmt.Sprintf("Run %s %s Hooks", p.Stage, p.Action)
 }
 
-// Run does all the prep work on the hosts in parallel
+// Run does all the prep work on the hosts in parallel.
 func (p *RunHooks) Run() error {
 	var wg sync.WaitGroup
 	var errors []string

@@ -11,18 +11,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// RestartMCR phase implementation
+// RestartMCR phase implementation.
 type RestartMCR struct {
 	phase.Analytics
 	phase.HostSelectPhase
 }
 
-// HostFilterFunc returns true for hosts that need their engine to be restarted
+// HostFilterFunc returns true for hosts that need their engine to be restarted.
 func (p *RestartMCR) HostFilterFunc(h *api.Host) bool {
 	return h.Metadata.MCRRestartRequired
 }
 
-// Prepare collects the hosts
+// Prepare collects the hosts.
 func (p *RestartMCR) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 	log.Debugf("collecting hosts for phase %s", p.Title())
@@ -32,12 +32,12 @@ func (p *RestartMCR) Prepare(config interface{}) error {
 	return nil
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *RestartMCR) Title() string {
 	return "Restart Mirantis Container Runtime on the hosts"
 }
 
-// Run installs the engine on each host
+// Run installs the engine on each host.
 func (p *RestartMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
 		"engine_version": p.Config.Spec.MCR.Version,
@@ -45,7 +45,7 @@ func (p *RestartMCR) Run() error {
 	return p.restartMCRs()
 }
 
-// Restarts host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
+// Restarts host docker engines, first managers (one-by-one) and then ~10% rolling update to workers.
 func (p *RestartMCR) restartMCRs() error {
 	var managers api.Hosts
 	var others api.Hosts

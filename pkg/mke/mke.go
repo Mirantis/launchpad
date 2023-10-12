@@ -21,26 +21,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// AuthToken represents a session token
+// AuthToken represents a session token.
 type AuthToken struct {
 	ID        string `json:"token_id,omitempty"`
 	Token     string `json:"auth_token,omitempty"`
 	UserAgent string `json:"user_agent,omitempty"`
 }
 
-// Credentials represents a username/password pair for mke login
+// Credentials represents a username/password pair for mke login.
 type Credentials struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
-// CollectFacts gathers the current status of installed mke setup
+// CollectFacts gathers the current status of installed mke setup.
 func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
 	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
 		mkeMeta.Installed = false
 		mkeMeta.InstalledVersion = ""
-		return nil
+		return nil //nolint:nilerr
 	}
 
 	vparts := strings.Split(output, ":")
@@ -110,7 +110,7 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 	return zip.NewReader(bytes.NewReader(body), int64(len(body)))
 }
 
-// GetToken gets a mke Authtoken from the given mkeURL
+// GetToken gets a mke Authtoken from the given mkeURL.
 func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (string, error) {
 	mkeURL.Path = "/auth/login"
 	creds := Credentials{
@@ -139,7 +139,7 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 	return "", fmt.Errorf("Unexpected error logging in to mke: %s", string(body))
 }
 
-// GetTLSConfigFrom retrieves the valid tlsConfig from the given mke manager
+// GetTLSConfigFrom retrieves the valid tlsConfig from the given mke manager.
 func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Config, error) {
 	runFlags := common.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if manager.Configurer.SELinuxEnabled(manager) {
@@ -181,7 +181,7 @@ func tp2qp(s string) string {
 	return strings.Replace(s, "-tp", "-qp", 1)
 }
 
-// VersionGreaterThan is a "corrected" version comparator that considers -tpX releases to be earlier than -rcX
+// VersionGreaterThan is a "corrected" version comparator that considers -tpX releases to be earlier than -rcX.
 func VersionGreaterThan(a, b *version.Version) bool {
 	ca, _ := version.NewVersion(tp2qp(a.String()))
 	cb, _ := version.NewVersion(tp2qp(b.String()))

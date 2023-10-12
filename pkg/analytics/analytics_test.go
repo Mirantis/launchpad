@@ -24,7 +24,7 @@ func (m *mockClient) Close() error {
 }
 
 // TestTrackAnalyticsEvent tests that the TrackAnalyticsEvent
-// functions sends tracking message if analytics is enabled
+// functions sends tracking message if analytics is enabled.
 func TestTrackAnalyticsEvent(t *testing.T) {
 	client := &mockClient{}
 	analyticsClient := Client{

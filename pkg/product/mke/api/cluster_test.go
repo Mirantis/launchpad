@@ -8,19 +8,19 @@ import (
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/config/migration"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
 	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
@@ -454,7 +454,7 @@ spec:
 
 }
 
-// Just a small helper to load the config struct from yaml to get defaults etc. in place
+// Just a small helper to load the config struct from yaml to get defaults etc. in place.
 func loadYaml(t *testing.T, data string) *ClusterConfig {
 	c := &ClusterConfig{}
 	// convert any tabs added by editor into double spaces
@@ -462,7 +462,7 @@ func loadYaml(t *testing.T, data string) *ClusterConfig {
 	return c
 }
 
-// Just a small helper to load the config struct from yaml through the migrations
+// Just a small helper to load the config struct from yaml through the migrations.
 func loadAndMigrateYaml(t *testing.T, data string) *ClusterConfig {
 	c := &ClusterConfig{}
 	raw := make(map[string]interface{})
@@ -475,7 +475,7 @@ func loadAndMigrateYaml(t *testing.T, data string) *ClusterConfig {
 	return c
 }
 
-// checks that the validation errors contains error for the expected field
+// checks that the validation errors contains error for the expected field.
 func validateErrorField(t *testing.T, err error, field string) {
 	fields := getAllErrorFields(err)
 	require.Contains(t, fields, field)
@@ -488,8 +488,8 @@ func getAllErrorFields(err error) []string {
 	// Collect all fields that failed validation
 	// Also "store" the validation error for the expected field so that we can return it
 	// and the correcponding test can further validate it if needed
-	for _, fieldError := range validationErrors {
-		fields = append(fields, fieldError.Field())
+	for i, fieldError := range validationErrors {
+		fields[i] = fieldError.Field()
 	}
 
 	return fields

@@ -13,19 +13,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// LoadImages phase uploads + docker loads images from host's imageDir to hosts
+// LoadImages phase uploads + docker loads images from host's imageDir to hosts.
 type LoadImages struct {
 	phase.Analytics
 	phase.HostSelectPhase
-	totalBytes uint64
 }
 
-// Title is the title for the phase
+// Title is the title for the phase.
 func (p *LoadImages) Title() string {
 	return "Upload images"
 }
 
-// HostFilterFunc returns true for hosts that have images to be uploaded
+// HostFilterFunc returns true for hosts that have images to be uploaded.
 func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 	if h.ImageDir == "" {
 		return false
@@ -59,7 +58,7 @@ func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 	return h.Metadata.TotalImageBytes > 0
 }
 
-// Prepare collects the hosts
+// Prepare collects the hosts.
 func (p *LoadImages) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 	log.Debugf("collecting hosts for phase %s", p.Title())
@@ -69,7 +68,7 @@ func (p *LoadImages) Prepare(config interface{}) error {
 	return nil
 }
 
-// Run does all the work
+// Run does all the work.
 func (p *LoadImages) Run() error {
 	var totalBytes uint64
 	p.Hosts.Each(func(h *api.Host) error {

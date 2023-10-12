@@ -5,7 +5,7 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// JammyConfigurer is the Ubuntu Focal (20.04) specific host configurer implementation
+// JammyConfigurer is the Ubuntu Focal (20.04) specific host configurer implementation.
 type JammyConfigurer struct {
 	Configurer
 }

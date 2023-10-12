@@ -15,7 +15,7 @@ func prog() string {
 	return path.Base(p)
 }
 
-// BashTemplate returns a completion script for bash
+// BashTemplate returns a completion script for bash.
 func BashTemplate() string {
 	return fmt.Sprintf(`#! /bin/bash
 
@@ -38,7 +38,7 @@ complete -o bashdefault -o default -o nospace -F _cli_bash_autocomplete %s
 `, prog())
 }
 
-// ZshTemplate returns a completion script for zsh
+// ZshTemplate returns a completion script for zsh.
 func ZshTemplate() string {
 	p := prog()
 	return fmt.Sprintf(`#compdef %s

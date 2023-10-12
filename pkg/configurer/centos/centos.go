@@ -7,12 +7,12 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// Configurer is the CentOS specific implementation of a host configurer
+// Configurer is the CentOS specific implementation of a host configurer.
 type Configurer struct {
 	enterpriselinux.Configurer
 }
 
-// InstallMKEBasePackages install all the needed base packages on the host
+// InstallMKEBasePackages install all the needed base packages on the host.
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 	return c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip")
 }

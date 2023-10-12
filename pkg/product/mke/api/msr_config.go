@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// MSRConfig has all the bits needed to configure MSR during installation
+// MSRConfig has all the bits needed to configure MSR during installation.
 type MSRConfig struct {
 	Version      string       `yaml:"version" validate:"required"`
 	ImageRepo    string       `yaml:"imageRepo,omitempty"`
@@ -26,7 +26,7 @@ type MSRConfig struct {
 	KeyData      string       `yaml:"keyData,omitempty"`
 }
 
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type msr MSRConfig
 	yc := (*msr)(c)
@@ -69,7 +69,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return defaults.Set(c)
 }
 
-// SetDefaults sets default values
+// SetDefaults sets default values.
 func (c *MSRConfig) SetDefaults() {
 	if c.ImageRepo == "" {
 		c.ImageRepo = constant.ImageRepo
@@ -85,12 +85,12 @@ func (c *MSRConfig) SetDefaults() {
 	}
 }
 
-// GetBootstrapperImage combines the bootstrapper image name based on user given config
+// GetBootstrapperImage combines the bootstrapper image name based on user given config.
 func (c *MSRConfig) GetBootstrapperImage() string {
 	return fmt.Sprintf("%s/dtr:%s", c.ImageRepo, c.Version)
 }
 
-// UseLegacyImageRepo returns true if the version number does not satisfy >= 2.8.2 || >= 2.7.8 || >= 2.6.15
+// UseLegacyImageRepo returns true if the version number does not satisfy >= 2.8.2 || >= 2.7.8 || >= 2.6.15.
 func (c *MSRConfig) UseLegacyImageRepo(v *version.Version) bool {
 
 	// Strip out anything after -, seems like go-version thinks

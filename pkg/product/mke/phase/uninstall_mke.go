@@ -12,18 +12,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UninstallMKE is the phase implementation for running MKE uninstall
+// UninstallMKE is the phase implementation for running MKE uninstall.
 type UninstallMKE struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title prints the phase title
+// Title prints the phase title.
 func (p *UninstallMKE) Title() string {
 	return "Uninstall MKE components"
 }
 
-// Run the installer container
+// Run the installer container.
 func (p *UninstallMKE) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 	if !p.Config.Spec.MKE.Metadata.Installed {

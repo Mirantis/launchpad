@@ -17,18 +17,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ValidateHosts phase implementation to collect facts (OS, version etc.) from hosts
+// ValidateHosts phase implementation to collect facts (OS, version etc.) from hosts.
 type ValidateHosts struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *ValidateHosts) Title() string {
 	return "Validate Hosts"
 }
 
-// Run collect all the facts from hosts in parallel
+// Run collect all the facts from hosts in parallel.
 func (p *ValidateHosts) Run() error {
 	if mcclog.Trace {
 		if err := p.validateHostConnection(); err != nil {

@@ -17,20 +17,20 @@ import (
 	escape "github.com/alessio/shellescape"
 )
 
-// LinuxConfigurer is a generic linux host configurer
+// LinuxConfigurer is a generic linux host configurer.
 type LinuxConfigurer struct {
 	riglinux os.Linux
 }
 
-// SbinPath is for adding sbin directories to current $PATH
+// SbinPath is for adding sbin directories to current $PATH.
 const SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
 
-// MCRConfigPath returns the configuration file path
+// MCRConfigPath returns the configuration file path.
 func (c LinuxConfigurer) MCRConfigPath() string {
 	return "/etc/docker/daemon.json"
 }
 
-// InstallMCR install MCR on Linux
+// InstallMCR install MCR on Linux.
 func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
 	pwd := c.riglinux.Pwd(h)
 	base := path.Base(scriptPath)
@@ -57,12 +57,12 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 	return c.riglinux.StartService(h, "docker")
 }
 
-// RestartMCR restarts Docker EE engine
+// RestartMCR restarts Docker EE engine.
 func (c LinuxConfigurer) RestartMCR(h os.Host) error {
 	return c.riglinux.RestartService(h, "docker")
 }
 
-// ResolveInternalIP resolves internal ip from private interface
+// ResolveInternalIP resolves internal ip from private interface.
 func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP string) (string, error) {
 	output, err := h.ExecOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, privateInterface))
 	if err != nil {
@@ -91,12 +91,12 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 }
 
 // DockerCommandf accepts a printf-like template string and arguments
-// and builds a command string for running the docker cli on the host
+// and builds a command string for running the docker cli on the host.
 func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) string {
 	return fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
 }
 
-// ValidateLocalhost returns an error if "localhost" is not a local address
+// ValidateLocalhost returns an error if "localhost" is not a local address.
 func (c LinuxConfigurer) ValidateLocalhost(h os.Host) error {
 	if err := h.Exec("sudo ping -c 1 -w 1 -r localhost"); err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
@@ -104,7 +104,7 @@ func (c LinuxConfigurer) ValidateLocalhost(h os.Host) error {
 	return nil
 }
 
-// CheckPrivilege returns an error if the user does not have passwordless sudo enabled
+// CheckPrivilege returns an error if the user does not have passwordless sudo enabled.
 func (c LinuxConfigurer) CheckPrivilege(h os.Host) error {
 	if h.Exec("sudo -n true") != nil {
 		return fmt.Errorf("user does not have passwordless sudo access")
@@ -113,7 +113,7 @@ func (c LinuxConfigurer) CheckPrivilege(h os.Host) error {
 	return nil
 }
 
-// LocalAddresses returns a list of local addresses
+// LocalAddresses returns a list of local addresses.
 func (c LinuxConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 	output, err := h.ExecOutput("sudo hostname --all-ip-addresses")
 	if err != nil {
@@ -128,7 +128,7 @@ type reconnectable interface {
 	Reconnect() error
 }
 
-// AuthorizeDocker adds the current user to the docker group
+// AuthorizeDocker adds the current user to the docker group.
 func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
 		log.Debugf("%s: current user is uid 0 - no need to authorize", h)
@@ -146,7 +146,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 
 	if err := h.Exec("getent group docker"); err != nil {
 		log.Debugf("%s: group 'docker' does not exist", h)
-		return nil
+		return nil //nolint:nilerr
 	}
 
 	if err := h.Exec("sudo -i usermod -aG docker $USER"); err != nil {
@@ -169,7 +169,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	return nil
 }
 
-// AuthenticateDocker performs a docker login on the host
+// AuthenticateDocker performs a docker login on the host.
 func (c LinuxConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
 	return h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.RedactString(user, pass))
 }
@@ -187,7 +187,7 @@ func (c LinuxConfigurer) LineIntoFile(h os.Host, path, matcher, newLine string) 
 	return c.riglinux.WriteFile(h, path, newLine, "0700")
 }
 
-// UpdateEnvironment updates the hosts's environment variables
+// UpdateEnvironment updates the hosts's environment variables.
 func (c LinuxConfigurer) UpdateEnvironment(h os.Host, env map[string]string) error {
 	for k, v := range env {
 		err := c.LineIntoFile(h, "/etc/environment", fmt.Sprintf("^%s=", k), fmt.Sprintf("%s=%s", k, v))
@@ -205,7 +205,7 @@ func (c LinuxConfigurer) UpdateEnvironment(h os.Host, env map[string]string) err
 	return c.ConfigureDockerProxy(h, env)
 }
 
-// CleanupEnvironment removes environment variable configuration
+// CleanupEnvironment removes environment variable configuration.
 func (c LinuxConfigurer) CleanupEnvironment(h os.Host, env map[string]string) error {
 	for k := range env {
 		err := c.LineIntoFile(h, "/etc/environment", fmt.Sprintf("^%s=", k), "")
@@ -217,7 +217,7 @@ func (c LinuxConfigurer) CleanupEnvironment(h os.Host, env map[string]string) er
 	return h.Exec(`sudo sed -i '/^$/d' /etc/environment`)
 }
 
-// ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables
+// ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables.
 func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) error {
 	proxyenvs := make(map[string]string)
 
@@ -248,7 +248,7 @@ func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) 
 	return c.riglinux.WriteFile(h, cfg, content, "0600")
 }
 
-// ResolvePrivateInterface tries to find a private network interface
+// ResolvePrivateInterface tries to find a private network interface.
 func (c LinuxConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
 	output, err := h.ExecOutput(fmt.Sprintf(`%s; (ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`, SbinPath))
 	if err == nil {
@@ -263,7 +263,7 @@ func (c LinuxConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
 	return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually (%s)", err.Error())
 }
 
-// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
+// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error.
 func (c LinuxConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	log.Debugf("%s: requesting %s", h, url)
 	output, err := h.ExecOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))

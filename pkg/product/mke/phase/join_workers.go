@@ -11,13 +11,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// JoinWorkers phase implementation
+// JoinWorkers phase implementation.
 type JoinWorkers struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *JoinWorkers) Title() string {
 	return "Join workers"
 }
@@ -39,7 +39,7 @@ func (p *JoinWorkers) Run() error {
 		if err != nil {
 			return fmt.Errorf("Failed to join worker %s node to swarm", h)
 		}
-		log.Infof("%s: joined succesfully", h)
+		log.Infof("%s: joined successfully", h)
 		if h.IsWindows() {
 			// This is merely a workaround for the fact that we cannot reliably now detect if the connection is actually broken
 			// with current ssh client config etc. the commands tried will timeout after several minutes only

@@ -12,33 +12,33 @@ import (
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/k0sproject/dig"
 
-	// needed to load the build func in package init
+	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
-	// needed to load the build func in package init
+	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
-	// needed to load the build func in package init
+	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
-	// needed to load the build func in package init
+	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
-	// needed to load the build func in package init
+	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
-	// needed to load the build func in package init
+	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	log "github.com/sirupsen/logrus"
 )
 
-// GatherFacts phase implementation to collect facts (OS, version etc.) from hosts
+// GatherFacts phase implementation to collect facts (OS, version etc.) from hosts.
 type GatherFacts struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *GatherFacts) Title() string {
 	return "Gather Facts"
 }
 
-// Run collect all the facts from hosts in parallel
+// Run collect all the facts from hosts in parallel.
 func (p *GatherFacts) Run() error {
 	err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.investigateHost)
 	if err != nil {
@@ -148,6 +148,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	return nil
 }
 
+//nolint:unused
 func (p *GatherFacts) testConnection(h *api.Host) error {
 	testfn := "launchpad_connection_test.txt"
 

@@ -9,18 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Configurer is the EL family specific implementation of a host configurer
+// Configurer is the EL family specific implementation of a host configurer.
 type Configurer struct {
 	linux.EnterpriseLinux
 	configurer.LinuxConfigurer
 }
 
-// InstallMKEBasePackages install all the needed base packages on the host
+// InstallMKEBasePackages install all the needed base packages on the host.
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 	return c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip")
 }
 
-// UninstallMCR uninstalls docker-ee engine
+// UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
 	err := h.Exec("sudo docker system prune -f")
 	if err != nil {
@@ -35,7 +35,7 @@ func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig comm
 	return h.Exec("sudo yum remove -y docker-ee docker-ee-cli")
 }
 
-// InstallMCR install Docker EE engine on Linux
+// InstallMCR install Docker EE engine on Linux.
 func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
 	if h.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
 		if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {

@@ -11,31 +11,31 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PullMKEImages phase implementation
+// PullMKEImages phase implementation.
 type PullMKEImages struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *PullMKEImages) Title() string {
 	return "Pull MKE images"
 }
 
 func (p *PullMKEImages) isMKESwarmOnly() bool {
 	for _, flag := range p.Config.Spec.MKE.InstallFlags {
-	        if flag == "--swarm-only" {
-                        return true
-	        }
+		if flag == "--swarm-only" {
+			return true
+		}
 	}
 
 	return false
 }
 
-// Run pulls images in parallel across nodes via a workerpool of 5
+// Run pulls images in parallel across nodes via a workerpool of 5.
 func (p *PullMKEImages) Run() error {
 
-        swarmOnly := p.isMKESwarmOnly()
+	swarmOnly := p.isMKESwarmOnly()
 
 	images, err := p.ListImages(false, swarmOnly)
 	if err != nil {
@@ -97,7 +97,7 @@ func (p *PullMKEImages) Run() error {
 	return nil
 }
 
-// ListImages obtains a list of images from MKE
+// ListImages obtains a list of images from MKE.
 func (p *PullMKEImages) ListImages(win, swarmOnly bool) ([]*docker.Image, error) {
 	manager := p.Config.Spec.SwarmLeader()
 	bootstrap := docker.NewImage(p.Config.Spec.MKE.GetBootstrapperImage())

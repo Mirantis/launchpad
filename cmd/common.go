@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 
@@ -76,7 +76,7 @@ var (
 		Value: false,
 	}
 
-	// GlobalFlags is a set of flags to be included in most commands
+	// GlobalFlags is a set of flags to be included in most commands.
 	GlobalFlags = []cli.Flag{
 		debugFlag,
 		traceFlag,
@@ -88,7 +88,7 @@ var (
 	upgradeChan = make(chan *version.LaunchpadRelease)
 )
 
-// actions can be used to chain action functions (for urfave/cli's Before, After, etc)
+// actions can be used to chain action functions (for urfave/cli's Before, After, etc).
 func actions(funcs ...func(*cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {
 		for _, f := range funcs {
@@ -118,11 +118,11 @@ func initLogger(ctx *cli.Context) error {
 	mcclog.Debug = ctx.Bool("debug") || ctx.Bool("trace")
 	mcclog.Trace = ctx.Bool("trace")
 	log.SetLevel(log.TraceLevel)
-	log.SetOutput(ioutil.Discard) // Send all logs to nowhere by default
+	log.SetOutput(io.Discard) // Send all logs to nowhere by default.
 
-	// Send logs with level >= INFO to stdout
+	// Send logs with level >= INFO to stdout.
 
-	// stdout hook on by default of course
+	// stdout hook on by default of course.
 	log.AddHook(mcclog.NewStdoutHook())
 	rig.SetLogger(log.StandardLogger())
 
@@ -185,7 +185,7 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 		return nil, fmt.Errorf("Failed to create log file at %s: %s", logFileName, err.Error())
 	}
 
-	// Send all logs to named file, this ensures we always have debug logs also available when needed
+	// Send all logs to named file, this ensures we always have debug logs also available when needed.
 	log.AddHook(mcclog.NewFileHook(logFile))
 
 	return logFile, nil

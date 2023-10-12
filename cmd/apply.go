@@ -16,7 +16,7 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// NewApplyCommand creates new apply command to be called from cli
+// NewApplyCommand creates new apply command to be called from cli.
 func NewApplyCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "apply",

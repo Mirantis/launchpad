@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// MKEConfig has all the bits needed to configure mke during installation
+// MKEConfig has all the bits needed to configure mke during installation.
 type MKEConfig struct {
 	Version             string       `yaml:"version" validate:"required"`
 	ImageRepo           string       `yaml:"imageRepo,omitempty"`
@@ -47,14 +47,14 @@ type MKEMetadata struct {
 	WorkerJoinToken         string
 }
 
-// MKECloud has the cloud provider configuration
+// MKECloud has the cloud provider configuration.
 type MKECloud struct {
 	Provider   string `yaml:"provider,omitempty" validate:"required"`
 	ConfigFile string `yaml:"configFile,omitempty" validate:"omitempty,file"`
 	ConfigData string `yaml:"configData,omitempty"`
 }
 
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type mke MKEConfig
 	config := NewMKEConfig()
@@ -167,7 +167,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// NewMKEConfig creates new config with sane defaults
+// NewMKEConfig creates new config with sane defaults.
 func NewMKEConfig() MKEConfig {
 	return MKEConfig{
 		ImageRepo: constant.ImageRepo,
@@ -175,7 +175,7 @@ func NewMKEConfig() MKEConfig {
 	}
 }
 
-// UseLegacyImageRepo returns true if the version number does not satisfy >=3.1.15 || >=3.2.8 || >=3.3.2
+// UseLegacyImageRepo returns true if the version number does not satisfy >=3.1.15 || >=3.2.8 || >=3.3.2.
 func (c *MKEConfig) UseLegacyImageRepo(v *version.Version) bool {
 
 	// Strip out anything after -, seems like go-version thinks
@@ -195,7 +195,7 @@ func (c *MKEConfig) UseLegacyImageRepo(v *version.Version) bool {
 	return !(c1.Check(v2) || c2.Check(v2) || c3.Check(v2) || c4.Check(v2))
 }
 
-// GetBootstrapperImage combines the bootstrapper image name based on user given config
+// GetBootstrapperImage combines the bootstrapper image name based on user given config.
 func (c *MKEConfig) GetBootstrapperImage() string {
 	return fmt.Sprintf("%s/ucp:%s", c.ImageRepo, c.Version)
 }

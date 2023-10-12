@@ -9,18 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PrepareHost phase implementation does all the prep work we need for the hosts
+// PrepareHost phase implementation does all the prep work we need for the hosts.
 type PrepareHost struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *PrepareHost) Title() string {
 	return "Prepare hosts"
 }
 
-// Run does all the prep work on the hosts in parallel
+// Run does all the prep work on the hosts in parallel.
 func (p *PrepareHost) Run() error {
 	err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.updateEnvironment)
 	if err != nil {

@@ -9,26 +9,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DisableUpgradeCheck for offline use
+// DisableUpgradeCheck for offline use.
 var DisableUpgradeCheck = false
 
-// UpgradeCheck displays a notification of an upgrade being available
+// UpgradeCheck displays a notification of an upgrade being available.
 type UpgradeCheck struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title prints the phase title
+// Title prints the phase title.
 func (p *UpgradeCheck) Title() string {
 	return "Check For Upgrades"
 }
 
-// ShouldRun will return false when upgrades checks are disabled
+// ShouldRun will return false when upgrades checks are disabled.
 func (p *UpgradeCheck) ShouldRun() bool {
 	return !DisableUpgradeCheck
 }
 
-// Run the installer container
+// Run the installer container.
 func (p *UpgradeCheck) Run() (err error) {
 	mv, err := hub.LatestTag("mirantis", "ucp", strings.Contains(p.Config.Spec.MKE.Version, "-"))
 	if err != nil {

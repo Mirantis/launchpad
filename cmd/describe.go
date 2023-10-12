@@ -24,7 +24,7 @@ func reportIsKnown(n string) bool {
 	return false
 }
 
-// NewDescribeCommand creates new describe command to be called from cli
+// NewDescribeCommand creates new describe command to be called from cli.
 func NewDescribeCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "describe",

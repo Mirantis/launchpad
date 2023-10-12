@@ -19,14 +19,14 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// WindowsConfigurer is a generic windows host configurer
+// WindowsConfigurer is a generic windows host configurer.
 type WindowsConfigurer struct {
 	os.Windows
 
 	PowerShellVersion *version.Version
 }
 
-// MCRConfigPath returns the configuration file path
+// MCRConfigPath returns the configuration file path.
 func (c WindowsConfigurer) MCRConfigPath() string {
 	return `C:\ProgramData\Docker\config\daemon.json`
 }
@@ -35,7 +35,7 @@ type rebootable interface {
 	Reboot() error
 }
 
-// InstallMCR install MCR on Windows
+// InstallMCR install MCR on Windows.
 func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
 	pwd := c.Pwd(h)
 	base := path.Base(scriptPath)
@@ -89,7 +89,7 @@ func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConf
 	return h.Exec(uninstallCommand)
 }
 
-// RestartMCR restarts Docker EE engine
+// RestartMCR restarts Docker EE engine.
 func (c WindowsConfigurer) RestartMCR(h os.Host) error {
 	h.Exec("net stop com.docker.service")
 	h.Exec("net start com.docker.service")
@@ -104,7 +104,7 @@ func (c WindowsConfigurer) RestartMCR(h os.Host) error {
 	)
 }
 
-// ResolveInternalIP resolves internal ip from private interface
+// ResolveInternalIP resolves internal ip from private interface.
 func (c WindowsConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP string) (string, error) {
 	output, err := c.interfaceIP(h, privateInterface)
 	if err != nil {
@@ -138,12 +138,12 @@ func (c WindowsConfigurer) interfaceIP(h os.Host, iface string) (string, error) 
 }
 
 // DockerCommandf accepts a printf-like template string and arguments
-// and builds a command string for running the docker cli on the host
+// and builds a command string for running the docker cli on the host.
 func (c WindowsConfigurer) DockerCommandf(template string, args ...interface{}) string {
 	return fmt.Sprintf("docker.exe %s", fmt.Sprintf(template, args...))
 }
 
-// ValidateLocalhost returns an error if "localhost" is not local on the host
+// ValidateLocalhost returns an error if "localhost" is not local on the host.
 func (c WindowsConfigurer) ValidateLocalhost(h os.Host) error {
 	err := h.Exec(ps.Cmd(fmt.Sprintf(`"$ips=[System.Net.Dns]::GetHostAddresses('localhost'); Get-NetIPAddress -IPAddress $ips"`)))
 	if err != nil {
@@ -152,7 +152,7 @@ func (c WindowsConfigurer) ValidateLocalhost(h os.Host) error {
 	return nil
 }
 
-// LocalAddresses returns a list of local addresses
+// LocalAddresses returns a list of local addresses.
 func (c WindowsConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 	output, err := h.ExecOutput(ps.Cmd(`(Get-NetIPAddress).IPV4Address`))
 	if err != nil {
@@ -167,7 +167,7 @@ func (c WindowsConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 	return lines, nil
 }
 
-// CheckPrivilege returns an error if the user does not have admin access to the host
+// CheckPrivilege returns an error if the user does not have admin access to the host.
 func (c WindowsConfigurer) CheckPrivilege(h os.Host) error {
 	privCheck := "\"$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if (!$currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { $host.SetShouldExit(1) }\""
 
@@ -178,13 +178,13 @@ func (c WindowsConfigurer) CheckPrivilege(h os.Host) error {
 	return nil
 }
 
-// AuthenticateDocker performs a docker login on the host
+// AuthenticateDocker performs a docker login on the host.
 func (c WindowsConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
 	return h.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.RedactString(user, pass), exec.AllowWinStderr())
 }
 
-// UpdateEnvironment updates the hosts's environment variables
+// UpdateEnvironment updates the hosts's environment variables.
 func (c WindowsConfigurer) UpdateEnvironment(h os.Host, env map[string]string) error {
 	for k, v := range env {
 		err := h.Exec(fmt.Sprintf(`setx %s %s`, ps.DoubleQuote(k), ps.DoubleQuote(v)))
@@ -195,7 +195,7 @@ func (c WindowsConfigurer) UpdateEnvironment(h os.Host, env map[string]string) e
 	return nil
 }
 
-// CleanupEnvironment removes environment variable configuration
+// CleanupEnvironment removes environment variable configuration.
 func (c WindowsConfigurer) CleanupEnvironment(h os.Host, env map[string]string) error {
 	for k := range env {
 		h.Exec(ps.Cmd(fmt.Sprintf(`[Environment]::SetEnvironmentVariable(%s, $null, 'User')`, ps.SingleQuote(k))))
@@ -204,7 +204,7 @@ func (c WindowsConfigurer) CleanupEnvironment(h os.Host, env map[string]string) 
 	return nil
 }
 
-// ResolvePrivateInterface tries to find a private network interface
+// ResolvePrivateInterface tries to find a private network interface.
 func (c WindowsConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
 	output, err := h.ExecOutput(ps.Cmd(`(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias`))
 	if err != nil || output == "" {
@@ -216,7 +216,7 @@ func (c WindowsConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
 	return strings.TrimSpace(output), nil
 }
 
-// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error
+// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error.
 func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	log.Debugf("%s: requesting %s", h, url)
 	output, err := h.ExecOutput(ps.Cmd(fmt.Sprintf(`[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode`, ps.SingleQuote(url))))
@@ -230,7 +230,7 @@ func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	return status, nil
 }
 
-// AuthorizeDocker does nothing on windows
+// AuthorizeDocker does nothing on windows.
 func (c WindowsConfigurer) AuthorizeDocker(h os.Host) error {
 	return nil
 }

@@ -11,25 +11,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UpgradeMSR is the phase implementation for running the actual msr upgrade container
+// UpgradeMSR is the phase implementation for running the actual msr upgrade container.
 type UpgradeMSR struct {
 	phase.Analytics
 	phase.CleanupDisabling
 	MSRPhase
 }
 
-// Title prints the phase title
+// Title prints the phase title.
 func (p *UpgradeMSR) Title() string {
 	return "Upgrade MSR components"
 }
 
-// ShouldRun should return true only when there is an upgrade to be performed
+// ShouldRun should return true only when there is an upgrade to be performed.
 func (p *UpgradeMSR) ShouldRun() bool {
 	h := p.Config.Spec.MSRLeader()
 	return p.Config.Spec.ContainsMSR() && h.MSRMetadata != nil && h.MSRMetadata.InstalledVersion != p.Config.Spec.MSR.Version
 }
 
-// Run the upgrade container
+// Run the upgrade container.
 func (p *UpgradeMSR) Run() error {
 	h := p.Config.Spec.MSRLeader()
 

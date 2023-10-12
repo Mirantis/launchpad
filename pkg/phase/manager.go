@@ -31,7 +31,7 @@ type cleanupdisabling interface {
 	DisableCleanup()
 }
 
-// Manager executes phases to construct the cluster
+// Manager executes phases to construct the cluster.
 type Manager struct {
 	phases       []phase
 	config       interface{}
@@ -39,7 +39,7 @@ type Manager struct {
 	SkipCleanup  bool
 }
 
-// NewManager constructs new phase manager
+// NewManager constructs new phase manager.
 func NewManager(config interface{}) *Manager {
 	phaseMgr := &Manager{
 		config: config,
@@ -48,17 +48,17 @@ func NewManager(config interface{}) *Manager {
 	return phaseMgr
 }
 
-// AddPhases add multiple phases to manager in one call
+// AddPhases add multiple phases to manager in one call.
 func (m *Manager) AddPhases(phases ...phase) {
 	m.phases = append(m.phases, phases...)
 }
 
-// AddPhase adds a Phase to Manager
+// AddPhase adds a Phase to Manager.
 func (m *Manager) AddPhase(p phase) {
 	m.phases = append(m.phases, p)
 }
 
-// Run executes all the added Phases in order
+// Run executes all the added Phases in order.
 func (m *Manager) Run() error {
 	for _, p := range m.phases {
 		title := p.Title()

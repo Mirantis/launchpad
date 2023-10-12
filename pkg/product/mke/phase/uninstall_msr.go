@@ -8,18 +8,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UninstallMSR is the phase implementation for running MSR uninstall
+// UninstallMSR is the phase implementation for running MSR uninstall.
 type UninstallMSR struct {
 	phase.Analytics
 	MSRPhase
 }
 
-// Title prints the phase title
+// Title prints the phase title.
 func (p *UninstallMSR) Title() string {
 	return "Uninstall MSR components"
 }
 
-// Run an uninstall via msr.Cleanup
+// Run an uninstall via msr.Cleanup.
 func (p *UninstallMSR) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 	msrLeader := p.Config.Spec.MSRLeader()

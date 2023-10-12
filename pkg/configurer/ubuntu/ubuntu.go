@@ -14,12 +14,12 @@ type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-// InstallMKEBasePackages installs the needed base packages on Ubuntu
+// InstallMKEBasePackages installs the needed base packages on Ubuntu.
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 	return c.InstallPackage(h, "curl", "apt-utils", "socat", "iputils-ping")
 }
 
-// UninstallMCR uninstalls docker-ee engine
+// UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
 	err := h.Exec("sudo docker system prune -f")
 	if err != nil {

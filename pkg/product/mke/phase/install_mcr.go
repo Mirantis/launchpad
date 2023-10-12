@@ -10,18 +10,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// InstallMCR phase implementation
+// InstallMCR phase implementation.
 type InstallMCR struct {
 	phase.Analytics
 	phase.HostSelectPhase
 }
 
-// HostFilterFunc returns true for hosts that do not have engine installed
+// HostFilterFunc returns true for hosts that do not have engine installed.
 func (p *InstallMCR) HostFilterFunc(h *api.Host) bool {
 	return h.Metadata.MCRVersion == ""
 }
 
-// Prepare collects the hosts
+// Prepare collects the hosts.
 func (p *InstallMCR) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 	log.Debugf("collecting hosts for phase %s", p.Title())
@@ -31,12 +31,12 @@ func (p *InstallMCR) Prepare(config interface{}) error {
 	return nil
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *InstallMCR) Title() string {
 	return "Install Mirantis Container Runtime on the hosts"
 }
 
-// Run installs the engine on each host
+// Run installs the engine on each host.
 func (p *InstallMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
 		"engine_version": p.Config.Spec.MCR.Version,

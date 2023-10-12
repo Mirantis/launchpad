@@ -11,13 +11,13 @@ import (
 )
 
 var (
-	// Debug turns on debug logging for stdout output
+	// Debug turns on debug logging for stdout output.
 	Debug = false
-	// Trace turns on trace logging for stdout output
+	// Trace turns on trace logging for stdout output.
 	Trace = false
 )
 
-// FormatterWriterHook is a logrus hook implementation that allows customizing both the log stream target and formatter
+// FormatterWriterHook is a logrus hook implementation that allows customizing both the log stream target and formatter.
 type FormatterWriterHook struct {
 	Writer    io.Writer
 	LogLevels []log.Level
@@ -25,7 +25,7 @@ type FormatterWriterHook struct {
 }
 
 // Fire will be called when some logging function is called with current hook
-// It will format log entry to string and write it to appropriate writer
+// It will format log entry to string and write it to appropriate writer.
 func (hook *FormatterWriterHook) Fire(entry *log.Entry) error {
 	line, err := hook.Formatter.Format(entry)
 	if err != nil {
@@ -36,12 +36,12 @@ func (hook *FormatterWriterHook) Fire(entry *log.Entry) error {
 	return err
 }
 
-// Levels define on which log levels this hook would trigger
+// Levels define on which log levels this hook would trigger.
 func (hook *FormatterWriterHook) Levels() []log.Level {
 	return hook.LogLevels
 }
 
-// NewStdoutHook creates new hook for stdout logging
+// NewStdoutHook creates new hook for stdout logging.
 func NewStdoutHook() *FormatterWriterHook {
 	stdoutHook := &FormatterWriterHook{
 		Writer:    os.Stdout,
@@ -65,7 +65,7 @@ func NewStdoutHook() *FormatterWriterHook {
 	return stdoutHook
 }
 
-// NewFileHook creates logrus hook for logging all levels to file
+// NewFileHook creates logrus hook for logging all levels to file.
 func NewFileHook(logFile *os.File) *FormatterWriterHook {
 
 	fileFormatter := &log.TextFormatter{

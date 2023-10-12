@@ -23,7 +23,7 @@ func kindIsKnown(n string) bool {
 	return false
 }
 
-// NewInitCommand creates new init command to be called from cli
+// NewInitCommand creates new init command to be called from cli.
 func NewInitCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "init",

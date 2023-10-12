@@ -20,12 +20,12 @@ type connectable interface {
 	Exec(cmd string, opts ...exec.Option) error
 }
 
-// Connect connects to each of the hosts
+// Connect connects to each of the hosts.
 type Connect struct {
 	hosts []connectable
 }
 
-// Prepare digs out the hosts from the config
+// Prepare digs out the hosts from the config.
 func (p *Connect) Prepare(config interface{}) error {
 	r := reflect.ValueOf(config).Elem()
 	spec := r.FieldByName("Spec").Elem()
@@ -39,17 +39,17 @@ func (p *Connect) Prepare(config interface{}) error {
 	return nil
 }
 
-// ShouldRun is true when there are hosts that need to be connected
+// ShouldRun is true when there are hosts that need to be connected.
 func (p *Connect) ShouldRun() bool {
 	return len(p.hosts) > 0
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *Connect) Title() string {
 	return "Open Remote Connection"
 }
 
-// Run connects to all the hosts in parallel
+// Run connects to all the hosts in parallel.
 func (p *Connect) Run() error {
 	var wg sync.WaitGroup
 	var errors []string

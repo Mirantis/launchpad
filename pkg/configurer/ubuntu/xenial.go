@@ -5,7 +5,7 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// XenialConfigurer is the Ubuntu Xenial specific host configurer implementation
+// XenialConfigurer is the Ubuntu Xenial specific host configurer implementation.
 type XenialConfigurer struct {
 	Configurer
 }

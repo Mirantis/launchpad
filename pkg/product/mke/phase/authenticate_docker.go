@@ -7,23 +7,23 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
-// AuthenticateDocker phase implementation
+// AuthenticateDocker phase implementation.
 type AuthenticateDocker struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// ShouldRun is true when registry credentials are set
+// ShouldRun is true when registry credentials are set.
 func (p *AuthenticateDocker) ShouldRun() bool {
 	return os.Getenv("REGISTRY_USERNAME") != "" && os.Getenv("REGISTRY_PASSWORD") != ""
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *AuthenticateDocker) Title() string {
 	return "Authenticate docker"
 }
 
-// Run authenticates docker on hosts
+// Run authenticates docker on hosts.
 func (p *AuthenticateDocker) Run() error {
 	imageRepo := p.Config.Spec.MKE.ImageRepo
 

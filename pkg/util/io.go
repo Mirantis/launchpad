@@ -7,7 +7,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-// EnsureDir ensures the given directory path exists, if not it will create the full path
+// EnsureDir ensures the given directory path exists, if not it will create the full path.
 func EnsureDir(dirPath string) error {
 	if _, serr := os.Stat(dirPath); os.IsNotExist(serr) {
 		merr := os.MkdirAll(dirPath, os.ModePerm)
@@ -18,7 +18,7 @@ func EnsureDir(dirPath string) error {
 	return nil
 }
 
-// LoadExternalFile helper for reading data from references to external files
+// LoadExternalFile helper for reading data from references to external files.
 var LoadExternalFile = func(path string) ([]byte, error) {
 	realpath, err := homedir.Expand(path)
 	if err != nil {
@@ -32,7 +32,7 @@ var LoadExternalFile = func(path string) ([]byte, error) {
 	return filedata, nil
 }
 
-// FormatBytes formats a number of bytes into something like "200 KiB"
+// FormatBytes formats a number of bytes into something like "200 KiB".
 func FormatBytes(bytes uint64) string {
 	f := float64(bytes)
 	units := []string{

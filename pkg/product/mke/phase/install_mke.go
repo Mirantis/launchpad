@@ -16,7 +16,7 @@ import (
 
 const configName string = "com.docker.ucp.config"
 
-// InstallMKE is the phase implementation for running the actual MKE installer container
+// InstallMKE is the phase implementation for running the actual MKE installer container.
 type InstallMKE struct {
 	phase.Analytics
 	phase.BasicPhase
@@ -25,12 +25,12 @@ type InstallMKE struct {
 	leader *api.Host
 }
 
-// Title prints the phase title
+// Title prints the phase title.
 func (p *InstallMKE) Title() string {
 	return "Install MKE components"
 }
 
-// Run the installer container
+// Run the installer container.
 func (p *InstallMKE) Run() (err error) {
 	p.leader = p.Config.Spec.SwarmLeader()
 	h := p.leader
@@ -138,7 +138,7 @@ func (p *InstallMKE) Run() (err error) {
 	return nil
 }
 
-// installCertificates installs user supplied MKE certificates
+// installCertificates installs user supplied MKE certificates.
 func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
 	log.Infof("Installing MKE certificates")
 	managers := config.Spec.Managers()
@@ -220,7 +220,7 @@ func cleanupmke(h *api.Host) error {
 	return nil
 }
 
-// CleanUp removes ucp containers after a failed installation
+// CleanUp removes ucp containers after a failed installation.
 func (p *InstallMKE) CleanUp() {
 	log.Infof("Cleaning up for '%s'", p.Title())
 	if err := cleanupmke(p.leader); err != nil {
