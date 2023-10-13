@@ -18,17 +18,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DownloadBundle phase downloads the client bundle to local storage
+// DownloadBundle phase downloads the client bundle to local storage.
 type DownloadBundle struct {
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *DownloadBundle) Title() string {
 	return "Download Client Bundle"
 }
 
-// Run collect all the facts from hosts in parallel
+// Run collect all the facts from hosts in parallel.
 func (p *DownloadBundle) Run() error {
 	m := p.Config.Spec.Managers()[0]
 

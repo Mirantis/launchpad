@@ -14,26 +14,26 @@ import (
 	"github.com/Mirantis/mcc/pkg/config/migration"
 	"github.com/k0sproject/rig/exec"
 
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
-	// needed to load the migrators
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
 	"github.com/Mirantis/mcc/pkg/product"
 	"github.com/Mirantis/mcc/pkg/product/mke"
 	log "github.com/sirupsen/logrus"
 )
 
-// ProductFromFile loads a yaml file and returns a Product that matches its Kind or an error if the file loading or validation fails
+// ProductFromFile loads a yaml file and returns a Product that matches its Kind or an error if the file loading or validation fails.
 func ProductFromFile(path string) (product.Product, error) {
 	data, err := resolveClusterFile(path)
 	if err != nil {
@@ -42,7 +42,7 @@ func ProductFromFile(path string) (product.Product, error) {
 	return ProductFromYAML(data)
 }
 
-// ProductFromYAML returns a Product from YAML bytes, or an error
+// ProductFromYAML returns a Product from YAML bytes, or an error.
 func ProductFromYAML(data []byte) (product.Product, error) {
 	c := make(map[string]interface{})
 	if err := yaml.Unmarshal(data, c); err != nil {
@@ -83,7 +83,7 @@ func ProductFromYAML(data []byte) (product.Product, error) {
 	}
 }
 
-// Init returns an example cluster configuration
+// Init returns an example cluster configuration.
 func Init(kind string) (interface{}, error) {
 	switch kind {
 	case "mke", "mke+msr":
@@ -106,7 +106,7 @@ func resolveClusterFile(clusterFile string) ([]byte, error) {
 	}
 
 	file, err := openClusterFile(clusterFile)
-	defer file.Close()
+	defer file.Close() //nolint:staticcheck
 	if err != nil {
 		return nil, err
 	}

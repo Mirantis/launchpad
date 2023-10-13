@@ -13,7 +13,7 @@ import (
 )
 
 // InstallMSR is the phase implementation for running the actual MSR installer
-// bootstrap
+// bootstrap.
 type InstallMSR struct {
 	phase.Analytics
 	phase.CleanupDisabling
@@ -22,18 +22,18 @@ type InstallMSR struct {
 	leader *api.Host
 }
 
-// Title prints the phase title
+// Title prints the phase title.
 func (p *InstallMSR) Title() string {
 	return "Install MSR components"
 }
 
-// ShouldRun should return true only when there is an installation to be performed
+// ShouldRun should return true only when there is an installation to be performed.
 func (p *InstallMSR) ShouldRun() bool {
 	p.leader = p.Config.Spec.MSRLeader()
 	return p.Config.Spec.ContainsMSR() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
 }
 
-// Run the installer container
+// Run the installer container.
 func (p *InstallMSR) Run() error {
 	h := p.leader
 
@@ -116,7 +116,7 @@ func (p *InstallMSR) Run() error {
 	return nil
 }
 
-// CleanUp removes remnants of MSR after a failed installation
+// CleanUp removes remnants of MSR after a failed installation.
 func (p *InstallMSR) CleanUp() {
 	log.Infof("Cleaning up for '%s'", p.Title())
 	if err := msr.Destroy(p.leader); err != nil {

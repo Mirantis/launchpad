@@ -14,12 +14,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Cluster is for universal cluster settings not applicable to single hosts, mke, msr or engine
+// Cluster is for universal cluster settings not applicable to single hosts, mke, msr or engine.
 type Cluster struct {
 	Prune bool `yaml:"prune" default:"false"`
 }
 
-// ClusterSpec defines cluster spec
+// ClusterSpec defines cluster spec.
 type ClusterSpec struct {
 	Hosts   Hosts            `yaml:"hosts" validate:"required,dive,min=1"`
 	MKE     MKEConfig        `yaml:"mke,omitempty"`
@@ -28,29 +28,29 @@ type ClusterSpec struct {
 	Cluster Cluster          `yaml:"cluster"`
 }
 
-// Workers filters only the workers from the cluster config
+// Workers filters only the workers from the cluster config.
 func (c *ClusterSpec) Workers() Hosts {
 	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "worker" })
 }
 
-// Managers filters only the manager nodes from the cluster config
+// Managers filters only the manager nodes from the cluster config.
 func (c *ClusterSpec) Managers() Hosts {
 	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "manager" })
 }
 
-// MSRs filters only the MSR nodes from the cluster config
+// MSRs filters only the MSR nodes from the cluster config.
 func (c *ClusterSpec) MSRs() Hosts {
 	return c.Hosts.Filter(func(h *Host) bool { return h.Role == "msr" })
 }
 
-// WorkersAndMSRs filters both worker and MSR roles from the cluster config
+// WorkersAndMSRs filters both worker and MSR roles from the cluster config.
 func (c *ClusterSpec) WorkersAndMSRs() Hosts {
 	return c.Hosts.Filter(func(h *Host) bool {
 		return h.Role == "msr" || h.Role == "worker"
 	})
 }
 
-// SwarmLeader resolves the current swarm leader host
+// SwarmLeader resolves the current swarm leader host.
 func (c *ClusterSpec) SwarmLeader() *Host {
 	m := c.Managers()
 	leader := m.Find(isSwarmLeader)
@@ -63,7 +63,7 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 	return m.First()
 }
 
-// MKEURL returns a URL for MKE or an error if one can not be generated
+// MKEURL returns a URL for MKE or an error if one can not be generated.
 func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 	// Easy route, user has provided one in MSR --ucp-url
 	if c.MSR != nil {
@@ -110,7 +110,7 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 	}, nil
 }
 
-// MSRURL returns an url to MSR or an error if one can't be generated
+// MSRURL returns an url to MSR or an error if one can't be generated.
 func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 	if c.MSR != nil {
 		// Default to using the --dtr-external-url if it's set
@@ -158,7 +158,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 	}, nil
 }
 
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type spec ClusterSpec
 	yc := (*spec)(c)
@@ -183,8 +183,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 	}
 
-	var bastionHosts Hosts
-	bastionHosts = c.Hosts.Filter(func(h *Host) bool {
+	bastionHosts := c.Hosts.Filter(func(h *Host) bool {
 		return (h.SSH != nil && h.SSH.Bastion != nil) || (h.WinRM != nil && h.WinRM.Bastion != nil)
 	})
 	if len(bastionHosts) > 0 {
@@ -223,12 +222,12 @@ func isSwarmLeader(h *Host) bool {
 	return output == "true"
 }
 
-// IsMSRInstalled checks to see if MSR is installed on the given host
+// IsMSRInstalled checks to see if MSR is installed on the given host.
 func IsMSRInstalled(h *Host) bool {
 	return h.MSRMetadata != nil && h.MSRMetadata.Installed
 }
 
-// MSRLeader returns the current MSRLeader host
+// MSRLeader returns the current MSRLeader host.
 func (c *ClusterSpec) MSRLeader() *Host {
 	// MSR doesn't have the concept of leaders during the installation phase,
 	// but we need to make sure we have a Host to reference during our other
@@ -244,12 +243,12 @@ func (c *ClusterSpec) MSRLeader() *Host {
 	return msrs.First()
 }
 
-// IsCustomImageRepo checks if the config is using a custom image repo
+// IsCustomImageRepo checks if the config is using a custom image repo.
 func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
-// CheckMKEHealthRemote will check mke cluster health from a host and return an error if it failed
+// CheckMKEHealthRemote will check mke cluster health from a host and return an error if it failed.
 func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
 	u, err := c.MKEURL()
 	if err != nil {
@@ -266,7 +265,7 @@ func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
 	)
 }
 
-// CheckMKEHealthLocal will check the local mke health on a host and return an error if it failed
+// CheckMKEHealthLocal will check the local mke health on a host and return an error if it failed.
 func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
 	host := h.Metadata.InternalAddress
 	if port := c.MKE.InstallFlags.GetValue("--controller-port"); port != "" {
@@ -282,7 +281,7 @@ func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
 	)
 }
 
-// ContainsMSR returns true when the config has msr hosts
+// ContainsMSR returns true when the config has msr hosts.
 func (c *ClusterSpec) ContainsMSR() bool {
 	return c.Hosts.Find(func(h *Host) bool { return h.Role == "msr" }) != nil
 }

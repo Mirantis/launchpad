@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Describe shows information about the current status of the cluster
+// Describe shows information about the current status of the cluster.
 type Describe struct {
 	phase.BasicPhase
 
@@ -17,12 +17,12 @@ type Describe struct {
 	MSR bool
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *Describe) Title() string {
 	return "Display cluster status"
 }
 
-// Run does the actual saving of the local state file
+// Run does the actual saving of the local state file.
 func (p *Describe) Run() error {
 	if p.MKE {
 		p.mkeReport()
@@ -48,12 +48,12 @@ func (p *Describe) mkeReport() {
 	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
 	uv := p.Config.Spec.MKE.Metadata.InstalledVersion
 	mkeurl := "n/a"
-	url, err := p.Config.Spec.MKEURL()
-	if err != nil {
-		log.Debug(err)
-	}
 
-	mkeurl = url.String()
+	if url, err := p.Config.Spec.MKEURL(); err != nil {
+		log.Debug(err)
+	} else {
+		mkeurl = url.String()
+	}
 
 	fmt.Fprintf(w, "%s\t%s\t\n", uv, mkeurl)
 	w.Flush()
@@ -74,11 +74,12 @@ func (p *Describe) msrReport() {
 	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
 	uv := msrLeader.MSRMetadata.InstalledVersion
 	msrurl := "n/a"
-	url, err := p.Config.Spec.MSRURL()
-	if err != nil {
+
+	if url, err := p.Config.Spec.MSRURL(); err != nil {
 		log.Debug(err)
+	} else {
+		msrurl = url.String()
 	}
-	msrurl = url.String()
 
 	fmt.Fprintf(w, "%s\t%s\t\n", uv, msrurl)
 	w.Flush()

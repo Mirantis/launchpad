@@ -8,7 +8,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// RegisterCommand creates register command to be called from cli
+// RegisterCommand creates register command to be called from cli.
 func RegisterCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "register",

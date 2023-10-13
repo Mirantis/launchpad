@@ -10,18 +10,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// InitSwarm phase implementation
+// InitSwarm phase implementation.
 type InitSwarm struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *InitSwarm) Title() string {
 	return "Initialize Swarm"
 }
 
-// Run initializes the swarm on the leader or skips if swarm is already initialized
+// Run initializes the swarm on the leader or skips if swarm is already initialized.
 func (p *InitSwarm) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 

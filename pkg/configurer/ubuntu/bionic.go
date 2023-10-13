@@ -5,7 +5,7 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// BionicConfigurer is the Ubuntu Bionix specific host configurer implementation
+// BionicConfigurer is the Ubuntu Bionix specific host configurer implementation.
 type BionicConfigurer struct {
 	Configurer
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
-// This is under api because it has direct deps to api structs
+// This is under api because it has direct deps to api structs.
 type HostConfigurer interface {
 	CheckPrivilege(os.Host) error
 	Hostname(os.Host) string

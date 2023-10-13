@@ -12,14 +12,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Image describes a docker image
+// Image describes a docker image.
 type Image struct {
 	Repository string
 	Name       string
 	Tag        string
 }
 
-// NewImage parses an image URL and returns a new Image instance
+// NewImage parses an image URL and returns a new Image instance.
 func NewImage(s string) *Image {
 	repo := s[:strings.LastIndexByte(s, '/')]
 	name := s[strings.LastIndexByte(s, '/')+1 : strings.LastIndexByte(s, ':')]
@@ -27,7 +27,7 @@ func NewImage(s string) *Image {
 	return &Image{Repository: repo, Name: name, Tag: tag}
 }
 
-// AllFromString parses a list of images from a newline separated string and returns a list of images
+// AllFromString parses a list of images from a newline separated string and returns a list of images.
 func AllFromString(s string) (list []*Image) {
 	re := regexp.MustCompile("(?m)^(?P<repo>.*)/(?P<name>.+?):(?P<tag>.+?)$")
 	for _, match := range re.FindAllStringSubmatch(s, -1) {
@@ -44,7 +44,7 @@ func (i *Image) String() string {
 	return fmt.Sprintf("%s/%s:%s", i.Repository, i.Name, i.Tag)
 }
 
-// Pull pulls an image on a host
+// Pull pulls an image on a host.
 func (i *Image) Pull(h *api.Host) error {
 	return retry.Do(
 		func() error {
@@ -71,18 +71,18 @@ func (i *Image) Pull(h *api.Host) error {
 	)
 }
 
-// Retag retags image A to image B
+// Retag retags image A to image B.
 func (i *Image) Retag(h *api.Host, a, b *Image) error {
 	log.Debugf("%s: retag %s --> %s", h, a, b)
 	return h.Exec(h.Configurer.DockerCommandf("tag %s %s", a, b))
 }
 
-// Exist returns true if a docker image exists on the host
+// Exist returns true if a docker image exists on the host.
 func (i *Image) Exist(h *api.Host) bool {
 	return h.Exec(h.Configurer.DockerCommandf("image inspect %s --format '{{.ID}}'", i)) == nil
 }
 
-// PullImages pulls multiple images parallelly by using a worker pool
+// PullImages pulls multiple images parallelly by using a worker pool.
 func PullImages(h *api.Host, images []*Image) error {
 	wp := workerpool.New(5)
 	defer wp.StopWait()
@@ -110,7 +110,7 @@ func PullImages(h *api.Host, images []*Image) error {
 	return lastError
 }
 
-// RetagAllToRepository retags all images in a list to another repository
+// RetagAllToRepository retags all images in a list to another repository.
 func RetagAllToRepository(h *api.Host, images []*Image, repo string) error {
 	for _, i := range images {
 		newImage := &Image{
@@ -126,7 +126,7 @@ func RetagAllToRepository(h *api.Host, images []*Image, repo string) error {
 	return nil
 }
 
-// AllToRepository generates a new list with a different repository
+// AllToRepository generates a new list with a different repository.
 func AllToRepository(images []*Image, repo string) (list []*Image) {
 	for _, i := range images {
 		list = append(list, &Image{

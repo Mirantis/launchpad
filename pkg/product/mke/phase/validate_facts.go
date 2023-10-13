@@ -12,19 +12,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// ValidateFacts phase implementation to validate facts from config and collected metadata
+// ValidateFacts phase implementation to validate facts from config and collected metadata.
 type ValidateFacts struct {
 	phase.Analytics
 	phase.BasicPhase
 	Force bool
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *ValidateFacts) Title() string {
 	return "Validate Facts"
 }
 
-// Run validate configuration facts
+// Run validate configuration facts.
 func (p *ValidateFacts) Run() error {
 	if !p.Config.Spec.MKE.InstallFlags.Include("--san") {
 		p.populateSan()
@@ -75,7 +75,7 @@ func (p *ValidateFacts) populateSan() {
 	}
 }
 
-// validateMSRVersionJump validates MKE upgrade path
+// validateMSRVersionJump validates MKE upgrade path.
 func (p *ValidateFacts) validateMKEVersionJump() error {
 	if p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
 		installedMKE, err := version.NewVersion(p.Config.Spec.MKE.Metadata.InstalledVersion)
@@ -103,7 +103,7 @@ func (p *ValidateFacts) validateMKEVersionJump() error {
 	return nil
 }
 
-// validateMSRVersionJump validates MSR upgrade path
+// validateMSRVersionJump validates MSR upgrade path.
 func (p *ValidateFacts) validateMSRVersionJump() error {
 	msrLeader := p.Config.Spec.MSRLeader()
 	if p.Config.Spec.MSR != nil && msrLeader.MSRMetadata != nil && msrLeader.MSRMetadata.Installed && msrLeader.MSRMetadata.InstalledVersion != "" {
@@ -132,7 +132,7 @@ func (p *ValidateFacts) validateMSRVersionJump() error {
 	return nil
 }
 
-// validateDataPlane checks if the calico data plane would get changed (VXLAN <-> VPIP)
+// validateDataPlane checks if the calico data plane would get changed (VXLAN <-> VPIP).
 func (p *ValidateFacts) validateDataPlane() error {
 	log.Debug("validating data plane settings")
 

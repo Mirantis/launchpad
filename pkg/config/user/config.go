@@ -13,7 +13,7 @@ const (
 	configFile = "~/.mirantis-launchpad/user.yaml"
 )
 
-// Config struct for launchpad user config
+// Config struct for launchpad user config.
 type Config struct {
 	Name    string `yaml:"name"`
 	Company string `yaml:"company"`
@@ -21,7 +21,7 @@ type Config struct {
 	Eula    bool   `yaml:"eula"`
 }
 
-// GetConfig returns a new decoded Config struct
+// GetConfig returns a new decoded Config struct.
 func GetConfig() (*Config, error) {
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
@@ -47,7 +47,7 @@ func GetConfig() (*Config, error) {
 	return config, nil
 }
 
-// SaveConfig saves config struct to yaml file
+// SaveConfig saves config struct to yaml file.
 func SaveConfig(config *Config) error {
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {

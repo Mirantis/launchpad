@@ -8,12 +8,12 @@ import (
 	"github.com/k0sproject/rig"
 )
 
-// ClusterMeta defines cluster metadata
+// ClusterMeta defines cluster metadata.
 type ClusterMeta struct {
 	Name string `yaml:"name" validate:"required"`
 }
 
-// ClusterConfig describes launchpad.yaml configuration
+// ClusterConfig describes launchpad.yaml configuration.
 type ClusterConfig struct {
 	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.4"`
 	Kind       string       `yaml:"kind" validate:"oneof=mke mke+msr"`
@@ -21,7 +21,7 @@ type ClusterConfig struct {
 	Spec       *ClusterSpec `yaml:"spec"`
 }
 
-// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	c.Metadata = &ClusterMeta{
 		Name: "launchpad-mke",
@@ -54,7 +54,7 @@ func roleChecks(sl validator.StructLevel) {
 	}
 }
 
-// Init returns an example of configuration file contents
+// Init returns an example of configuration file contents.
 func Init(kind string) *ClusterConfig {
 	mkeV, err := hub.LatestTag("mirantis", "ucp", false)
 	if err != nil {

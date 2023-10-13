@@ -13,7 +13,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewDownloadLaunchpadCommand creates new 'download-launchpad' command to be called from cli
+// NewDownloadLaunchpadCommand creates new 'download-launchpad' command to be called from cli.
 func NewDownloadLaunchpadCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "download-launchpad",

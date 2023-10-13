@@ -2,7 +2,7 @@ package phase
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// DownloadInstaller phase implementation does all the prep work we need for the hosts
+// DownloadInstaller phase implementation does all the prep work we need for the hosts.
 type DownloadInstaller struct {
 	phase.Analytics
 	phase.BasicPhase
@@ -23,18 +23,18 @@ type DownloadInstaller struct {
 	winPath   string
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *DownloadInstaller) Title() string {
 	return "Download Mirantis Container Runtime installer"
 }
 
-// Run does all the prep work on the hosts in parallel
+// Run does all the prep work on the hosts in parallel.
 func (p *DownloadInstaller) Run() error {
 	linuxScript, err := p.getScript(p.Config.Spec.MCR.InstallURLLinux)
 	if err != nil {
 		return err
 	}
-	f, err := ioutil.TempFile("", "installerLinux")
+	f, err := os.CreateTemp("", "installerLinux")
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (p *DownloadInstaller) Run() error {
 		if err != nil {
 			return err
 		}
-		f, err := ioutil.TempFile("", "installerWindows")
+		f, err := os.CreateTemp("", "installerWindows")
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ func (p *DownloadInstaller) downloadFile(url string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -135,7 +135,7 @@ func (p *DownloadInstaller) readFile(path string) (string, error) {
 	return string(data), err
 }
 
-// CleanUp removes the temporary files from local filesystem
+// CleanUp removes the temporary files from local filesystem.
 func (p *DownloadInstaller) CleanUp() {
 	if p.winPath != "" {
 		removeIfExist(p.winPath)

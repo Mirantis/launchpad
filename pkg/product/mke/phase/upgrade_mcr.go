@@ -15,19 +15,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UpgradeMCR phase implementation
+// UpgradeMCR phase implementation.
 type UpgradeMCR struct {
 	phase.Analytics
 	phase.HostSelectPhase
 	Concurrency int
 }
 
-// HostFilterFunc returns true for hosts that do not have engine installed
+// HostFilterFunc returns true for hosts that do not have engine installed.
 func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
 	return h.Metadata.MCRVersion != p.Config.Spec.MCR.Version
 }
 
-// Prepare collects the hosts
+// Prepare collects the hosts.
 func (p *UpgradeMCR) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 	log.Debugf("collecting hosts for phase %s", p.Title())
@@ -37,12 +37,12 @@ func (p *UpgradeMCR) Prepare(config interface{}) error {
 	return nil
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *UpgradeMCR) Title() string {
 	return "Upgrade Mirantis Container Runtime on the hosts"
 }
 
-// Run installs the engine on each host
+// Run installs the engine on each host.
 func (p *UpgradeMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
 		"engine_version": p.Config.Spec.MCR.Version,
@@ -158,7 +158,7 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 		return err
 	}
 
-	// TODO: This excercise is duplicated in InstallMCR, maybe
+	// TODO: This exercise is duplicated in InstallMCR, maybe
 	// combine into some kind of "EnsureVersion"
 	currentVersion, err := h.MCRVersion()
 	if err != nil {

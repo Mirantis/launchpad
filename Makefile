@@ -49,8 +49,8 @@ build-all: builder
 release: build-all
 	./release.sh
 
-lint: builder
-	$(GO) go vet ./...
+lint:
+	docker run -ti --rm -v "$(CURDIR):/data" -w "/data" golangci/golangci-lint:latest golangci-lint run
 
 smoke-register-test: build
 	./test/smoke_register.sh

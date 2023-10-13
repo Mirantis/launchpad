@@ -3,7 +3,7 @@ package hub
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"sort"
 	"strings"
@@ -49,7 +49,7 @@ func LatestTag(org, image string, pre bool) (string, error) {
 		return "", fmt.Errorf("response status %d", res.StatusCode)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", err
 	}

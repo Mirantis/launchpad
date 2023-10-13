@@ -12,19 +12,19 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// JoinMSRReplicas phase implementation
+// JoinMSRReplicas phase implementation.
 type JoinMSRReplicas struct {
 	phase.Analytics
 	phase.HostSelectPhase
 	phase.CleanupDisabling
 }
 
-// HostFilterFunc returns true for hosts that don't have MSR configured
+// HostFilterFunc returns true for hosts that don't have MSR configured.
 func (p *JoinMSRReplicas) HostFilterFunc(h *api.Host) bool {
 	return h.MSRMetadata == nil || !h.MSRMetadata.Installed
 }
 
-// Prepare collects the hosts
+// Prepare collects the hosts.
 func (p *JoinMSRReplicas) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 	if !p.Config.Spec.ContainsMSR() {
@@ -38,7 +38,7 @@ func (p *JoinMSRReplicas) Prepare(config interface{}) error {
 	return nil
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *JoinMSRReplicas) Title() string {
 	return "Join MSR Replicas"
 }

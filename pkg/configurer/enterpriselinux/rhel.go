@@ -5,7 +5,7 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// Rhel RedHat Enterprise Linux
+// Rhel RedHat Enterprise Linux.
 type Rhel struct {
 	Configurer
 }

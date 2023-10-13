@@ -15,29 +15,29 @@ import (
 )
 
 var (
-	// Version of the product, is set during the build
+	// Version of the product, is set during the build.
 	Version = "0.0.0"
-	// GitCommit is set during the build
+	// GitCommit is set during the build.
 	GitCommit = "HEAD"
-	// Environment of the product, is set during the build
+	// Environment of the product, is set during the build.
 	Environment = "development"
 
-	// GitHubRepo for the upgrade check
+	// GitHubRepo for the upgrade check.
 	GitHubRepo = "Mirantis/launchpad"
 )
 
-// IsProduction tells if running production build
+// IsProduction tells if running production build.
 func IsProduction() bool {
 	return Environment == "production"
 }
 
-// Asset describes a github release asset
+// Asset describes a github release asset.
 type Asset struct {
 	Name string `json:"name"`
 	URL  string `json:"browser_download_url"`
 }
 
-// IsForHost returns true if the asset is for the current host os+arch
+// IsForHost returns true if the asset is for the current host os+arch.
 func (a *Asset) IsForHost() bool {
 	if strings.HasSuffix(a.Name, ".sha256") {
 		return false
@@ -57,14 +57,14 @@ func (a *Asset) IsForHost() bool {
 	return parts[1] == os && parts[2] == arch
 }
 
-// LaunchpadRelease describes a launchpad release
+// LaunchpadRelease describes a launchpad release.
 type LaunchpadRelease struct {
 	URL     string  `json:"html_url"`
 	TagName string  `json:"tag_name"`
 	Assets  []Asset `json:"assets"`
 }
 
-// IsNewer returns true if the LaunchpadRelease instance is newer than the current version
+// IsNewer returns true if the LaunchpadRelease instance is newer than the current version.
 func (l *LaunchpadRelease) IsNewer() bool {
 	current, _ := version.NewVersion(Version)
 	remote, err := version.NewVersion(l.TagName)
@@ -75,7 +75,7 @@ func (l *LaunchpadRelease) IsNewer() bool {
 	return current.LessThan(remote)
 }
 
-// AssetForHost returns a download asset for the current host OS+ARCH if available
+// AssetForHost returns a download asset for the current host OS+ARCH if available.
 func (l *LaunchpadRelease) AssetForHost() *Asset {
 	for _, a := range l.Assets {
 		if a.IsForHost() {
@@ -147,7 +147,7 @@ func latestTag(timeout time.Duration) string {
 	return ""
 }
 
-// GetLatest returns a LaunchpadRelease instance for the latest release
+// GetLatest returns a LaunchpadRelease instance for the latest release.
 func GetLatest(timeout time.Duration) *LaunchpadRelease {
 	tag := latestTag(timeout)
 	if tag == "" {
@@ -189,7 +189,7 @@ func GetLatest(timeout time.Duration) *LaunchpadRelease {
 	return l
 }
 
-// GetUpgrade will return a LaunchpadRelease instance for the latest release if it's newer than the current version
+// GetUpgrade will return a LaunchpadRelease instance for the latest release if it's newer than the current version.
 func GetUpgrade() *LaunchpadRelease {
 	log.Debugf("checking for a launchpad upgrade")
 	l := GetLatest(time.Second * 2)

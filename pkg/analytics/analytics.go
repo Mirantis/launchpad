@@ -26,7 +26,7 @@ type Analytics interface {
 }
 
 // Client is the struct that encapsulates the dependencies needed to send analytics
-// and to interact with the analytics package
+// and to interact with the analytics package.
 type Client struct {
 	IsEnabled       bool
 	AnalyticsClient Analytics
@@ -84,7 +84,7 @@ func (c *Client) TrackEvent(event string, properties analytics.Properties) error
 }
 
 // IdentifyUser identifies user on analytics service if analytics
-// is enabled
+// is enabled.
 func (c *Client) IdentifyUser(userConfig *user.Config) error {
 	if !c.IsEnabled {
 		log.Debug("analytics disabled, not identifying user")
@@ -102,22 +102,22 @@ func (c *Client) IdentifyUser(userConfig *user.Config) error {
 	return c.AnalyticsClient.Enqueue(msg)
 }
 
-// TrackEvent uses the default analytics client to track an event
+// TrackEvent uses the default analytics client to track an event.
 func TrackEvent(event string, properties map[string]interface{}) error {
 	return defaultClient.TrackEvent(event, properties)
 }
 
-// IdentifyUser uses the default analytics client to identify the user
+// IdentifyUser uses the default analytics client to identify the user.
 func IdentifyUser(userConfig *user.Config) error {
 	return defaultClient.IdentifyUser(userConfig)
 }
 
-// RequireRegisteredUser uses the default analytics client to require registered user
+// RequireRegisteredUser uses the default analytics client to require registered user.
 func RequireRegisteredUser() error {
 	return defaultClient.RequireRegisteredUser()
 }
 
-// Close closes the default analytics client
+// Close closes the default analytics client.
 func Close() error {
 	if defaultClient.AnalyticsClient != nil {
 		return defaultClient.AnalyticsClient.Close()
@@ -125,7 +125,7 @@ func Close() error {
 	return nil
 }
 
-// Enabled enables the default client
+// Enabled enables the default client.
 func Enabled(enabled bool) {
 	defaultClient.IsEnabled = enabled
 }

@@ -5,12 +5,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Info shows information about the configured clusters
+// Info shows information about the configured clusters.
 type Info struct {
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *Info) Title() string {
 	return "MKE cluster info"
 }

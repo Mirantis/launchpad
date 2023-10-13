@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Exec runs commands or shell sessions on a configuration host
+// Exec runs commands or shell sessions on a configuration host.
 func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, role, hostos, cmd string) error {
 	var hosts api.Hosts
 

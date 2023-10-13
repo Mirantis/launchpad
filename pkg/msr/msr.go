@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CollectFacts gathers the current status of the installed MSR setup
+// CollectFacts gathers the current status of the installed MSR setup.
 func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 	rethinkdbContainerID, err := h.ExecOutput(h.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
@@ -67,7 +67,7 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 // PluckSharedInstallFlags plucks the shared flag values between install and
 // shared and returns a slice of flags and their values
 // FIXME(squizzi): There's probably a better way to do this, this is a bit
-// overkill
+// overkill.
 func PluckSharedInstallFlags(installFlags []string, sharedFlags []string) []string {
 	// Make a new map based on the given install flags and their values
 	installFlagsMap := make(map[string]string, len(installFlags))
@@ -104,13 +104,13 @@ func PluckSharedInstallFlags(installFlags []string, sharedFlags []string) []stri
 	return final
 }
 
-// FormatReplicaID returns a zero padded 12 character hex string
+// FormatReplicaID returns a zero padded 12 character hex string.
 func FormatReplicaID(num uint64) string {
 	return fmt.Sprintf("%012x", num)
 }
 
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
-// that are shared with MSR
+// that are shared with MSR.
 func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
 	var mkeUser string
 	var mkePass string
@@ -148,7 +148,7 @@ func mkeURLHost(config *api.ClusterConfig) string {
 
 // Destroy is functionally equivalent to a MSR destroy and is intended to
 // remove any MSR containers and volumes that may have been started via the
-// installer if it fails
+// installer if it fails.
 func Destroy(h *api.Host) error {
 	// Remove containers
 	log.Debugf("%s: Removing MSR containers", h)
@@ -234,7 +234,7 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 
 // Cleanup accepts a list of msrHosts to remove all containers, volumes
 // and networks on, it is intended to be used to uninstall MSR or cleanup
-// a failed install
+// a failed install.
 func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 	for _, h := range msrHosts {
 		log.Debugf("%s: Destroying MSR host", h)
@@ -249,7 +249,7 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 	return nil
 }
 
-// WaitMSRNodeReady waits until MSR is up on the host
+// WaitMSRNodeReady waits until MSR is up on the host.
 func WaitMSRNodeReady(h *api.Host, port int) error {
 	err := retry.Do(
 		func() error {

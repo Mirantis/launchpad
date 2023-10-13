@@ -21,7 +21,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// RemoveNodes phase implementation
+// RemoveNodes phase implementation.
 type RemoveNodes struct {
 	phase.Analytics
 	phase.BasicPhase
@@ -57,12 +57,12 @@ type dockerContainer struct {
 	Mounts          []interface{}
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *RemoveNodes) Title() string {
 	return "Remove nodes"
 }
 
-// ShouldRun is true when spec.cluster.prune is true
+// ShouldRun is true when spec.cluster.prune is true.
 func (p *RemoveNodes) ShouldRun() bool {
 	if !p.Config.Spec.Cluster.Prune && (len(p.cleanupMSRs) > 0 || len(p.msrReplicaIDs) > 0 || len(p.removeNodeIDs) > 0) {
 		log.Warnf("There are nodes present which are not present in configuration Spec.Hosts - to remove them, set Spec.Cluster.Prune to true")
@@ -71,7 +71,7 @@ func (p *RemoveNodes) ShouldRun() bool {
 	return p.Config.Spec.Cluster.Prune
 }
 
-// Prepare finds the nodes/replica ids to be removed
+// Prepare finds the nodes/replica ids to be removed.
 func (p *RemoveNodes) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
 
@@ -123,7 +123,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 	return nil
 }
 
-// Run removes all nodes from swarm that are labeled and not part of the current config
+// Run removes all nodes from swarm that are labeled and not part of the current config.
 func (p *RemoveNodes) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 	if len(p.cleanupMSRs) > 0 {
@@ -244,7 +244,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 }
 
 // isManagedByUs returns a struct of isManaged which contains two bools, one
-// which declares node wide management and one which declares msr management
+// which declares node wide management and one which declares msr management.
 func (p *RemoveNodes) isManagedByUs(h *api.Host, nodeID string) isManaged {
 	labels, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
 	var managed isManaged
@@ -257,7 +257,7 @@ func (p *RemoveNodes) isManagedByUs(h *api.Host, nodeID string) isManaged {
 }
 
 // getReplicaIDFromHostname retreives the replicaID from the container name
-// associated with hostname
+// associated with hostname.
 func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api.Host, hostname string) (string, error) {
 	// Setup httpClient
 	tlsConfig, err := mke.GetTLSConfigFrom(h, config.Spec.MKE.ImageRepo, config.Spec.MKE.Version)
@@ -282,8 +282,12 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 
 	// Build the query
 	mkeURL.Path = "/containers/json"
-	mkeURL.Query().Add("filters", fmt.Sprintf(`{"ancestor": ["dtr-nginx:%s"]}`, config.Spec.MSR.Version))
-	mkeURL.Query().Add("size", "false")
+
+	q := mkeURL.Query()
+	q.Add("filters", fmt.Sprintf(`{"ancestor": ["dtr-nginx:%s"]}`, config.Spec.MSR.Version))
+	q.Add("size", "false")
+	mkeURL.RawQuery = q.Encode()
+
 	req, err := http.NewRequest("GET", mkeURL.String(), nil)
 	if err != nil {
 		return "", err

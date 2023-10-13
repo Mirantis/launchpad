@@ -6,7 +6,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/config/user"
 )
 
-// RequireRegisteredUser checks if user has registered
+// RequireRegisteredUser checks if user has registered.
 func (c *Client) RequireRegisteredUser() error {
 	if _, err := user.GetConfig(); err != nil {
 		c.TrackEvent("User Not Registered", nil)

@@ -9,18 +9,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// JoinManagers phase implementation
+// JoinManagers phase implementation.
 type JoinManagers struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
-// Title for the phase
+// Title for the phase.
 func (p *JoinManagers) Title() string {
 	return "Join managers to swarm"
 }
 
-// Run joins the manager nodes into swarm
+// Run joins the manager nodes into swarm.
 func (p *JoinManagers) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 

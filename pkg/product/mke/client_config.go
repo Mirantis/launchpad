@@ -7,7 +7,7 @@ import (
 	de "github.com/Mirantis/mcc/pkg/product/mke/phase"
 )
 
-// ClientConfig downloads MKE client bundle
+// ClientConfig downloads MKE client bundle.
 func (p *MKE) ClientConfig() error {
 
 	manager := p.ClusterConfig.Spec.Managers()[0]

@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Describe - gets information about configured instance
+// Describe - gets information about configured instance.
 func (p *MKE) Describe(reportName string) error {
 	var msr bool
 	var mke bool

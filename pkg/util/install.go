@@ -9,7 +9,7 @@ import (
 // Shared install utility between install phases for different products
 
 // SetupLicenseFile reads the license file and returns a license string command
-// flag to be used with MSR and MKE installers
+// flag to be used with MSR and MKE installers.
 func SetupLicenseFile(licenseFilePath string) (string, error) {
 	license, err := os.ReadFile(licenseFilePath)
 	if err != nil {
@@ -20,7 +20,7 @@ func SetupLicenseFile(licenseFilePath string) (string, error) {
 }
 
 // GenerateImageMap returns a new map of original --> custom repo images for the
-// given slice of images associated with customImageRepo
+// given slice of images associated with customImageRepo.
 func GenerateImageMap(images []string, customImageRepo string) map[string]string {
 	imageMap := make(map[string]string, len(images))
 	for index, i := range images {

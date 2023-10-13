@@ -6,10 +6,10 @@ import (
 	"sync"
 )
 
-// Hosts is a collection of Hosts
+// Hosts is a collection of Hosts.
 type Hosts []*Host
 
-// First returns the first host
+// First returns the first host.
 func (hosts *Hosts) First() *Host {
 	if len(*hosts) == 0 {
 		return nil
@@ -17,7 +17,7 @@ func (hosts *Hosts) First() *Host {
 	return (*hosts)[0]
 }
 
-// Last returns the last host
+// Last returns the last host.
 func (hosts *Hosts) Last() *Host {
 	c := len(*hosts) - 1
 
@@ -129,7 +129,7 @@ func (hosts *Hosts) Map(filter func(h *Host) interface{}) []interface{} {
 	return result
 }
 
-// MapString returns a new slice which is the result of running the map function on each host
+// MapString returns a new slice which is the result of running the map function on each host.
 func (hosts *Hosts) MapString(filter func(h *Host) string) []string {
 	result := make([]string, len(*hosts))
 	for i, h := range *hosts {

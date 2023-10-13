@@ -6,7 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewExecCommand creates new exec command to be called from cli
+// NewExecCommand creates new exec command to be called from cli.
 func NewExecCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "exec",

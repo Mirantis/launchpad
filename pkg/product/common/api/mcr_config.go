@@ -4,7 +4,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 )
 
-// MCRConfig holds the Mirantis Container Runtime installation specific options
+// MCRConfig holds the Mirantis Container Runtime installation specific options.
 type MCRConfig struct {
 	Version           string `yaml:"version"`
 	RepoURL           string `yaml:"repoURL,omitempty"`
@@ -13,7 +13,7 @@ type MCRConfig struct {
 	Channel           string `yaml:"channel,omitempty"`
 }
 
-// UnmarshalYAML puts in sane defaults when unmarshaling from yaml
+// UnmarshalYAML puts in sane defaults when unmarshaling from yaml.
 func (c *MCRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type mcrConfig MCRConfig
 	yc := (*mcrConfig)(c)
@@ -27,7 +27,7 @@ func (c *MCRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return nil
 }
 
-// SetDefaults sets defaults on the object
+// SetDefaults sets defaults on the object.
 func (c *MCRConfig) SetDefaults() {
 	// Constants can't be used in tags, so yaml defaults can't be used here.
 	if c.Version == "" {
