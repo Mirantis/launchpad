@@ -45,15 +45,13 @@ func (p *UpgradeMKE) Run() error {
 		runFlags.Add("--security-opt label=disable")
 	}
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), swarmClusterID, p.Config.Spec.MKE.UpgradeFlags.Join())
-	err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
-	if err != nil {
-		return fmt.Errorf("failed to run MKE upgrade")
+	if err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput()); err != nil {
+		return fmt.Errorf("%s: failed to run MKE upgrader: \n error:%w", swarmLeader, err)
 	}
 
 	originalInstalledVersion := p.Config.Spec.MKE.Metadata.InstalledVersion
 
-	err = mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata)
-	if err != nil {
+	if err := mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata); err != nil {
 		return fmt.Errorf("%s: failed to collect existing MKE details: %s", swarmLeader, err.Error())
 	}
 	p.EventProperties["upgraded"] = true

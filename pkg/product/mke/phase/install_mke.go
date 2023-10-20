@@ -114,7 +114,7 @@ func (p *InstallMKE) Run() (err error) {
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
 	output, err := h.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE installer: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to run MKE installer: \n output:%s \n error:%w", h, output, err)
 	}
 
 	if installFlags.GetValue("--admin-password") == "" {

@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
@@ -118,7 +119,7 @@ func (m *Manager) Run() error {
 				return nil
 			}
 
-			return result
+			return fmt.Errorf("phase failure: %s => %w", title, result)
 		}
 	}
 
