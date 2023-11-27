@@ -13,7 +13,7 @@ require (
 	github.com/go-playground/validator/v10 v10.11.1
 	github.com/hashicorp/go-version v1.6.0
 	github.com/k0sproject/dig v0.2.0
-	github.com/k0sproject/rig v0.10.0
+	github.com/k0sproject/rig v0.10.1
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/mattn/go-isatty v0.0.16
