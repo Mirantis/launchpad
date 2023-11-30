@@ -5,7 +5,7 @@ endif
 ENVIRONMENT ?= "development"
 LAUNCHPAD_VERSION ?= $(or ${TAG_NAME},dev)
 LD_FLAGS = -s -w -X github.com/Mirantis/mcc/version.Environment=$(ENVIRONMENT) -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(LAUNCHPAD_VERSION)
-BUILD_FLAGS = -trimpath -a -tags "netgo static_build" -installsuffix netgo -ldflags "$(LD_FLAGS) -extldflags '-static'"
+BUILD_FLAGS = -trimpath -a -tags "netgo static_build" -installsuffix netgo -ldflags "$(LD_FLAGS) -extldflags '-static'" -v
 ifeq ($(OS),Windows_NT)
        uname_s := "windows"
        TARGET ?= "bin\\launchpad.exe"
@@ -23,6 +23,13 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	-e GOEXE \
 	$(BUILDER_IMAGE)
 gosrc = $(wildcard *.go */*.go */*/*.go */*/*/*.go)
+
+VOLUME_MOUNTS=-v "$(CURDIR):/v"
+SIGN?=docker run --rm -i $(VOLUME_MOUNTS) -e SM_API_KEY -e SM_CLIENT_CERT_PASSWORD -e SM_CLIENT_CERT_FILE -v "$(SM_CLIENT_CERT_FILE):$(SM_CLIENT_CERT_FILE)" -w "/v" registry.mirantis.com/prodeng/digicert-keytools-jsign:latest sign
+
+sign-win:
+	echo "Signing Windows binary"
+	$(SIGN) bin/launchpad-win-x64.exe
 
 clean:
 	sudo rm -f bin/launchpad
@@ -46,11 +53,11 @@ build-all: builder
 	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 main.go
 	GOOS=darwin GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-arm64 main.go
 
-release: build-all
+release: build-all sign-win
 	./release.sh
 
 lint:
-	docker run -ti --rm -v "$(CURDIR):/data" -w "/data" golangci/golangci-lint:latest golangci-lint run
+	docker run -t --rm -v "$(CURDIR):/data" -w "/data" golangci/golangci-lint:latest golangci-lint run
 
 smoke-register-test: build
 	./test/smoke_register.sh

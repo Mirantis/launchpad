@@ -7,12 +7,6 @@ if [ -z "${TAG_NAME}" ]; then
   exit 1
 fi
 
-echo "Signing windows binary"
-command -v osslsigncode || sudo apt-get install -y osslsigncode
-echo -n "${WIN_PKCS12}" | base64 -d > windows.pkcs12
-sudo osslsigncode sign -pkcs12 windows.pkcs12 -pass "${WIN_PKCS12_PASSWD}" -i https://mirantis.com -n "Launchpad" -in ./bin/launchpad-win-x64.exe -out ./bin/launchpad-signed-win-x64.exe
-rm -f windows.pkcs12
-sudo mv ./bin/launchpad-signed-win-x64.exe ./bin/launchpad-win-x64.exe
 
 declare -a binaries=("launchpad-darwin-x64" "launchpad-darwin-arm64" "launchpad-win-x64.exe" "launchpad-linux-x64" "launchpad-linux-arm64")
 
@@ -36,12 +30,18 @@ else
   releaseopt=""
 fi
 
+echo "Creating release named ${TAG_NAME} in MCC repo"
+
 ./github-release release \
   $releaseopt \
   --user Mirantis \
   --repo mcc \
   --tag "${TAG_NAME}" \
   --name "${TAG_NAME}"
+
+sleep 10
+
+echo "Uploading the artifacts to ${TAG_NAME} in MCC repo"
 
 for bin in "${binaries[@]}"
 do
@@ -60,6 +60,8 @@ do
     --file "./tmp.sha256/${bin}.sha256"
 done
 
+echo "Creating release named ${TAG_NAME} in Launchpad repo"
+
 # Release to the public repo
 ./github-release release \
   $releaseopt \
@@ -68,6 +70,10 @@ done
   --repo launchpad \
   --tag "${TAG_NAME}" \
   --name "${TAG_NAME}"
+
+sleep 10
+
+echo "Uploading the artifacts to ${TAG_NAME} in Launchpad repo"
 
 for bin in "${binaries[@]}"
 do
