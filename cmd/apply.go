@@ -75,7 +75,7 @@ func NewApplyCommand() *cli.Command {
 
 			if isatty.IsTerminal(os.Stdout.Fd()) {
 				os.Stdout.WriteString(util.Logo)
-				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          v%s\n\n", version.Version))
+				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version))
 			}
 
 			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"))
