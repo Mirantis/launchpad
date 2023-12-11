@@ -80,8 +80,8 @@ github.com/jcmturner/rpc/v2 v2.0.3/go.mod h1:VUJYCIDm3PVOEHw8sgt091/20OJjskO/YJk
 github.com/k0kubun/go-ansi v0.0.0-20180517002512-3bf9e2903213/go.mod h1:vNUNkEQ1e29fT/6vq2aBdFsgNPmy8qMdSay1npru+Sw=
 github.com/k0sproject/dig v0.2.0 h1:cNxEIl96g9kqSMfPSZLhpnZ0P8bWXKv08nxvsMHop5w=
 github.com/k0sproject/dig v0.2.0/go.mod h1:rBcqaQlJpcKdt2x/OE/lPvhGU50u/e95CSm5g/r4s78=
-github.com/k0sproject/rig v0.10.0 h1:uXLA4s19ZxYgq4qcuczjYQIfbjS/zmqBPJXUtmMP+wc=
-github.com/k0sproject/rig v0.10.0/go.mod h1:22xaLLKd0UHkFwJbOB1JWMBel6QOAzluxeJXbnxFqmA=
+github.com/k0sproject/rig v0.10.1 h1:TAfVi4dsHsD7nF3cl+UiWUXC+WvvSVN0Z09Or9IDLiM=
+github.com/k0sproject/rig v0.10.1/go.mod h1:22xaLLKd0UHkFwJbOB1JWMBel6QOAzluxeJXbnxFqmA=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51/go.mod h1:CzGEWj7cYgsdH8dAjBGEr58BoE7ScuLd+fwFZ44+/x8=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=
