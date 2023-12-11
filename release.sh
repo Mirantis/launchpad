@@ -60,37 +60,39 @@ do
     --file "./tmp.sha256/${bin}.sha256"
 done
 
-echo "Creating release named ${TAG_NAME} in Launchpad repo"
+if [ -z "$releaseopt"]; then
+  echo "Creating release named ${TAG_NAME} in Launchpad repo"
 
-# Release to the public repo
-./github-release release \
-  $releaseopt \
-  --draft \
-  --user Mirantis \
-  --repo launchpad \
-  --tag "${TAG_NAME}" \
-  --name "${TAG_NAME}"
-
-sleep 10
-
-echo "Uploading the artifacts to ${TAG_NAME} in Launchpad repo"
-
-for bin in "${binaries[@]}"
-do
-  ./github-release upload \
+  # Release to the public repo
+  ./github-release release \
+    $releaseopt \
+    --draft \
     --user Mirantis \
     --repo launchpad \
     --tag "${TAG_NAME}" \
-    --name "${bin}" \
-    --file "./bin/${bin}"
+    --name "${TAG_NAME}"
 
-  ./github-release upload \
-    --user Mirantis \
-    --repo launchpad \
-    --tag "${TAG_NAME}" \
-    --name "${bin}.sha256" \
-    --file "./tmp.sha256/${bin}.sha256"
+  sleep 10
+
+  echo "Uploading the artifacts to ${TAG_NAME} in Launchpad repo"
+
+  for bin in "${binaries[@]}"
+  do
+    ./github-release upload \
+      --user Mirantis \
+      --repo launchpad \
+      --tag "${TAG_NAME}" \
+      --name "${bin}" \
+      --file "./bin/${bin}"
+
+    ./github-release upload \
+      --user Mirantis \
+      --repo launchpad \
+      --tag "${TAG_NAME}" \
+      --name "${bin}.sha256" \
+      --file "./tmp.sha256/${bin}.sha256"
   done
+fi
 
 rm ./github-release
 rm -rf tmp.sha256
