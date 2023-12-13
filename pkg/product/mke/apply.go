@@ -4,14 +4,17 @@ import (
 	"crypto/sha1" //nolint:gosec // sha1 is used for simple analytics id generation
 	"fmt"
 
+	event "gopkg.in/segmentio/analytics-go.v3"
+
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
-	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are defined in the config.
+// Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are
+// defined in the config.  Since MSR3 requires a different set of phases than
+// MSR, we need to determine which phases to run based on the MSR version.
 func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.SkipCleanup = disableCleanup
@@ -41,15 +44,29 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		&mke.UpgradeMKE{},
 		&mke.JoinManagers{},
 		&mke.JoinWorkers{},
+	)
 
-		// begin MSR phases
-		&mke.PullMSRImages{},
-		&mke.ValidateMKEHealth{},
-		&mke.InstallMSR{},
-		&mke.UpgradeMSR{},
-		&mke.JoinMSRReplicas{},
-		// end MSR phases
+	// Determine which MSR phases to run based on the MSR version.
+	switch p.ClusterConfig.Spec.MSR.MajorVersion() {
+	case 2:
+		phaseManager.AddPhases(
+			&mke.PullMSRImages{},
+			&mke.ValidateMKEHealth{},
+			&mke.InstallMSR{},
+			&mke.UpgradeMSR{},
+			&mke.JoinMSRReplicas{},
+		)
+	case 3:
+		phaseManager.AddPhases(
+			&mke.ValidateMKEHealth{},
+			&mke.ConfigureDepsMSR3{},
+			&mke.InstallMSR3{},
+			&mke.UpgradeMSR3{},
+		)
+	}
 
+	// Add the remaining phases that run regardless of MSR version.
+	phaseManager.AddPhases(
 		&mke.LabelNodes{},
 		&mke.RemoveNodes{},
 		&common.RunHooks{Stage: "after", Action: "apply"},

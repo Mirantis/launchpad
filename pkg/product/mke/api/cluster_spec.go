@@ -8,12 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/rig"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // Cluster is for universal cluster settings not applicable to single hosts, mke, msr or engine.
@@ -28,6 +30,10 @@ type ClusterSpec struct {
 	MSR     *MSRConfig       `yaml:"msr,omitempty"`
 	MCR     common.MCRConfig `yaml:"mcr,omitempty"`
 	Cluster Cluster          `yaml:"cluster"`
+	// Namespace is the Kubernetes namespace to use for installing products
+	// that are namespace-scoped.  If not set, the default namespace will be
+	// used.
+	Namespace string `yaml:"namespace,omitempty"`
 }
 
 // Workers filters only the workers from the cluster config.
@@ -116,42 +122,61 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 
 // MSRURL returns an url to MSR or an error if one can't be generated.
 func (c *ClusterSpec) MSRURL() (*url.URL, error) {
-	if c.MSR != nil {
-		// Default to using the --dtr-external-url if it's set
-		if f := c.MSR.InstallFlags.GetValue("--dtr-external-url"); f != "" {
-			if !strings.Contains(f, "://") {
-				f = "https://" + f
-			}
-			u, err := url.Parse(f)
-			if err != nil {
-				return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %w", f, err)
-			}
-			if u.Scheme == "" {
-				u.Scheme = "https"
-			}
-			if u.Path == "" {
-				u.Path = "/"
-			}
-			return u, nil
-		}
-	}
-
 	var msrAddr string
 
-	// Otherwise, use MSRLeaderAddress
-	msrLeader := c.MSRLeader()
-	if msrLeader == nil {
-		return nil, fmt.Errorf("%w: no MSR nodes found", errGenerateURL)
-	}
-	msrAddr = msrLeader.Address()
-
-	if c.MSR != nil {
-		if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
-			p, err := strconv.Atoi(portstr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %w", portstr, err)
+	switch c.MSR.MajorVersion() {
+	case 2:
+		if c.MSR != nil {
+			// Default to using the --dtr-external-url if it's set
+			if f := c.MSR.InstallFlags.GetValue("--dtr-external-url"); f != "" {
+				if !strings.Contains(f, "://") {
+					f = "https://" + f
+				}
+				u, err := url.Parse(f)
+				if err != nil {
+					return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %s", f, err.Error())
+				}
+				if u.Scheme == "" {
+					u.Scheme = "https"
+				}
+				if u.Path == "" {
+					u.Path = "/"
+				}
+				return u, nil
 			}
-			msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
+		}
+
+		// Otherwise, use MSRLeaderAddress
+		msrLeader := c.MSRLeader()
+		if msrLeader == nil {
+			return nil, fmt.Errorf("unable to generate a MSR URL - no MSR nodes found")
+		}
+		msrAddr = msrLeader.Address()
+
+		if c.MSR != nil {
+			if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
+				p, err := strconv.Atoi(portstr)
+				if err != nil {
+					return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %s", portstr, err.Error())
+				}
+				msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
+			}
+		}
+
+	case 3:
+		port := strconv.Itoa(int(c.MSR.MSR3Config.MSR.Spec.ExternalHTTPSPort))
+
+		switch c.MSR.MSR3Config.MSR.Spec.ServiceType {
+		case string(corev1.ServiceTypeNodePort):
+			// TODO: Need kubeclient here.
+			msrAddr = "todo"
+
+		case string(corev1.ServiceTypeLoadBalancer):
+			// TODO: Need kubeclient here.
+			msrAddr = "todo"
+
+		case string(corev1.ServiceTypeClusterIP):
+			msrAddr = "127.0.0.1" + ":" + port
 		}
 	}
 
@@ -160,6 +185,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 		Path:   "/",
 		Host:   msrAddr,
 	}, nil
+
 }
 
 var errInvalidConfig = errors.New("invalid configuration")
@@ -305,4 +331,8 @@ func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
 // ContainsMSR returns true when the config has msr hosts.
 func (c *ClusterSpec) ContainsMSR() bool {
 	return c.Hosts.Find(func(h *Host) bool { return h.Role == "msr" }) != nil
+}
+
+func (c *ClusterSpec) ContainsMSR3() bool {
+	return c.ContainsMSR() && c.MSR.MSR3Config != nil
 }

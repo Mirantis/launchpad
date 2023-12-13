@@ -1,4 +1,4 @@
-package msr
+package msr2
 
 import (
 	"fmt"
@@ -6,11 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
+	log "github.com/sirupsen/logrus"
+
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
-	"github.com/avast/retry-go"
-	log "github.com/sirupsen/logrus"
 )
 
 // CollectFacts gathers the current status of the installed MSR setup.
@@ -56,11 +57,14 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 	}
 
 	msrMeta := &api.MSRMetadata{
-		Installed:               true,
-		InstalledVersion:        version,
-		InstalledBootstrapImage: bootstrapimage,
-		ReplicaID:               replicaID,
+		Installed:        true,
+		InstalledVersion: version,
+		MSR2: &api.MSR2Metadata{
+			InstalledBootstrapImage: bootstrapimage,
+			ReplicaID:               replicaID,
+		},
 	}
+
 	return msrMeta, nil
 }
 
@@ -208,10 +212,10 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 		if h.MSRMetadata == nil {
 			h.MSRMetadata = &api.MSRMetadata{}
 		}
-		if h.MSRMetadata.ReplicaID != "" {
-			ri, err := strconv.ParseUint(h.MSRMetadata.ReplicaID, 16, 48)
+		if h.MSRMetadata.MSR2.ReplicaID != "" {
+			ri, err := strconv.ParseUint(h.MSRMetadata.MSR2.ReplicaID, 16, 48)
 			if err != nil {
-				return fmt.Errorf("%s: invalid MSR replicaID '%s': %w", h, h.MSRMetadata.ReplicaID, err)
+				return fmt.Errorf("%s: invalid MSR replicaID %q: %s", h, h.MSRMetadata.MSR2.ReplicaID, err)
 			}
 			if maxReplicaID < ri {
 				maxReplicaID = ri
@@ -225,11 +229,10 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 	if maxReplicaID+uint64(len(msrHosts)) > 0xffffffffffff {
 		return fmt.Errorf("%w: cluster already has replica id %012x which will overflow", errMaxReplicaID, maxReplicaID)
 	}
-
-	_ = msrHosts.Each(func(h *api.Host) error {
-		if h.MSRMetadata.ReplicaID == "" {
+	return msrHosts.Each(func(h *api.Host) error {
+		if h.MSRMetadata.MSR2.ReplicaID == "" {
 			maxReplicaID++
-			h.MSRMetadata.ReplicaID = FormatReplicaID(maxReplicaID)
+			h.MSRMetadata.MSR2.ReplicaID = FormatReplicaID(maxReplicaID)
 		}
 		return nil
 	})

@@ -31,4 +31,12 @@ const (
 	LinuxDefaultRootlessDockerDaemonPath = "~/.config/docker/daemon.json"
 	// WindowsDefaultDockerRoot defines the default windows docker root.
 	WindowsDefaultDockerRoot = "C:\\ProgramData\\Docker"
+	// MSROperator is the name of the MSR operator.
+	MSROperator = "msr-operator"
+	// PostgresOperator is the name of the postgres operator.
+	PostgresOperator = "postgres-operator"
+	// CertManager is the name of the cert manager.
+	CertManager = "cert-manager"
+	// RethinkDBOperator is the name of the rethinkdb operator.
+	RethinkDBOperator = "rethinkdb-operator"
 )

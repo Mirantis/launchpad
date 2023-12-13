@@ -12,13 +12,21 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
+	"github.com/k0sproject/rig/exec"
+	"github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/hashicorp/go-version"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
+	"github.com/Mirantis/mcc/pkg/util"
 )
 
 // AuthToken represents a session token.
@@ -34,7 +42,11 @@ type Credentials struct {
 	Password string `json:"password,omitempty"`
 }
 
-var errInvalidVersion = errors.New("invalid version")
+var (
+	errInvalidVersion = errors.New("invalid version")
+	errInvalidConfig  = errors.New("invalid config")
+	errInvalidBundle  = errors.New("invalid bundle")
+)
 
 // CollectFacts gathers the current status of installed mke setup.
 func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
@@ -185,13 +197,129 @@ func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Con
 	}, nil
 }
 
-func tp2qp(s string) string {
-	return strings.Replace(s, "-tp", "-qp", 1)
+func DownloadBundle(config *api.ClusterConfig) error {
+	m := config.Spec.Managers()[0]
+
+	tlsConfig, err := GetTLSConfigFrom(m, config.Spec.MKE.ImageRepo, config.Spec.MKE.Version)
+	if err != nil {
+		return fmt.Errorf("error getting TLS config: %w", err)
+	}
+
+	url, err := config.Spec.MKEURL()
+	if err != nil {
+		return fmt.Errorf("get mke url: %w", err)
+	}
+
+	user := config.Spec.MKE.AdminUsername
+	if user == "" {
+		return fmt.Errorf("%w: config Spec.MKE.AdminUsername not set", errInvalidConfig)
+	}
+
+	pass := config.Spec.MKE.AdminPassword
+	if pass == "" {
+		return fmt.Errorf("%w: config Spec.MKE.AdminPassword not set", errInvalidConfig)
+	}
+
+	bundle, err := GetClientBundle(url, tlsConfig, user, pass)
+	if err != nil {
+		return fmt.Errorf("failed to download admin bundle: %w", err)
+	}
+
+	bundleDir, err := getBundleDir(config)
+	if err != nil {
+		return err
+	}
+	err = writeBundle(bundleDir, bundle)
+	if err != nil {
+		return fmt.Errorf("failed to write admin bundle: %w", err)
+	}
+
+	return nil
 }
 
-// VersionGreaterThan is a "corrected" version comparator that considers -tpX releases to be earlier than -rcX.
-func VersionGreaterThan(a, b *version.Version) bool {
-	ca, _ := version.NewVersion(tp2qp(a.String()))
-	cb, _ := version.NewVersion(tp2qp(b.String()))
-	return ca.GreaterThan(cb)
+func safePath(base, rel string) (string, error) {
+	abs, err := filepath.Abs(filepath.Join(base, rel))
+	if err != nil {
+		return "", fmt.Errorf("%w: error while getting absolute path: %w", errInvalidBundle, err)
+	}
+	if !strings.HasPrefix(abs, base) {
+		return "", fmt.Errorf("%w: zip slip detected", errInvalidBundle)
+	}
+	return abs, nil
+}
+
+func writeBundle(bundleDir string, bundle *zip.Reader) error {
+	if err := util.EnsureDir(bundleDir); err != nil {
+		return fmt.Errorf("error while creating directory: %w", err)
+	}
+	log.Debugf("Writing out bundle to %s", bundleDir)
+	for _, zipFile := range bundle.File {
+		src, err := zipFile.Open()
+		if err != nil {
+			return fmt.Errorf("error while opening file %s: %w", zipFile.Name, err)
+		}
+		defer src.Close()
+		var data []byte
+		data, err = io.ReadAll(src)
+		if err != nil {
+			return fmt.Errorf("error while reading file %s: %w", zipFile.Name, err)
+		}
+		mode := int64(0o644)
+		if strings.Contains(zipFile.Name, "key.pem") {
+			mode = 0o600
+		}
+
+		// mke bundle will contain folders as well as files, if folder exists fd will not be empty
+		if dir := filepath.Dir(zipFile.Name); dir != "" && dir != "." {
+			if err := os.MkdirAll(filepath.Join(bundleDir, dir), 0o700); err != nil {
+				return fmt.Errorf("error while creating directory: %w", err)
+			}
+		}
+
+		outFile, err := safePath(bundleDir, zipFile.Name)
+		if err != nil {
+			return err
+		}
+
+		err = os.WriteFile(outFile, data, os.FileMode(mode))
+		if err != nil {
+			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
+		}
+	}
+	log.Infof("Successfully wrote client bundle to %s", bundleDir)
+	return nil
+}
+
+func getBundleDir(config *api.ClusterConfig) (string, error) {
+	home, err := homedir.Dir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return path.Join(home, constant.StateBaseDir, "cluster", config.Metadata.Name, "bundle", config.Spec.MKE.AdminUsername), nil
+}
+
+func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *helm.Helm, error) {
+	if err := DownloadBundle(config); err != nil {
+		return nil, nil, err
+	}
+
+	bundleDir, err := getBundleDir(config)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO: MSR3 is the only consumer of this phase so for now we obtain the
+	// namespace from MSR3Config.  We should decide on a method for determining
+	// the namespace to use for the phase dependent on what the phase is doing.
+	kube, err := kubeclient.NewFromBundle(bundleDir, config.Spec.Namespace)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create kube client from bundle: %w", err)
+	}
+
+	helm, err := helm.New(config.Spec.Namespace)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create helm client: %w", err)
+	}
+
+	return kube, helm, nil
 }

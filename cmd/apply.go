@@ -6,14 +6,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
+	event "gopkg.in/segmentio/analytics-go.v3"
+
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
+
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 var errInvalidArguments = errors.New("invalid arguments")
@@ -60,7 +61,7 @@ func NewApplyCommand() *cli.Command {
 			var logFile *os.File
 
 			start := time.Now()
-			analytics.TrackEvent("Cluster Apply Started", nil)
+			event.TrackEvent("Cluster Apply Started", nil)
 
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
@@ -86,7 +87,7 @@ func NewApplyCommand() *cli.Command {
 
 			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"), ctx.Bool("force-upgrade"))
 			if err != nil {
-				analytics.TrackEvent("Cluster Apply Failed", nil)
+				event.TrackEvent("Cluster Apply Failed", nil)
 				return fmt.Errorf("failed to apply cluster: %w", err)
 			}
 
@@ -94,7 +95,7 @@ func NewApplyCommand() *cli.Command {
 			props := event.Properties{
 				"duration": duration.Seconds(),
 			}
-			analytics.TrackEvent("Cluster Apply Completed", props)
+			event.TrackEvent("Cluster Apply Completed", props)
 
 			return nil
 		},

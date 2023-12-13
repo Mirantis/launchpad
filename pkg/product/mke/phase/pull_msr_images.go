@@ -9,7 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PullMSRImages phase implementation.
+// PullMSRImages phase implementation is responsible for pulling the MSR
+// bootstrap image.
 type PullMSRImages struct {
 	phase.Analytics
 	MSRPhase

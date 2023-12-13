@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/msr"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -50,7 +50,7 @@ func (p *JoinMSRReplicas) Title() string {
 // Run joins all the workers nodes to swarm if not already part of it.
 func (p *JoinMSRReplicas) Run() error {
 	msrLeader := p.Config.Spec.MSRLeader()
-	mkeFlags := msr.BuildMKEFlags(p.Config)
+	mkeFlags := msr2.BuildMKEFlags(p.Config)
 
 	for _, h := range p.Hosts {
 		// Iterate through the msrs and determine which have MSR installed
@@ -73,11 +73,11 @@ func (p *JoinMSRReplicas) Run() error {
 		joinFlags := common.Flags{}
 		redacts := []string{}
 		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
-		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))
+		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.MSR2.ReplicaID))
 		joinFlags.MergeOverwrite(mkeFlags)
 		// We can't just append the installFlags to joinFlags because they
 		// differ, so we have to selectively pluck the ones that are shared
-		for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallJoinFlags) {
+		for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr2.SharedInstallJoinFlags) {
 			joinFlags.AddOrReplace(f)
 		}
 		if p.Config.Spec.MKE.CACertData != "" {
@@ -85,14 +85,14 @@ func (p *JoinMSRReplicas) Run() error {
 			joinFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
 			redacts = append(redacts, escaped)
 		}
-		if h.MSRMetadata != nil && h.MSRMetadata.ReplicaID != "" {
-			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSRMetadata.ReplicaID)
-			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
+		if h.MSRMetadata != nil && h.MSRMetadata.MSR2.ReplicaID != "" {
+			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSRMetadata.MSR2.ReplicaID)
+			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.MSR2.ReplicaID))
 		} else {
 			log.Infof("%s: joining MSR replica to cluster", h)
 		}
 
-		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
+		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.MSR2.InstalledBootstrapImage, joinFlags.Join())
 		err := msrLeader.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(redacts...))
 		if err != nil {
 			return fmt.Errorf("%s: failed to run MSR join: %w", h, err)

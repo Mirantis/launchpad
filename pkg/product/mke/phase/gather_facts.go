@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"net"
 
+	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
+
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	// needed to load the build func in package init.
@@ -17,14 +21,13 @@ import (
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	// needed to load the build func in package init.
+	"github.com/k0sproject/dig"
+
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
-	"github.com/k0sproject/dig"
-	log "github.com/sirupsen/logrus"
 )
 
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts.
@@ -70,7 +73,7 @@ func (p *GatherFacts) Run() error {
 		msrHosts := p.Config.Spec.MSRs()
 		_ = msrHosts.ParallelEach(func(h *api.Host) error {
 			if h.Metadata != nil && h.Metadata.MCRVersion != "" {
-				msrMeta, err := msr.CollectFacts(h)
+				msrMeta, err := msr2.CollectFacts(h)
 				if err != nil {
 					log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
 				}

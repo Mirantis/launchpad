@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/msr"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/k0sproject/rig/exec"
@@ -54,10 +54,10 @@ func (p *UpgradeMSR) Run() error {
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.ReplicaID)}
+	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.MSR2.ReplicaID)}
 
-	upgradeFlags.MergeOverwrite(msr.BuildMKEFlags(p.Config))
-	for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallUpgradeFlags) {
+	upgradeFlags.MergeOverwrite(msr2.BuildMKEFlags(p.Config))
+	for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr2.SharedInstallUpgradeFlags) {
 		upgradeFlags.AddOrReplace(f)
 	}
 	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.UpgradeFlags)
@@ -68,7 +68,7 @@ func (p *UpgradeMSR) Run() error {
 		return fmt.Errorf("%s: failed to run msr upgrade: %w", h, err)
 	}
 
-	msrMeta, err := msr.CollectFacts(h)
+	msrMeta, err := msr2.CollectFacts(h)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing msr details: %w", h, err)
 	}

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/pkg/msr"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -96,7 +96,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 			// launchpad node, first remove MSR
 			if managed.msr {
 				// Check to see if the config contains any left over MSR nodes,
-				// if it doesn't just call msr.Cleanup to remove
+				// if it doesn't just call msr2.Cleanup to remove
 				msrs := p.Config.Spec.MSRs()
 				if len(msrs) == 0 {
 					// All of the MSRs were removed from config, just remove
@@ -131,7 +131,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 func (p *RemoveNodes) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 	if len(p.cleanupMSRs) > 0 {
-		err := msr.Cleanup(p.cleanupMSRs, swarmLeader)
+		err := msr2.Cleanup(p.cleanupMSRs, swarmLeader)
 		if err != nil {
 			return fmt.Errorf("failed to cleanup MSR nodes: %w", err)
 		}
@@ -215,7 +215,7 @@ func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 
 func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string) error {
 	msrLeader := config.Spec.MSRLeader()
-	mkeFlags := msr.BuildMKEFlags(config)
+	mkeFlags := msr2.BuildMKEFlags(config)
 
 	runFlags := common.Flags{"-i"}
 
@@ -229,14 +229,14 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 
 	removeFlags := common.Flags{
 		fmt.Sprintf("--replica-ids %s", replicaID),
-		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID),
+		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.MSR2.ReplicaID),
 	}
 	removeFlags.MergeOverwrite(mkeFlags)
-	for _, f := range msr.PluckSharedInstallFlags(config.Spec.MSR.InstallFlags, msr.SharedInstallRemoveFlags) {
+	for _, f := range msr2.PluckSharedInstallFlags(config.Spec.MSR.InstallFlags, msr2.SharedInstallRemoveFlags) {
 		removeFlags.AddOrReplace(f)
 	}
 
-	removeCmd := msrLeader.Configurer.DockerCommandf("run %s %s remove %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, removeFlags.Join())
+	removeCmd := msrLeader.Configurer.DockerCommandf("run %s %s remove %s", runFlags.Join(), msrLeader.MSRMetadata.MSR2.InstalledBootstrapImage, removeFlags.Join())
 	log.Debugf("%s: Removing MSR replica %s from cluster", msrLeader, replicaID)
 	err := msrLeader.Exec(removeCmd, exec.StreamOutput())
 	if err != nil {

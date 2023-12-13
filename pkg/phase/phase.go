@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
+	"github.com/Mirantis/mcc/pkg/mke"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun.
@@ -17,6 +21,13 @@ type BasicPhase struct {
 type HostSelectPhase struct {
 	BasicPhase
 	Hosts api.Hosts
+}
+
+// KubernetesPhase is a phase which requires a populated Kubernetes and Helm client.
+type KubePhase struct {
+	BasicPhase
+	Kube *kubeclient.KubeClient
+	Helm *helm.Helm
 }
 
 // CleanupDisabling can be embedded to phases that perform in-phase cleanup
@@ -63,6 +74,27 @@ func (p *HostSelectPhase) ShouldRun() bool {
 // HostFilterFunc default implementation, matches all hosts.
 func (p *HostSelectPhase) HostFilterFunc(_ *api.Host) bool {
 	return true
+}
+
+// Prepare KubePhase implementation which populates the phase's Kube and Helm
+// fields.
+func (p *KubePhase) Prepare(config interface{}) (err error) {
+	p.Config = config.(*api.ClusterConfig)
+
+	// TODO: At this time we use MKE to build a Kube and Helm client, in the
+	// future we should support specifying a custom Kubernetes server and
+	// credentials in config to build a client so that users do not necessarily
+	// need to install MKE to use MSR3.
+	if !p.Config.Spec.MKE.Metadata.Installed {
+		return nil
+	}
+
+	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
+	if err != nil {
+		return fmt.Errorf("failed to create Kubernetes and Helm clients from config: %w", err)
+	}
+
+	return nil
 }
 
 // Eventable interface.

@@ -3,11 +3,12 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/msr"
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
+	"github.com/Mirantis/mcc/pkg/phase"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // PrepareHost phase implementation does all the prep work we need for the hosts.
@@ -44,7 +45,7 @@ func (p *PrepareHost) Run() error {
 	}
 
 	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.ReplicaIDs == "sequential" {
-		err = msr.AssignSequentialReplicaIDs(p.Config)
+		err = msr2.AssignSequentialReplicaIDs(p.Config)
 		if err != nil {
 			return fmt.Errorf("failed to assign sequential MSR replica IDs: %w", err)
 		}

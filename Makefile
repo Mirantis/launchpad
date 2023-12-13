@@ -35,13 +35,13 @@ clean:
 	sudo rm -f bin/launchpad
 
 builder:
-	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
+	docker build --ssh default=${SSH_AUTH_SOCK} -t $(BUILDER_IMAGE) -f Dockerfile.builder .
 
 unit-test: builder
 	$(GO) go test -v ./...
 
 $(TARGET): $(gosrc)
-	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
+	docker build --ssh default=${SSH_AUTH_SOCK} -t $(BUILDER_IMAGE) -f Dockerfile.builder .
 	GOOS=${GOOS} $(GO) go build $(BUILD_FLAGS) -o $(TARGET) main.go
 
 build: $(TARGET)

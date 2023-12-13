@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/msr"
+	msr "github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -27,7 +27,8 @@ func (p *InstallMSR) Title() string {
 	return "Install MSR components"
 }
 
-// ShouldRun should return true only when there is an installation to be performed.
+// ShouldRun should return true only when there is an installation to be
+// performed.
 func (p *InstallMSR) ShouldRun() bool {
 	p.leader = p.Config.Spec.MSRLeader()
 	return p.Config.Spec.ContainsMSR() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
@@ -95,9 +96,9 @@ func (p *InstallMSR) Run() error {
 		redacts = append(redacts, escaped)
 	}
 
-	if h.MSRMetadata.ReplicaID != "" {
-		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.ReplicaID)
-		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
+	if h.MSRMetadata.MSR2.ReplicaID != "" {
+		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.MSR2.ReplicaID)
+		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.MSR2.ReplicaID))
 	} else {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}

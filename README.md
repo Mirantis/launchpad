@@ -26,6 +26,26 @@ We will draw inspiration from existing tooling such as [Docker Cluster](https://
 * **Integration Tests** - At this stage only elementary smoke tests are included to test the product on various host OS environments such as CentOS7/8 and Ubuntu 18.04.
 * **Manual Tests** - We hope QA team would run some of their existing test plans manually on clusters created with `launchpad`.
 
+## Building
+
+To build `launchpad` run:
+
+```
+make build
+```
+
+If you receive permission denied errors when building the builder image, ensure you have an `ssh-agent` running and have added the private key you use with GitHub to the `ssh-agent`, you can verify the agent is running and a key has been added with:
+
+```
+ssh-add -l
+```
+
+If no keys are present or you do not recognize your GitHub private key within the output above add it with:
+
+```
+ssh-add path/to/private/key
+```
+
 ## Release Process
 
 Releases are made from git tags by CICD system. The release builds must be triggered manually. The release process is the following:

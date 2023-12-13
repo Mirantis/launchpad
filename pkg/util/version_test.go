@@ -1,4 +1,4 @@
-package mke
+package util
 
 import (
 	"testing"

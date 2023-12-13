@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 )

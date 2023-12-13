@@ -9,14 +9,16 @@ import (
 	"strings"
 	"time"
 
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/dig"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/os/registry"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/helm"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/util"
 )
 
 // HostMetadata resolved metadata for host.
@@ -35,10 +37,22 @@ type HostMetadata struct {
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
 // the GatherFacts phase and at the end of each configuration phase.
 type MSRMetadata struct {
-	Installed               bool
-	InstalledVersion        string
+	Installed        bool
+	InstalledVersion string
+
+	MSR2 *MSR2Metadata
+	MSR3 *MSR3Metadata
+}
+
+type MSR2Metadata struct {
 	InstalledBootstrapImage string
 	ReplicaID               string
+}
+
+type MSR3Metadata struct {
+	// InstalledDependencies is a map of dependencies needed for MSR3 and their
+	// versions.
+	InstalledDependencies map[string]helm.ChartDetails
 }
 
 type errs struct {
