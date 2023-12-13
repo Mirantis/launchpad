@@ -40,7 +40,7 @@ func (p *InstallMSR3) Prepare(config interface{}) error {
 	for _, msrH := range msrHosts {
 		hostname := msrH.Metadata.Hostname
 
-		err := p.Kube.LabelNode(p.ctx, hostname)
+		err := p.kube.LabelNode(context.Background(), hostname)
 		if err != nil {
 			return fmt.Errorf("%s: failed to label node: %s", msrH, err.Error())
 		}
@@ -75,7 +75,7 @@ func (p *InstallMSR3) Run() error {
 		return err
 	}
 
-	msrMeta, err := msr3.CollectFacts(p.ctx, p.Config.Spec.MSR.MSR3Config.Name, p.Kube, p.Helm)
+	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.Name, p.kube, p.helm)
 	if err != nil {
 		return fmt.Errorf("failed to collect msr3 details: %w", err)
 	}

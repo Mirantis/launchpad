@@ -4,15 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/cli/values"
-	"helm.sh/helm/v3/pkg/getter"
+	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/utils/pointer"
@@ -33,21 +31,9 @@ type ChartDetails struct {
 	// Version is the Helm Chart version.
 	Version string `yaml:"version,omitempty"`
 	// Values contains options for the Helm chart values.
-	Values *values.Options `yaml:"values,omitempty"`
+	Values map[string]interface{} `yaml:"values,omitempty"`
 	// Installed is true if the chart is installed.
 	Installed bool `yaml:"installed,omitempty"`
-}
-
-// ChartURL returns a fully qualified chart URL, at this time we only support
-// charts obtained from a Helm repository, in the future we may want to support
-// local charts either packaged or directories.
-func (cd *ChartDetails) ChartURL() (string, error) {
-	repoURL, err := url.ParseRequestURI(cd.RepoURL)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse Helm repository URL %q: %w", cd.RepoURL, err)
-	}
-
-	return fmt.Sprintf("%s/%s", repoURL, cd.ReleaseName), nil
 }
 
 // Options to be used with Helm actions.
@@ -81,19 +67,11 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 		opts.Timeout = pointer.Duration(defaultUpgradeTimeout)
 	}
 
-	p := getter.All(&settings)
-
-	vals, err := opts.Values.MergeValues(p)
-	if err != nil {
-		return nil, err
+	chartPathOptions := action.ChartPathOptions{
+		RepoURL: opts.RepoURL,
 	}
 
-	repoURL, err := opts.ChartDetails.ChartURL()
-	if err != nil {
-		return nil, err
-	}
-
-	ch, err := loader.Load(repoURL)
+	ch, err := getChart(chartPathOptions, opts.ChartName, &settings)
 	if err != nil {
 		return nil, err
 	}
@@ -103,22 +81,22 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	histClient.Max = 1
 	if _, err := histClient.Run(opts.ReleaseName); err != nil {
 		if errors.Is(err, driver.ErrReleaseNotFound) {
-			log.Infof("Release %q not found.  Installing it now.", opts.ReleaseName)
-			return h.install(ctx, opts, vals, ch)
+			log.Infof("release %q not found.  Installing it now.", opts.ReleaseName)
+			return h.install(ctx, opts, opts.Values, ch)
 		}
 	}
 
-	log.Infof("Release %q found using chart: %q, upgrading to version: %q", opts.ReleaseName, opts.ChartName, opts.Version)
+	log.Infof("release %q found using chart: %q, upgrading to version: %q", opts.ReleaseName, opts.ChartName, opts.Version)
 
 	u := action.NewUpgrade(&cfg)
 	u.Namespace = settings.Namespace()
 	u.ReuseValues = opts.ReuseValues
 	u.Wait = opts.Wait
 	u.Atomic = opts.Atomic
-	u.Version = opts.Version
+	u.Version = opts.ChartDetails.Version
 	u.Timeout = *opts.Timeout
 
-	return u.RunWithContext(ctx, opts.ChartDetails.ReleaseName, ch, vals)
+	return u.RunWithContext(ctx, opts.ChartDetails.ReleaseName, ch, opts.Values)
 }
 
 // install is ran as part of the Upgrade process when the chart is not
@@ -131,10 +109,21 @@ func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]inter
 	i := action.NewInstall(&cfg)
 
 	i.Namespace = settings.Namespace()
+	i.ReleaseName = opts.ReleaseName
+	i.Version = opts.ChartDetails.Version
 	i.Timeout = *opts.Timeout
 	i.Version = opts.Version
 	i.Atomic = opts.Atomic
 	i.Wait = opts.Wait
 
 	return i.RunWithContext(ctx, ch, vals)
+}
+
+func getChart(chartPathOptions action.ChartPathOptions, chartName string, settings *cli.EnvSettings) (*chart.Chart, error) {
+	chartPath, err := chartPathOptions.LocateChart(chartName, settings)
+	if err != nil {
+		return nil, err
+	}
+
+	return loader.Load(chartPath)
 }

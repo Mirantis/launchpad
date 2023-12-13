@@ -210,6 +210,8 @@ func DownloadBundle(config *api.ClusterConfig) error {
 		return fmt.Errorf("get mke url: %w", err)
 	}
 
+	log.Debugf("downloading admin bundle from MKE: %s", url)
+
 	user := config.Spec.MKE.AdminUsername
 	if user == "" {
 		return fmt.Errorf("%w: config Spec.MKE.AdminUsername not set", errInvalidConfig)
@@ -299,13 +301,27 @@ func getBundleDir(config *api.ClusterConfig) (string, error) {
 }
 
 func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *helm.Helm, error) {
-	if err := DownloadBundle(config); err != nil {
-		return nil, nil, err
+	log.Debug("configuring Kubernetes and Helm clients from config")
+
+	if !config.Spec.MKE.Metadata.Installed {
+		return nil, nil, fmt.Errorf("MKE is not installed, cannot prepare Kubernetes and Helm clients")
 	}
 
 	bundleDir, err := getBundleDir(config)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	_, err = os.Stat(filepath.Join(bundleDir, constant.KubeConfigFile))
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Debugf("%s not found in bundle directory %q, will download", constant.KubeConfigFile, bundleDir)
+			if err := DownloadBundle(config); err != nil {
+				return nil, nil, err
+			}
+		} else {
+			return nil, nil, fmt.Errorf("failed to check for kube config: %w", err)
+		}
 	}
 
 	// TODO: MSR3 is the only consumer of this phase so for now we obtain the
@@ -316,7 +332,12 @@ func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *
 		return nil, nil, fmt.Errorf("failed to create kube client from bundle: %w", err)
 	}
 
-	helm, err := helm.New(config.Spec.Namespace)
+	if config.Spec.Namespace == "" {
+		log.Debug("config.Spec.Namespace is empty, using default namespace")
+		config.Spec.Namespace = "default"
+	}
+
+	helm, err := helm.New(bundleDir, config.Spec.Namespace)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create helm client: %w", err)
 	}

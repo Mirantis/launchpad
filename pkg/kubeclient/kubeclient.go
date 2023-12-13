@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,7 @@ type KubeClient struct {
 // NewFromBundle returns a new instance of KubeClient from
 // a given bundle directory.
 func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
-	f := filepath.Join(bundleDir, "kube.yaml")
+	f := filepath.Join(bundleDir, constant.KubeConfigFile)
 
 	configBytes, err := os.ReadFile(f)
 	if err != nil {

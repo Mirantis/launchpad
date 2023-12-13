@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/helm"
@@ -23,14 +24,14 @@ func (p *UninstallMSR3) Run() error {
 	// Remove the MSR CR.
 	n := p.Config.Spec.MSR.MSR3Config.MSR.Name
 
-	if err := p.Kube.DeleteMSRCR(p.ctx, n); err != nil {
+	if err := p.kube.DeleteMSRCR(context.Background(), n); err != nil {
 		return fmt.Errorf("failed to delete MSR CR: %q: %w", n, err)
 	}
 
 	// Remove Helm dependencies.
 	for _, d := range p.Config.Spec.MSR.MSR3Config.Dependencies.List() {
-		if err := p.Helm.Uninstall(p.ctx, &helm.Options{
-			ChartDetails: d,
+		if err := p.helm.Uninstall(context.Background(), &helm.Options{
+			ChartDetails: *d,
 		}); err != nil {
 			return fmt.Errorf("failed to delete Helm dependency: %q: %w", d.ReleaseName, err)
 		}

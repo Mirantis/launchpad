@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/hashicorp/go-version"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
 )
 
@@ -26,7 +30,7 @@ type Helm struct {
 }
 
 // New returns a configured Helm.
-func New(namespace string) (*Helm, error) {
+func New(bundleDir, namespace string) (*Helm, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 
@@ -34,8 +38,15 @@ func New(namespace string) (*Helm, error) {
 		return nil, fmt.Errorf("failed to scope Helm to namespace %q: %w", namespace, err)
 	}
 
+	kubeConfig := filepath.Join(bundleDir, constant.KubeConfigFile)
+
 	cfg := action.Configuration{}
-	if err := cfg.Init(settings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), log.Debugf); err != nil {
+	if err := cfg.Init(
+		kube.GetConfig(kubeConfig, "", namespace),
+		namespace,
+		os.Getenv("HELM_DRIVER"),
+		log.Debugf,
+	); err != nil {
 		return nil, err
 	}
 
@@ -54,7 +65,16 @@ func (h *Helm) ChartNeedsUpgrade(ctx context.Context, releaseName string, newVer
 		return false, err
 	}
 
-	return existingVersion.Equal(newVersion), nil
+	logrus.Debugf("release: %q at version %q, expected version: %q", releaseName, existingVersion, newVersion)
+
+	if existingVersion.Equal(newVersion) {
+		logrus.Debugf("release: %q is already at version: %q", releaseName, newVersion)
+		return false, nil
+	}
+
+	logrus.Debugf("release: %q needs to match version: %q", releaseName, newVersion)
+
+	return true, nil
 }
 
 // getChartVersion returns the version of the requested chart release if it

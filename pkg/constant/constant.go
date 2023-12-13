@@ -39,4 +39,6 @@ const (
 	CertManager = "cert-manager"
 	// RethinkDBOperator is the name of the rethinkdb operator.
 	RethinkDBOperator = "rethinkdb-operator"
+	// KubeConfigFile is the name of the kubeconfig file.
+	KubeConfigFile = "kube.yml"
 )

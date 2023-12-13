@@ -91,6 +91,7 @@ func (m *Manager) Run() error {
 
 		result := phase.Run()
 
+		// FIXME: This duration does not work, always prints 0s.
 		duration := time.Since(start)
 		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Minute))
 

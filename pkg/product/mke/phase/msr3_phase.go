@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
 	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/mitchellh/mapstructure"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -18,17 +19,9 @@ const (
 // to use MSR3.
 type MSR3Phase struct {
 	phase.BasicPhase
-	phase.KubePhase
 
-	ctx context.Context
-}
-
-// Prepare prepares the MSR3Phase by populating the context.
-func (p *MSR3Phase) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
-	p.ctx = context.Background()
-
-	return nil
+	helm *helm.Helm
+	kube *kubeclient.KubeClient
 }
 
 // ShouldRun default implementation for MSR phase returns true when the config
@@ -65,9 +58,9 @@ func (p *MSR3Phase) ApplyCRD(ctx context.Context) error {
 		return err
 	}
 
-	if err := p.Kube.ApplyMSRCR(ctx, obj); err != nil {
+	if err := p.kube.ApplyMSRCR(ctx, obj); err != nil {
 		return err
 	}
 
-	return p.Kube.WaitForMSRCRReady(ctx, obj)
+	return p.kube.WaitForMSRCRReady(ctx, obj)
 }

@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
@@ -47,11 +48,11 @@ func (p *UpgradeMSR3) Run() error {
 
 	p.Config.Spec.MSR.MSR3Config.MSR.Spec.Tag = p.Config.Spec.MSR.Version
 
-	if err := p.ApplyCRD(p.ctx); err != nil {
+	if err := p.ApplyCRD(context.Background()); err != nil {
 		return err
 	}
 
-	msrMeta, err := msr3.CollectFacts(p.ctx, p.Config.Spec.MSR.MSR3Config.Name, p.Kube, p.Helm)
+	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.Name, p.kube, p.helm)
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing msr details: %s", h, err.Error())
 	}

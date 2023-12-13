@@ -8,7 +8,6 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
-	"helm.sh/helm/v3/pkg/cli/values"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
@@ -48,15 +47,15 @@ type MSR3Config struct {
 }
 
 type Dependencies struct {
-	CertManager       helm.ChartDetails `yaml:"certManager"`
-	PostgresOperator  helm.ChartDetails `yaml:"postgresOperator"`
-	RethinkDBOperator helm.ChartDetails `yaml:"rethinkDBOperator"`
-	MSROperator       helm.ChartDetails `yaml:"msrOperator"`
+	CertManager       *helm.ChartDetails `yaml:"certManager"`
+	PostgresOperator  *helm.ChartDetails `yaml:"postgresOperator"`
+	RethinkDBOperator *helm.ChartDetails `yaml:"rethinkDBOperator"`
+	MSROperator       *helm.ChartDetails `yaml:"msrOperator"`
 }
 
 // List returns a list of all dependencies from the MSR3Config.
-func (d *Dependencies) List() []helm.ChartDetails {
-	return []helm.ChartDetails{
+func (d *Dependencies) List() []*helm.ChartDetails {
+	return []*helm.ChartDetails{
 		d.CertManager,
 		d.PostgresOperator,
 		d.RethinkDBOperator,
@@ -64,48 +63,86 @@ func (d *Dependencies) List() []helm.ChartDetails {
 	}
 }
 
-func (d *Dependencies) SetDefaults() error {
-	d.CertManager = helm.ChartDetails{
-		ChartName:   constant.CertManager,
-		ReleaseName: constant.CertManager,
-		RepoURL:     "https://charts.jetstack.io",
-		Version:     "1.12.4",
-		Values: &values.Options{
-			Values: []string{
-				"installCRDs=true",
-			},
-		},
+// SetDefaults populates unset fields with sane defaults.
+// FIXME: Maybe we should just use default struct tags instead of this?
+func (d *Dependencies) SetDefaults() {
+	if d.CertManager == nil {
+		d.CertManager = &helm.ChartDetails{}
+
+		if d.CertManager.ChartName == "" {
+			d.CertManager.ChartName = constant.CertManager
+		}
+		if d.CertManager.ReleaseName == "" {
+			d.CertManager.ReleaseName = constant.CertManager
+		}
+		if d.CertManager.RepoURL == "" {
+			d.CertManager.RepoURL = "https://charts.jetstack.io"
+		}
+		if d.CertManager.Version == "" {
+			d.CertManager.Version = "1.12.4"
+		}
+		if d.CertManager.Values == nil {
+			d.CertManager.Values = map[string]interface{}{"installCRDs": true}
+		}
 	}
 
-	d.PostgresOperator = helm.ChartDetails{
-		ChartName:   constant.PostgresOperator,
-		ReleaseName: constant.PostgresOperator,
-		RepoURL:     "https://opensource.zalando.com/postgres-operator/charts",
-		Version:     "1.10.0",
-		Values: &values.Options{
-			Values: []string{
-				"configKubernetes.spilo_runasuser=101",
-				"configKubernetes.spilo_runasgroup=103",
-				"configKubernetes.spilo_fsgroup=103",
-			},
-		},
+	if d.PostgresOperator == nil {
+		d.PostgresOperator = &helm.ChartDetails{}
+
+		if d.PostgresOperator.ChartName == "" {
+			d.PostgresOperator.ChartName = constant.PostgresOperator
+		}
+		if d.PostgresOperator.ReleaseName == "" {
+			d.PostgresOperator.ReleaseName = constant.PostgresOperator
+		}
+		if d.PostgresOperator.RepoURL == "" {
+			d.PostgresOperator.RepoURL = "https://opensource.zalando.com/postgres-operator/charts/postgres-operator"
+		}
+		if d.PostgresOperator.Version == "" {
+			d.PostgresOperator.Version = "1.10.0"
+		}
+		if d.PostgresOperator.Values == nil {
+			d.PostgresOperator.Values = map[string]interface{}{
+				"configKubernetes.spilo_runasuser":  "101",
+				"configKubernetes.spilo_runasgroup": "103",
+				"configKubernetes.spilo_fsgroup":    "103",
+			}
+		}
 	}
 
-	d.RethinkDBOperator = helm.ChartDetails{
-		ChartName:   constant.RethinkDBOperator,
-		ReleaseName: constant.RethinkDBOperator,
-		RepoURL:     "https://registry.mirantis.com/charts/rethinkdb",
-		Version:     "1.0.0",
+	if d.RethinkDBOperator == nil {
+		d.RethinkDBOperator = &helm.ChartDetails{}
+
+		if d.RethinkDBOperator.ChartName == "" {
+			d.RethinkDBOperator.ChartName = constant.RethinkDBOperator
+		}
+		if d.RethinkDBOperator.ReleaseName == "" {
+			d.RethinkDBOperator.ReleaseName = constant.RethinkDBOperator
+		}
+		if d.RethinkDBOperator.RepoURL == "" {
+			d.RethinkDBOperator.RepoURL = "https://registry.mirantis.com/charts/rethinkdb/rethinkdb-operator"
+		}
+		if d.RethinkDBOperator.Version == "" {
+			d.RethinkDBOperator.Version = "1.0.0"
+		}
 	}
 
-	d.MSROperator = helm.ChartDetails{
-		ChartName:   constant.MSROperator,
-		ReleaseName: constant.MSROperator,
-		RepoURL:     "https://registry.mirantis.com/charts/msr",
-		Version:     "1.0.0",
-	}
+	if d.MSROperator == nil {
+		d.MSROperator = &helm.ChartDetails{}
 
-	return nil
+		if d.MSROperator.ChartName == "" {
+			d.MSROperator.ChartName = constant.MSROperator
+		}
+		if d.MSROperator.ReleaseName == "" {
+			d.MSROperator.ReleaseName = constant.MSROperator
+		}
+		if d.MSROperator.RepoURL == "" {
+			d.MSROperator.RepoURL = "https://registry.mirantis.com/charts/msr/msr-operator"
+		}
+		if d.MSROperator.Version == "" {
+			d.MSROperator.Version = "1.0.0"
+		}
+	}
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
@@ -153,11 +190,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		c.KeyData = string(keyData)
 	}
 
-	if c.MajorVersion() == 3 {
-		if err := c.MSR3Config.Dependencies.SetDefaults(); err != nil {
-			return err
-		}
-	}
+	c.Dependencies.SetDefaults()
 
 	if err := defaults.Set(c); err != nil {
 		return fmt.Errorf("failed to set MSR defaults: %w", err)
