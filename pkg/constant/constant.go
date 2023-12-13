@@ -31,6 +31,12 @@ const (
 	LinuxDefaultRootlessDockerDaemonPath = "~/.config/docker/daemon.json"
 	// WindowsDefaultDockerRoot defines the default windows docker root.
 	WindowsDefaultDockerRoot = "C:\\ProgramData\\Docker"
+	// KubernetesOrchestratorLabelCmd marks the node as using the kubernetes orchestrator.
+	KubernetesOrchestratorLabelCmd = "node update --label-add 'com.docker.ucp.orchestrator.kubernetes=true'"
+	// SwarmOrchestratorRemoveLabelCmd removes the label that marks the node as using the swarm orchestrator.
+	SwarmOrchestratorRemoveLabelCmd = "node update --label-rm 'com.docker.ucp.orchestrator.swarm'"
+	// SwarmOrchestratorCheckLabelCmd checks if the label that marks that node as using the swarm orchestrator is present.
+	SwarmOrchestratorCheckLabelCmd = "node inspect --format '{{ index .Spec.Labels \"com.docker.ucp.orchestrator.swarm\" }}'"
 	// KubernetesOrchestratorTaint taints the node as NoExecute when using swarm.
 	KubernetesOrchestratorTaint = "com.docker.ucp.orchestrator.kubernetes"
 	// MSROperatorDeploymentLabels are the labels the msr-operator deployment uses.
@@ -52,4 +58,13 @@ const (
 	CertManager = "cert-manager"
 	// RethinkDBOperator is the name of the rethinkdb operator.
 	RethinkDBOperator = "rethinkdb-operator"
+	// ExposedLBServiceName is the service name for the LoadBalancer service.
+	ExposedLBServiceName = "msr-public-lb"
 )
+
+// InstalledDependenciesFilter is the filter used by Helm list for gathering
+// facts about installed MSR3 dependencies.
+var InstalledDependenciesFilter = MSROperator + "|" +
+	PostgresOperator + "|" +
+	RethinkDBOperator + "|" +
+	CertManager

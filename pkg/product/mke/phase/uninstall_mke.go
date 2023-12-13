@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	mcclog "github.com/Mirantis/mcc/pkg/log"
+	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -48,27 +49,22 @@ func (p *UninstallMKE) Run() error {
 		return fmt.Errorf("%s: failed to run MKE uninstaller: %w", swarmLeader, err)
 	}
 
-	managers := p.Config.Spec.Managers()
-	_ = managers.ParallelEach(func(h *api.Host) error {
-		log.Infof("%s: removing ucp-controller-server-certs volume", h)
-		err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
+	if p.Config.Spec.MKE.CertData != "" {
+		managers := p.Config.Spec.Managers()
+		err = managers.ParallelEach(func(h *api.Host) error {
+			log.Infof("%s: removing ucp-controller-server-certs volume", h)
+			err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
+			if err != nil {
+				log.Errorf("%s: failed to remove the volume", h)
+			}
+			return nil
+		})
 		if err != nil {
-			log.Errorf("%s: failed to remove the volume", h)
+			return fmt.Errorf("failed to execute volume removal across manager hosts: %w", err)
 		}
+	}
 
-		if err := h.Reboot(); err != nil {
-			log.Errorf("%s: failed to reboot the host: %v", h, err)
-		}
-		return nil
-	})
-
-	workers := p.Config.Spec.WorkersAndMSRs()
-	_ = workers.ParallelEach(func(h *api.Host) error {
-		if err := h.Reboot(); err != nil {
-			log.Errorf("%s: failed to reboot the host: %v", h, err)
-		}
-		return nil
-	})
+	mke.CleanBundleDir(p.Config)
 
 	return nil
 }

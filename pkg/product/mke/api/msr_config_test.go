@@ -3,10 +3,11 @@ package api
 import (
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
+
+	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 func TestMSRConfig_UseLegacyImageRepo(t *testing.T) {
@@ -44,23 +45,23 @@ func TestMSRConfig_LegacyDefaultVersionRepo(t *testing.T) {
 	cfg := MSRConfig{}
 	err := yaml.Unmarshal([]byte("version: 2.8.1"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, constant.ImageRepoLegacy, cfg.ImageRepo)
+	require.Equal(t, constant.ImageRepoLegacy, cfg.V2.ImageRepo)
 }
 
 func TestMSRConfig_ModernDefaultVersionRepo(t *testing.T) {
 	cfg := MSRConfig{}
 	err := yaml.Unmarshal([]byte("version: 2.8.2"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, constant.ImageRepo, cfg.ImageRepo)
+	require.Equal(t, constant.ImageRepo, cfg.V2.ImageRepo)
 }
 
 func TestMSRConfig_CustomRepo(t *testing.T) {
 	cfg := MSRConfig{}
 	err := yaml.Unmarshal([]byte("version: 2.8.2\nimageRepo: foo.foo/foo"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, "foo.foo/foo", cfg.ImageRepo)
+	require.Equal(t, "foo.foo/foo", cfg.V2.ImageRepo)
 	cfg = MSRConfig{}
 	err = yaml.Unmarshal([]byte("version: 2.8.1\nimageRepo: foo.foo/foo"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, "foo.foo/foo", cfg.ImageRepo)
+	require.Equal(t, "foo.foo/foo", cfg.V2.ImageRepo)
 }

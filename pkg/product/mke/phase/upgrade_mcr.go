@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -8,7 +9,8 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/mcr"
-	"github.com/Mirantis/mcc/pkg/msr"
+	"github.com/Mirantis/mcc/pkg/mke"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	retry "github.com/avast/retry-go"
@@ -101,7 +103,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 
 	port := 443
 	if p.Config.Spec.MSR != nil {
-		if flagport := p.Config.Spec.MSR.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
+		if flagport := p.Config.Spec.MSR.V2.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
 			if fp, err := strconv.Atoi(flagport); err == nil {
 				port = fp
 			}
@@ -111,21 +113,21 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 	// Upgrade MSR hosts individually
 	for _, h := range msrs {
 		if h.MSRMetadata.Installed {
-			if err := msr.WaitMSRNodeReady(h, port); err != nil {
-				return fmt.Errorf("%s: check msr node ready state: %w", h, err)
+			if err := validateMSRReady(p.Config, h, port); err != nil {
+				return err
 			}
 		}
 		if err := p.upgradeMCR(h); err != nil {
 			return err
 		}
 		if h.MSRMetadata.Installed {
-			if err := msr.WaitMSRNodeReady(h, port); err != nil {
-				return fmt.Errorf("%s: check msr node ready state: %w", h, err)
+			if err := validateMSRReady(p.Config, h, port); err != nil {
+				return err
 			}
 			err := retry.Do(
 				func() error {
-					if _, err := msr.CollectFacts(h); err != nil {
-						return fmt.Errorf("%s: collect msr facts: %w", h, err)
+					if _, err := msr2.CollectFacts(h); err != nil {
+						return fmt.Errorf("%s: failed to collect MSR facts: %w", h, err)
 					}
 					return nil
 				},
@@ -184,5 +186,37 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	log.Infof("%s: upgraded to mirantis container runtime version %s", h, p.Config.Spec.MCR.Version)
 	h.Metadata.MCRVersion = p.Config.Spec.MCR.Version
 	h.Metadata.MCRRestartRequired = false
+	return nil
+}
+
+func validateMSRReady(config *api.ClusterConfig, h *api.Host, port int) error {
+	ctx := context.Background()
+
+	switch config.Spec.MSR.MajorVersion() {
+	case 2:
+		if err := msr2.WaitMSRNodeReady(h, port); err != nil {
+			return fmt.Errorf("%s: failed to wait for MSR node to be ready: %w", h, err)
+		}
+	case 3:
+		kubeClient, _, err := mke.KubeAndHelmFromConfig(config)
+		if err != nil {
+			return fmt.Errorf("failed to create Kubernetes and Helm clients from config: %w", err)
+		}
+
+		rc, err := kubeClient.GetMSRResourceClient()
+		if err != nil {
+			return fmt.Errorf("failed to get resource client for MSR CR: %w", err)
+		}
+
+		obj, err := kubeClient.GetMSRCR(ctx, config.Spec.MSR.V3.CRD.GetName(), rc)
+		if err != nil {
+			return fmt.Errorf("failed to get MSR CR: %w", err)
+		}
+
+		if err := kubeClient.WaitForMSRCRReady(ctx, obj, rc); err != nil {
+			return fmt.Errorf("failed to wait for MSR CR to be ready: %w", err)
+		}
+	}
+
 	return nil
 }

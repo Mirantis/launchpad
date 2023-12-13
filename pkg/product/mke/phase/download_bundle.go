@@ -7,7 +7,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 )
 
-// DownloadBundle phase downloads the client bundle to local storage.
+// DownloadBundle phase downloads the client bundle to local storage if
+// the bundle is not already present.
 type DownloadBundle struct {
 	phase.BasicPhase
 }

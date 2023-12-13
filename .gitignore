@@ -17,3 +17,6 @@ vendor
 
 # binaries
 bin/
+
+# launchpad.yaml files
+launchpad.yaml

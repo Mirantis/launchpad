@@ -41,15 +41,29 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		&mke.UpgradeMKE{},
 		&mke.JoinManagers{},
 		&mke.JoinWorkers{},
+	)
 
-		// begin MSR phases
-		&mke.PullMSRImages{},
-		&mke.ValidateMKEHealth{},
-		&mke.InstallMSR{},
-		&mke.UpgradeMSR{},
-		&mke.JoinMSRReplicas{},
-		// end MSR phases
+	// Determine which MSR phases to run based on the MSR version.
+	switch p.ClusterConfig.Spec.MSR.MajorVersion() {
+	case 2:
+		phaseManager.AddPhases(
+			&mke.PullMSRImages{},
+			&mke.ValidateMKEHealth{},
+			&mke.InstallMSR{},
+			&mke.UpgradeMSR{},
+			&mke.JoinMSRReplicas{},
+		)
+	case 3:
+		phaseManager.AddPhases(
+			&mke.ValidateMKEHealth{},
+			&mke.ConfigureDepsMSR3{},
+			&mke.ConfigureStorageProvisioner{},
+			&mke.InstallOrUpgradeMSR3{},
+		)
+	}
 
+	// Add the remaining phases that run regardless of MSR version.
+	phaseManager.AddPhases(
 		&mke.LabelNodes{},
 		&mke.RemoveNodes{},
 		&common.RunHooks{Stage: "after", Action: "apply"},

@@ -20,9 +20,10 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
@@ -194,15 +195,59 @@ func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Con
 	}, nil
 }
 
-func tp2qp(s string) string {
-	return strings.Replace(s, "-tp", "-qp", 1)
+// CleanBundleDir cleans the bundledir affiliated with config, warning if
+// it cannot be cleaned.
+func CleanBundleDir(config *api.ClusterConfig) {
+	bundleDir, err := getBundleDir(config)
+	if err != nil {
+		log.Warnf("failed to cleanup bundle directory: %q: failed to get bundle directory: %s", bundleDir, err)
+		return
+	}
+
+	log.Debugf("cleaning up client bundle directory: %q", bundleDir)
+
+	if err := os.RemoveAll(bundleDir); err != nil {
+		log.Warnf("failed to cleanup bundle directory: %q: %s", bundleDir, err)
+	}
 }
 
-// VersionGreaterThan is a "corrected" version comparator that considers -tpX releases to be earlier than -rcX.
-func VersionGreaterThan(a, b *version.Version) bool {
-	ca, _ := version.NewVersion(tp2qp(a.String()))
-	cb, _ := version.NewVersion(tp2qp(b.String()))
-	return ca.GreaterThan(cb)
+var ErrMKENotInstalled = errors.New("MKE is not installed")
+
+func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *helm.Helm, error) {
+	log.Debug("configuring Kubernetes and Helm clients from config")
+
+	if !config.Spec.MKE.Metadata.Installed {
+		return nil, nil, fmt.Errorf("cannot configure Kubernetes and Helm clients: %w", ErrMKENotInstalled)
+	}
+
+	bundleDir, err := getBundleDir(config)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	_, err = os.Stat(filepath.Join(bundleDir, constant.KubeConfigFile))
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Debugf("%s not found in bundle directory %q, will download", constant.KubeConfigFile, bundleDir)
+			if err := DownloadBundle(config); err != nil {
+				return nil, nil, err
+			}
+		} else {
+			return nil, nil, fmt.Errorf("failed to check for kube config: %w", err)
+		}
+	}
+
+	kube, err := kubeclient.NewFromBundle(bundleDir, config.Spec.Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	helm, err := helm.NewFromBundle(bundleDir, config.Spec.Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return kube, helm, nil
 }
 
 var (

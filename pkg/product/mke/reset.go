@@ -18,11 +18,17 @@ func (p *MKE) Reset() error {
 		&mke.GatherFacts{},
 		&mke.PrepareHost{},
 		&common.RunHooks{Stage: "before", Action: "reset"},
+	)
 
-		// begin MSR phases
-		&mke.UninstallMSR{},
-		// end MSR phases
+	// begin MSR phases
+	switch p.ClusterConfig.Spec.MSR.MajorVersion() {
+	case 2:
+		phaseManager.AddPhase(&mke.UninstallMSR{})
+	case 3:
+		phaseManager.AddPhase(&mke.UninstallMSR3{})
+	}
 
+	phaseManager.AddPhases(
 		&mke.UninstallMKE{},
 		&mke.DownloadInstaller{},
 		&mke.UninstallMCR{},

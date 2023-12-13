@@ -113,9 +113,6 @@ func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, passwo
 		log.Debugf("Failed to get response from %s: %v", mkeURL.String(), err)
 		return fmt.Errorf("failed to get response from %s: %w", mkeURL.String(), err)
 	}
-	if err != nil {
-		return fmt.Errorf("failed to poll /nodes endpoint. (%d): %w", resp.StatusCode, err)
-	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%w: failed to poll /nodes endpoint. (http %d)", errRequestFailed, resp.StatusCode)

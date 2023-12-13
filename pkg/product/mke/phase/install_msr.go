@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/msr"
+	msr "github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -17,7 +17,7 @@ import (
 type InstallMSR struct {
 	phase.Analytics
 	phase.CleanupDisabling
-	MSRPhase
+	phase.BasicPhase
 
 	leader *api.Host
 }
@@ -27,7 +27,8 @@ func (p *InstallMSR) Title() string {
 	return "Install MSR components"
 }
 
-// ShouldRun should return true only when there is an installation to be performed.
+// ShouldRun should return true only when there is an installation to be
+// performed.
 func (p *InstallMSR) ShouldRun() bool {
 	p.leader = p.Config.Spec.MSRLeader()
 	return p.Config.Spec.ContainsMSR() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
@@ -60,7 +61,7 @@ func (p *InstallMSR) Run() error {
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	installFlags := p.Config.Spec.MSR.InstallFlags
+	installFlags := p.Config.Spec.MSR.V2.InstallFlags
 	redacts := []string{installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")}
 
 	// Configure the mkeFlags from existing MKEConfig
@@ -71,20 +72,20 @@ func (p *InstallMSR) Run() error {
 
 	installFlags.Merge(mkeFlags)
 
-	if p.Config.Spec.MSR.CACertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CACertData)
+	if p.Config.Spec.MSR.V2.CACertData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.CACertData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", escaped))
 		redacts = append(redacts, escaped)
 	}
 
-	if p.Config.Spec.MSR.CertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CertData)
+	if p.Config.Spec.MSR.V2.CertData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.CertData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", escaped))
 		redacts = append(redacts, escaped)
 	}
 
-	if p.Config.Spec.MSR.KeyData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.KeyData)
+	if p.Config.Spec.MSR.V2.KeyData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.KeyData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", escaped))
 		redacts = append(redacts, escaped)
 	}
@@ -95,9 +96,9 @@ func (p *InstallMSR) Run() error {
 		redacts = append(redacts, escaped)
 	}
 
-	if h.MSRMetadata.ReplicaID != "" {
-		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.ReplicaID)
-		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
+	if h.MSRMetadata.MSR2.ReplicaID != "" {
+		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.MSR2.ReplicaID)
+		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.MSR2.ReplicaID))
 	} else {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}

@@ -3,6 +3,8 @@ run:
 
   tests: false
   allow-parallel-runners: true
+  build-tags:
+    - 'testing'
 
 issues:
   exclude-dirs-use-default: false
