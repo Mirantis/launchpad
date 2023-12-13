@@ -62,11 +62,11 @@ func CreateUnstructuredTestMSR(t *testing.T, version string, withReadyStatus boo
 		"apiVersion": "msr.mirantis.com/v1",
 		"kind":       "MSR",
 		"metadata": map[string]interface{}{
-				"name": "msr-test",
+			"name": "msr-test",
 		},
 		"spec": map[string]interface{}{
 			"image": map[string]interface{}{
-			"tag": version,
+				"tag": version,
 			},
 		},
 		"nginx": map[string]interface{}{
@@ -75,7 +75,6 @@ func CreateUnstructuredTestMSR(t *testing.T, version string, withReadyStatus boo
 			},
 		},
 	}
-
 
 	if withReadyStatus {
 		msr["status"] = map[string]interface{}{

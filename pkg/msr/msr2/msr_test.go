@@ -1,13 +1,14 @@
-package msr
+package msr2
 
 import (
 	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPluckSharedInstallFlags(t *testing.T) {
@@ -89,14 +90,18 @@ func TestSequentialReplicaIDs(t *testing.T) {
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
 				{Role: "msr"},
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{ReplicaID: "00000000001f"}},
+				{Role: "msr", MSRMetadata: &api.MSRMetadata{MSR2: api.MSR2Metadata{
+					ReplicaID: "00000000001f",
+				}}},
 				{Role: "msr"},
 			},
-			MSR: &api.MSRConfig{ReplicaIDs: "sequential"},
+			MSR: &api.MSRConfig{
+				V2: api.MSR2Config{ReplicaIDs: "sequential"},
+			},
 		},
 	}
 	require.NoError(t, AssignSequentialReplicaIDs(config))
-	require.Equal(t, "000000000020", config.Spec.Hosts[0].MSRMetadata.ReplicaID)
-	require.Equal(t, "00000000001f", config.Spec.Hosts[1].MSRMetadata.ReplicaID)
-	require.Equal(t, "000000000021", config.Spec.Hosts[2].MSRMetadata.ReplicaID)
+	require.Equal(t, "000000000020", config.Spec.Hosts[0].MSRMetadata.MSR2.ReplicaID)
+	require.Equal(t, "00000000001f", config.Spec.Hosts[1].MSRMetadata.MSR2.ReplicaID)
+	require.Equal(t, "000000000021", config.Spec.Hosts[2].MSRMetadata.MSR2.ReplicaID)
 }

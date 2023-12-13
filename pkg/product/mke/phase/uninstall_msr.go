@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/msr"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
@@ -12,7 +12,7 @@ import (
 // UninstallMSR is the phase implementation for running MSR uninstall.
 type UninstallMSR struct {
 	phase.Analytics
-	MSRPhase
+	phase.BasicPhase
 }
 
 // Title prints the phase title.
@@ -36,8 +36,10 @@ func (p *UninstallMSR) Run() error {
 			msrHosts = append(msrHosts, h)
 		}
 	}
-	if err := msr.Cleanup(msrHosts, swarmLeader, p.Config); err != nil {
-		return fmt.Errorf("failed to clean up MSR: %w", err)
+
+	if err := msr2.Cleanup(msrHosts, swarmLeader, p.Config); err != nil {
+		return fmt.Errorf("failed to cleanup MSR: %w", err)
 	}
+
 	return nil
 }

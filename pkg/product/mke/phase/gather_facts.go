@@ -1,10 +1,12 @@
 package phase
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -18,13 +20,20 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
 	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/pkg/msr"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
+	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/k0sproject/dig"
 	log "github.com/sirupsen/logrus"
+)
+
+var (
+	errCannotInstallMSR3WithMSR2 = errors.New("cannot install MSR v2 when MSR v3 is already installed, please uninstall MSR v3 first or modify the 'spec.msr.version' field in the cluster configuration to a 3.x version")
+	errCannotInstallMSR2WithMSR3 = errors.New("cannot install MSR v3 when MSR v2 is already installed, if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt) or modify the 'spec.msr.version' field in the cluster configuration to a 2.x version")
 )
 
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts.
@@ -45,7 +54,6 @@ func (p *GatherFacts) Run() error {
 		return fmt.Errorf("failed to gather facts: %w", err)
 	}
 	// Gather MKE related facts
-
 	swarmLeader := p.Config.Spec.SwarmLeader()
 
 	// If engine is installed, we can collect some MKE & Swarm related info too
@@ -61,31 +69,109 @@ func (p *GatherFacts) Run() error {
 		}
 		p.Config.Spec.MKE.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
+
 	if p.Config.Spec.ContainsMSR() {
-		// If we intend to configure msr as well, gather facts for msr
+		// If we intend to configure MSR as well, gather facts for MSR
 		if p.Config.Spec.MSR == nil {
 			p.Config.Spec.MSR = &api.MSRConfig{}
 		}
 
-		msrHosts := p.Config.Spec.MSRs()
-		_ = msrHosts.ParallelEach(func(h *api.Host) error {
-			if h.Metadata != nil && h.Metadata.MCRVersion != "" {
-				msrMeta, err := msr.CollectFacts(h)
-				if err != nil {
-					log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
-				}
-				h.MSRMetadata = msrMeta
-				if msrMeta.Installed {
-					log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
-				} else {
-					log.Infof("%s: msr is not installed", h)
-				}
-			}
-			return nil
-		})
+		// Collect both sets of facts to understand versions of MSR on the
+		// target hosts, this is to ensure that if the user has MSR2 already
+		// installed but is trying to install MSR3 we can tell them that they
+		// need to use 'mmt' to migrate the versions.  The same goes for MSR3
+		// to MSR2, if they have MSR3 installed and are trying to install MSR2
+		// we can tell them they need to manually uninstall MSR3 first.
+		// TODO: Perhaps we can call mmt for them in the future.
+		msr2Installed := p.collectMSR2Facts()
+		msr3Installed := p.collectMSR3Facts()
+
+		if msr3Installed && p.Config.Spec.MSR.MajorVersion() == 2 {
+			return errCannotInstallMSR2WithMSR3
+		}
+
+		if msr2Installed && p.Config.Spec.MSR.MajorVersion() == 3 {
+			return errCannotInstallMSR3WithMSR2
+		}
 	}
 
 	return nil
+}
+
+// collectMSR2Facts collects MSR2 facts from the hosts populating the host
+// metadata struct, returning true if MSR2 is installed.
+func (p *GatherFacts) collectMSR2Facts() bool {
+	var installed bool
+
+	msrHosts := p.Config.Spec.MSRs()
+	err := msrHosts.ParallelEach(func(h *api.Host) error {
+		if h.Metadata != nil && h.Metadata.MCRVersion != "" {
+			msrMeta, err := msr2.CollectFacts(h)
+			if err != nil {
+				log.Debugf("%s: failed to collect existing MSR details: %s", h, err.Error())
+			}
+			h.MSRMetadata = msrMeta
+			if msrMeta.Installed {
+				log.Infof("%s: MSR has version %s", h, msrMeta.InstalledVersion)
+				installed = true
+			} else {
+				log.Infof("%s: MSR is not installed", h)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Debugf("failed to collect existing MSR details across MSR hosts: %s", err.Error())
+	}
+
+	return installed
+}
+
+// collectMSR3Facts collects MSR3 facts from the hosts populating the host
+// metadata struct, returning true if MSR3 is installed.
+func (p *GatherFacts) collectMSR3Facts() bool {
+	kubeClient, helmClient, err := mke.KubeAndHelmFromConfig(p.Config)
+	if err != nil {
+		if errors.Is(err, mke.ErrMKENotInstalled) {
+			log.Infof("mke is not yet installed, skipping msr fact collection")
+			return false
+		}
+
+		log.Debugf("failed to collect existing MSR details: cannot create Helm and Kubernetes clients: %s", err.Error())
+		return false
+	}
+
+	rc, err := kubeClient.GetMSRResourceClient()
+	if err != nil {
+		log.Debugf("failed to collect existing MSR details: cannot create MSR resource client: %s", err.Error())
+		return false
+	}
+
+	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.V3.CRD.GetName(), kubeClient, rc, helmClient, kubeclient.WithCustomWait(1, time.Second*30))
+	if err != nil {
+		log.Debugf("failed to collect existing MSR details: %s", err.Error())
+		return false
+	}
+
+	if msrMeta.Installed {
+		log.Infof("MSR has version %s", msrMeta.InstalledVersion)
+	} else {
+		log.Info("MSR is not installed")
+	}
+
+	// Write the msrMeta to each of the hosts so it can be queried
+	// independently and function like legacy MSR.
+	msrHosts := p.Config.Spec.MSRs()
+	err = msrHosts.ParallelEach(func(h *api.Host) error {
+		h.MSRMetadata = msrMeta
+		return nil
+	})
+	if err != nil {
+		log.Debugf("failed to write MSR metadata to MSR hosts: %s", err.Error())
+		return false
+	}
+
+	return msrMeta.Installed
 }
 
 var errInvalidIP = errors.New("invalid IP address")

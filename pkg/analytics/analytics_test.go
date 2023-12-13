@@ -3,9 +3,11 @@ package analytics
 import (
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/config/user"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/segmentio/analytics-go.v3"
+
+	"github.com/Mirantis/mcc/pkg/config/user"
 )
 
 type mockClient struct {
@@ -27,34 +29,35 @@ func (m *mockClient) Close() error {
 // functions sends tracking message if analytics is enabled.
 func TestTrackAnalyticsEvent(t *testing.T) {
 	client := &mockClient{}
-	analyticsClient := Client{
-		AnalyticsClient: client,
-	}
 
 	t.Run("Analytics disabled", func(t *testing.T) {
-		analyticsClient.IsEnabled = false
-		defer func() { analyticsClient.IsEnabled = true }()
+		analyticsClient := Client{false, client}
 
 		analyticsClient.TrackEvent("test", nil)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)
 	})
 	t.Run("Analytics enabled", func(t *testing.T) {
+		analyticsClient := Client{true, client}
+
 		props := analytics.Properties{
 			"foo": "bar",
 		}
 		analyticsClient.TrackEvent("test", props)
-		lastMessage := client.lastMessage.(analytics.Track)
-		require.NotNil(t, client.lastMessage)
-		require.Equal(t, "test", lastMessage.Event)
-		require.NotEmpty(t, lastMessage.AnonymousId)
-		require.Equal(t, "bar", lastMessage.Properties["foo"])
+
+		if assert.NotNil(t, client.lastMessage) {
+			lastMessage := client.lastMessage.(analytics.Track)
+			require.Equal(t, "test", lastMessage.Event)
+			require.NotEmpty(t, lastMessage.AnonymousId)
+			require.Equal(t, "bar", lastMessage.Properties["foo"])
+		}
 	})
 }
 
 func TestIdentifyAnalyticsUser(t *testing.T) {
 	client := &mockClient{}
 	analyticsClient := Client{
+		IsEnabled:       true,
 		AnalyticsClient: client,
 	}
 
@@ -65,7 +68,7 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 	}
 	t.Run("Analytics disabled", func(t *testing.T) {
 		analyticsClient.IsEnabled = false
-		defer func() { analyticsClient.IsEnabled = true }()
+		t.Cleanup(func() { analyticsClient.IsEnabled = true })
 
 		analyticsClient.IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage

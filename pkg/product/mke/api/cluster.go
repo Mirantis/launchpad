@@ -112,8 +112,8 @@ func Init(kind string) *ClusterConfig {
 			msrV = "required"
 		}
 		config.Spec.MSR = &MSRConfig{
-			Version:    msrV,
-			ReplicaIDs: "sequential",
+			Version: msrV,
+			V2:      MSR2Config{ReplicaIDs: "sequential"},
 		}
 
 		config.Spec.Hosts = append(config.Spec.Hosts,

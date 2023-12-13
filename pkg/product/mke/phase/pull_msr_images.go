@@ -9,10 +9,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// PullMSRImages phase implementation.
+// PullMSRImages phase implementation is responsible for pulling the MSR
+// bootstrap image.
 type PullMSRImages struct {
 	phase.Analytics
-	MSRPhase
+	phase.BasicPhase
 }
 
 // Title for the phase.
@@ -28,7 +29,7 @@ func (p *PullMSRImages) Run() error {
 	}
 	log.Debugf("loaded MSR images list: %v", images)
 
-	imageRepo := p.Config.Spec.MSR.ImageRepo
+	imageRepo := p.Config.Spec.MSR.V2.ImageRepo
 	if api.IsCustomImageRepo(imageRepo) {
 		pullList := docker.AllToRepository(images, imageRepo)
 		// In case of custom image repo, we need to pull and retag all the images on all MSR hosts

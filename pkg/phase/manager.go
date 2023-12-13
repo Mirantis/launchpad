@@ -66,6 +66,7 @@ func (m *Manager) Run() error {
 
 		if p, ok := phase.(withconfig); ok {
 			log.Debugf("preparing phase '%s'", title)
+
 			if err := p.Prepare(m.config); err != nil {
 				return fmt.Errorf("phase '%s' failed to prepare: %w", title, err)
 			}
@@ -92,7 +93,7 @@ func (m *Manager) Run() error {
 		result := phase.Run()
 
 		duration := time.Since(start)
-		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Minute))
+		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Second))
 
 		if e, ok := phase.(Eventable); ok {
 			r := reflect.ValueOf(m.config).Elem()

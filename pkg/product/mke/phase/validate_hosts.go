@@ -147,8 +147,7 @@ func (p *ValidateHosts) validateHostLocalAddress(h *api.Host) error {
 	}
 
 	if !stringutil.StringSliceContains(localAddresses, h.Metadata.InternalAddress) {
-		msg := fmt.Sprintf("discovered private address %s does not seem to be a node local address (%s). Make sure you've set correct 'privateInterface' for the host in config", h.Metadata.InternalAddress, strings.Join(localAddresses, ","))
-		h.Errors.Add(msg)
+		h.Errors.Add(fmt.Sprintf("discovered private address %s does not seem to be a node local address (%s). Make sure you've set correct 'privateInterface' for the host in config", h.Metadata.InternalAddress, strings.Join(localAddresses, ",")))
 		return nil
 	}
 

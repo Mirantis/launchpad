@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	mccversion "github.com/Mirantis/mcc/pkg/util/version"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 )
@@ -77,6 +77,18 @@ func (p *ValidateFacts) populateSan() {
 
 var errInvalidUpgradePath = errors.New("invalid upgrade path")
 
+// cannotDowngradeProductError is an error type for when a product downgrade is
+// attempted but not allowed.
+type cannotDowngradeProductError struct {
+	product          string
+	installedVersion *version.Version
+	targetVersion    *version.Version
+}
+
+func (e cannotDowngradeProductError) Error() string {
+	return fmt.Sprintf("can't downgrade %s %s to %s", e.product, e.installedVersion.String(), e.targetVersion.String())
+}
+
 // validateMSRVersionJump validates MKE upgrade path.
 func (p *ValidateFacts) validateMKEVersionJump() error {
 	if p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
@@ -89,8 +101,8 @@ func (p *ValidateFacts) validateMKEVersionJump() error {
 			return fmt.Errorf("can't parse target MKE version: %w", err)
 		}
 
-		if mke.VersionGreaterThan(installedMKE, targetMKE) {
-			return fmt.Errorf("%w: can't downgrade MKE %s to %s", errInvalidUpgradePath, installedMKE, targetMKE)
+		if mccversion.GreaterThan(installedMKE, targetMKE) {
+			return cannotDowngradeProductError{product: "MKE", installedVersion: installedMKE, targetVersion: targetMKE}
 		}
 
 		installedSegments := installedMKE.Segments()
@@ -118,8 +130,8 @@ func (p *ValidateFacts) validateMSRVersionJump() error {
 			return fmt.Errorf("can't parse target MSR version: %w", err)
 		}
 
-		if mke.VersionGreaterThan(installedMSR, targetMSR) {
-			return fmt.Errorf("%w: can't downgrade MSR %s to %s", errInvalidUpgradePath, installedMSR, targetMSR)
+		if mccversion.GreaterThan(installedMSR, targetMSR) {
+			return cannotDowngradeProductError{product: "MSR", installedVersion: installedMSR, targetVersion: targetMSR}
 		}
 
 		installedSegments := installedMSR.Segments()

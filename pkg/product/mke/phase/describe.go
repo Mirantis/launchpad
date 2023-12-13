@@ -5,6 +5,7 @@ import (
 	"os"
 	"text/tabwriter"
 
+	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	log "github.com/sirupsen/logrus"
 )
@@ -73,16 +74,26 @@ func (p *Describe) msrReport() {
 	tabWriter.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
 	fmt.Fprintf(tabWriter, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
-	uv := msrLeader.MSRMetadata.InstalledVersion
-	msrurl := "n/a"
+	installedVersion := msrLeader.MSRMetadata.InstalledVersion
+	msrURL := "n/a"
 
-	if url, err := p.Config.Spec.MSRURL(); err != nil {
-		log.Debug(err)
-	} else {
-		msrurl = url.String()
+	var err error
+
+	switch p.Config.Spec.MSR.MajorVersion() {
+	case 2:
+		if url, err := p.Config.Spec.MSR2URL(); err != nil {
+			log.Infof("failed to get MSR URL: %s", err)
+		} else {
+			msrURL = url.String()
+		}
+	case 3:
+		msrURL, err = msr3.GetMSRURL(p.Config)
+		if err != nil {
+			log.Infof("failed to get MSR URL: %s", err)
+		}
 	}
 
-	fmt.Fprintf(tabWriter, "%s\t%s\t\n", uv, msrurl)
+	fmt.Fprintf(tabWriter, "%s\t%s\t\n", installedVersion, msrURL)
 	tabWriter.Flush()
 }
 

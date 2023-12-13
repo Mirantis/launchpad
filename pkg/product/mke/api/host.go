@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/byteutil"
 	retry "github.com/avast/retry-go"
@@ -18,6 +19,7 @@ import (
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os/registry"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,34 +39,46 @@ type HostMetadata struct {
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
 // the GatherFacts phase and at the end of each configuration phase.
 type MSRMetadata struct {
-	Installed               bool
-	InstalledVersion        string
+	Installed        bool
+	InstalledVersion string
+
+	MSR2 MSR2Metadata
+	MSR3 MSR3Metadata
+}
+
+type MSR2Metadata struct {
 	InstalledBootstrapImage string
 	ReplicaID               string
+}
+
+type MSR3Metadata struct {
+	// InstalledDependencies is a map of dependencies needed for MSR3 and their
+	// versions.
+	InstalledDependencies map[string]helm.ReleaseDetails
 }
 
 type errs struct {
 	errors []string
 }
 
-func (errors *errs) Count() int {
-	return len(errors.errors)
+func (e *errs) Count() int {
+	return len(e.errors)
 }
 
-func (errors *errs) Add(e string) {
-	errors.errors = append(errors.errors, e)
+func (e *errs) Add(err string) {
+	e.errors = append(e.errors, err)
 }
 
-func (errors *errs) Addf(template string, args ...interface{}) {
-	errors.errors = append(errors.errors, fmt.Sprintf(template, args...))
+func (e *errs) Addf(template string, args ...interface{}) {
+	e.errors = append(e.errors, fmt.Sprintf(template, args...))
 }
 
-func (errors *errs) String() string {
-	if errors.Count() == 0 {
+func (e *errs) String() string {
+	if e.Count() == 0 {
 		return ""
 	}
 
-	return "- " + strings.Join(errors.errors, "\n- ")
+	return "- " + strings.Join(e.errors, "\n- ")
 }
 
 // Host contains all the needed details to work with hosts.

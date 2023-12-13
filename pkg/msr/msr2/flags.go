@@ -1,4 +1,4 @@
-package msr
+package msr2
 
 // TODO(squizzi): Figure out a way to build these automatically from
 // bootstrappers

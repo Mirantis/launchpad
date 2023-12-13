@@ -77,7 +77,7 @@ func TestMKEClusterSpecMKEURLWithNoMSRMetadata(t *testing.T) {
 	require.Equal(t, "https://192.168.1.2/", url.String())
 }
 
-func TestMKEClusterSpecMSRURLWithNoMSRMetadata(t *testing.T) {
+func TestMKEClusterSpecMSR2URLWithNoMSRMetadata(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
@@ -87,22 +87,22 @@ func TestMKEClusterSpecMSRURLWithNoMSRMetadata(t *testing.T) {
 		MSR: &MSRConfig{},
 	}
 
-	url, err := spec.MSRURL()
+	url, err := spec.MSR2URL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.3/", url.String())
 }
 
-func TestMKEClusterSpecMSRURLWithNoMSRHostRoleButConfig(t *testing.T) {
+func TestMKEClusterSpecMSR2URLWithNoMSRHostRoleButConfig(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{manager},
 		MKE:   MKEConfig{},
 		MSR:   &MSRConfig{},
 	}
-	_, err := spec.MSRURL()
+	_, err := spec.MSR2URL()
 	require.Error(t, err)
 }
 
-func TestMKEClusterSpecMSRURLWithoutExternalURL(t *testing.T) {
+func TestMKEClusterSpecMSR2URLWithoutExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
@@ -119,12 +119,12 @@ func TestMKEClusterSpecMSRURLWithoutExternalURL(t *testing.T) {
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{},
 	}
-	url, err := spec.MSRURL()
+	url, err := spec.MSR2URL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.3/", url.String())
 }
 
-func TestMKEClusterSpecMSRURLWithExternalURL(t *testing.T) {
+func TestMKEClusterSpecMSR2URLWithExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
@@ -132,10 +132,10 @@ func TestMKEClusterSpecMSRURLWithExternalURL(t *testing.T) {
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
-			InstallFlags: []string{"--dtr-external-url msr.acme.com"},
+			V2: MSR2Config{InstallFlags: []string{"--dtr-external-url msr.acme.com"}},
 		},
 	}
-	url, err := spec.MSRURL()
+	url, err := spec.MSR2URL()
 	require.NoError(t, err)
 	require.Equal(t, "https://msr.acme.com/", url.String())
 }
@@ -148,10 +148,10 @@ func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
-			InstallFlags: []string{"--replica-https-port 999"},
+			V2: MSR2Config{InstallFlags: []string{"--replica-https-port 999"}},
 		},
 	}
-	url, err := spec.MSRURL()
+	url, err := spec.MSR2URL()
 	require.NoError(t, err)
 	require.Equal(t, "https://192.168.1.3:999/", url.String())
 }
@@ -176,7 +176,7 @@ func TestMKEClusterSpecMKEURLFromMSRMKEUrl(t *testing.T) {
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
-			InstallFlags: []string{"--ucp-url mke.acme.com:5555"},
+			V2: MSR2Config{InstallFlags: []string{"--ucp-url mke.acme.com:5555"}},
 		},
 	}
 	url, err := spec.MKEURL()

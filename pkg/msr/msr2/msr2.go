@@ -1,4 +1,4 @@
-package msr
+package msr2
 
 import (
 	"fmt"
@@ -56,11 +56,14 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 	}
 
 	msrMeta := &api.MSRMetadata{
-		Installed:               true,
-		InstalledVersion:        version,
-		InstalledBootstrapImage: bootstrapimage,
-		ReplicaID:               replicaID,
+		Installed:        true,
+		InstalledVersion: version,
+		MSR2: api.MSR2Metadata{
+			InstalledBootstrapImage: bootstrapimage,
+			ReplicaID:               replicaID,
+		},
 	}
+
 	return msrMeta, nil
 }
 
@@ -112,13 +115,8 @@ func FormatReplicaID(num uint64) string {
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR.
 func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
-	var mkeUser string
-	var mkePass string
-
-	if config.Spec.MSR != nil {
-		mkeUser = config.Spec.MSR.InstallFlags.GetValue("--ucp-username")
-		mkePass = config.Spec.MSR.InstallFlags.GetValue("--ucp-password")
-	}
+	mkeUser := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-username")
+	mkePass := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-password")
 
 	if mkeUser == "" {
 		mkeUser = config.Spec.MKE.AdminUsername
@@ -151,7 +149,7 @@ func mkeURLHost(config *api.ClusterConfig) string {
 // installer if it fails.
 func Destroy(h *api.Host, config *api.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
-	cmd := fmt.Sprintf("run -it --rm mirantis/dtr:%s destroy --ucp-insecure-tls --ucp-url %s --ucp-username %s --ucp-password %s --replica-id %s", h.MSRMetadata.InstalledVersion, mkeFlags.GetValue("--ucp-url"), mkeFlags.GetValue("--ucp-username"), mkeFlags.GetValue("--ucp-password"), h.MSRMetadata.ReplicaID)
+	cmd := fmt.Sprintf("run -it --rm mirantis/dtr:%s destroy --ucp-insecure-tls --ucp-url %s --ucp-username %s --ucp-password %s --replica-id %s", h.MSRMetadata.InstalledVersion, mkeFlags.GetValue("--ucp-url"), mkeFlags.GetValue("--ucp-username"), mkeFlags.GetValue("--ucp-password"), h.MSRMetadata.MSR2.ReplicaID)
 	if err := h.Exec(h.Configurer.DockerCommandf(cmd)); err != nil {
 		return fmt.Errorf("failed to run MSR destroy: %w", err)
 	}
@@ -213,10 +211,10 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 		if h.MSRMetadata == nil {
 			h.MSRMetadata = &api.MSRMetadata{}
 		}
-		if h.MSRMetadata.ReplicaID != "" {
-			ri, err := strconv.ParseUint(h.MSRMetadata.ReplicaID, 16, 48)
+		if h.MSRMetadata.MSR2.ReplicaID != "" {
+			ri, err := strconv.ParseUint(h.MSRMetadata.MSR2.ReplicaID, 16, 48)
 			if err != nil {
-				return fmt.Errorf("%s: invalid MSR replicaID '%s': %w", h, h.MSRMetadata.ReplicaID, err)
+				return fmt.Errorf("%s: invalid MSR replicaID '%s': %w", h, h.MSRMetadata.MSR2.ReplicaID, err)
 			}
 			if maxReplicaID < ri {
 				maxReplicaID = ri
@@ -231,13 +229,16 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 		return fmt.Errorf("%w: cluster already has replica id %012x which will overflow", errMaxReplicaID, maxReplicaID)
 	}
 
-	_ = msrHosts.Each(func(h *api.Host) error {
-		if h.MSRMetadata.ReplicaID == "" {
+	err = msrHosts.Each(func(h *api.Host) error {
+		if h.MSRMetadata.MSR2.ReplicaID == "" {
 			maxReplicaID++
-			h.MSRMetadata.ReplicaID = FormatReplicaID(maxReplicaID)
+			h.MSRMetadata.MSR2.ReplicaID = FormatReplicaID(maxReplicaID)
 		}
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("failed to assign sequential MSR replicaIDs: %w", err)
+	}
 
 	return nil
 }
@@ -267,7 +268,7 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 		func() error {
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
 			if err != nil || strings.TrimSpace(output) == "" {
-				return fmt.Errorf("msr nginx container not running: %w", err)
+				return fmt.Errorf("MSR nginx container not running: %w", err)
 			}
 			return nil
 		},
@@ -283,7 +284,7 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 	err = retry.Do(
 		func() error {
 			if err := h.CheckHTTPStatus(fmt.Sprintf("https://localhost:%d/_ping", port), 200); err != nil {
-				return fmt.Errorf("msr invalid ping response: %w", err)
+				return fmt.Errorf("MSR invalid ping response: %w", err)
 			}
 
 			return nil

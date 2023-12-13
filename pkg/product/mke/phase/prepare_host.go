@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/msr"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	retry "github.com/avast/retry-go"
@@ -43,8 +43,8 @@ func (p *PrepareHost) Run() error {
 		return fmt.Errorf("failed to authorize docker: %w", err)
 	}
 
-	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.ReplicaIDs == "sequential" {
-		err = msr.AssignSequentialReplicaIDs(p.Config)
+	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.V2.ReplicaIDs == "sequential" {
+		err = msr2.AssignSequentialReplicaIDs(p.Config)
 		if err != nil {
 			return fmt.Errorf("failed to assign sequential MSR replica IDs: %w", err)
 		}
