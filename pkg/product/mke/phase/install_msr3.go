@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -28,6 +29,13 @@ func (p *InstallMSR3) Title() string {
 // Kubernetes client so that they can be used as NodeSelector in the MSR CR.
 func (p *InstallMSR3) Prepare(config interface{}) error {
 	p.Config = config.(*api.ClusterConfig)
+
+	var err error
+
+	p.kube, p.helm, err = mke.KubeAndHelmFromConfig(p.Config)
+	if err != nil {
+		return err
+	}
 
 	var msrHosts []*api.Host
 
@@ -71,7 +79,7 @@ func (p *InstallMSR3) Run() error {
 		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", h)
 	}
 
-	if err := p.ApplyCRD(ctx); err != nil {
+	if err := msr3.ApplyCRD(ctx, &p.Config.Spec.MSR.MSR3Config.MSR, p.kube); err != nil {
 		return err
 	}
 

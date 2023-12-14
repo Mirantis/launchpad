@@ -66,7 +66,7 @@ func (kc *KubeClient) LabelNode(ctx context.Context, name string) error {
 		return fmt.Errorf("failed to get node %q: %w", name, err)
 	}
 
-	node.Labels["node-role.kubernetes.io/msr"] = "true"
+	node.Labels[constant.MSRNodeSelector] = "true"
 
 	_, err = kc.client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
 	if err != nil {

@@ -43,7 +43,7 @@ var errInvalidMSRConfig = fmt.Errorf("invalid MSR config")
 // dependencies needed to run it.
 type MSR3Config struct {
 	Dependencies `yaml:"dependencies,omitempty"`
-	msrv1.MSR    `yaml:",inline"`
+	msrv1.MSR    `yaml:"spec,omitempty"`
 }
 
 type Dependencies struct {

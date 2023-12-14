@@ -21,7 +21,7 @@ func (p *MKE) ClusterName() string {
 // NewMKE returns a new instance of the Docker Enterprise product.
 func NewMKE(data []byte) (*MKE, error) {
 	c := api.ClusterConfig{}
-	if err := yaml.Unmarshal(data, &c); err != nil {
+	if err := yaml.UnmarshalWithOptions(data, &c, yaml.Strict()); err != nil {
 		return nil, err
 	}
 

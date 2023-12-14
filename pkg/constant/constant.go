@@ -41,4 +41,6 @@ const (
 	RethinkDBOperator = "rethinkdb-operator"
 	// KubeConfigFile is the name of the kubeconfig file.
 	KubeConfigFile = "kube.yml"
+	// MSRNodeSelector is the node selector for MSR nodes.
+	MSRNodeSelector = "node-role.kubernetes.io/msr"
 )
