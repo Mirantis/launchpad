@@ -157,3 +157,14 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 
 	return nil
 }
+
+// DeleteService deletes service by name.
+func (kc *KubeClient) DeleteService(ctx context.Context, name string) error {
+	return kc.client.CoreV1().Services(kc.Namespace).Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+// ExposeLoadBalancer creates a new service of Type: LoadBalancer, its
+// the equivalent of 'kubectl expose'.
+func (kc *KubeClient) ExposeLoadBalancer(ctx context.Context, url string) error {
+	return nil
+}

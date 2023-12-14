@@ -47,21 +47,27 @@ func (p *ConfigureStorageProvisioner) ShouldRun() bool {
 func (p *ConfigureStorageProvisioner) Run() error {
 	ctx := context.Background()
 
+	scType := p.Config.Spec.MSR.MSR3Config.StorageClassType
+
+	log.Debugf("configuring default storage class for %s", scType)
+
 	// TODO: Currently we only support "nfs" as a configured StorageClassType,
 	// we should add some more.
-	if p.Config.Spec.MSR.MSR3Config.StorageClassType == "nfs" {
-		log.Debug("configuring default storage class for NFS")
-
+	if scType == "nfs" {
 		p.helm.Upgrade(ctx, &helm.Options{
 			ChartDetails: helm.ChartDetails{
 				ChartName:   "nfs-subdir-external-provisioner",
 				ReleaseName: "nfs-subdir-external-provisioner",
 				RepoURL:     "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
 				Values: map[string]interface{}{
-					"nfs.server":   p.Config.Spec.MSR.MSR3Config.StorageURL,
-					"nfs.path":     "/",
+					"nfs": map[string]string{
+						"server":     p.Config.Spec.MSR.MSR3Config.StorageURL,
+						"path":       "/",
+						"volumeName": "nfs-subdir-external-provisioner-root",
+					},
 					"nodeSelector": map[string]string{"kubernetes.io/os": "linux"},
 				},
+				Version: "4.0.2",
 			},
 		})
 

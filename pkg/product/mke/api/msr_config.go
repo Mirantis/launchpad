@@ -69,6 +69,10 @@ func (c *MSR3Config) ShouldConfigureStorageClass() bool {
 	return c.StorageClassType != "" && c.StorageURL != ""
 }
 
+func (c *MSR3Config) ShouldConfigureLB() bool {
+	return c.LoadBalancerURL != ""
+}
+
 // Dependencies define strict dependencies that MSR3 needs to function.
 type Dependencies struct {
 	CertManager       *helm.ChartDetails `yaml:"certManager"`
@@ -127,9 +131,11 @@ func (d *Dependencies) SetDefaults() {
 		}
 		if d.PostgresOperator.Values == nil {
 			d.PostgresOperator.Values = map[string]interface{}{
-				"configKubernetes.spilo_runasuser":  "101",
-				"configKubernetes.spilo_runasgroup": "103",
-				"configKubernetes.spilo_fsgroup":    "103",
+				"configKubernetes": map[string]int{
+					"spilo_runasuser":  101,
+					"spilo_runasgroup": 103,
+					"spilo_fsgroup":    103,
+				},
 			}
 		}
 	}

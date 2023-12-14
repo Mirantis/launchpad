@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/phase"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // UninstallMSR is the phase implementation for running MSR uninstall.
@@ -21,19 +23,27 @@ func (p *UninstallMSR3) Title() string {
 
 // Run an uninstall by deleting the MSR CR referenced in the config.
 func (p *UninstallMSR3) Run() error {
+	ctx := context.Background()
+
+	// Remove the LB service if it's being used, ignoring if it's not found.
+	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureLB() {
+		err := p.kube.DeleteService(ctx, constant.ExposedLBServiceName)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+
 	// Remove the MSR CR.
 	n := p.Config.Spec.MSR.MSR3Config.MSR.Name
 
-	if err := p.kube.DeleteMSRCR(context.Background(), n); err != nil {
+	if err := p.kube.DeleteMSRCR(ctx, n); err != nil {
 		return fmt.Errorf("failed to delete MSR CR: %q: %w", n, err)
 	}
 
-	// Remove Helm dependencies.
 	for _, d := range p.Config.Spec.MSR.MSR3Config.Dependencies.List() {
-		if err := p.helm.Uninstall(context.Background(), &helm.Options{
-			ChartDetails: *d,
-		}); err != nil {
-			return fmt.Errorf("failed to delete Helm dependency: %q: %w", d.ReleaseName, err)
+		err := p.helm.Uninstall(ctx, &helm.Options{ChartDetails: *d})
+		if err != nil {
+			return fmt.Errorf("failed to uninstall Helm dependency: %q: %w", d.ReleaseName, err)
 		}
 	}
 

@@ -60,8 +60,8 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		phaseManager.AddPhases(
 			&mke.ValidateMKEHealth{},
 			&mke.ConfigureDepsMSR3{},
-			&mke.InstallMSR3{},
-			&mke.UpgradeMSR3{},
+			&mke.ConfigureStorageProvisioner{},
+			&mke.InstallOrUpgradeMSR3{},
 		)
 	}
 

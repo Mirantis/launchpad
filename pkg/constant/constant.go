@@ -47,4 +47,6 @@ const (
 	KubeConfigFile = "kube.yml"
 	// MSRNodeSelector is the node selector for MSR nodes.
 	MSRNodeSelector = "node-role.kubernetes.io/msr"
+	// ExposedLBServiceName is the service name for the LoadBalancer service.
+	ExposedLBServiceName = "msr-public-lb"
 )

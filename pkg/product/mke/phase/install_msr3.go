@@ -12,9 +12,9 @@ import (
 	"github.com/Mirantis/mcc/pkg/swarm"
 )
 
-// InstallMSR3 deploys an MSR Custom Resource using the CRD provided within
-// config.
-type InstallMSR3 struct {
+// InstallOrUpgradeMSR3 deploys an MSR Custom Resource using the CRD provided
+// within config.  It handles both the Install and Upgrade phases for MSR3.
+type InstallOrUpgradeMSR3 struct {
 	phase.Analytics
 	phase.CleanupDisabling
 	MSR3Phase
@@ -23,13 +23,14 @@ type InstallMSR3 struct {
 }
 
 // Title prints the phase title.
-func (p *InstallMSR3) Title() string {
-	return "Deploy MSR3 Custom Resource"
+func (p *InstallOrUpgradeMSR3) Title() string {
+	return "Configuring MSR3 Custom Resource"
 }
 
 // Prepare collects the hosts and labels them with the MSR role via the
 // Kubernetes client so that they can be used as NodeSelector in the MSR CR.
-func (p *InstallMSR3) Prepare(config interface{}) error {
+func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
+	p.leader = p.Config.Spec.MSRLeader()
 	p.Config = config.(*api.ClusterConfig)
 
 	var err error
@@ -73,16 +74,14 @@ func (p *InstallMSR3) Prepare(config interface{}) error {
 	return nil
 }
 
-// ShouldRun should return true only when there is an installation to be
-// performed.  An installation is required when the MSR CR is not present.
-func (p *InstallMSR3) ShouldRun() bool {
-	p.leader = p.Config.Spec.MSRLeader()
-	return p.Config.Spec.ContainsMSR3() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
+// ShouldRun should return true only if msr3 config is present.
+func (p *InstallOrUpgradeMSR3) ShouldRun() bool {
+	return p.Config.Spec.ContainsMSR3()
 }
 
 // Run deploys an MSR CR to the cluster, setting NodeSelector to nodes the user
 // has specified as MSR hosts in the config.
-func (p *InstallMSR3) Run() error {
+func (p *InstallOrUpgradeMSR3) Run() error {
 	ctx := context.Background()
 
 	h := p.leader
@@ -119,11 +118,24 @@ func (p *InstallMSR3) Run() error {
 	// Set the version tag to the desired MSR version specified in config.
 	msr.Spec.Image.Tag = p.Config.Spec.MSR.Version
 
+	// Configure Nginx.DNSNames if a LoadBalancerURL is specified.
+	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureLB() {
+		msr.Spec.Nginx.DNSNames = append(msr.Spec.Nginx.DNSNames, p.Config.Spec.MSR.MSR3Config.LoadBalancerURL)
+	}
+
+	// TODO: Differentiate an upgrade from an install and set analytics
+	// around that.
 	if err := msr3.ApplyCRD(ctx, &p.Config.Spec.MSR.MSR3Config.MSR, p.kube); err != nil {
 		return err
 	}
 
-	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.Name, p.kube, p.helm)
+	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureLB() {
+		if err := p.kube.ExposeLoadBalancer(ctx, p.Config.Spec.MSR.MSR3Config.LoadBalancerURL); err != nil {
+			return fmt.Errorf("failed to expose msr via LoadBalancer: %w", err)
+		}
+	}
+
+	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.MSR3Config.Name, p.kube, p.helm)
 	if err != nil {
 		return fmt.Errorf("failed to collect msr3 details: %w", err)
 	}
