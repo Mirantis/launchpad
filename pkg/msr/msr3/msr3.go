@@ -3,6 +3,7 @@ package msr3
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
@@ -12,6 +13,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"helm.sh/helm/v3/pkg/release"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -73,18 +75,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 
 // ApplyCRD applies the MSR CRD to the cluster then waits for it to be ready.
 func ApplyCRD(ctx context.Context, msr *msrv1.MSR, kc *kubeclient.KubeClient) error {
-	// Append the NodeSelector for the MSR hosts if not already present.
-	if msr.Spec.NodeSelector == nil {
-		msr.Spec.NodeSelector = make(map[string]string)
-	}
-
-	if _, ok := msr.Spec.NodeSelector[constant.MSRNodeSelector]; !ok {
-		msr.Spec.NodeSelector[constant.MSRNodeSelector] = "true"
-	}
-
 	result := make(map[string]interface{})
-
-	fmt.Printf("msr: %+v\n", msr)
 
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		Result:  &result,
@@ -100,7 +91,14 @@ func ApplyCRD(ctx context.Context, msr *msrv1.MSR, kc *kubeclient.KubeClient) er
 
 	obj := &unstructured.Unstructured{Object: result}
 
-	fmt.Printf("object: %+v\n", obj)
+	// Set specific fields to ensure the object is valid and remove the TypeMeta
+	// field, this is to workaround an issue with mapstructure decoding "inline"
+	// tagged fields into map, we're effectively rebuilding the inlined TypeMeta
+	// fields here.
+	obj.SetKind(msr.Kind)
+	obj.SetAPIVersion(msr.APIVersion)
+	obj.SetCreationTimestamp(metav1.Time{Time: time.Now()})
+	delete(obj.Object, "TypeMeta")
 
 	if err := kc.ApplyMSRCR(ctx, obj); err != nil {
 		return err

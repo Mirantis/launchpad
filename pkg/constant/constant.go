@@ -31,6 +31,10 @@ const (
 	LinuxDefaultRootlessDockerDaemonPath = "~/.config/docker/daemon.json"
 	// WindowsDefaultDockerRoot defines the default windows docker root.
 	WindowsDefaultDockerRoot = "C:\\ProgramData\\Docker"
+	// KubernetesOrchestratorLabelCmd marks the node as using the kubernetes orchestrator.
+	KubernetesOrchestratorLabelCmd = "node update --label-add com.mirantis.mke.orchestrator=kubernetes"
+	// MSROperatorDeploymentLabels are the labels the msr-operator deployment uses.
+	MSROperatorDeploymentLabels = "app.kubernetes.io/name=msr-operator"
 	// MSROperator is the name of the MSR operator.
 	MSROperator = "msr-operator"
 	// PostgresOperator is the name of the postgres operator.

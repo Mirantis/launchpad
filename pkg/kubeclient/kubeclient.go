@@ -139,3 +139,21 @@ func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructu
 
 	return false, nil
 }
+
+// SetStorageClassDefault configures the given storageclass name as the default.
+func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) error {
+	sc, err := kc.client.StorageV1().StorageClasses().Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get StorageClass: %q: %w", name, err)
+	}
+
+	if _, ok := sc.ObjectMeta.Annotations["storageclass.kubernetes.io/is-default-class"]; !ok {
+		sc.ObjectMeta.Annotations["storageclass.kubernetes.io/is-default-class"] = "true"
+	}
+
+	if _, err := kc.client.StorageV1().StorageClasses().Update(ctx, sc, metav1.UpdateOptions{}); err != nil {
+		return fmt.Errorf("failed to update StorageClass: %q with default annotation: %w", name, err)
+	}
+
+	return nil
+}

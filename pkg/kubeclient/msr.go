@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/docker/dhe-deploy/gocode/pkg/pollutil"
 	log "github.com/sirupsen/logrus"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -22,6 +23,14 @@ func (kc *KubeClient) GetMSRCR(ctx context.Context, name string) (*unstructured.
 	}
 
 	return rc.Get(ctx, name, metav1.GetOptions{})
+}
+
+func (kc *KubeClient) ValidateMSROperatorReady(ctx context.Context) error {
+	if err := kc.crdReady(ctx, "msrs.msr.mirantis.com"); err != nil {
+		return err
+	}
+
+	return kc.deploymentReady(ctx, constant.MSROperatorDeploymentLabels)
 }
 
 // WaitForMSRCRReady waits for CR object provided to be ready by polling the

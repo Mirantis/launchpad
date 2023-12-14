@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/mcc/pkg/swarm"
 )
 
 // InstallMSR3 deploys an MSR Custom Resource using the CRD provided within
@@ -52,6 +54,20 @@ func (p *InstallMSR3) Prepare(config interface{}) error {
 		if err != nil {
 			return fmt.Errorf("%s: failed to label node: %s", msrH, err.Error())
 		}
+
+		// If MKE is the target Kubernetes cluster, set the orchestrator
+		// type to Kubernetes for the node.
+		swarmLeader := p.Config.Spec.SwarmLeader()
+		nodeID, err := swarm.NodeID(msrH)
+		if err != nil {
+			return fmt.Errorf("%s: failed to get node ID: %w", msrH, err)
+		}
+
+		kubeOrchestratorLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.KubernetesOrchestratorLabelCmd, nodeID)
+		err = swarmLeader.Exec(kubeOrchestratorLabelCmd)
+		if err != nil {
+			return fmt.Errorf("failed to label node %s (%s) for kube orchestration: %w", hostname, nodeID, err)
+		}
 	}
 
 	return nil
@@ -61,7 +77,7 @@ func (p *InstallMSR3) Prepare(config interface{}) error {
 // performed.  An installation is required when the MSR CR is not present.
 func (p *InstallMSR3) ShouldRun() bool {
 	p.leader = p.Config.Spec.MSRLeader()
-	return p.Config.Spec.ContainsMSR() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
+	return p.Config.Spec.ContainsMSR3() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
 }
 
 // Run deploys an MSR CR to the cluster, setting NodeSelector to nodes the user
@@ -78,6 +94,30 @@ func (p *InstallMSR3) Run() error {
 	if err := p.Config.Spec.CheckMKEHealthRemote(h); err != nil {
 		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", h)
 	}
+
+	if err := p.kube.ValidateMSROperatorReady(context.Background()); err != nil {
+		return fmt.Errorf("failed to validate msr-operator is ready: %w", err)
+	}
+
+	msr := &p.Config.Spec.MSR.MSR3Config.MSR
+
+	// Append the NodeSelector for the MSR hosts if not already present.
+	if msr.Spec.NodeSelector == nil {
+		msr.Spec.NodeSelector = make(map[string]string)
+	}
+
+	if _, ok := msr.Spec.NodeSelector[constant.MSRNodeSelector]; !ok {
+		msr.Spec.NodeSelector[constant.MSRNodeSelector] = "true"
+	}
+
+	// Ensure the postgresql.spec.volume.size field is sane, postgres-operator
+	// doesn't default the Size field and is picky about the format.
+	if msr.Spec.Postgresql.Volume.Size == "" {
+		msr.Spec.Postgresql.Volume.Size = "20Gi"
+	}
+
+	// Set the version tag to the desired MSR version specified in config.
+	msr.Spec.Image.Tag = p.Config.Spec.MSR.Version
 
 	if err := msr3.ApplyCRD(ctx, &p.Config.Spec.MSR.MSR3Config.MSR, p.kube); err != nil {
 		return err

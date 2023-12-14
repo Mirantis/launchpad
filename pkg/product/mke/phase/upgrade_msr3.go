@@ -46,7 +46,7 @@ func (p *UpgradeMSR3) Run() error {
 		return nil
 	}
 
-	p.Config.Spec.MSR.MSR3Config.MSR.Spec.Tag = p.Config.Spec.MSR.Version
+	p.Config.Spec.MSR.MSR3Config.MSR.Spec.Image.Tag = p.Config.Spec.MSR.Version
 
 	if err := msr3.ApplyCRD(context.Background(), &p.Config.Spec.MSR.MSR3Config.MSR, p.kube); err != nil {
 		return err

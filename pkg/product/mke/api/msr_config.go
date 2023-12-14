@@ -42,10 +42,34 @@ var errInvalidMSRConfig = fmt.Errorf("invalid MSR config")
 // MSR3Config defines the configuration for both the MSR3 CR and the
 // dependencies needed to run it.
 type MSR3Config struct {
+	// Dependencies define strict dependencies that MSR3 needs to function.
 	Dependencies `yaml:"dependencies,omitempty"`
-	msrv1.MSR    `yaml:"spec,omitempty"`
+	// StorageClassType allows users to have launchpad configure a StorageClass
+	// on their behalf and set the target cluster to use that as the default.
+	StorageClassType string `yaml:"storageClassType,omitempty" validate:"omitempty,oneof=nfs"`
+	// StorageURL defines the URL that StorageClassType will use when
+	// configuring.  It is required when StorageClassType is specified.
+	StorageURL string `yaml:"storageURL,omitempty"`
+	// LoadBalancerURL allows users to have launchpad expose MSR3 with a
+	// default configuration of LoadBalancer type.
+	LoadBalancerURL string `yaml:"loadBalancerURL,omitempty"`
+	// MSR is the MSR Custom Resource (CR) that will be managed.
+	msrv1.MSR `yaml:"spec,omitempty"`
 }
 
+func (c *MSR3Config) Validate() error {
+	if c.StorageClassType != "" && c.StorageURL == "" {
+		return fmt.Errorf("spec.msr.msr3.storageURL is required when spec.msr.msr3.storageClassType is populated")
+	}
+
+	return nil
+}
+
+func (c *MSR3Config) ShouldConfigureStorageClass() bool {
+	return c.StorageClassType != "" && c.StorageURL != ""
+}
+
+// Dependencies define strict dependencies that MSR3 needs to function.
 type Dependencies struct {
 	CertManager       *helm.ChartDetails `yaml:"certManager"`
 	PostgresOperator  *helm.ChartDetails `yaml:"postgresOperator"`
