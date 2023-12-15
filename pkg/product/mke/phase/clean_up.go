@@ -24,6 +24,8 @@ func (p *CleanUp) Run() error {
 		return fmt.Errorf("failed to cleanup environment: %w", err)
 	}
 
+	// Cleanup any bundles affliated.
+
 	return nil
 }
 

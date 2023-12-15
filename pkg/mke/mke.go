@@ -300,6 +300,22 @@ func getBundleDir(config *api.ClusterConfig) (string, error) {
 	return path.Join(home, constant.StateBaseDir, "cluster", config.Metadata.Name, "bundle", config.Spec.MKE.AdminUsername), nil
 }
 
+// CleanBundleDir cleans the bundledir affiliated with config.
+func CleanBundleDir(config *api.ClusterConfig) error {
+	bundleDir, err := getBundleDir(config)
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("cleaning up client bundle directory: %q", bundleDir)
+
+	if err := os.RemoveAll(bundleDir); err != nil {
+		log.Warnf("failed to cleanup bundle directory: %q: %s", bundleDir, err)
+	}
+
+	return nil
+}
+
 func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *helm.Helm, error) {
 	log.Debug("configuring Kubernetes and Helm clients from config")
 

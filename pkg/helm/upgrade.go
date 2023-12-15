@@ -95,6 +95,7 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	u.Atomic = opts.Atomic
 	u.Version = opts.ChartDetails.Version
 	u.Timeout = *opts.Timeout
+	ch.Metadata.Version = u.Version
 
 	return u.RunWithContext(ctx, opts.ChartDetails.ReleaseName, ch, opts.Values)
 }
@@ -115,6 +116,7 @@ func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]inter
 	i.Version = opts.Version
 	i.Atomic = opts.Atomic
 	i.Wait = opts.Wait
+	ch.Metadata.Version = i.Version
 
 	return i.RunWithContext(ctx, ch, vals)
 }

@@ -176,7 +176,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 			msrAddr = "todo"
 
 		case string(corev1.ServiceTypeClusterIP):
-			msrAddr = "127.0.0.1" + ":" + port
+			msrAddr = "todo" + ":" + port
 		}
 	}
 

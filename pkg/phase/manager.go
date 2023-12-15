@@ -1,7 +1,6 @@
 package phase
 
 import (
-	"fmt"
 	"reflect"
 	"time"
 
@@ -66,7 +65,6 @@ func (m *Manager) Run() error {
 
 		if p, ok := phase.(withconfig); ok {
 			log.Debugf("preparing phase '%s'", title)
-			fmt.Println(m.config)
 
 			if err := p.Prepare(m.config); err != nil {
 				return fmt.Errorf("phase '%s' failed to prepare: %w", title, err)

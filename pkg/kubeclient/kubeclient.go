@@ -60,22 +60,6 @@ func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 	return kc, nil
 }
 
-func (kc *KubeClient) LabelNode(ctx context.Context, name string) error {
-	node, err := kc.client.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get node %q: %w", name, err)
-	}
-
-	node.Labels[constant.MSRNodeSelector] = "true"
-
-	_, err = kc.client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update node %q: %w", name, err)
-	}
-
-	return nil
-}
-
 // CRDReady verifies that the CRD and Deployment is available.
 // This is the equivalent of running `kubectl get crd crdName`.
 func (kc *KubeClient) crdReady(ctx context.Context, name string) error {

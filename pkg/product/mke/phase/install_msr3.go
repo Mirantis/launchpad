@@ -30,8 +30,8 @@ func (p *InstallOrUpgradeMSR3) Title() string {
 // Prepare collects the hosts and labels them with the MSR role via the
 // Kubernetes client so that they can be used as NodeSelector in the MSR CR.
 func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
-	p.leader = p.Config.Spec.MSRLeader()
 	p.Config = config.(*api.ClusterConfig)
+	p.leader = p.Config.Spec.MSRLeader()
 
 	var err error
 
@@ -51,7 +51,7 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 	for _, msrH := range msrHosts {
 		hostname := msrH.Metadata.Hostname
 
-		err := p.kube.LabelNode(context.Background(), hostname)
+		err := p.kube.PrepareNodeForMSR(context.Background(), hostname)
 		if err != nil {
 			return fmt.Errorf("%s: failed to label node: %s", msrH, err.Error())
 		}
@@ -120,7 +120,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 
 	// Configure Nginx.DNSNames if a LoadBalancerURL is specified.
 	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureLB() {
-		msr.Spec.Nginx.DNSNames = append(msr.Spec.Nginx.DNSNames, p.Config.Spec.MSR.MSR3Config.LoadBalancerURL)
+		msr.Spec.Nginx.DNSNames = []string{"nginx", "localhost", p.Config.Spec.MSR.MSR3Config.LoadBalancerURL}
 	}
 
 	// TODO: Differentiate an upgrade from an install and set analytics

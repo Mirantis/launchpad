@@ -33,6 +33,8 @@ const (
 	WindowsDefaultDockerRoot = "C:\\ProgramData\\Docker"
 	// KubernetesOrchestratorLabelCmd marks the node as using the kubernetes orchestrator.
 	KubernetesOrchestratorLabelCmd = "node update --label-add com.mirantis.mke.orchestrator=kubernetes"
+	// KubernetesOrchestratorTaint taints the node as NoExecute when using swarm.
+	KubernetesOrchestratorTaint = "com.docker.ucp.orchestrator.kubernetes"
 	// MSROperatorDeploymentLabels are the labels the msr-operator deployment uses.
 	MSROperatorDeploymentLabels = "app.kubernetes.io/name=msr-operator"
 	// MSROperator is the name of the MSR operator.

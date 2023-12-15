@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,7 +9,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/k0sproject/dig"
+
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
+	"github.com/Mirantis/mcc/pkg/msr/msr3"
+	"github.com/Mirantis/mcc/pkg/phase"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/mcc/pkg/swarm"
 
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -70,22 +77,50 @@ func (p *GatherFacts) Run() error {
 			p.Config.Spec.MSR = &api.MSRConfig{}
 		}
 
-		msrHosts := p.Config.Spec.MSRs()
-		_ = msrHosts.ParallelEach(func(h *api.Host) error {
-			if h.Metadata != nil && h.Metadata.MCRVersion != "" {
-				msrMeta, err := msr2.CollectFacts(h)
-				if err != nil {
-					log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
+		switch p.Config.Spec.MSR.MajorVersion() {
+		case 2:
+			msrHosts := p.Config.Spec.MSRs()
+			msrHosts.ParallelEach(func(h *api.Host) error {
+				if h.Metadata != nil && h.Metadata.MCRVersion != "" {
+					msrMeta, err := msr2.CollectFacts(h)
+					if err != nil {
+						log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
+					}
+					h.MSRMetadata = msrMeta
+					if msrMeta.Installed {
+						log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
+					} else {
+						log.Infof("%s: msr is not installed", h)
+					}
 				}
-				h.MSRMetadata = msrMeta
-				if msrMeta.Installed {
-					log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
-				} else {
-					log.Infof("%s: msr is not installed", h)
-				}
+				return nil
+			})
+		case 3:
+			kc, hc, err := mke.KubeAndHelmFromConfig(p.Config)
+			if err != nil {
+				return err
 			}
-			return nil
-		})
+
+			msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.Name, kc, hc)
+			if err != nil {
+				return err
+			}
+
+			if msrMeta.Installed {
+				log.Infof("msr has version %s", msrMeta.InstalledVersion)
+			} else {
+				log.Info("msr is not installed")
+			}
+
+			// Write the msrMeta to each of the hosts so it can be queried
+			// independently and function like legacy MSR.
+			msrHosts := p.Config.Spec.MSRs()
+			msrHosts.ParallelEach(func(h *api.Host) error {
+				h.MSRMetadata = msrMeta
+
+				return nil
+			})
+		}
 	}
 
 	return nil

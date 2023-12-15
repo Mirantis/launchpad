@@ -9,6 +9,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/docker/dhe-deploy/gocode/pkg/pollutil"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -126,6 +127,35 @@ func (kc *KubeClient) DeleteMSRCR(ctx context.Context, name string) error {
 	}
 
 	return rc.Delete(ctx, name, metav1.DeleteOptions{})
+}
+
+// PrepareNodeForMSR updates the given node name setting the MSRNodeSelector
+// on the node and removing any found Kubernetes NoExecute taints added by MKE.
+func (kc *KubeClient) PrepareNodeForMSR(ctx context.Context, name string) error {
+	node, err := kc.client.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get node %q: %w", name, err)
+	}
+
+	node.Labels[constant.MSRNodeSelector] = "true"
+
+	// Rebuild the taints list without the NoExecute taint if found, removing it.
+	var taints []corev1.Taint
+	for _, t := range node.Spec.Taints {
+		if t.Key == constant.KubernetesOrchestratorTaint && t.Value == "NoExecute" {
+			continue
+		}
+		taints = append(taints, t)
+	}
+
+	node.Spec.Taints = taints
+
+	_, err = kc.client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update node %q: %w", name, err)
+	}
+
+	return nil
 }
 
 // getMSRResourceClient returns a dynamic client for the MSR custom resource.
