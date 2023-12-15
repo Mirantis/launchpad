@@ -51,4 +51,6 @@ const (
 	MSRNodeSelector = "node-role.kubernetes.io/msr"
 	// ExposedLBServiceName is the service name for the LoadBalancer service.
 	ExposedLBServiceName = "msr-public-lb"
+	// DefaultStorageClassAnnotation is the annotation to set a StorageClass to the default.
+	DefaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
 )

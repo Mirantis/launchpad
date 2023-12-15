@@ -37,7 +37,7 @@ func (kc *KubeClient) ValidateMSROperatorReady(ctx context.Context) error {
 // WaitForMSRCRReady waits for CR object provided to be ready by polling the
 // status obtained from the given object.
 func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.Unstructured) error {
-	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "Waiting for %q CR Ready state for up to 10m0s", obj.GetName())
+	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "waiting for %q CR Ready state for up to 10m0s", obj.GetName())
 
 	// Wait for a maximum time of 10 minutes.
 	pollCfg.Interval = 5 * time.Second

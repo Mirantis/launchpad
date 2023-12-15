@@ -81,7 +81,7 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	histClient.Max = 1
 	if _, err := histClient.Run(opts.ReleaseName); err != nil {
 		if errors.Is(err, driver.ErrReleaseNotFound) {
-			log.Infof("release %q not found.  Installing it now.", opts.ReleaseName)
+			log.Infof("release %q not found, installing it now", opts.ReleaseName)
 			return h.install(ctx, opts, opts.Values, ch)
 		}
 	}

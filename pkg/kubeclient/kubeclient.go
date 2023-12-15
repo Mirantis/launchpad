@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	log "github.com/sirupsen/logrus"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -124,19 +125,44 @@ func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructu
 	return false, nil
 }
 
-// SetStorageClassDefault configures the given storageclass name as the default.
+// SetStorageClassDefault configures the given storageclass name as the default,
+// ensuring that no other storageclass has the default annotation.
 func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) error {
-	sc, err := kc.client.StorageV1().StorageClasses().Get(ctx, name, metav1.GetOptions{})
+	log.Debugf("setting: %s as default StorageClass", name)
+
+	// Ensure no other StorageClass is already set to default.
+	storageClasses, err := kc.client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to get StorageClass: %q: %w", name, err)
+		return fmt.Errorf("failed to list StorageClasses: %w", err)
 	}
 
-	if _, ok := sc.ObjectMeta.Annotations["storageclass.kubernetes.io/is-default-class"]; !ok {
-		sc.ObjectMeta.Annotations["storageclass.kubernetes.io/is-default-class"] = "true"
-	}
+	var needsUpdate bool
 
-	if _, err := kc.client.StorageV1().StorageClasses().Update(ctx, sc, metav1.UpdateOptions{}); err != nil {
-		return fmt.Errorf("failed to update StorageClass: %q with default annotation: %w", name, err)
+	for _, sc := range storageClasses.Items {
+		if sc.Name == name {
+			// Apply the default annotation to the named StorageClass.
+			if _, ok := sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; !ok {
+				log.Debugf("setting default StorageClass annotation on: %s", name)
+
+				sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation] = "true"
+			}
+			needsUpdate = true
+		} else {
+			// Strip the default annotation if found from a different StorageClass.
+			if _, ok := sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; ok {
+				log.Debugf("found existing default StorageClass: %s, removing default annotation", sc.Name)
+
+				delete(sc.ObjectMeta.Annotations, constant.DefaultStorageClassAnnotation)
+				needsUpdate = true
+			}
+		}
+
+		if needsUpdate {
+			// Apply the annotation modifications if they were made.
+			if _, err := kc.client.StorageV1().StorageClasses().Update(ctx, &sc, metav1.UpdateOptions{}); err != nil {
+				return fmt.Errorf("failed to update StorageClass: %q annotations: %w", name, err)
+			}
+		}
 	}
 
 	return nil

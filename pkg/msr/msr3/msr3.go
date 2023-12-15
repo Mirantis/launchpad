@@ -2,6 +2,7 @@ package msr3
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,10 +33,12 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 		return nil, err
 	}
 
-	var m msrv1.MSR
-
-	if err := mapstructure.Decode(obj.Object, &m); err != nil {
-		return nil, fmt.Errorf("failed to decode msr CR: %w", err)
+	version, found, err := unstructured.NestedString(obj.Object, "spec", "image", "tag")
+	if !found {
+		err = errors.New("unable to find spec.image.tag")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("unable to determine version from found MSR: %w", err)
 	}
 
 	filter := constant.MSROperator + "|" + constant.PostgresOperator + "|" + constant.RethinkDBOperator + "|" + constant.CertManager
@@ -61,8 +64,6 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 			}(),
 		}
 	}
-
-	version := m.Spec.Tag
 
 	return &api.MSRMetadata{
 		Installed:        true,
