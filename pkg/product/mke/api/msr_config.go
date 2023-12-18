@@ -193,7 +193,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if err := c.ValidateConfigForMajorVersion(v); err != nil {
-		return err
+		return fmt.Errorf("failed to validate MSR configuration: %w", err)
 	}
 
 	if c.CACertPath != "" {
@@ -231,6 +231,10 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // MajorVersion returns the major version of MSR, or 0 if the version is invalid.
 func (c *MSRConfig) MajorVersion() int {
+	if c == nil {
+		return 0
+	}
+
 	v, err := version.NewVersion(c.Version)
 	if err != nil {
 		return 0
@@ -242,6 +246,10 @@ func (c *MSRConfig) MajorVersion() int {
 // ValidateConfigForMajorVersion validates the MSRConfig, ensuring the provided
 // fields are valid for the major MSR version provided.
 func (c *MSRConfig) ValidateConfigForMajorVersion(v *version.Version) error {
+	if c == nil {
+		return fmt.Errorf("missing spec.msr")
+	}
+
 	switch c.MajorVersion() {
 	case 2:
 		if c.MSR3Config != nil {
