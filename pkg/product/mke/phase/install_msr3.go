@@ -143,7 +143,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		}
 	}
 
-	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.MSR3Config.Name, p.kube, p.helm)
+	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.MSR3Config.GetName(), p.kube, p.helm)
 	if err != nil {
 		return fmt.Errorf("failed to collect msr3 details: %w", err)
 	}

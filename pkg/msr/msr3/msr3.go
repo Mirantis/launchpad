@@ -22,6 +22,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 	obj, err := kc.GetMSRCR(ctx, msrName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			fmt.Println(fmt.Errorf("MSR CR: %s not found: %w", msrName, err))
 			return &api.MSRMetadata{Installed: false}, nil
 		}
 		return nil, err

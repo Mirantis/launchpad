@@ -104,7 +104,7 @@ func (p *GatherFacts) Run() error {
 				}
 			}
 
-			msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.Name, kc, hc)
+			msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.GetName(), kc, hc)
 			if err != nil {
 				return err
 			}

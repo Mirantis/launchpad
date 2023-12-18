@@ -342,17 +342,14 @@ func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *
 		}
 	}
 
-	// TODO: MSR3 is the only consumer of this phase so for now we obtain the
-	// namespace from MSR3Config.  We should decide on a method for determining
-	// the namespace to use for the phase dependent on what the phase is doing.
-	kube, err := kubeclient.NewFromBundle(bundleDir, config.Spec.Namespace)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create kube client from bundle: %w", err)
-	}
-
 	if config.Spec.Namespace == "" {
 		log.Debug("config.Spec.Namespace is empty, using default namespace")
 		config.Spec.Namespace = "default"
+	}
+
+	kube, err := kubeclient.NewFromBundle(bundleDir, config.Spec.Namespace)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	helm, err := helm.New(bundleDir, config.Spec.Namespace)

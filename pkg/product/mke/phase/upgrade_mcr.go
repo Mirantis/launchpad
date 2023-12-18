@@ -227,7 +227,7 @@ func validateMSRReady(config *api.ClusterConfig, h *api.Host, port int) error {
 			return fmt.Errorf("failed to create Kubernetes and Helm clients from config: %w", err)
 		}
 
-		obj, err := kc.GetMSRCR(ctx, config.Spec.MSR.MSR3Config.Name)
+		obj, err := kc.GetMSRCR(ctx, config.Spec.MSR.MSR3Config.GetName())
 		if err != nil {
 			return err
 		}

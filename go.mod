@@ -15,7 +15,6 @@ require (
 	github.com/docker/dhe-deploy/gocode v0.0.0-20231201203737-f4c27f636b94
 	github.com/gammazero/workerpool v1.1.3
 	github.com/go-playground/validator/v10 v10.17.0
-	github.com/goccy/go-yaml v1.11.2
 	github.com/hashicorp/go-version v1.6.0
 	github.com/k0sproject/dig v0.2.0
 	github.com/k0sproject/rig v0.17.5
@@ -30,6 +29,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.1
 	gopkg.in/segmentio/analytics-go.v3 v3.1.0
 	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.13.2
 	k8s.io/api v0.28.3
 	k8s.io/apiextensions-apiserver v0.28.3
@@ -192,7 +192,6 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.17.0 // indirect
-	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230525234030-28d5490b6b19 // indirect
@@ -202,7 +201,6 @@ require (
 	gopkg.in/evanphx/json-patch.v5 v5.6.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/rethinkdb/rethinkdb-go.v6 v6.2.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.28.3 // indirect
 	k8s.io/cli-runtime v0.28.3 // indirect
 	k8s.io/component-base v0.28.3 // indirect
