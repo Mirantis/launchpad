@@ -316,11 +316,13 @@ func CleanBundleDir(config *api.ClusterConfig) error {
 	return nil
 }
 
+var ErrMKENotInstalled = errors.New("MKE is not installed")
+
 func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *helm.Helm, error) {
 	log.Debug("configuring Kubernetes and Helm clients from config")
 
 	if !config.Spec.MKE.Metadata.Installed {
-		return nil, nil, fmt.Errorf("MKE is not installed, cannot prepare Kubernetes and Helm clients")
+		return nil, nil, fmt.Errorf("cannot configure Kubernetes and Helm clients: %w", ErrMKENotInstalled)
 	}
 
 	bundleDir, err := getBundleDir(config)

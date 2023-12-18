@@ -139,7 +139,7 @@ func (kc *KubeClient) PrepareNodeForMSR(ctx context.Context, name string) error 
 
 	node.Labels[constant.MSRNodeSelector] = "true"
 
-	// Rebuild the taints list without the NoExecute taint if found, removing it.
+	// Rebuild the taints list without the NoExecute taint if found.
 	var taints []corev1.Taint
 	for _, t := range node.Spec.Taints {
 		if t.Key == constant.KubernetesOrchestratorTaint && t.Value == "NoExecute" {

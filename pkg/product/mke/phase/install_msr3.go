@@ -10,6 +10,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	log "github.com/sirupsen/logrus"
 )
 
 // InstallOrUpgradeMSR3 deploys an MSR Custom Resource using the CRD provided
@@ -51,11 +52,6 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 	for _, msrH := range msrHosts {
 		hostname := msrH.Metadata.Hostname
 
-		err := p.kube.PrepareNodeForMSR(context.Background(), hostname)
-		if err != nil {
-			return fmt.Errorf("%s: failed to label node: %s", msrH, err.Error())
-		}
-
 		// If MKE is the target Kubernetes cluster, set the orchestrator
 		// type to Kubernetes for the node.
 		swarmLeader := p.Config.Spec.SwarmLeader()
@@ -69,6 +65,18 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 		if err != nil {
 			return fmt.Errorf("failed to label node %s (%s) for kube orchestration: %w", hostname, nodeID, err)
 		}
+
+		swarmOrchestratorRemoveLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.SwarmOrchestratorRemoveLabelCmd, nodeID)
+		err = swarmLeader.Exec(swarmOrchestratorRemoveLabelCmd)
+		if err != nil {
+			log.Warnf("failed to remove swarm orchestrator label from node %s (%s): it most likely did not exist: %s", hostname, nodeID, err)
+		}
+
+		err = p.kube.PrepareNodeForMSR(context.Background(), hostname)
+		if err != nil {
+			return fmt.Errorf("%s: failed to label node: %s", msrH, err.Error())
+		}
+
 	}
 
 	return nil

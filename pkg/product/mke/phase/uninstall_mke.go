@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	mcclog "github.com/Mirantis/mcc/pkg/log"
+	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -59,5 +60,10 @@ func (p *UninstallMKE) Run() error {
 			return nil
 		})
 	}
+
+	if err = mke.CleanBundleDir(p.Config); err != nil {
+		return fmt.Errorf("failed to clean bundle dir: %w", err)
+	}
+
 	return nil
 }

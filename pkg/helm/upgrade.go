@@ -69,6 +69,7 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 
 	chartPathOptions := action.ChartPathOptions{
 		RepoURL: opts.RepoURL,
+		Version: opts.Version,
 	}
 
 	ch, err := getChart(chartPathOptions, opts.ChartName, &settings)
@@ -93,9 +94,8 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	u.ReuseValues = opts.ReuseValues
 	u.Wait = opts.Wait
 	u.Atomic = opts.Atomic
-	u.Version = opts.ChartDetails.Version
+	u.Version = opts.Version
 	u.Timeout = *opts.Timeout
-	ch.Metadata.Version = u.Version
 
 	return u.RunWithContext(ctx, opts.ChartDetails.ReleaseName, ch, opts.Values)
 }
@@ -116,7 +116,6 @@ func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]inter
 	i.Version = opts.Version
 	i.Atomic = opts.Atomic
 	i.Wait = opts.Wait
-	ch.Metadata.Version = i.Version
 
 	return i.RunWithContext(ctx, ch, vals)
 }

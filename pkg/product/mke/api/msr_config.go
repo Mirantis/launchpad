@@ -196,6 +196,12 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("failed to validate MSR configuration: %w", err)
 	}
 
+	if c.MSR3Config != nil {
+		if err := c.MSR3Config.Validate(); err != nil {
+			return fmt.Errorf("failed to validate MSR3 configuration: %w", err)
+		}
+	}
+
 	if c.CACertPath != "" {
 		caCertData, err := util.LoadExternalFile(c.CACertPath)
 		if err != nil {

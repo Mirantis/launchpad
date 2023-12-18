@@ -98,7 +98,10 @@ func (p *GatherFacts) Run() error {
 		case 3:
 			kc, hc, err := mke.KubeAndHelmFromConfig(p.Config)
 			if err != nil {
-				return err
+				if errors.Is(err, mke.ErrMKENotInstalled) {
+					log.Infof("mke is not yet installed, skipping msr3 fact collection")
+					return nil
+				}
 			}
 
 			msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.Name, kc, hc)
