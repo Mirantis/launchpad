@@ -12,7 +12,6 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/rig"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -120,63 +119,44 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 	}, nil
 }
 
-// MSRURL returns an url to MSR or an error if one can't be generated.
-func (c *ClusterSpec) MSRURL() (*url.URL, error) {
+// MSR2URL returns an url to an MSR2 or an error if one can't be generated.
+func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 	var msrAddr string
 
-	switch c.MSR.MajorVersion() {
-	case 2:
-		if c.MSR != nil {
-			// Default to using the --dtr-external-url if it's set
-			if f := c.MSR.InstallFlags.GetValue("--dtr-external-url"); f != "" {
-				if !strings.Contains(f, "://") {
-					f = "https://" + f
-				}
-				u, err := url.Parse(f)
-				if err != nil {
-					return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %s", f, err.Error())
-				}
-				if u.Scheme == "" {
-					u.Scheme = "https"
-				}
-				if u.Path == "" {
-					u.Path = "/"
-				}
-				return u, nil
+	if c.MSR != nil {
+		// Default to using the --dtr-external-url if it's set
+		if f := c.MSR.InstallFlags.GetValue("--dtr-external-url"); f != "" {
+			if !strings.Contains(f, "://") {
+				f = "https://" + f
 			}
-		}
-
-		// Otherwise, use MSRLeaderAddress
-		msrLeader := c.MSRLeader()
-		if msrLeader == nil {
-			return nil, fmt.Errorf("unable to generate a MSR URL - no MSR nodes found")
-		}
-		msrAddr = msrLeader.Address()
-
-		if c.MSR != nil {
-			if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
-				p, err := strconv.Atoi(portstr)
-				if err != nil {
-					return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %s", portstr, err.Error())
-				}
-				msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
+			u, err := url.Parse(f)
+			if err != nil {
+				return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %s", f, err.Error())
 			}
+			if u.Scheme == "" {
+				u.Scheme = "https"
+			}
+			if u.Path == "" {
+				u.Path = "/"
+			}
+			return u, nil
 		}
+	}
 
-	case 3:
-		port := strconv.Itoa(int(c.MSR.MSR3Config.MSR.Spec.ExternalHTTPSPort))
+	// Otherwise, use MSRLeaderAddress
+	msrLeader := c.MSRLeader()
+	if msrLeader == nil {
+		return nil, fmt.Errorf("unable to generate a MSR URL - no MSR nodes found")
+	}
+	msrAddr = msrLeader.Address()
 
-		switch c.MSR.MSR3Config.MSR.Spec.ServiceType {
-		case string(corev1.ServiceTypeNodePort):
-			// TODO: Need kubeclient here.
-			msrAddr = "todo"
-
-		case string(corev1.ServiceTypeLoadBalancer):
-			// TODO: Need kubeclient here.
-			msrAddr = "todo"
-
-		case string(corev1.ServiceTypeClusterIP):
-			msrAddr = "todo" + ":" + port
+	if c.MSR != nil {
+		if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
+			p, err := strconv.Atoi(portstr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %s", portstr, err.Error())
+			}
+			msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
 		}
 	}
 

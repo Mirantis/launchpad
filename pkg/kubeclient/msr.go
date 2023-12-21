@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/constant"
@@ -170,4 +172,87 @@ func (kc *KubeClient) getMSRResourceClient() (dynamic.ResourceInterface, error) 
 		Version:  "v1",
 		Resource: "msrs",
 	}).Namespace(kc.Namespace), nil
+}
+
+// MSRURL constructs an MSRURL from an obtained MSR CR and other details from
+// the Kubernetes cluster.
+func (kc *KubeClient) MSRURL(ctx context.Context, name string) (*url.URL, error) {
+	msrCR, err := kc.GetMSRCR(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	externalPort, found, err := unstructured.NestedInt64(msrCR.Object, "spec", "externalHTTPSPort")
+	if err != nil || !found {
+		return nil, fmt.Errorf("failed to get MSR spec.externalHTTPSPort: %w", err)
+	}
+
+	serviceType, found, err := unstructured.NestedString(msrCR.Object, "spec", "serviceType")
+	if err != nil || !found {
+		return nil, fmt.Errorf("failed to get MSR spec.serviceType: %w", err)
+	}
+
+	var (
+		msrAddr string
+		port    string
+	)
+
+	switch serviceType {
+	case string(corev1.ServiceTypeNodePort):
+		svc, err := kc.client.CoreV1().Services(kc.Namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get service: %q: %w", name, err)
+		}
+
+		for _, p := range svc.Spec.Ports {
+			if p.Port == int32(externalPort) {
+				port = strconv.Itoa(int(p.NodePort))
+				break
+			}
+		}
+
+		nodes, err := kc.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list nodes: %w", err)
+		}
+
+		if len(nodes.Items) == 0 {
+			return nil, fmt.Errorf("no nodes found")
+		}
+
+		msrAddr = nodes.Items[0].Status.Addresses[0].String() + ":" + port
+
+	case string(corev1.ServiceTypeLoadBalancer):
+		svc, err := kc.client.CoreV1().Services(kc.Namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get service: %q: %w", name, err)
+		}
+
+		msrAddr = svc.Status.LoadBalancer.Ingress[0].IP + ":" + strconv.Itoa(int(externalPort))
+
+	case string(corev1.ServiceTypeClusterIP):
+		pods, err := kc.client.CoreV1().Pods(kc.Namespace).List(ctx, metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("app.kubernetes.io/name=%s,app.kubernetes.io/instance=%s,app.kubernetes.io/component=nginx", name, name),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list nginx pods: %w", err)
+		}
+
+		if len(pods.Items) == 0 {
+			return nil, fmt.Errorf("no nginx pods found")
+		}
+
+		log.Infof("Use the following command on the node to access MSR UI: kubectl port-forward %s 8443:https", pods.Items[0].Name)
+
+		msrAddr = "127.0.0.1:8443"
+
+	default:
+		return nil, fmt.Errorf("unknown MSR spec.serviceType: %q", serviceType)
+	}
+
+	return &url.URL{
+		Scheme: "https",
+		Path:   "/",
+		Host:   msrAddr,
+	}, nil
 }
