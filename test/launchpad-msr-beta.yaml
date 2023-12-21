@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/mke/v1.4
+apiVersion: launchpad.mirantis.com/mke/v1.5
 kind: mke+msr
 metadata:
   name: $CLUSTER_NAME
@@ -7,32 +7,32 @@ spec:
     - ssh:
         address: 127.0.0.1
         port: 9022
-        keyPath: "./id_rsa_launchpad"
-        user: "launchpad"
-      role: "manager"
+        keyPath: './id_rsa_launchpad'
+        user: 'launchpad'
+      role: 'manager'
       mcrConfig: &engineCfg
-        "insecure-registries":
+        'insecure-registries':
           - 172.16.86.100:5000
     - ssh:
         address: 127.0.0.1
         port: 9023
-        keyPath: "./id_rsa_launchpad"
-        user: "launchpad"
-      role: "worker"
+        keyPath: './id_rsa_launchpad'
+        user: 'launchpad'
+      role: 'worker'
       mcrConfig: *engineCfg
     - ssh:
         address: 127.0.0.1
         port: 9024
-        keyPath: "./id_rsa_launchpad"
-        user: "launchpad"
-      role: "msr"
+        keyPath: './id_rsa_launchpad'
+        user: 'launchpad'
+      role: 'msr'
       mcrConfig: *engineCfg
     - ssh:
         address: 127.0.0.1
         port: 9025
-        keyPath: "./id_rsa_launchpad"
-        user: "launchpad"
-      role: "msr"
+        keyPath: './id_rsa_launchpad'
+        user: 'launchpad'
+      role: 'msr'
       mcrConfig: *engineCfg
   cluster:
     prune: false

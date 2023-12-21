@@ -211,7 +211,9 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string) (*url.URL, error)
 			}
 		}
 
-		nodes, err := kc.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+		nodes, err := kc.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{
+			LabelSelector: constant.MSRNodeSelector + "=true",
+		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to list nodes: %w", err)
 		}

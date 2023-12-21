@@ -1,4 +1,4 @@
-apiVersion: "launchpad.mirantis.com/mke/v1.4"
+apiVersion: "launchpad.mirantis.com/mke/v1.5"
 kind: mke+msr
 spec:
   hosts:

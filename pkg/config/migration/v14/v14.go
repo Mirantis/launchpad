@@ -29,8 +29,9 @@ func Migrate(plain map[string]interface{}) error {
 		} else {
 			kind, ok := plain["kind"].(string)
 			if ok && kind != "mke+msr" {
-				if hosts, ok := spec["hosts"].([]interface{}); ok {
-					for _, h := range hosts {
+				if hosts, ok := spec["hosts"]; ok {
+					hslice := hosts.([]interface{})
+					for _, h := range hslice {
 						if host, ok := h.(map[interface{}]interface{}); ok {
 							if role, ok := host["role"].(string); ok && role == "msr" {
 								kind = "mke+msr"

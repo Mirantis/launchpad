@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/mke/v1.4
+apiVersion: launchpad.mirantis.com/mke/v1.5
 kind: mke
 metadata:
   name: $CLUSTER_NAME
@@ -6,11 +6,11 @@ spec:
   hosts:
     - role: manager
       ssh:
-        address: "$MANAGER_IP"
+        address: '$MANAGER_IP'
         user: launchpad
     - role: worker
       ssh:
-        address: "$WORKER_IP"
+        address: '$WORKER_IP'
         user: launchpad
   mke:
     version: $MKE_VERSION
