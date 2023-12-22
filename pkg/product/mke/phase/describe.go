@@ -1,14 +1,12 @@
 package phase
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 )
 
@@ -79,28 +77,19 @@ func (p *Describe) msrReport() {
 	uv := msrLeader.MSRMetadata.InstalledVersion
 	msrURL := "n/a"
 
+	var err error
+
 	switch p.Config.Spec.MSR.MajorVersion() {
 	case 2:
 		if url, err := p.Config.Spec.MSR2URL(); err != nil {
-			log.Debug(err)
+			log.Infof("failed to get msr URL: %s", err)
 		} else {
 			msrURL = url.String()
 		}
 	case 3:
-		if p.Config.Spec.MSR.LoadBalancerURL != "" {
-			msrURL = p.Config.Spec.MSR.LoadBalancerURL
-		} else {
-			kc, _, err := mke.KubeAndHelmFromConfig(p.Config)
-			if err != nil {
-				log.Debugf("failed to get msr URL: failed to get kube client: %s", err)
-			} else {
-				url, err := kc.MSRURL(context.Background(), p.Config.Spec.MSR.MSR3Config.Name)
-				if err != nil {
-					log.Debugf("failed to get msr URL: %s", err)
-				} else {
-					msrURL = url.String()
-				}
-			}
+		msrURL, err = getMSRURL(p.Config)
+		if err != nil {
+			log.Infof("failed to get msr URL: %s", err)
 		}
 	}
 

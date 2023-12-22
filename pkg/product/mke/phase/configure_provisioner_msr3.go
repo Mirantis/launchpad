@@ -47,34 +47,49 @@ func (p *ConfigureStorageProvisioner) ShouldRun() bool {
 func (p *ConfigureStorageProvisioner) Run() error {
 	ctx := context.Background()
 
-	scType := p.Config.Spec.MSR.MSR3Config.StorageClassType
+	name, chartDetails := storageProvisionerChart(p.Config)
+	if chartDetails == nil {
+		log.Debugf("no storage provisioner to configure")
+		return nil
+	}
 
-	log.Debugf("configuring default storage class for %s", scType)
+	if _, err := p.helm.Upgrade(ctx, &helm.Options{ChartDetails: *chartDetails}); err != nil {
+		return err
+	}
 
-	// TODO: Currently we only support "nfs" as a configured StorageClassType,
-	// we should add some more.
-	if scType == "nfs" {
-		p.helm.Upgrade(ctx, &helm.Options{
-			ChartDetails: helm.ChartDetails{
-				ChartName:   "nfs-subdir-external-provisioner",
-				ReleaseName: "nfs-subdir-external-provisioner",
-				RepoURL:     "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
-				Values: map[string]interface{}{
-					"nfs": map[string]string{
-						"server":     p.Config.Spec.MSR.MSR3Config.StorageURL,
-						"path":       "/",
-						"volumeName": "nfs-subdir-external-provisioner-root",
-					},
-					"nodeSelector": map[string]string{"kubernetes.io/os": "linux"},
-				},
-				Version: "4.0.2",
-			},
-		})
-
-		if err := p.kube.SetStorageClassDefault(context.Background(), "nfs-client"); err != nil {
-			return err
-		}
+	if err := p.kube.SetStorageClassDefault(context.Background(), name); err != nil {
+		return err
 	}
 
 	return nil
+}
+
+// storageProvisionerChart returns the name of the StorageClass and the
+// helm chart details for the storage provisioner to configure based on the
+// configured StorageClassType.
+func storageProvisionerChart(config *api.ClusterConfig) (string, *helm.ChartDetails) {
+	// TODO: Currently we only support "nfs" as a configured StorageClassType,
+	// we should add some more.
+	scType := config.Spec.MSR.MSR3Config.StorageClassType
+
+	log.Debugf("configuring default storage class for %s", scType)
+
+	if scType == "nfs" {
+		return "nfs-client", &helm.ChartDetails{
+			ChartName:   "nfs-subdir-external-provisioner",
+			ReleaseName: "nfs-subdir-external-provisioner",
+			RepoURL:     "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
+			Values: map[string]interface{}{
+				"nfs": map[string]string{
+					"server":     config.Spec.MSR.MSR3Config.StorageURL,
+					"path":       "/",
+					"volumeName": "nfs-subdir-external-provisioner-root",
+				},
+				"nodeSelector": map[string]string{"kubernetes.io/os": "linux"},
+			},
+			Version: "4.0.2",
+		}
+	}
+
+	return "", nil
 }

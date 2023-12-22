@@ -6,6 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +30,20 @@ func (p *UninstallMSR3) ShouldRun() bool {
 	return p.Config.Spec.ContainsMSR3() && p.leader.MSRMetadata.Installed
 }
 
+func (p *UninstallMSR3) Prepare(config interface{}) error {
+	p.Config = config.(*api.ClusterConfig)
+	p.leader = p.Config.Spec.MSRLeader()
+
+	var err error
+
+	p.kube, p.helm, err = mke.KubeAndHelmFromConfig(p.Config)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Run an uninstall by deleting the MSR CR referenced in the config.
 func (p *UninstallMSR3) Run() error {
 	ctx := context.Background()
@@ -41,14 +56,18 @@ func (p *UninstallMSR3) Run() error {
 		}
 	}
 
-	// Remove the MSR CR.
-	n := p.Config.Spec.MSR.MSR3Config.MSR.Name
+	chartsToUninstall := p.Config.Spec.MSR.MSR3Config.Dependencies.List()
 
-	if err := p.kube.DeleteMSRCR(ctx, n); err != nil {
-		return fmt.Errorf("failed to delete MSR CR: %q: %w", n, err)
+	// Add the storage provisioner chart to the list of charts to uninstall
+	// if its configured.
+	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureStorageClass() {
+		_, chartDetails := storageProvisionerChart(p.Config)
+		chartsToUninstall = append(chartsToUninstall, chartDetails)
 	}
 
-	for _, d := range p.Config.Spec.MSR.MSR3Config.Dependencies.List() {
+	for _, d := range chartsToUninstall {
+		// Uninstalling the msr-operator chart will remove the CRD which
+		// will cause the MSR CR to be deleted.
 		err := p.helm.Uninstall(ctx, &helm.Options{ChartDetails: *d})
 		if err != nil {
 			return fmt.Errorf("failed to uninstall Helm dependency: %q: %w", d.ReleaseName, err)
