@@ -53,14 +53,6 @@ func (p *InstallMKE) Run() (err error) {
 		installFlags.AddUnlessExist("--debug")
 	}
 
-	if p.Config.Spec.MKE.CACertData != "" && p.Config.Spec.MKE.CertData != "" && p.Config.Spec.MKE.KeyData != "" {
-		err := p.installCertificates(p.Config)
-		if err != nil {
-			return err
-		}
-		installFlags.AddUnlessExist("--external-server-cert")
-	}
-
 	if p.Config.Spec.MKE.ConfigData != "" {
 		defer func() {
 			err := h.Exec(h.Configurer.DockerCommandf("config rm %s", configName))
@@ -142,45 +134,6 @@ func (p *InstallMKE) Run() (err error) {
 	}
 
 	return nil
-}
-
-// installCertificates installs user supplied MKE certificates.
-func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
-	log.Infof("Installing MKE certificates")
-	managers := config.Spec.Managers()
-	err := managers.ParallelEach(func(h *api.Host) error {
-		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
-		if err != nil {
-			log.Infof("%s: creating ucp-controller-server-certs volume", h)
-			err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"))
-			if err != nil {
-				return err
-			}
-		}
-
-		dir, err := h.ExecOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
-		if err != nil {
-			return err
-		}
-
-		log.Infof("%s: installing certificate files to %s", h, dir)
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600")
-		if err != nil {
-			return err
-		}
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600")
-		if err != nil {
-			return err
-		}
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600")
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-
-	return err
 }
 
 func applyCloudConfig(config *api.ClusterConfig) error {
