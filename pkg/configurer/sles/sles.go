@@ -38,6 +38,8 @@ func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig comm
 		return err
 	}
 
+	defer c.RemoveDockerFolders(h)
+
 	return h.Exec("sudo zypper -n remove -y --clean-deps docker-ee docker-ee-cli")
 }
 

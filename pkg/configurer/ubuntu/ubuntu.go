@@ -31,5 +31,8 @@ func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig comm
 	if err := c.StopService(h, "containerd"); err != nil {
 		return err
 	}
+
+	defer c.RemoveDockerFolders(h)
+
 	return h.Exec("sudo apt-get remove -y docker-ee docker-ee-cli && sudo apt autoremove -y")
 }

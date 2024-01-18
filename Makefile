@@ -15,13 +15,13 @@ else
 endif
 GOOS ?= ${uname_s}
 BUILDER_IMAGE = launchpad-builder
-GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
+GO ?= docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 	-w "/go/src/github.com/Mirantis/mcc" \
 	-e GOPATH\
 	-e GOOS \
 	-e GOARCH \
 	-e GOEXE \
-	$(BUILDER_IMAGE)
+	$(BUILDER_IMAGE) go
 gosrc = $(wildcard *.go */*.go */*/*.go */*/*/*.go)
 
 VOLUME_MOUNTS=-v "$(CURDIR):/v"
@@ -42,16 +42,16 @@ unit-test: builder
 
 $(TARGET): $(gosrc)
 	docker build -t $(BUILDER_IMAGE) -f Dockerfile.builder .
-	GOOS=${GOOS} $(GO) go build $(BUILD_FLAGS) -o $(TARGET) main.go
+	GOOS=${GOOS} $(GO) build $(BUILD_FLAGS) -o $(TARGET) main.go
 
 build: $(TARGET)
 
-build-all: builder
-	GOOS=linux GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 main.go
-	GOOS=linux GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-linux-arm64 main.go
-	GOOS=windows GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-win-x64.exe main.go
-	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 main.go
-	GOOS=darwin GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-arm64 main.go
+build-all:
+	GOOS=linux GOARCH=amd64 $(GO) build $(BUILD_FLAGS) -o bin/launchpad-linux-x64 main.go
+	GOOS=linux GOARCH=arm64 $(GO) build $(BUILD_FLAGS) -o bin/launchpad-linux-arm64 main.go
+	GOOS=windows GOARCH=amd64 $(GO) build $(BUILD_FLAGS) -o bin/launchpad-win-x64.exe main.go
+	GOOS=darwin GOARCH=amd64 $(GO) build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 main.go
+	GOOS=darwin GOARCH=arm64 $(GO) build $(BUILD_FLAGS) -o bin/launchpad-darwin-arm64 main.go
 
 release: build-all sign-win
 	./release.sh

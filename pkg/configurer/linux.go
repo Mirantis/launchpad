@@ -7,14 +7,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/util"
+	escape "github.com/alessio/shellescape"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 
+	"github.com/Mirantis/mcc/pkg/docker"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	log "github.com/sirupsen/logrus"
+	"github.com/Mirantis/mcc/pkg/util"
+)
 
-	escape "github.com/alessio/shellescape"
+const (
+	LINUX_DOCKER_PATH_LIB_DEFAULT = "/var/lib/docker"
+	LINUX_DOCKER_PATH_RUN_DEFAULT = "/var/run/docker"
 )
 
 // LinuxConfigurer is a generic linux host configurer.
@@ -55,6 +61,40 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 	}
 
 	return c.riglinux.StartService(h, "docker")
+}
+
+// RemoveDockerFolders Remove the docker run and lib folders IF THEY CAN BE FOUND
+//   - if docker is still running, then `docker info` is checked for run/lib paths
+//   - default docker run/lib paths are checked
+func (c LinuxConfigurer) RemoveDockerFolders(h os.Host) error {
+	rmps := []string{}
+
+	if di, err := docker.Info(h); err != nil {
+		log.Warnf("%h: RM Docker paths: could not discover docker paths from info, docker daemon is likely not running. Falling back to default path [%s]: %s", h, LINUX_DOCKER_PATH_LIB_DEFAULT, err.Error())
+		rmps = append(rmps, LINUX_DOCKER_PATH_LIB_DEFAULT)
+	} else if di.DockerRootDir != "" {
+		log.Warnf("%s: RM Docker Paths: no lib path in docker info, falling back to default path [%s]", h, LINUX_DOCKER_PATH_LIB_DEFAULT)
+		rmps = append(rmps, LINUX_DOCKER_PATH_LIB_DEFAULT)
+	} else {
+		rmps = append(rmps, di.DockerRootDir)
+	}
+
+	// command to a delete a path
+	rmc := "rm -rf %s"
+	// Can we sudo the rm command
+	if sc, err := h.Sudo(rmc); err == nil {
+		rmc = sc
+	}
+
+	for _, p := range rmps {
+		if err := h.Execf(rmc, p); err != nil {
+			log.Warnf("%s: RM Docker Paths: Failed to delete path [%s]: %s", h, p, err.Error())
+		} else {
+			log.Infof("%s: RM Docker Paths: deleted path [%s]", h, p)
+		}
+	}
+
+	return nil
 }
 
 // RestartMCR restarts Docker EE engine.
