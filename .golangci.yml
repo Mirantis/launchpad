@@ -1,30 +1,87 @@
-# Visit https://golangci-lint.run/ for usage documentation
-# and information on other useful linters
-issues:
-  max-per-linter: 0
-  max-same-issues: 0
+run:
+  timeout: 8m
+
+  skip-dirs-use-default: false
+  skip-files:
+    - ".*\\.gen\\.go"
+    - examples/*
+    - test/*
+  tests: false
+  allow-parallel-runners: true
 
 linters:
-  disable-all: true
   enable:
-    - durationcheck
-    #- errcheck
-    - exportloopref
-    #- forcetypeassert
-    - godot
-    - gofmt
+    # enabled by default
+    - errcheck
     - gosimple
+    - govet
     - ineffassign
-    - makezero
-    - misspell
-    - nilerr
-    - predeclared
     - staticcheck
+    - unused
+    # additional
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exportloopref
+    - forcetypeassert
+    - gci
+    - gocritic
+    - godot
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goimports
+    - goprintffuncname
+    - gosec
+    - importas
+    - ireturn
+    - maintidx
+    - mirror
+    - misspell
+    - nakedret
+    - nilnil
+    - nolintlint
+    - nosprintfhostport
+    - perfsprint
+    - prealloc
+    - predeclared
+    - reassign
+    - revive
+    - stylecheck
     - tenv
     - unconvert
     - unparam
-    - unused
-    - vet
+    - usestdlibvars
+    - varnamelen
+    - wastedassign
+    - whitespace
+    - wrapcheck
 
-run:
-  timeout: 10m
+linters-settings:
+  varnamelen:
+    max-distance: 10
+    ignore-decls:
+      - w http.ResponseWriter
+      - r *http.Request
+      - i int
+      - n int
+      - p []byte
+      - mu sync.Mutex
+      - wg sync.WaitGroup
+      - h Host
+      - h os.Host
+      - h *api.Host
+      - ok bool
+      - s string
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
