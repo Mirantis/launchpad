@@ -35,6 +35,13 @@ func (p *UpgradeMKE) Run() error {
 		return nil
 	}
 
+	if p.Config.Spec.MKE.CACertData != "" && p.Config.Spec.MKE.CertData != "" && p.Config.Spec.MKE.KeyData != "" {
+		log.Info("Installing MKE UI certificates on upgrade (only works if install was run with --external-server-cert.)")
+		if err := installMKECertificates(p.Config); err != nil {
+			return err
+		}
+	}
+
 	swarmClusterID := swarm.ClusterID(swarmLeader)
 	runFlags := common.Flags{"-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if !p.CleanupDisabled() {

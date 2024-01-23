@@ -48,8 +48,7 @@ func (p *InstallMKE) Run() (err error) {
 	installFlags := p.Config.Spec.MKE.InstallFlags
 
 	if p.Config.Spec.MKE.CACertData != "" && p.Config.Spec.MKE.CertData != "" && p.Config.Spec.MKE.KeyData != "" {
-		err := p.installCertificates(p.Config)
-		if err != nil {
+		if err := installMKECertificates(p.Config); err != nil {
 			return err
 		}
 		installFlags.AddUnlessExist("--external-server-cert")
@@ -138,8 +137,8 @@ func (p *InstallMKE) Run() (err error) {
 	return nil
 }
 
-// installCertificates installs user supplied MKE certificates.
-func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
+// installMKECertificates installs user supplied MKE certificates.
+func installMKECertificates(config *api.ClusterConfig) error {
 	log.Infof("Installing MKE certificates")
 	managers := config.Spec.Managers()
 	err := managers.ParallelEach(func(h *api.Host) error {
