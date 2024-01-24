@@ -9,7 +9,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/completion"
 	"github.com/Mirantis/mcc/version"
 	log "github.com/sirupsen/logrus"
-
 	"github.com/urfave/cli/v2"
 )
 

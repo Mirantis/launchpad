@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
 	"os"
@@ -11,9 +12,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/k0sproject/rig/exec"
-
-	"crypto/rand"
-
 	log "github.com/sirupsen/logrus"
 )
 

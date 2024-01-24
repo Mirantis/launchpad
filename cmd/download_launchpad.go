@@ -44,7 +44,7 @@ func NewDownloadLaunchpadCommand() *cli.Command {
 				ext = ".exe"
 			}
 
-			f, err := os.OpenFile(fmt.Sprintf("launchpad%s", ext), os.O_CREATE|os.O_WRONLY, 0755)
+			f, err := os.OpenFile(fmt.Sprintf("launchpad%s", ext), os.O_CREATE|os.O_WRONLY, 0o755)
 			if err != nil {
 				return err
 			}

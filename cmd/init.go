@@ -5,11 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/yaml.v2"
 )
 
 var kinds = []string{"mke", "mke+msr"}

@@ -7,7 +7,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
-
 	"github.com/hashicorp/go-version"
 )
 
@@ -177,7 +176,6 @@ func NewMKEConfig() MKEConfig {
 
 // UseLegacyImageRepo returns true if the version number does not satisfy >=3.1.15 || >=3.2.8 || >=3.3.2.
 func (c *MKEConfig) UseLegacyImageRepo(v *version.Version) bool {
-
 	// Strip out anything after -, seems like go-version thinks
 	// 3.1.16-rc1 does not satisfy >= 3.1.15  (nor >= 3.1.15-a)
 	vs := v.String()

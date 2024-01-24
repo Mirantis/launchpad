@@ -9,7 +9,6 @@ import (
 
 // ClientConfig downloads MKE client bundle.
 func (p *MKE) ClientConfig() error {
-
 	manager := p.ClusterConfig.Spec.Managers()[0]
 	newHosts := make(api.Hosts, 1)
 	newHosts[0] = manager

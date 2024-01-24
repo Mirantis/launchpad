@@ -264,7 +264,6 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 		retry.Delay(time.Second*3),
 		retry.Attempts(60),
 	)
-
 	if err != nil {
 		return err
 	}

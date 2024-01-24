@@ -7,7 +7,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,7 +33,6 @@ func (p *PullMKEImages) isMKESwarmOnly() bool {
 
 // Run pulls images in parallel across nodes via a workerpool of 5.
 func (p *PullMKEImages) Run() error {
-
 	swarmOnly := p.isMKESwarmOnly()
 
 	images, err := p.ListImages(false, swarmOnly)

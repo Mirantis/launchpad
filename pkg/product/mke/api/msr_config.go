@@ -92,7 +92,6 @@ func (c *MSRConfig) GetBootstrapperImage() string {
 
 // UseLegacyImageRepo returns true if the version number does not satisfy >= 2.8.2 || >= 2.7.8 || >= 2.6.15.
 func (c *MSRConfig) UseLegacyImageRepo(v *version.Version) bool {
-
 	// Strip out anything after -, seems like go-version thinks
 	vs := v.String()
 	var v2 *version.Version

@@ -107,7 +107,6 @@ func (p *Connect) connectHost(h connectable) error {
 		retry.Delay(time.Second*3),
 		retry.Attempts(retries),
 	)
-
 	if err != nil {
 		return err
 	}

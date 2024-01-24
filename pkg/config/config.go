@@ -8,18 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/a8m/envsubst"
-	"gopkg.in/yaml.v2"
-
 	"github.com/Mirantis/mcc/pkg/config/migration"
-	"github.com/k0sproject/rig/exec"
-
-	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
-	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
-	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
 	// needed to load the migrators.
@@ -28,9 +17,18 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
 	"github.com/Mirantis/mcc/pkg/product"
 	"github.com/Mirantis/mcc/pkg/product/mke"
+	"github.com/a8m/envsubst"
+	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 // ProductFromFile loads a yaml file and returns a Product that matches its Kind or an error if the file loading or validation fails.

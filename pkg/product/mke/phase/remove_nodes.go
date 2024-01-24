@@ -17,7 +17,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/k0sproject/rig/exec"
-
 	log "github.com/sirupsen/logrus"
 )
 

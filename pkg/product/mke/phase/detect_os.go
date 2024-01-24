@@ -1,8 +1,6 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	// anonymous import is needed to load the os configurers.
@@ -15,9 +13,8 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
-
 	"github.com/Mirantis/mcc/pkg/phase"
-
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
 

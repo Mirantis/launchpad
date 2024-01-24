@@ -11,7 +11,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
-
 	log "github.com/sirupsen/logrus"
 )
 

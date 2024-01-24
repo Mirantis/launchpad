@@ -3,7 +3,6 @@ package enterpriselinux
 import (
 	"github.com/Mirantis/mcc/pkg/configurer"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/linux"
 	log "github.com/sirupsen/logrus"

@@ -12,12 +12,11 @@ import (
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/avast/retry-go"
+	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	ps "github.com/k0sproject/rig/pkg/powershell"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/hashicorp/go-version"
 )
 
 // WindowsConfigurer is a generic windows host configurer.

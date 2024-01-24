@@ -5,25 +5,24 @@ import (
 	"fmt"
 	"net"
 
+	// needed to load the build func in package init.
+	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
+	// needed to load the build func in package init.
+	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	// needed to load the build func in package init.
+	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
+	// needed to load the build func in package init.
+	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
+	// needed to load the build func in package init.
+	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
+	// needed to load the build func in package init.
+	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/k0sproject/dig"
-
-	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
-	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
-	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
-	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
-	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
-	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
 	log "github.com/sirupsen/logrus"
 )
 

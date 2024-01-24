@@ -67,7 +67,6 @@ func NewStdoutHook() *FormatterWriterHook {
 
 // NewFileHook creates logrus hook for logging all levels to file.
 func NewFileHook(logFile *os.File) *FormatterWriterHook {
-
 	fileFormatter := &log.TextFormatter{
 		DisableColors:   true,
 		FullTimestamp:   true,

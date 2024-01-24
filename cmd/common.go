@@ -12,10 +12,9 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/phase"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
-	"github.com/mitchellh/go-homedir"
-
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
+	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -179,8 +178,7 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 		return nil, fmt.Errorf("error while creating directory for logs: %w", err)
 	}
 	logFileName := path.Join(clusterDir, filename)
-	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
-
+	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create log file at %s: %s", logFileName, err.Error())
 	}

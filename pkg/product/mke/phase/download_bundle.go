@@ -14,7 +14,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/mitchellh/go-homedir"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -92,15 +91,15 @@ func (p *DownloadBundle) writeBundle(bundleDir string, bundle *zip.Reader) error
 		if err != nil {
 			return err
 		}
-		mode := int64(0644)
+		mode := int64(0o644)
 		if strings.Contains(zf.Name, "key.pem") {
-			mode = 0600
+			mode = 0o600
 		}
 
 		// mke bundle will contain folders as well as files, if folder exists fd will not be empty
 		dir, _ := filepath.Split(zf.Name)
 		if dir != "" {
-			if err := os.MkdirAll(filepath.Join(bundleDir, dir), 0700); err != nil {
+			if err := os.MkdirAll(filepath.Join(bundleDir, dir), 0o700); err != nil {
 				return err
 			}
 		}

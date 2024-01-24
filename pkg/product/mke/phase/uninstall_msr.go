@@ -4,7 +4,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
 	log "github.com/sirupsen/logrus"
 )
 

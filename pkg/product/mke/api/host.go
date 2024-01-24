@@ -15,7 +15,6 @@ import (
 	"github.com/k0sproject/dig"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/os/registry"
-
 	log "github.com/sirupsen/logrus"
 )
 

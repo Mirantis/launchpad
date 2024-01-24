@@ -8,14 +8,12 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	escape "github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
-
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	log "github.com/sirupsen/logrus"
-
-	escape "github.com/alessio/shellescape"
 )
 
 // LinuxConfigurer is a generic linux host configurer.
@@ -40,7 +38,7 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 	err := h.Upload(scriptPath, installer)
 	if err != nil {
 		log.Errorf("failed: %s", err.Error())
-		return err
+		return fmt.Errorf("upload %s to %s: %w", scriptPath, installer, err)
 	}
 	defer c.riglinux.DeleteFile(h, installer)
 
@@ -49,19 +47,26 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 	log.Infof("%s: running installer", h)
 
 	if err := h.Exec(cmd); err != nil {
-		return err
+		return fmt.Errorf("run MCR installer: %w", err)
 	}
 
 	if err := c.riglinux.EnableService(h, "docker"); err != nil {
-		return err
+		return fmt.Errorrf("enable docker service: %w", err)
 	}
 
-	return c.riglinux.StartService(h, "docker")
+	if err := c.riglinux.StartService(h, "docker"); err != nil {
+		return fmt.Errorf("start docker service: %w", err)
+	}
+
+	return nil
 }
 
 // RestartMCR restarts Docker EE engine.
 func (c LinuxConfigurer) RestartMCR(h os.Host) error {
-	return c.riglinux.RestartService(h, "docker")
+	if err := c.riglinux.RestartService(h, "docker"); err != nil {
+		return fmt.Errorf("restart docker service: %w", err)
+	}
+	return nil
 }
 
 // ResolveInternalIP resolves internal ip from private interface.

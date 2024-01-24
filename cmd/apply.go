@@ -9,7 +9,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
-
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -64,7 +63,6 @@ func NewApplyCommand() *cli.Command {
 				if err != nil && logFile != nil {
 					log.Infof("See %s for more logs ", logFile.Name())
 				}
-
 			}()
 
 			// Add logger to dump all log levels to file

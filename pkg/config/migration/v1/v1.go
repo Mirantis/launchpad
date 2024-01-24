@@ -26,7 +26,7 @@ func Migrate(plain map[string]interface{}) error {
 		yaml.Unmarshal(re.ReplaceAll(s, []byte("$1$$$2")), plain)
 	}
 
-	var hasMsr = false
+	hasMsr := false
 
 	// It gets ugly - scan for the admin username/pass in ucp/dtr installFlags and move over to ucp.username + ucp.password
 
