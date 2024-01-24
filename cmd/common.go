@@ -6,17 +6,18 @@ import (
 	"os"
 	"path"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/constant"
-	mcclog "github.com/Mirantis/mcc/pkg/log"
-	"github.com/Mirantis/mcc/pkg/product/mke/phase"
-	"github.com/Mirantis/mcc/pkg/util"
-	"github.com/Mirantis/mcc/version"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+
+	"github.com/Mirantis/mcc/pkg/analytics"
+	"github.com/Mirantis/mcc/pkg/constant"
+	mcclog "github.com/Mirantis/mcc/pkg/log"
+	"github.com/Mirantis/mcc/pkg/product/mke/phase"
+	"github.com/Mirantis/mcc/pkg/util/ioutil"
+	"github.com/Mirantis/mcc/version"
 )
 
 var (
@@ -176,7 +177,7 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 	}
 
 	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
-	if err := util.EnsureDir(clusterDir); err != nil {
+	if err := ioutil.EnsureDir(clusterDir); err != nil {
 		return nil, fmt.Errorf("error while creating directory for logs: %w", err)
 	}
 	logFileName := path.Join(clusterDir, filename)

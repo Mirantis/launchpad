@@ -2,12 +2,14 @@ package phase
 
 import (
 	"context"
+	"fmt"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	log "github.com/sirupsen/logrus"
 )
 
 // ConfigureStorageProvisioner sets up the default provisioner to use based on
@@ -25,7 +27,12 @@ func (p *ConfigureStorageProvisioner) Title() string {
 }
 
 func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
+	if _, ok := config.(*api.ClusterConfig); !ok {
+		return fmt.Errorf("expected ClusterConfig, got %T", config)
+	}
+
 	p.Config = config.(*api.ClusterConfig)
+	p.leader = p.Config.Spec.MSRLeader()
 
 	var err error
 
@@ -38,7 +45,6 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 }
 
 func (p *ConfigureStorageProvisioner) ShouldRun() bool {
-	p.leader = p.Config.Spec.MSRLeader()
 	return p.Config.Spec.ContainsMSR3() &&
 		(p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed) &&
 		p.Config.Spec.MSR.MSR3Config.ShouldConfigureStorageClass()
@@ -47,17 +53,17 @@ func (p *ConfigureStorageProvisioner) ShouldRun() bool {
 func (p *ConfigureStorageProvisioner) Run() error {
 	ctx := context.Background()
 
-	name, chartDetails := storageProvisionerChart(p.Config)
-	if chartDetails == nil {
+	name, releaseDetails := storageProvisionerChart(p.Config)
+	if releaseDetails == nil {
 		log.Debugf("no storage provisioner to configure")
 		return nil
 	}
 
-	if _, err := p.helm.Upgrade(ctx, &helm.Options{ChartDetails: *chartDetails}); err != nil {
+	if _, err := p.helm.Upgrade(ctx, &helm.Options{ReleaseDetails: *releaseDetails}); err != nil {
 		return err
 	}
 
-	if err := p.kube.SetStorageClassDefault(context.Background(), name); err != nil {
+	if err := p.kube.SetStorageClassDefault(ctx, name); err != nil {
 		return err
 	}
 
@@ -66,16 +72,23 @@ func (p *ConfigureStorageProvisioner) Run() error {
 
 // storageProvisionerChart returns the name of the StorageClass and the
 // helm chart details for the storage provisioner to configure based on the
-// configured StorageClassType.
-func storageProvisionerChart(config *api.ClusterConfig) (string, *helm.ChartDetails) {
+// configured StorageClassType, if the type if not supported, a warning if
+// logged and no chart is returned.
+func storageProvisionerChart(config *api.ClusterConfig) (string, *helm.ReleaseDetails) {
 	// TODO: Currently we only support "nfs" as a configured StorageClassType,
 	// we should add some more.
 	scType := config.Spec.MSR.MSR3Config.StorageClassType
 
-	log.Debugf("configuring default storage class for %s", scType)
+	if scType == "" {
+		log.Debugf("no storage class type configured, not configuring default storage class")
+		return "", nil
+	}
 
-	if scType == "nfs" {
-		return "nfs-client", &helm.ChartDetails{
+	log.Debugf("configuring default storage class for %q", scType)
+
+	switch scType {
+	case "nfs":
+		return "nfs-client", &helm.ReleaseDetails{
 			ChartName:   "nfs-subdir-external-provisioner",
 			ReleaseName: "nfs-subdir-external-provisioner",
 			RepoURL:     "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
@@ -89,7 +102,8 @@ func storageProvisionerChart(config *api.ClusterConfig) (string, *helm.ChartDeta
 			},
 			Version: "4.0.2",
 		}
+	default:
+		log.Warnf("unknown storage class type %q, not configuring default storage class", scType)
+		return "", nil
 	}
-
-	return "", nil
 }

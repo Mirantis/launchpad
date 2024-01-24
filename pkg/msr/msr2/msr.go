@@ -11,7 +11,7 @@ import (
 
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/stringutil"
 )
 
 // CollectFacts gathers the current status of the installed MSR setup.
@@ -89,7 +89,7 @@ func PluckSharedInstallFlags(installFlags []string, sharedFlags []string) []stri
 			installFlagsMap[values[0]] = strings.Join(values[1:], " ")
 		}
 	}
-	diff := util.DiffMapAgainstStringSlice(installFlagsMap, sharedFlags)
+	diff := stringutil.DiffMapAgainstStringSlice(installFlagsMap, sharedFlags)
 	for _, d := range diff {
 		delete(installFlagsMap, d)
 	}

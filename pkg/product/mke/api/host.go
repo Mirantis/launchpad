@@ -16,9 +16,10 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/Mirantis/mcc/pkg/util/ioutil"
+
 	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
 )
 
 // HostMetadata resolved metadata for host.
@@ -52,7 +53,7 @@ type MSR2Metadata struct {
 type MSR3Metadata struct {
 	// InstalledDependencies is a map of dependencies needed for MSR3 and their
 	// versions.
-	InstalledDependencies map[string]helm.ChartDetails
+	InstalledDependencies map[string]helm.ReleaseDetails
 }
 
 type errs struct {
@@ -200,7 +201,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	}
 	size := stat.Size()
 
-	log.Infof("%s: uploading %s to %s", h, util.FormatBytes(uint64(stat.Size())), dst)
+	log.Infof("%s: uploading %s to %s", h, ioutil.FormatBytes(uint64(stat.Size())), dst)
 
 	if err := h.Connection.Upload(src, dst); err != nil {
 		return fmt.Errorf("upload failed: %w", err)
@@ -208,7 +209,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 
 	duration := time.Since(startTime).Seconds()
 	speed := float64(size) / duration
-	log.Infof("%s: transferred %s in %.1f seconds (%s/s)", h, util.FormatBytes(uint64(size)), duration, util.FormatBytes(uint64(speed)))
+	log.Infof("%s: transferred %s in %.1f seconds (%s/s)", h, ioutil.FormatBytes(uint64(size)), duration, ioutil.FormatBytes(uint64(speed)))
 
 	return nil
 }

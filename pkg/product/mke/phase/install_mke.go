@@ -9,12 +9,12 @@ import (
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/Mirantis/mcc/pkg/install"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
 )
 
 const configName string = "com.docker.ucp.config"
@@ -73,7 +73,7 @@ func (p *InstallMKE) Run() error {
 
 	if licenseFilePath := p.Config.Spec.MKE.LicenseFilePath; licenseFilePath != "" {
 		log.Debugf("Installing MKE with LicenseFilePath: %s", licenseFilePath)
-		licenseFlag, err := util.SetupLicenseFile(p.Config.Spec.MKE.LicenseFilePath)
+		licenseFlag, err := install.SetupLicenseFile(p.Config.Spec.MKE.LicenseFilePath)
 		if err != nil {
 			return fmt.Errorf("error while reading license file %s: %w", licenseFilePath, err)
 		}

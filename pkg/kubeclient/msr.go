@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/docker/dhe-deploy/gocode/pkg/pollutil"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,6 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/util/pollutil"
 )
 
 func (kc *KubeClient) GetMSRCR(ctx context.Context, name string) (*unstructured.Unstructured, error) {
@@ -39,11 +40,14 @@ func (kc *KubeClient) ValidateMSROperatorReady(ctx context.Context) error {
 // WaitForMSRCRReady waits for CR object provided to be ready by polling the
 // status obtained from the given object.
 func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.Unstructured) error {
-	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "waiting for %q CR Ready state for up to 10m0s", obj.GetName())
+	numRetries := 120
+	interval := 5 * time.Second
+
+	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "waiting for %q CR Ready state for up to %s", obj.GetName(), interval*time.Duration(numRetries))
 
 	// Wait for a maximum time of 10 minutes.
-	pollCfg.Interval = 5 * time.Second
-	pollCfg.NumRetries = 120
+	pollCfg.Interval = interval
+	pollCfg.NumRetries = numRetries
 
 	rc, err := kc.getMSRResourceClient()
 	if err != nil {
@@ -69,7 +73,7 @@ func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.U
 }
 
 // ApplyMSRCR applies the given MSR CR object to the cluster, reattempting
-// the operation ever if it fails every 5 seconds for up to 30 seconds.
+// the operation several times if it does not succeed.
 func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstructured) error {
 	name := obj.GetName()
 
@@ -78,13 +82,13 @@ func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstruct
 		if apierrors.IsNotFound(err) {
 			log.Infof("MSR CR %q not found, creating", name)
 		} else {
-			return fmt.Errorf("failed to get MSR CR: %w", err)
+			return fmt.Errorf("failed attempting to check for MSR CR: %w", err)
 		}
 	}
 
 	rc, err := kc.getMSRResourceClient()
 	if err != nil {
-		return pollutil.Abort(fmt.Errorf("failed to get resource client for MSR CR: %w", err))
+		return fmt.Errorf("failed to get resource client for MSR CR: %w", err)
 	}
 
 	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "Applying resource YAML")
@@ -182,14 +186,22 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string) (*url.URL, error)
 		return nil, err
 	}
 
-	externalPort, found, err := unstructured.NestedInt64(msrCR.Object, "spec", "externalHTTPSPort")
-	if err != nil || !found {
-		return nil, fmt.Errorf("failed to get MSR spec.externalHTTPSPort: %w", err)
+	externalPort, found, err := unstructured.NestedInt64(msrCR.Object, "spec", "service", "externalHTTPSPort")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MSR spec.service.externalHTTPSPort: %w", err)
 	}
 
-	serviceType, found, err := unstructured.NestedString(msrCR.Object, "spec", "serviceType")
-	if err != nil || !found {
-		return nil, fmt.Errorf("failed to get MSR spec.serviceType: %w", err)
+	if !found {
+		return nil, fmt.Errorf("MSR spec.service.externalHTTPSPort not found")
+	}
+
+	serviceType, found, err := unstructured.NestedString(msrCR.Object, "spec", "service", "serviceType")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MSR spec.service.serviceType: %w", err)
+	}
+
+	if !found {
+		return nil, fmt.Errorf("MSR spec.service.serviceType not found")
 	}
 
 	var (
@@ -219,7 +231,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string) (*url.URL, error)
 		}
 
 		if len(nodes.Items) == 0 {
-			return nil, fmt.Errorf("no nodes found")
+			return nil, fmt.Errorf("no MSR nodes found")
 		}
 
 		msrAddr = nodes.Items[0].Status.Addresses[0].String() + ":" + port

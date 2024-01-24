@@ -7,12 +7,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
+	"github.com/Mirantis/mcc/pkg/util/stringutil"
 )
 
 // ValidateHosts phase implementation to collect facts (OS, version etc.) from hosts.
@@ -146,10 +150,9 @@ func (p *ValidateHosts) validateHostLocalAddress(h *api.Host) error {
 		return nil
 	}
 
-	if !util.StringSliceContains(localAddresses, h.Metadata.InternalAddress) {
-		msg := fmt.Sprintf("discovered private address %s does not seem to be a node local address (%s). Make sure you've set correct 'privateInterface' for the host in config", h.Metadata.InternalAddress, strings.Join(localAddresses, ","))
-		h.Errors.Add(msg)
-		return nil
+	if !stringutil.StringSliceContains(localAddresses, h.Metadata.InternalAddress) {
+		h.Errors.Add(fmt.Sprintf("discovered private address %s does not seem to be a node local address (%s). Make sure you've set correct 'privateInterface' for the host in config", h.Metadata.InternalAddress, strings.Join(localAddresses, ",")))
+		return err
 	}
 
 	return nil

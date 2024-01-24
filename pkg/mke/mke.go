@@ -26,7 +26,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/kubeclient"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/ioutil"
 )
 
 // AuthToken represents a session token.
@@ -198,6 +198,10 @@ func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Con
 }
 
 func DownloadBundle(config *api.ClusterConfig) error {
+	if len(config.Spec.Managers()) == 0 {
+		return fmt.Errorf("no managers found in config")
+	}
+
 	m := config.Spec.Managers()[0]
 
 	tlsConfig, err := GetTLSConfigFrom(m, config.Spec.MKE.ImageRepo, config.Spec.MKE.Version)
@@ -251,7 +255,7 @@ func safePath(base, rel string) (string, error) {
 }
 
 func writeBundle(bundleDir string, bundle *zip.Reader) error {
-	if err := util.EnsureDir(bundleDir); err != nil {
+	if err := ioutil.EnsureDir(bundleDir); err != nil {
 		return fmt.Errorf("error while creating directory: %w", err)
 	}
 	log.Debugf("Writing out bundle to %s", bundleDir)
@@ -300,11 +304,13 @@ func getBundleDir(config *api.ClusterConfig) (string, error) {
 	return path.Join(home, constant.StateBaseDir, "cluster", config.Metadata.Name, "bundle", config.Spec.MKE.AdminUsername), nil
 }
 
-// CleanBundleDir cleans the bundledir affiliated with config.
-func CleanBundleDir(config *api.ClusterConfig) error {
+// CleanBundleDir cleans the bundledir affiliated with config, warning if
+// it cannot be cleaned.
+func CleanBundleDir(config *api.ClusterConfig) {
 	bundleDir, err := getBundleDir(config)
 	if err != nil {
-		return err
+		log.Warnf("failed to cleanup bundle directory: %q: failed to get bundle directory: %s", bundleDir, err)
+		return
 	}
 
 	log.Debugf("cleaning up client bundle directory: %q", bundleDir)
@@ -312,8 +318,6 @@ func CleanBundleDir(config *api.ClusterConfig) error {
 	if err := os.RemoveAll(bundleDir); err != nil {
 		log.Warnf("failed to cleanup bundle directory: %q: %s", bundleDir, err)
 	}
-
-	return nil
 }
 
 var ErrMKENotInstalled = errors.New("MKE is not installed")

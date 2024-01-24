@@ -3,14 +3,15 @@ package phase
 import (
 	"fmt"
 
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
 )
 
 // UninstallMKE is the phase implementation for running MKE uninstall.
@@ -61,9 +62,7 @@ func (p *UninstallMKE) Run() error {
 		})
 	}
 
-	if err = mke.CleanBundleDir(p.Config); err != nil {
-		return fmt.Errorf("failed to clean bundle dir: %w", err)
-	}
+	mke.CleanBundleDir(p.Config)
 
 	return nil
 }

@@ -6,23 +6,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/helm"
-	"github.com/Mirantis/mcc/pkg/kubeclient"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	msrv1 "github.com/Mirantis/msr-operator/api/v1"
 	"github.com/mitchellh/mapstructure"
+	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/release"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
+// CollectFacts gathers the current status of the installed MSR3 setup.
 func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, h *helm.Helm) (*api.MSRMetadata, error) {
 	obj, err := kc.GetMSRCR(ctx, msrName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			fmt.Println(fmt.Errorf("MSR CR: %s not found: %w", msrName, err))
+			log.Infof("MSR CR: %s not found: %s", msrName, err)
 			return &api.MSRMetadata{Installed: false}, nil
 		}
 		return nil, err
@@ -53,10 +56,10 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 		return nil, fmt.Errorf("failed to find any installed helm dependencies")
 	}
 
-	installedDeps := make(map[string]helm.ChartDetails)
+	installedDeps := make(map[string]helm.ReleaseDetails)
 
 	for _, rel := range releases {
-		installedDeps[rel.Name] = helm.ChartDetails{
+		installedDeps[rel.Name] = helm.ReleaseDetails{
 			ReleaseName: rel.Name,
 			ChartName:   rel.Chart.Name(),
 			Version:     rel.Chart.Metadata.Version,
@@ -88,7 +91,7 @@ func ApplyCRD(ctx context.Context, msr *msrv1.MSR, kc *kubeclient.KubeClient) er
 	}
 
 	if err := d.Decode(msr); err != nil {
-		return fmt.Errorf("failed to decode MSR CR into map: %w", err)
+		return fmt.Errorf("failed to decode MSR CRD into map: %w", err)
 	}
 
 	obj := &unstructured.Unstructured{Object: result}

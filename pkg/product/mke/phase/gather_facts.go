@@ -8,15 +8,8 @@ import (
 	"net"
 
 	log "github.com/sirupsen/logrus"
-
+	// needed to load the build func in package init.
 	"github.com/k0sproject/dig"
-
-	"github.com/Mirantis/mcc/pkg/msr/msr2"
-	"github.com/Mirantis/mcc/pkg/msr/msr3"
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/swarm"
-
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	// needed to load the build func in package init.
@@ -28,10 +21,11 @@ import (
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	// needed to load the build func in package init.
-	"github.com/k0sproject/dig"
-
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
+
 	"github.com/Mirantis/mcc/pkg/mke"
+	"github.com/Mirantis/mcc/pkg/msr/msr2"
+	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
@@ -102,6 +96,8 @@ func (p *GatherFacts) Run() error {
 					log.Infof("mke is not yet installed, skipping msr3 fact collection")
 					return nil
 				}
+
+				return err
 			}
 
 			msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.MSR3Config.GetName(), kc, hc)

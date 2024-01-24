@@ -5,9 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
+
+	"github.com/Mirantis/mcc/pkg/util/ioutil"
 )
 
 const (
@@ -55,7 +56,7 @@ func SaveConfig(config *Config) error {
 		return fmt.Errorf("failed to expand config file path: %w", err)
 	}
 	configDir := filepath.Dir(configFile)
-	if err = util.EnsureDir(configDir); err != nil {
+	if err = ioutil.EnsureDir(configDir); err != nil {
 		return fmt.Errorf("failed to ensure config dir: %w", err)
 	}
 	d, err := yaml.Marshal(&config)

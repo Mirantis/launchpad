@@ -13,15 +13,14 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
-	"k8s.io/utils/pointer"
 )
 
 const (
 	defaultUpgradeTimeout = time.Second * 300
 )
 
-// ChartDetails contains details about a Helm chart.
-type ChartDetails struct {
+// ReleaseDetails contains details about a Helm chart release.
+type ReleaseDetails struct {
 	// ChartName is the name of the Helm chart.
 	ChartName string `yaml:"chartName,omitempty"`
 	// ReleaseName is the name of the Helm release.
@@ -38,8 +37,8 @@ type ChartDetails struct {
 
 // Options to be used with Helm actions.
 type Options struct {
-	// ChartDetails contains details about the Helm chart.
-	ChartDetails
+	// ReleaseDetails contains details about a Helm chart release.
+	ReleaseDetails
 	// ReuseValues will re-use the user's last supplied values.
 	ReuseValues bool
 	// Wait determines whether the wait operation should be performed after the upgrade is requested.
@@ -63,10 +62,6 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	cfg := h.config
 	settings := h.settings
 
-	if opts.Timeout == nil {
-		opts.Timeout = pointer.Duration(defaultUpgradeTimeout)
-	}
-
 	chartPathOptions := action.ChartPathOptions{
 		RepoURL: opts.RepoURL,
 		Version: opts.Version,
@@ -85,6 +80,8 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 			log.Infof("release %q not found, installing it now", opts.ReleaseName)
 			return h.install(ctx, opts, opts.Values, ch)
 		}
+
+		return nil, fmt.Errorf("failed to retrieve release history for %q: %w", opts.ReleaseName, err)
 	}
 
 	log.Infof("release %q found using chart: %q, upgrading to version: %q", opts.ReleaseName, opts.ChartName, opts.Version)
@@ -97,7 +94,7 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	u.Version = opts.Version
 	u.Timeout = *opts.Timeout
 
-	return u.RunWithContext(ctx, opts.ChartDetails.ReleaseName, ch, opts.Values)
+	return u.RunWithContext(ctx, opts.ReleaseDetails.ReleaseName, ch, opts.Values)
 }
 
 // install is ran as part of the Upgrade process when the chart is not
@@ -109,10 +106,12 @@ func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]inter
 
 	i := action.NewInstall(&cfg)
 
+	if opts.Timeout != nil {
+		i.Timeout = *opts.Timeout
+	}
+
 	i.Namespace = settings.Namespace()
 	i.ReleaseName = opts.ReleaseName
-	i.Version = opts.ChartDetails.Version
-	i.Timeout = *opts.Timeout
 	i.Version = opts.Version
 	i.Atomic = opts.Atomic
 	i.Wait = opts.Wait

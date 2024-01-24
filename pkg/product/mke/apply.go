@@ -63,6 +63,8 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 			&mke.ConfigureStorageProvisioner{},
 			&mke.InstallOrUpgradeMSR3{},
 		)
+	default:
+		return fmt.Errorf("unsupported MSR version: %s", p.ClusterConfig.Spec.MSR.Version)
 	}
 
 	// Add the remaining phases that run regardless of MSR version.

@@ -1,4 +1,4 @@
-package util
+package stringutil
 
 // StringSliceContains checks if  string slice contains given string.
 func StringSliceContains(slice []string, str string) bool {

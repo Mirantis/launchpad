@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
 	escape "github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // LinuxConfigurer is a generic linux host configurer.
@@ -98,7 +98,7 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 
 		if addr != publicIP {
 			log.Infof("%s: using %s as private IP", h, addr)
-			if util.IsValidAddress(addr) {
+			if isValidAddress(addr) {
 				return addr, nil
 			}
 		}

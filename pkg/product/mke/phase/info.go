@@ -1,8 +1,9 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/phase"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/phase"
 )
 
 // Info shows information about the configured clusters.
@@ -34,7 +35,7 @@ func (p *Info) Run() error {
 		case 3:
 			msrURL, err := getMSRURL(p.Config)
 			if err != nil {
-				log.Infof("failed to get msr URL: %s", err)
+				log.Infof("failed to get MSR URL: %s", err)
 			} else {
 				log.Infof("MSR cluster admin UI: %s", msrURL)
 			}

@@ -12,7 +12,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/ioutil"
 )
 
 // MSRConfig has all the bits needed to configure MSR during installation.
@@ -20,7 +20,7 @@ type MSRConfig struct {
 	Version string `yaml:"version" validate:"required"`
 
 	// These fields configure the MSR3 CR managed by msr-operator. These
-	// value's cannot be used to configure MSR.
+	// value's cannot be used to configure MSR (v2).
 	*MSR3Config `yaml:"msr3,omitempty"`
 
 	// These fields configure the MSR installer.  These cannot be used
@@ -75,15 +75,15 @@ func (c *MSR3Config) ShouldConfigureLB() bool {
 
 // Dependencies define strict dependencies that MSR3 needs to function.
 type Dependencies struct {
-	CertManager       *helm.ChartDetails `yaml:"certManager"`
-	PostgresOperator  *helm.ChartDetails `yaml:"postgresOperator"`
-	RethinkDBOperator *helm.ChartDetails `yaml:"rethinkDBOperator"`
-	MSROperator       *helm.ChartDetails `yaml:"msrOperator"`
+	CertManager       *helm.ReleaseDetails `yaml:"certManager"`
+	PostgresOperator  *helm.ReleaseDetails `yaml:"postgresOperator"`
+	RethinkDBOperator *helm.ReleaseDetails `yaml:"rethinkDBOperator"`
+	MSROperator       *helm.ReleaseDetails `yaml:"msrOperator"`
 }
 
 // List returns a list of all dependencies from the MSR3Config.
-func (d *Dependencies) List() []*helm.ChartDetails {
-	return []*helm.ChartDetails{
+func (d *Dependencies) List() []*helm.ReleaseDetails {
+	return []*helm.ReleaseDetails{
 		d.CertManager,
 		d.PostgresOperator,
 		d.RethinkDBOperator,
@@ -95,7 +95,7 @@ func (d *Dependencies) List() []*helm.ChartDetails {
 // FIXME: Maybe we should just use default struct tags instead of this?
 func (d *Dependencies) SetDefaults() {
 	if d.CertManager == nil {
-		d.CertManager = &helm.ChartDetails{}
+		d.CertManager = &helm.ReleaseDetails{}
 
 		if d.CertManager.ChartName == "" {
 			d.CertManager.ChartName = constant.CertManager
@@ -115,7 +115,7 @@ func (d *Dependencies) SetDefaults() {
 	}
 
 	if d.PostgresOperator == nil {
-		d.PostgresOperator = &helm.ChartDetails{}
+		d.PostgresOperator = &helm.ReleaseDetails{}
 
 		if d.PostgresOperator.ChartName == "" {
 			d.PostgresOperator.ChartName = constant.PostgresOperator
@@ -141,7 +141,7 @@ func (d *Dependencies) SetDefaults() {
 	}
 
 	if d.RethinkDBOperator == nil {
-		d.RethinkDBOperator = &helm.ChartDetails{}
+		d.RethinkDBOperator = &helm.ReleaseDetails{}
 
 		if d.RethinkDBOperator.ChartName == "" {
 			d.RethinkDBOperator.ChartName = constant.RethinkDBOperator
@@ -158,7 +158,7 @@ func (d *Dependencies) SetDefaults() {
 	}
 
 	if d.MSROperator == nil {
-		d.MSROperator = &helm.ChartDetails{}
+		d.MSROperator = &helm.ReleaseDetails{}
 
 		if d.MSROperator.ChartName == "" {
 			d.MSROperator.ChartName = constant.MSROperator
@@ -203,7 +203,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if c.CACertPath != "" {
-		caCertData, err := util.LoadExternalFile(c.CACertPath)
+		caCertData, err := ioutil.LoadExternalFile(c.CACertPath)
 		if err != nil {
 			return fmt.Errorf("failed to load msr ca cert file: %w", err)
 		}
@@ -211,7 +211,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if c.CertPath != "" {
-		certData, err := util.LoadExternalFile(c.CertPath)
+		certData, err := ioutil.LoadExternalFile(c.CertPath)
 		if err != nil {
 			return fmt.Errorf("failed to load msr cert file: %w", err)
 		}
@@ -219,7 +219,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if c.KeyPath != "" {
-		keyData, err := util.LoadExternalFile(c.KeyPath)
+		keyData, err := ioutil.LoadExternalFile(c.KeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to load msr key file: %w", err)
 		}

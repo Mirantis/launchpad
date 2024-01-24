@@ -6,15 +6,13 @@ import (
 	"os"
 	"time"
 
-	event "gopkg.in/segmentio/analytics-go.v3"
-
-	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/util"
-	"github.com/Mirantis/mcc/version"
-
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+	event "gopkg.in/segmentio/analytics-go.v3"
+
+	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/version"
 )
 
 var errInvalidArguments = errors.New("invalid arguments")

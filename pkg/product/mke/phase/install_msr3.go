@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
-	log "github.com/sirupsen/logrus"
 )
 
 // InstallOrUpgradeMSR3 deploys an MSR Custom Resource using the CRD provided
@@ -31,6 +32,10 @@ func (p *InstallOrUpgradeMSR3) Title() string {
 // Prepare collects the hosts and labels them with the MSR role via the
 // Kubernetes client so that they can be used as NodeSelector in the MSR CR.
 func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
+	if _, ok := config.(*api.ClusterConfig); !ok {
+		return fmt.Errorf("expected ClusterConfig, got %T", config)
+	}
+
 	p.Config = config.(*api.ClusterConfig)
 	p.leader = p.Config.Spec.MSRLeader()
 
@@ -39,6 +44,25 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 	p.kube, p.helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// ShouldRun should return true only if msr3 config is present.
+func (p *InstallOrUpgradeMSR3) ShouldRun() bool {
+	return p.Config.Spec.ContainsMSR3()
+}
+
+// Run deploys an MSR CR to the cluster, setting NodeSelector to nodes the user
+// has specified as MSR hosts in the config.
+func (p *InstallOrUpgradeMSR3) Run() error {
+	ctx := context.Background()
+
+	h := p.leader
+
+	if h.MSRMetadata == nil {
+		h.MSRMetadata = &api.MSRMetadata{}
 	}
 
 	var msrHosts []*api.Host
@@ -66,10 +90,18 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 			return fmt.Errorf("failed to label node %s (%s) for kube orchestration: %w", hostname, nodeID, err)
 		}
 
-		swarmOrchestratorRemoveLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.SwarmOrchestratorRemoveLabelCmd, nodeID)
-		err = swarmLeader.Exec(swarmOrchestratorRemoveLabelCmd)
+		swarmOrchestratorCheckLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.SwarmOrchestratorCheckLabelCmd, nodeID)
+		output, err := swarmLeader.ExecOutput(swarmOrchestratorCheckLabelCmd)
 		if err != nil {
-			log.Warnf("failed to remove swarm orchestrator label from node %s (%s): it most likely did not exist: %s", hostname, nodeID, err)
+			log.Warnf("failed to check swarm orchestrator label on node %s (%s): %s", hostname, nodeID, err)
+		}
+
+		if output != "" {
+			swarmOrchestratorRemoveLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.SwarmOrchestratorRemoveLabelCmd, nodeID)
+			err = swarmLeader.Exec(swarmOrchestratorRemoveLabelCmd)
+			if err != nil {
+				log.Warnf("failed to remove swarm orchestrator label from node %s (%s): %s", hostname, nodeID, err)
+			}
 		}
 
 		err = p.kube.PrepareNodeForMSR(context.Background(), hostname)
@@ -79,30 +111,11 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 
 	}
 
-	return nil
-}
-
-// ShouldRun should return true only if msr3 config is present.
-func (p *InstallOrUpgradeMSR3) ShouldRun() bool {
-	return p.Config.Spec.ContainsMSR3()
-}
-
-// Run deploys an MSR CR to the cluster, setting NodeSelector to nodes the user
-// has specified as MSR hosts in the config.
-func (p *InstallOrUpgradeMSR3) Run() error {
-	ctx := context.Background()
-
-	h := p.leader
-
-	if h.MSRMetadata == nil {
-		h.MSRMetadata = &api.MSRMetadata{}
-	}
-
 	if err := p.Config.Spec.CheckMKEHealthRemote(h); err != nil {
-		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", h)
+		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installation flag and check connectivity", h)
 	}
 
-	if err := p.kube.ValidateMSROperatorReady(context.Background()); err != nil {
+	if err := p.kube.ValidateMSROperatorReady(ctx); err != nil {
 		return fmt.Errorf("failed to validate msr-operator is ready: %w", err)
 	}
 
@@ -139,13 +152,13 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 
 	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureLB() {
 		if err := p.kube.ExposeLoadBalancer(ctx, p.Config.Spec.MSR.MSR3Config.LoadBalancerURL); err != nil {
-			return fmt.Errorf("failed to expose msr via LoadBalancer: %w", err)
+			return fmt.Errorf("failed to expose MSR via LoadBalancer: %w", err)
 		}
 	}
 
 	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.MSR3Config.GetName(), p.kube, p.helm)
 	if err != nil {
-		return fmt.Errorf("failed to collect msr3 details: %w", err)
+		return fmt.Errorf("failed to collect MSR3 details: %w", err)
 	}
 
 	h.MSRMetadata = msrMeta

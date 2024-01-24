@@ -4,10 +4,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
+
+	"github.com/Mirantis/mcc/pkg/analytics"
 )
 
 type phase interface {
@@ -91,9 +92,8 @@ func (m *Manager) Run() error {
 
 		result := phase.Run()
 
-		// FIXME: This duration does not work, always prints 0s.
 		duration := time.Since(start)
-		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Minute))
+		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Second))
 
 		if e, ok := phase.(Eventable); ok {
 			r := reflect.ValueOf(m.config).Elem()

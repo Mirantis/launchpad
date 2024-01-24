@@ -26,6 +26,8 @@ func (p *MKE) Reset() error {
 		phaseManager.AddPhase(&mke.UninstallMSR{})
 	case 3:
 		phaseManager.AddPhase(&mke.UninstallMSR3{})
+	default:
+		return fmt.Errorf("unsupported MSR version: %s", p.ClusterConfig.Spec.MSR.Version)
 	}
 
 	phaseManager.AddPhases(

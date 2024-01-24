@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/go-version"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/hashicorp/go-version"
-	log "github.com/sirupsen/logrus"
 )
 
 // ConfigureDeps phase implementation configures any Helm dependencies for
@@ -27,6 +28,10 @@ func (p *ConfigureDepsMSR3) Title() string {
 }
 
 func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
+	if _, ok := config.(*api.ClusterConfig); !ok {
+		return fmt.Errorf("expected ClusterConfig, got %T", config)
+	}
+
 	p.Config = config.(*api.ClusterConfig)
 
 	var err error
@@ -39,29 +44,24 @@ func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
 	return nil
 }
 
-// ShouldRun ...
-func (p *ConfigureDepsMSR3) ShouldRun() bool {
-	return true
-}
-
 // Run configures the dependencies for an MSR CR to be able to deploy by
 // installing cert-manager, postgres-operator, rethinkdb-operator and
 // msr-operator.  If these are already installed, the phase is a no-op.
 func (p *ConfigureDepsMSR3) Run() error {
-	for _, chd := range p.Config.Spec.MSR.MSR3Config.Dependencies.List() {
-		vers, err := version.NewSemver(chd.Version)
+	for _, rd := range p.Config.Spec.MSR.MSR3Config.Dependencies.List() {
+		vers, err := version.NewSemver(rd.Version)
 		if err != nil {
-			return fmt.Errorf("failed to parse version %q for dependency %q: %s", chd.Version, chd.ReleaseName, err)
+			return fmt.Errorf("failed to parse version %q for dependency %q: %s", rd.Version, rd.ReleaseName, err)
 		}
 
-		needsUpgrade, err := p.helm.ChartNeedsUpgrade(context.Background(), chd.ReleaseName, vers)
+		needsUpgrade, err := p.helm.ChartNeedsUpgrade(context.Background(), rd.ReleaseName, vers)
 		if err != nil {
 			// Log any errors that are different then NotFound, but try to
 			// upgrade anyway.
 			var notFoundErr helm.ErrReleaseNotFound
 
 			if !errors.As(err, &notFoundErr) {
-				log.Debugf("failed to check if dependency %q needs upgrade, will try to upgrade anyway: %s", chd.ReleaseName, err)
+				log.Warnf("failed to check if dependency %q needs upgrade, will try to upgrade anyway: %s", rd.ReleaseName, err)
 			}
 
 			needsUpgrade = true
@@ -69,16 +69,16 @@ func (p *ConfigureDepsMSR3) Run() error {
 
 		if needsUpgrade {
 			_, err := p.helm.Upgrade(context.Background(), &helm.Options{
-				ChartDetails: *chd,
-				ReuseValues:  true,
-				Wait:         true,
-				Atomic:       true,
+				ReleaseDetails: *rd,
+				ReuseValues:    true,
+				Wait:           true,
+				Atomic:         true,
 			})
 			if err != nil {
-				return fmt.Errorf("failed to install/upgrade Helm release %q: %w", chd.ReleaseName, err)
+				return fmt.Errorf("failed to install/upgrade Helm release %q: %w", rd.ReleaseName, err)
 			}
 
-			log.Infof("dependency %q installed/upgraded", chd.ReleaseName)
+			log.Infof("dependency %q installed/upgraded", rd.ReleaseName)
 		}
 	}
 

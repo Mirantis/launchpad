@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	ps "github.com/k0sproject/rig/pkg/powershell"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // WindowsConfigurer is a generic windows host configurer.
@@ -144,7 +144,7 @@ func (c WindowsConfigurer) ResolveInternalIP(h os.Host, privateInterface, public
 	}
 	addr := strings.TrimSpace(output)
 	if addr != publicIP {
-		if util.IsValidAddress(addr) {
+		if isValidAddress(addr) {
 			log.Infof("%s: using %s as private IP", h, addr)
 			return addr, nil
 		}

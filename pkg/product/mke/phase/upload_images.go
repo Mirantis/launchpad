@@ -8,7 +8,8 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/ioutil"
+
 	"github.com/alessio/shellescape"
 	log "github.com/sirupsen/logrus"
 )
@@ -80,7 +81,7 @@ func (p *LoadImages) Run() error {
 		return nil
 	})
 
-	log.Infof("total %s of images to upload", util.FormatBytes(totalBytes))
+	log.Infof("total %s of images to upload", ioutil.FormatBytes(totalBytes))
 
 	err := p.Hosts.Each(func(h *api.Host) error {
 		for idx, f := range h.Metadata.ImagesToUpload {

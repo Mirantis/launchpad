@@ -7,7 +7,8 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/ioutil"
+
 	"github.com/hashicorp/go-version"
 )
 
@@ -68,7 +69,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.ConfigFile != "" {
-		configData, err := util.LoadExternalFile(raw.ConfigFile)
+		configData, err := ioutil.LoadExternalFile(raw.ConfigFile)
 		if err != nil {
 			return fmt.Errorf("error in field spec.mke.configFile: %w", err)
 		}
@@ -76,7 +77,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.Cloud != nil && raw.Cloud.ConfigFile != "" {
-		cloudConfigData, err := util.LoadExternalFile(raw.Cloud.ConfigFile)
+		cloudConfigData, err := ioutil.LoadExternalFile(raw.Cloud.ConfigFile)
 		if err != nil {
 			return fmt.Errorf("error in field spec.mke.cloud.configFile: %w", err)
 		}
@@ -124,7 +125,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.CACertPath != "" {
-		caCertData, err := util.LoadExternalFile(raw.CACertPath)
+		caCertData, err := ioutil.LoadExternalFile(raw.CACertPath)
 		if err != nil {
 			return fmt.Errorf("failed to load CA cert file: %w", err)
 		}
@@ -132,7 +133,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.CertPath != "" {
-		certData, err := util.LoadExternalFile(raw.CertPath)
+		certData, err := ioutil.LoadExternalFile(raw.CertPath)
 		if err != nil {
 			return fmt.Errorf("failed to load cert file: %w", err)
 		}
@@ -140,7 +141,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.KeyPath != "" {
-		keyData, err := util.LoadExternalFile(raw.KeyPath)
+		keyData, err := ioutil.LoadExternalFile(raw.KeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to load key file: %w", err)
 		}

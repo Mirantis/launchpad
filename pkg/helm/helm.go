@@ -8,7 +8,6 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/hashicorp/go-version"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
@@ -29,7 +28,9 @@ type Helm struct {
 	settings cli.EnvSettings
 }
 
-// New returns a configured Helm.
+// New returns a configured Helm.  An MKE bundleDir which contains a kubeconfig
+// file and a kubernetes namespace are required to scope the configured Helm
+// client.
 func New(bundleDir, namespace string) (*Helm, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
@@ -65,14 +66,12 @@ func (h *Helm) ChartNeedsUpgrade(ctx context.Context, releaseName string, newVer
 		return false, err
 	}
 
-	logrus.Debugf("release: %q at version %q, expected version: %q", releaseName, existingVersion, newVersion)
-
 	if existingVersion.Equal(newVersion) {
-		logrus.Debugf("release: %q is already at version: %q", releaseName, newVersion)
+		log.Debugf("release: %q is already at version: %q", releaseName, newVersion)
 		return false, nil
 	}
 
-	logrus.Debugf("release: %q needs to match version: %q", releaseName, newVersion)
+	log.Debugf("release: %q needs to match version: %q", releaseName, newVersion)
 
 	return true, nil
 }
@@ -107,7 +106,6 @@ func (h *Helm) List(ctx context.Context, filter string) ([]*release.Release, err
 		l.Filter = filter
 	}
 
-	l.Filter = filter
 	l.Deployed = true
 
 	l.SetStateMask()

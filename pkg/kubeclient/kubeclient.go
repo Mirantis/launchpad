@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Mirantis/mcc/pkg/constant"
 	log "github.com/sirupsen/logrus"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,6 +15,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 type KubeClient struct {
@@ -26,8 +27,8 @@ type KubeClient struct {
 	config         *rest.Config
 }
 
-// NewFromBundle returns a new instance of KubeClient from
-// a given bundle directory.
+// NewFromBundle returns a new instance of KubeClient from a
+// given bundle directory and defaulting to the provided namespace.
 func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 	f := filepath.Join(bundleDir, constant.KubeConfigFile)
 
@@ -61,7 +62,7 @@ func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 	return kc, nil
 }
 
-// CRDReady verifies that the CRD and Deployment is available.
+// CRDReady verifies that the CRD is available.
 // This is the equivalent of running `kubectl get crd crdName`.
 func (kc *KubeClient) crdReady(ctx context.Context, name string) error {
 	_, err := kc.extendedClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
@@ -74,29 +75,37 @@ func (kc *KubeClient) crdReady(ctx context.Context, name string) error {
 
 // deploymentReady verifies that the Deployment is available.
 // This is the equivalent of running `kubectl list deployment -l labels`.
+// The labels should be formatted as a comma separated list of key=value pairs.
 func (kc *KubeClient) deploymentReady(ctx context.Context, labels string) error {
 	d, err := kc.client.AppsV1().Deployments(kc.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels,
 	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("Deployment with %q labels not found, ensure the deployment exists", labels)
+			return fmt.Errorf("deployment with %q labels not found, ensure the deployment exists", labels)
 		}
 
 		return err
 	}
 
+	if len(d.Items) > 1 {
+		return fmt.Errorf("deployment with %q labels found more than once, ensure the deployment is unique", labels)
+	}
+
 	if len(d.Items) < 1 {
-		return fmt.Errorf("Deployment with %q labels not found, ensure the deployment exists", labels)
+		return fmt.Errorf("deployment with %q labels not found, ensure the deployment exists", labels)
 	}
 
 	if d.Items[0].Status.ReadyReplicas < 1 {
-		return fmt.Errorf("Deployment with %q labels was found, but is not yet ready", labels)
+		return fmt.Errorf("deployment with %q labels was found, but is not yet ready", labels)
 	}
 
 	return nil
 }
 
+// crIsReady verifies that the Custom Resource is available and ready, the CR
+// object to check for should be provided as an unstructured object, a
+// resourceClient affiliated with the CR is also required.
 func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructured, resourceClient dynamic.ResourceInterface) (bool, error) {
 	crdObj, err := resourceClient.Get(ctx, obj.GetName(), metav1.GetOptions{})
 	if err != nil {
@@ -130,7 +139,6 @@ func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructu
 func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) error {
 	log.Debugf("setting: %s as default StorageClass", name)
 
-	// Ensure no other StorageClass is already set to default.
 	storageClasses, err := kc.client.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to list StorageClasses: %w", err)
@@ -173,8 +181,8 @@ func (kc *KubeClient) DeleteService(ctx context.Context, name string) error {
 	return kc.client.CoreV1().Services(kc.Namespace).Delete(ctx, name, metav1.DeleteOptions{})
 }
 
-// ExposeLoadBalancer creates a new service of Type: LoadBalancer, its
+// ExposeLoadBalancer creates a new service of Type: LoadBalancer, it's
 // the equivalent of 'kubectl expose'.
 func (kc *KubeClient) ExposeLoadBalancer(ctx context.Context, url string) error {
-	return nil
+	return fmt.Errorf("not yet implemented")
 }
