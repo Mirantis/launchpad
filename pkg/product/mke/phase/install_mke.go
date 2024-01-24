@@ -5,13 +5,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
+	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
 )
 
 const configName string = "com.docker.ucp.config"
@@ -46,6 +48,10 @@ func (p *InstallMKE) Run() (err error) {
 
 	image := p.Config.Spec.MKE.GetBootstrapperImage()
 	installFlags := p.Config.Spec.MKE.InstallFlags
+
+	if mcclog.Debug {
+		installFlags.AddUnlessExist("--debug")
+	}
 
 	if p.Config.Spec.MKE.CACertData != "" && p.Config.Spec.MKE.CertData != "" && p.Config.Spec.MKE.KeyData != "" {
 		err := p.installCertificates(p.Config)

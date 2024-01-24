@@ -3,13 +3,14 @@ package phase
 import (
 	"fmt"
 
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
+	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
-	"github.com/k0sproject/rig/exec"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // UninstallMKE is the phase implementation for running MKE uninstall.
@@ -32,12 +33,17 @@ func (p *UninstallMKE) Run() error {
 	}
 
 	image := fmt.Sprintf("%s/ucp:%s", p.Config.Spec.MKE.ImageRepo, p.Config.Spec.MKE.Version)
-	args := fmt.Sprintf("--id %s", swarm.ClusterID(swarmLeader))
+	uninstallFlags := common.Flags{"--id", swarm.ClusterID(swarmLeader)}
+
+	if mcclog.Debug {
+		uninstallFlags.AddUnlessExist("--debug")
+	}
+
 	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", runFlags.Join(), image, args)
+	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", runFlags.Join(), image, uninstallFlags.Join())
 	err := swarmLeader.Exec(uninstallCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.InstallFlags.GetValue("--admin-username"), p.Config.Spec.MKE.InstallFlags.GetValue("--admin-password")))
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE uninstaller: %s", swarmLeader, err.Error())
