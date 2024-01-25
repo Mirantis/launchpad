@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
+	"k8s.io/utils/pointer"
 
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
@@ -17,7 +18,7 @@ import (
 type ConfigureStorageProvisioner struct {
 	phase.Analytics
 	phase.CleanupDisabling
-	MSR3Phase
+	phase.KubernetesPhase
 
 	leader *api.Host
 }
@@ -36,7 +37,7 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 
 	var err error
 
-	p.kube, p.helm, err = mke.KubeAndHelmFromConfig(p.Config)
+	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
 		return err
 	}
@@ -47,7 +48,7 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 func (p *ConfigureStorageProvisioner) ShouldRun() bool {
 	return p.Config.Spec.ContainsMSR3() &&
 		(p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed) &&
-		p.Config.Spec.MSR.MSR3Config.ShouldConfigureStorageClass()
+		p.Config.Spec.MSR.V3.ShouldConfigureStorageClass()
 }
 
 func (p *ConfigureStorageProvisioner) Run() error {
@@ -59,11 +60,14 @@ func (p *ConfigureStorageProvisioner) Run() error {
 		return nil
 	}
 
-	if _, err := p.helm.Upgrade(ctx, &helm.Options{ReleaseDetails: *releaseDetails}); err != nil {
+	if _, err := p.Helm.Upgrade(ctx, &helm.Options{
+		ReleaseDetails: *releaseDetails,
+		Timeout:        pointer.Duration(helm.DefaultTimeout),
+	}); err != nil {
 		return err
 	}
 
-	if err := p.kube.SetStorageClassDefault(ctx, name); err != nil {
+	if err := p.Kube.SetStorageClassDefault(ctx, name); err != nil {
 		return err
 	}
 
@@ -77,7 +81,7 @@ func (p *ConfigureStorageProvisioner) Run() error {
 func storageProvisionerChart(config *api.ClusterConfig) (string, *helm.ReleaseDetails) {
 	// TODO: Currently we only support "nfs" as a configured StorageClassType,
 	// we should add some more.
-	scType := config.Spec.MSR.MSR3Config.StorageClassType
+	scType := config.Spec.MSR.V3.StorageClassType
 
 	if scType == "" {
 		log.Debugf("no storage class type configured, not configuring default storage class")
@@ -94,7 +98,7 @@ func storageProvisionerChart(config *api.ClusterConfig) (string, *helm.ReleaseDe
 			RepoURL:     "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
 			Values: map[string]interface{}{
 				"nfs": map[string]string{
-					"server":     config.Spec.MSR.MSR3Config.StorageURL,
+					"server":     config.Spec.MSR.V3.StorageURL,
 					"path":       "/",
 					"volumeName": "nfs-subdir-external-provisioner-root",
 				},

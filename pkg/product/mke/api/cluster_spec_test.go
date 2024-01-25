@@ -132,7 +132,7 @@ func TestMKEClusterSpecMSR2URLWithExternalURL(t *testing.T) {
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
-			InstallFlags: []string{"--dtr-external-url msr.acme.com"},
+			V2: MSR2Config{InstallFlags: []string{"--dtr-external-url msr.acme.com"}},
 		},
 	}
 	url, err := spec.MSR2URL()
@@ -148,7 +148,7 @@ func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
-			InstallFlags: []string{"--replica-https-port 999"},
+			V2: MSR2Config{InstallFlags: []string{"--replica-https-port 999"}},
 		},
 	}
 	url, err := spec.MSR2URL()
@@ -176,7 +176,7 @@ func TestMKEClusterSpecMKEURLFromMSRMKEUrl(t *testing.T) {
 		},
 		MKE: MKEConfig{},
 		MSR: &MSRConfig{
-			InstallFlags: []string{"--ucp-url mke.acme.com:5555"},
+			V2: MSR2Config{InstallFlags: []string{"--ucp-url mke.acme.com:5555"}},
 		},
 	}
 	url, err := spec.MKEURL()

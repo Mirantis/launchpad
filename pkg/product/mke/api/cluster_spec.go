@@ -76,7 +76,7 @@ var errGenerateURL = errors.New("unable to generate url")
 func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 	// Easy route, user has provided one in MSR --ucp-url
 	if c.MSR != nil {
-		if f := c.MSR.InstallFlags.GetValue("--ucp-url"); f != "" {
+		if f := c.MSR.V2.InstallFlags.GetValue("--ucp-url"); f != "" {
 			if !strings.Contains(f, "://") {
 				f = "https://" + f
 			}
@@ -125,7 +125,7 @@ func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 
 	if c.MSR != nil {
 		// Default to using the --dtr-external-url if it's set
-		if f := c.MSR.InstallFlags.GetValue("--dtr-external-url"); f != "" {
+		if f := c.MSR.V2.InstallFlags.GetValue("--dtr-external-url"); f != "" {
 			if !strings.Contains(f, "://") {
 				f = "https://" + f
 			}
@@ -151,7 +151,7 @@ func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 	msrAddr = msrLeader.Address()
 
 	if c.MSR != nil {
-		if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
+		if portstr := c.MSR.V2.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
 			p, err := strconv.Atoi(portstr)
 			if err != nil {
 				return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %s", portstr, err.Error())
@@ -313,6 +313,10 @@ func (c *ClusterSpec) ContainsMSR() bool {
 	return c.Hosts.Find(func(h *Host) bool { return h.Role == "msr" }) != nil
 }
 
+func (c *ClusterSpec) ContainsMSR2() bool {
+	return c.ContainsMSR() && c.MSR.MajorVersion() == 2
+}
+
 func (c *ClusterSpec) ContainsMSR3() bool {
-	return c.ContainsMSR() && c.MSR.MSR3Config != nil
+	return c.ContainsMSR() && c.MSR.MajorVersion() == 3
 }

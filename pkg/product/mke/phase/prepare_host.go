@@ -44,7 +44,7 @@ func (p *PrepareHost) Run() error {
 		return fmt.Errorf("failed to authorize docker: %w", err)
 	}
 
-	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.ReplicaIDs == "sequential" {
+	if p.Config.Spec.ContainsMSR() && p.Config.Spec.MSR.V2.ReplicaIDs == "sequential" {
 		err = msr2.AssignSequentialReplicaIDs(p.Config)
 		if err != nil {
 			return fmt.Errorf("failed to assign sequential MSR replica IDs: %w", err)

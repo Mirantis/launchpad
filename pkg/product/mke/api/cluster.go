@@ -3,11 +3,12 @@ package api
 import (
 	"fmt"
 
+	validator "github.com/go-playground/validator/v10"
+	"github.com/k0sproject/rig"
+
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/docker/hub"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	validator "github.com/go-playground/validator/v10"
-	"github.com/k0sproject/rig"
 )
 
 // ClusterMeta defines cluster metadata.
@@ -112,8 +113,8 @@ func Init(kind string) *ClusterConfig {
 			msrV = "required"
 		}
 		config.Spec.MSR = &MSRConfig{
-			Version:    msrV,
-			ReplicaIDs: "sequential",
+			Version: msrV,
+			V2:      MSR2Config{ReplicaIDs: "sequential"},
 		}
 
 		config.Spec.Hosts = append(config.Spec.Hosts,

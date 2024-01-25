@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	defaultUpgradeTimeout = time.Second * 300
+	DefaultTimeout = time.Second * 300
 )
 
 // ReleaseDetails contains details about a Helm chart release.

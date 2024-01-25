@@ -19,14 +19,14 @@ import (
 type InstallOrUpgradeMSR3 struct {
 	phase.Analytics
 	phase.CleanupDisabling
-	MSR3Phase
+	phase.KubernetesPhase
 
 	leader *api.Host
 }
 
 // Title prints the phase title.
 func (p *InstallOrUpgradeMSR3) Title() string {
-	return "Configuring MSR3 Custom Resource"
+	return "Configuring MSR Custom Resource"
 }
 
 // Prepare collects the hosts and labels them with the MSR role via the
@@ -41,7 +41,7 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 
 	var err error
 
-	p.kube, p.helm, err = mke.KubeAndHelmFromConfig(p.Config)
+	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 	return nil
 }
 
-// ShouldRun should return true only if msr3 config is present.
+// ShouldRun should return true only if MSR3 config is present.
 func (p *InstallOrUpgradeMSR3) ShouldRun() bool {
 	return p.Config.Spec.ContainsMSR3()
 }
@@ -104,7 +104,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 			}
 		}
 
-		err = p.kube.PrepareNodeForMSR(context.Background(), hostname)
+		err = p.Kube.PrepareNodeForMSR(context.Background(), hostname)
 		if err != nil {
 			return fmt.Errorf("%s: failed to label node: %s", msrH, err.Error())
 		}
@@ -115,11 +115,11 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installation flag and check connectivity", h)
 	}
 
-	if err := p.kube.ValidateMSROperatorReady(ctx); err != nil {
+	if err := p.Kube.ValidateMSROperatorReady(ctx); err != nil {
 		return fmt.Errorf("failed to validate msr-operator is ready: %w", err)
 	}
 
-	msr := &p.Config.Spec.MSR.MSR3Config.MSR
+	msr := &p.Config.Spec.MSR.V3.CRD
 
 	// Append the NodeSelector for the MSR hosts if not already present.
 	if msr.Spec.NodeSelector == nil {
@@ -140,25 +140,25 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 	msr.Spec.Image.Tag = p.Config.Spec.MSR.Version
 
 	// Configure Nginx.DNSNames if a LoadBalancerURL is specified.
-	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureLB() {
-		msr.Spec.Nginx.DNSNames = []string{"nginx", "localhost", p.Config.Spec.MSR.MSR3Config.LoadBalancerURL}
+	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
+		msr.Spec.Nginx.DNSNames = []string{"nginx", "localhost", p.Config.Spec.MSR.V3.LoadBalancerURL}
 	}
 
 	// TODO: Differentiate an upgrade from an install and set analytics
 	// around that.
-	if err := msr3.ApplyCRD(ctx, &p.Config.Spec.MSR.MSR3Config.MSR, p.kube); err != nil {
+	if err := msr3.ApplyCRD(ctx, &p.Config.Spec.MSR.V3.CRD, p.Kube); err != nil {
 		return err
 	}
 
-	if p.Config.Spec.MSR.MSR3Config.ShouldConfigureLB() {
-		if err := p.kube.ExposeLoadBalancer(ctx, p.Config.Spec.MSR.MSR3Config.LoadBalancerURL); err != nil {
+	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
+		if err := p.Kube.ExposeLoadBalancer(ctx, p.Config.Spec.MSR.V3.LoadBalancerURL); err != nil {
 			return fmt.Errorf("failed to expose MSR via LoadBalancer: %w", err)
 		}
 	}
 
-	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.MSR3Config.GetName(), p.kube, p.helm)
+	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.V3.CRD.GetName(), p.Kube, p.Helm)
 	if err != nil {
-		return fmt.Errorf("failed to collect MSR3 details: %w", err)
+		return fmt.Errorf("failed to collect MSR details: %w", err)
 	}
 
 	h.MSRMetadata = msrMeta

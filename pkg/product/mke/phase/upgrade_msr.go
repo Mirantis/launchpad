@@ -3,18 +3,19 @@ package phase
 import (
 	"fmt"
 
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
 )
 
 // UpgradeMSR is the phase implementation for running the actual msr upgrade container.
 type UpgradeMSR struct {
 	phase.Analytics
 	phase.CleanupDisabling
-	MSRPhase
+	phase.BasicPhase
 }
 
 // Title prints the phase title.
@@ -57,10 +58,10 @@ func (p *UpgradeMSR) Run() error {
 	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.MSR2.ReplicaID)}
 
 	upgradeFlags.MergeOverwrite(msr2.BuildMKEFlags(p.Config))
-	for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr2.SharedInstallUpgradeFlags) {
+	for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.V2.InstallFlags, msr2.SharedInstallUpgradeFlags) {
 		upgradeFlags.AddOrReplace(f)
 	}
-	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.UpgradeFlags)
+	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.V2.UpgradeFlags)
 
 	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
 	log.Debugf("%s: Running msr upgrade via bootstrapper", h)

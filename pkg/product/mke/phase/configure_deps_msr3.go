@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
+	"k8s.io/utils/pointer"
 
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
@@ -18,15 +19,14 @@ import (
 // msr-operator to be able to deploy and run an MSR CR.
 type ConfigureDepsMSR3 struct {
 	phase.Analytics
-	phase.BasicPhase
-	MSR3Phase
+	phase.KubernetesPhase
 
 	dependencyUpgrades []helm.ReleaseDetails
 }
 
 // Title for the phase.
 func (p *ConfigureDepsMSR3) Title() string {
-	return "Configuring MSR3 dependencies"
+	return "Configuring MSR dependencies"
 }
 
 func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
@@ -38,12 +38,12 @@ func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
 
 	var err error
 
-	p.kube, p.helm, err = mke.KubeAndHelmFromConfig(p.Config)
+	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
 		return err
 	}
 
-	for _, rd := range p.Config.Spec.MSR.MSR3Config.Dependencies.List() {
+	for _, rd := range p.Config.Spec.MSR.V3.Dependencies.List() {
 		vers, err := version.NewSemver(rd.Version)
 		if err != nil {
 			// We should never get here, we should be parsing the version prior
@@ -51,7 +51,7 @@ func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
 			return fmt.Errorf("failed to parse version %q for dependency %q: %s", rd.Version, rd.ReleaseName, err)
 		}
 
-		needsUpgrade, err := p.helm.ChartNeedsUpgrade(context.Background(), rd.ReleaseName, vers)
+		needsUpgrade, err := p.Helm.ChartNeedsUpgrade(context.Background(), rd.ReleaseName, vers)
 		if err != nil {
 			// Log any errors that are different then NotFound, but try to
 			// upgrade anyway.
@@ -83,11 +83,12 @@ func (p *ConfigureDepsMSR3) ShouldRun() bool {
 // msr-operator.  If these are already installed, the phase is a no-op.
 func (p *ConfigureDepsMSR3) Run() error {
 	for _, rd := range p.dependencyUpgrades {
-		_, err := p.helm.Upgrade(context.Background(), &helm.Options{
+		_, err := p.Helm.Upgrade(context.Background(), &helm.Options{
 			ReleaseDetails: rd,
 			ReuseValues:    true,
 			Wait:           true,
 			Atomic:         true,
+			Timeout:        pointer.Duration(helm.DefaultTimeout),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to install/upgrade Helm release %q: %w", rd.ReleaseName, err)

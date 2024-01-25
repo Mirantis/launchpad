@@ -6,12 +6,22 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun.
 type BasicPhase struct {
 	Config *api.ClusterConfig
+}
+
+// KubernetesPhase is a phase which has a Kube and Helm client for phases which
+// need to interact with Kubernetes clusters.
+type KubernetesPhase struct {
+	BasicPhase
+	Kube *kubeclient.KubeClient
+	Helm *helm.Helm
 }
 
 // HostSelectPhase is a phase where hosts are collected before running to see if it's necessary to run the phase at all in ShouldRun.

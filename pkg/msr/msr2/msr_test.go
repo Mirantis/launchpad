@@ -5,9 +5,10 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPluckSharedInstallFlags(t *testing.T) {
@@ -94,7 +95,9 @@ func TestSequentialReplicaIDs(t *testing.T) {
 				}}},
 				{Role: "msr"},
 			},
-			MSR: &api.MSRConfig{ReplicaIDs: "sequential"},
+			MSR: &api.MSRConfig{
+				V2: api.MSR2Config{ReplicaIDs: "sequential"},
+			},
 		},
 	}
 	require.NoError(t, AssignSequentialReplicaIDs(config))

@@ -12,15 +12,15 @@ import (
 func getMSRURL(config *api.ClusterConfig) (string, error) {
 	var msrURL string
 
-	if config.Spec.MSR.LoadBalancerURL != "" {
-		msrURL = "https://" + config.Spec.MSR.LoadBalancerURL + "/"
+	if config.Spec.MSR.V3.LoadBalancerURL != "" {
+		msrURL = "https://" + config.Spec.MSR.V3.LoadBalancerURL + "/"
 	} else {
 		kc, _, err := mke.KubeAndHelmFromConfig(config)
 		if err != nil {
 			return "", fmt.Errorf("failed to get kube client: %s", err)
 		}
 
-		url, err := kc.MSRURL(context.Background(), config.Spec.MSR.MSR3Config.Name)
+		url, err := kc.MSRURL(context.Background(), config.Spec.MSR.V3.CRD.GetName())
 		if err != nil {
 			return "", fmt.Errorf("failed to build MSR URL from Kubernetes services: %s", err)
 		} else {

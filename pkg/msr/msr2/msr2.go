@@ -116,13 +116,8 @@ func FormatReplicaID(num uint64) string {
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR.
 func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
-	var mkeUser string
-	var mkePass string
-
-	if config.Spec.MSR != nil {
-		mkeUser = config.Spec.MSR.InstallFlags.GetValue("--ucp-username")
-		mkePass = config.Spec.MSR.InstallFlags.GetValue("--ucp-password")
-	}
+	mkeUser := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-username")
+	mkePass := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-password")
 
 	if mkeUser == "" {
 		mkeUser = config.Spec.MKE.AdminUsername

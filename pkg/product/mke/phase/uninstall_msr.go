@@ -13,7 +13,7 @@ import (
 // UninstallMSR is the phase implementation for running MSR uninstall.
 type UninstallMSR struct {
 	phase.Analytics
-	MSRPhase
+	phase.BasicPhase
 }
 
 // Title prints the phase title.

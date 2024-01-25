@@ -233,7 +233,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.MSR2.ReplicaID),
 	}
 	removeFlags.MergeOverwrite(mkeFlags)
-	for _, f := range msr2.PluckSharedInstallFlags(config.Spec.MSR.InstallFlags, msr2.SharedInstallRemoveFlags) {
+	for _, f := range msr2.PluckSharedInstallFlags(config.Spec.MSR.V2.InstallFlags, msr2.SharedInstallRemoveFlags) {
 		removeFlags.AddOrReplace(f)
 	}
 

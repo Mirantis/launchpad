@@ -103,7 +103,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 
 	port := 443
 	if p.Config.Spec.MSR != nil {
-		if flagport := p.Config.Spec.MSR.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
+		if flagport := p.Config.Spec.MSR.V2.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
 			if fp, err := strconv.Atoi(flagport); err == nil {
 				port = fp
 			}
@@ -227,7 +227,7 @@ func validateMSRReady(config *api.ClusterConfig, h *api.Host, port int) error {
 			return fmt.Errorf("failed to create Kubernetes and Helm clients from config: %w", err)
 		}
 
-		obj, err := kc.GetMSRCR(ctx, config.Spec.MSR.MSR3Config.GetName())
+		obj, err := kc.GetMSRCR(ctx, config.Spec.MSR.V3.CRD.GetName())
 		if err != nil {
 			return err
 		}

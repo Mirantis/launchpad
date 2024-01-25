@@ -3,13 +3,14 @@ package phase
 import (
 	"fmt"
 
+	"github.com/alessio/shellescape"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/alessio/shellescape"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
 )
 
 // JoinMSRReplicas phase implementation.
@@ -77,7 +78,7 @@ func (p *JoinMSRReplicas) Run() error {
 		joinFlags.MergeOverwrite(mkeFlags)
 		// We can't just append the installFlags to joinFlags because they
 		// differ, so we have to selectively pluck the ones that are shared
-		for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr2.SharedInstallJoinFlags) {
+		for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.V2.InstallFlags, msr2.SharedInstallJoinFlags) {
 			joinFlags.AddOrReplace(f)
 		}
 		if p.Config.Spec.MKE.CACertData != "" {

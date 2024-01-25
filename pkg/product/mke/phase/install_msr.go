@@ -3,13 +3,14 @@ package phase
 import (
 	"fmt"
 
+	"github.com/alessio/shellescape"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
 	msr "github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/alessio/shellescape"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
 )
 
 // InstallMSR is the phase implementation for running the actual MSR installer
@@ -17,7 +18,7 @@ import (
 type InstallMSR struct {
 	phase.Analytics
 	phase.CleanupDisabling
-	MSRPhase
+	phase.BasicPhase
 
 	leader *api.Host
 }
@@ -61,7 +62,7 @@ func (p *InstallMSR) Run() error {
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	installFlags := p.Config.Spec.MSR.InstallFlags
+	installFlags := p.Config.Spec.MSR.V2.InstallFlags
 	redacts := []string{installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")}
 
 	// Configure the mkeFlags from existing MKEConfig
@@ -72,20 +73,20 @@ func (p *InstallMSR) Run() error {
 
 	installFlags.Merge(mkeFlags)
 
-	if p.Config.Spec.MSR.CACertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CACertData)
+	if p.Config.Spec.MSR.V2.CACertData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.CACertData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", escaped))
 		redacts = append(redacts, escaped)
 	}
 
-	if p.Config.Spec.MSR.CertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CertData)
+	if p.Config.Spec.MSR.V2.CertData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.CertData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", escaped))
 		redacts = append(redacts, escaped)
 	}
 
-	if p.Config.Spec.MSR.KeyData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.KeyData)
+	if p.Config.Spec.MSR.V2.KeyData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.KeyData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", escaped))
 		redacts = append(redacts, escaped)
 	}
