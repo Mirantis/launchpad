@@ -92,7 +92,6 @@ func (d *Dependencies) List() []*helm.ReleaseDetails {
 }
 
 // SetDefaults populates unset fields with sane defaults.
-// FIXME: Maybe we should just use default struct tags instead of this?
 func (d *Dependencies) SetDefaults() {
 	if d.CertManager == nil {
 		d.CertManager = &helm.ReleaseDetails{}
