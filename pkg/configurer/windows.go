@@ -14,7 +14,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
-	ps "github.com/k0sproject/rig/powershell"
+	ps "github.com/k0sproject/rig/pkg/powershell"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/hashicorp/go-version"

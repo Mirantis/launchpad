@@ -41,7 +41,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Validate validates that everything in the config makes sense
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func (c *ClusterConfig) Validate() error {
-	validator := validator.New()
+	validator := validator.New(validator.WithRequiredStructEnabled())
 	validator.RegisterStructValidation(roleChecks, ClusterSpec{})
 	return validator.Struct(c)
 }
