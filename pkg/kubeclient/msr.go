@@ -245,20 +245,29 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string) (*url.URL, error)
 		msrAddr = svc.Status.LoadBalancer.Ingress[0].IP + ":" + strconv.Itoa(int(externalPort))
 
 	case string(corev1.ServiceTypeClusterIP):
-		pods, err := kc.client.CoreV1().Pods(kc.Namespace).List(ctx, metav1.ListOptions{
-			LabelSelector: fmt.Sprintf("app.kubernetes.io/name=%s,app.kubernetes.io/instance=%s,app.kubernetes.io/component=nginx", name, name),
-		})
+		svc, err := kc.client.CoreV1().Services(kc.Namespace).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
-			return nil, fmt.Errorf("failed to list nginx pods: %w", err)
+			return nil, fmt.Errorf("failed to get service: %q: %w", name, err)
 		}
 
-		if len(pods.Items) == 0 {
-			return nil, fmt.Errorf("no nginx pods found")
+		if svc.Spec.ClusterIP == "None" {
+			// The service is headless, construct the DNS record from one
+			// of the nginx pods.
+			pods, err := kc.client.CoreV1().Pods(kc.Namespace).List(ctx, metav1.ListOptions{
+				LabelSelector: fmt.Sprintf("app.kubernetes.io/name=%s,app.kubernetes.io/instance=%s,app.kubernetes.io/component=nginx", name, name),
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to list nginx pods: %w", err)
+			}
+
+			if len(pods.Items) == 0 {
+				return nil, fmt.Errorf("no nginx pods found")
+			}
+
+			msrAddr = pods.Items[0].Name + "." + kc.Namespace + ".svc.cluster.local:" + strconv.Itoa(int(externalPort))
+		} else {
+			msrAddr = svc.Spec.ClusterIP + ":" + strconv.Itoa(int(externalPort))
 		}
-
-		log.Infof("Use the following command on the node to access MSR UI: kubectl port-forward %s 8443:https", pods.Items[0].Name)
-
-		msrAddr = "127.0.0.1:8443"
 
 	default:
 		return nil, fmt.Errorf("unknown MSR spec.serviceType: %q", serviceType)
