@@ -346,11 +346,6 @@ func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *
 		}
 	}
 
-	if config.Spec.Namespace == "" {
-		log.Debug("config.Spec.Namespace is empty, using default namespace")
-		config.Spec.Namespace = "default"
-	}
-
 	kube, err := kubeclient.NewFromBundle(bundleDir, config.Spec.Namespace)
 	if err != nil {
 		return nil, nil, err

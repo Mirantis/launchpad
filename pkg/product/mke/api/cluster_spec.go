@@ -32,7 +32,7 @@ type ClusterSpec struct {
 	// Namespace is the Kubernetes namespace to use for installing products
 	// that are namespace-scoped.  If not set, the default namespace will be
 	// used.
-	Namespace string `yaml:"namespace,omitempty"`
+	Namespace string `yaml:"namespace,omitempty" default:"default"`
 }
 
 // Workers filters only the workers from the cluster config.
