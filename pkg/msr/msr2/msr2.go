@@ -260,7 +260,7 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 		func() error {
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
 			if err != nil || strings.TrimSpace(output) == "" {
-				return fmt.Errorf("msr nginx container not running: %w", err)
+				return fmt.Errorf("MSR nginx container not running: %w", err)
 			}
 			return nil
 		},
@@ -276,7 +276,7 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 	err = retry.Do(
 		func() error {
 			if err := h.CheckHTTPStatus(fmt.Sprintf("https://localhost:%d/_ping", port), 200); err != nil {
-				return fmt.Errorf("msr invalid ping response: %w", err)
+				return fmt.Errorf("MSR invalid ping response: %w", err)
 			}
 
 			return nil

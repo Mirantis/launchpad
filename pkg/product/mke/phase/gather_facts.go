@@ -106,14 +106,14 @@ func (p *GatherFacts) collectMSR2Facts() bool {
 		if h.Metadata != nil && h.Metadata.MCRVersion != "" {
 			msrMeta, err := msr2.CollectFacts(h)
 			if err != nil {
-				log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
+				log.Debugf("%s: failed to collect existing MSR details: %s", h, err.Error())
 			}
 			h.MSRMetadata = msrMeta
 			if msrMeta.Installed {
-				log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
+				log.Infof("%s: MSR has version %s", h, msrMeta.InstalledVersion)
 				installed = true
 			} else {
-				log.Infof("%s: msr is not installed", h)
+				log.Infof("%s: MSR is not installed", h)
 			}
 		}
 		return nil

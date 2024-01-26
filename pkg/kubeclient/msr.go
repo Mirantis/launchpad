@@ -97,7 +97,7 @@ func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstruct
 
 	err = pollutil.Pollf(pollCfg)(func() error {
 		if existingObj == nil {
-			log.Debugf("msr resource: %q does not yet exist, creating", name)
+			log.Debugf("MSR resource: %q does not yet exist, creating", name)
 
 			_, err = rc.Create(ctx, obj, metav1.CreateOptions{})
 			if err != nil {
@@ -108,7 +108,7 @@ func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstruct
 			// if it already exists to ensure that the update succeeds.
 			obj.SetResourceVersion(existingObj.GetResourceVersion())
 
-			log.Debugf("msr resource: %q exists, updating", name)
+			log.Debugf("MSR resource: %q exists, updating", name)
 
 			_, err = rc.Update(ctx, obj, metav1.UpdateOptions{})
 			if err != nil {

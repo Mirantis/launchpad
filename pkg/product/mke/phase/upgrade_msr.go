@@ -43,7 +43,7 @@ func (p *UpgradeMSR) Run() error {
 	}
 
 	if p.Config.Spec.MSR.Version == h.MSRMetadata.InstalledVersion {
-		log.Infof("%s: msr cluster already at version %s, not running upgrade", h, p.Config.Spec.MSR.Version)
+		log.Infof("%s: MSR cluster already at version %s, not running upgrade", h, p.Config.Spec.MSR.Version)
 		return nil
 	}
 
@@ -64,7 +64,7 @@ func (p *UpgradeMSR) Run() error {
 	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.V2.UpgradeFlags)
 
 	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
-	log.Debugf("%s: Running msr upgrade via bootstrapper", h)
+	log.Debugf("%s: Running MSR upgrade via bootstrapper", h)
 	if err := h.Exec(upgradeCmd, exec.StreamOutput()); err != nil {
 		return fmt.Errorf("%s: failed to run msr upgrade: %w", h, err)
 	}

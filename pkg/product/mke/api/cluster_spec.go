@@ -154,7 +154,7 @@ func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 		if portstr := c.MSR.V2.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
 			p, err := strconv.Atoi(portstr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %s", portstr, err.Error())
+				return nil, fmt.Errorf("invalid MSR --replica-https-port value '%s': %s", portstr, err.Error())
 			}
 			msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
 		}
@@ -187,6 +187,12 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 		if err := defaults.Set(specAlias.MSR); err != nil {
 			return fmt.Errorf("set defaults: %w", err)
+		}
+		if specAlias.MSR == nil {
+			return fmt.Errorf("%w: hosts with 'msr' role present, but no spec.msr defined", errInvalidConfig)
+		}
+		if err := defaults.Set(specAlias.MSR); err != nil {
+			return err
 		}
 	} else if specAlias.MSR != nil {
 		specAlias.MSR = nil

@@ -82,14 +82,14 @@ func (p *Describe) msrReport() {
 	switch p.Config.Spec.MSR.MajorVersion() {
 	case 2:
 		if url, err := p.Config.Spec.MSR2URL(); err != nil {
-			log.Infof("failed to get msr URL: %s", err)
+			log.Infof("failed to get MSR URL: %s", err)
 		} else {
 			msrURL = url.String()
 		}
 	case 3:
 		msrURL, err = getMSRURL(p.Config)
 		if err != nil {
-			log.Infof("failed to get msr URL: %s", err)
+			log.Infof("failed to get MSR URL: %s", err)
 		}
 	}
 
