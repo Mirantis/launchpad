@@ -1,33 +1,33 @@
-apiVersion: "launchpad.mirantis.com/mke/v1.5"
+apiVersion: 'launchpad.mirantis.com/mke/v1.4'
 kind: mke+msr
 spec:
   hosts:
-  - role: "manager"
-    ssh:
-      address: "127.0.0.1"
-      port: 9022
-      user: "root"
-    mcrConfig: &linuxEngineConfig
-      debug: true
-      log-opts:
-        max-size: 10m
-        max-file: "3"
-    hooks:
-      apply:
-        before:
-          - echo hello > foo.txt
-        after:
-          - rm foo.txt
-  - role: "msr"
-    ssh:
-      address: "127.0.0.1"
-      port: 9023
-      user: "root"
-    mcrConfig: *linuxEngineConfig
+    - role: 'manager'
+      ssh:
+        address: '127.0.0.1'
+        port: 9022
+        user: 'root'
+      mcrConfig: &linuxEngineConfig
+        debug: true
+        log-opts:
+          max-size: 10m
+          max-file: '3'
+      hooks:
+        apply:
+          before:
+            - echo hello > foo.txt
+          after:
+            - rm foo.txt
+    - role: 'msr'
+      ssh:
+        address: '127.0.0.1'
+        port: 9023
+        user: 'root'
+      mcrConfig: *linuxEngineConfig
   mke:
     adminUsername: admin
     adminPassword: orcaorcaorca
     installFlags:
-    - --default-node-orchestrator=kubernetes
+      - --default-node-orchestrator=kubernetes
   msr:
     version: 2.3.4

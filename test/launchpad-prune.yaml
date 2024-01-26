@@ -1,4 +1,4 @@
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 metadata:
   name: $CLUSTER_NAME
@@ -33,6 +33,7 @@ spec:
         address: 127.0.0.1 # REMOVE_THIS
       role: 'worker' # REMOVE_THIS
       mcrConfig: &engineCfg # REMOVE_THIS
+
 
   mke:
     version: $MKE_VERSION
