@@ -59,7 +59,7 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 	msrMeta := &api.MSRMetadata{
 		Installed:        true,
 		InstalledVersion: version,
-		MSR2: &api.MSR2Metadata{
+		MSR2: api.MSR2Metadata{
 			InstalledBootstrapImage: bootstrapimage,
 			ReplicaID:               replicaID,
 		},

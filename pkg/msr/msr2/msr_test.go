@@ -90,7 +90,7 @@ func TestSequentialReplicaIDs(t *testing.T) {
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
 				{Role: "msr"},
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{MSR2: &api.MSR2Metadata{
+				{Role: "msr", MSRMetadata: &api.MSRMetadata{MSR2: api.MSR2Metadata{
 					ReplicaID: "00000000001f",
 				}}},
 				{Role: "msr"},

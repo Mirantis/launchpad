@@ -41,8 +41,8 @@ type MSRMetadata struct {
 	Installed        bool
 	InstalledVersion string
 
-	MSR2 *MSR2Metadata
-	MSR3 *MSR3Metadata
+	MSR2 MSR2Metadata
+	MSR3 MSR3Metadata
 }
 
 type MSR2Metadata struct {

@@ -70,7 +70,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 	return &api.MSRMetadata{
 		Installed:        true,
 		InstalledVersion: version,
-		MSR3: &api.MSR3Metadata{
+		MSR3: api.MSR3Metadata{
 			InstalledDependencies: installedDeps,
 		},
 	}, nil
