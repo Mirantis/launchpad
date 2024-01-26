@@ -26,7 +26,11 @@ func (p *JoinMSRReplicas) HostFilterFunc(h *api.Host) bool {
 
 // Prepare collects the hosts.
 func (p *JoinMSRReplicas) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	cfg, ok := config.(*api.ClusterConfig)
+	if !ok {
+		return errInvalidConfig
+	}
+	p.Config = cfg
 	if !p.Config.Spec.ContainsMSR() {
 		return nil
 	}
@@ -91,7 +95,7 @@ func (p *JoinMSRReplicas) Run() error {
 		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
 		err := msrLeader.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(redacts...))
 		if err != nil {
-			return fmt.Errorf("%s: failed to run MSR join: %s", h, err.Error())
+			return fmt.Errorf("%s: failed to run MSR join: %w", h, err)
 		}
 	}
 	return nil

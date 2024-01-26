@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -25,14 +26,14 @@ type Config struct {
 func GetConfig() (*Config, error) {
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to expand config file path: %w", err)
 	}
 
 	config := &Config{}
 	// Open config file
 	file, err := os.Open(configFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open config file: %w", err)
 	}
 	defer file.Close()
 
@@ -41,7 +42,7 @@ func GetConfig() (*Config, error) {
 
 	// Start YAML decoding from file
 	if err := d.Decode(&config); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decode config file: %w", err)
 	}
 
 	return config, nil
@@ -51,19 +52,19 @@ func GetConfig() (*Config, error) {
 func SaveConfig(config *Config) error {
 	configFile, err := homedir.Expand(configFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to expand config file path: %w", err)
 	}
 	configDir := filepath.Dir(configFile)
 	if err = util.EnsureDir(configDir); err != nil {
-		return err
+		return fmt.Errorf("failed to ensure config dir: %w", err)
 	}
 	d, err := yaml.Marshal(&config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	err = os.WriteFile(configFile, d, 0o644)
+	err = os.WriteFile(configFile, d, 0o600)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write config file: %w", err)
 	}
 	return nil
 }

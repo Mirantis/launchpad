@@ -33,7 +33,7 @@ func (p *JoinManagers) Run() error {
 		log.Debugf("%s: joining as manager", h)
 		err := h.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.Metadata.ManagerJoinToken))
 		if err != nil {
-			return fmt.Errorf("%s: failed to join manager node to swarm: %s", h, err.Error())
+			return fmt.Errorf("%s: failed to join manager node to swarm: %w", h, err)
 		}
 		log.Infof("%s: joined successfully", h)
 	}

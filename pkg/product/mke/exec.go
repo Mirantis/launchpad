@@ -1,6 +1,7 @@
 package mke
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,19 +15,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var errInvalidTarget = errors.New("invalid target")
+
 // Exec runs commands or shell sessions on a configuration host.
-func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, role, hostos, cmd string) error {
+func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, role, hostos, cmd string) error { //nolint:maintidx
 	var hosts api.Hosts
 
 	for _, target := range targets {
-		if target == "localhost" {
+		switch {
+		case target == "localhost":
 			hosts = append(hosts, &api.Host{Connection: rig.Connection{Localhost: &rig.Localhost{Enabled: true}}})
-		} else if strings.Contains(target, ":") {
+		case strings.Contains(target, ":"):
 			parts := strings.SplitN(target, ":", 2)
 			addr := parts[0]
 			port, err := strconv.Atoi(parts[1])
 			if err != nil {
-				return fmt.Errorf("invalid port: %s", parts[1])
+				return fmt.Errorf("%w: invalid port: %s", errInvalidTarget, parts[1])
 			}
 
 			host := p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
@@ -39,15 +43,15 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 				return h.SSH.Port == port
 			})
 			if host == nil {
-				return fmt.Errorf("host %s not found in configuration", target)
+				return fmt.Errorf("%w: host %s not found in configuration", errInvalidTarget, target)
 			}
 			hosts = append(hosts, host)
-		} else {
+		default:
 			host := p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
 				return h.Address() == target
 			})
 			if host == nil {
-				return fmt.Errorf("host %s not found in configuration", target)
+				return fmt.Errorf("%w: host %s not found in configuration", errInvalidTarget, target)
 			}
 			hosts = append(hosts, host)
 		}
@@ -71,10 +75,10 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 
 		err := hosts.ParallelEach(func(h *api.Host) error {
 			if err := h.Connect(); err != nil {
-				return err
+				return fmt.Errorf("failed to connect to host %s: %w", h.Address(), err)
 			}
 			if err := h.ResolveConfigurer(); err != nil {
-				return err
+				return fmt.Errorf("failed to resolve configurer for host %s: %w", h.Address(), err)
 			}
 			if h.IsWindows() {
 				if hostos == "windows" {
@@ -92,7 +96,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 			return nil
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to filter hosts by OS: %w", err)
 		}
 		hosts = foundhosts
 	}
@@ -103,17 +107,17 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 
 	if first {
 		if len(hosts) == 0 {
-			return fmt.Errorf("no hosts found but --first given")
+			return fmt.Errorf("%w: no hosts found but --first given", errInvalidTarget)
 		}
 		hosts = hosts[0:1]
 	}
 
 	if len(hosts) > 1 {
 		if !all {
-			return fmt.Errorf("found %d hosts but --all not given", len(hosts))
+			return fmt.Errorf("%w: found %d hosts but --all not given", errInvalidTarget, len(hosts))
 		}
 		if interactive {
-			return fmt.Errorf("can't use --interactive with multiple targets")
+			return fmt.Errorf("%w: can't use --interactive with multiple targets", errInvalidTarget)
 		}
 	}
 
@@ -124,58 +128,85 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 
 	var stdin string
 
-	stat, err := os.Stdin.Stat()
-	if err != nil {
-		return err
-	}
-
-	if (stat.Mode() & os.ModeCharDevice) == 0 {
-		if interactive {
-			return fmt.Errorf("--interactive given but there's piped data in stdin")
-		}
-		data, err := io.ReadAll(os.Stdin)
+	if !interactive {
+		stat, err := os.Stdin.Stat()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to stat stdin: %w", err)
 		}
-		stdin = string(data)
+
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("failed to read stdin: %w", err)
+			}
+			stdin = string(data)
+		}
 	}
 
-	if err := hosts.ParallelEach(func(h *api.Host) error { return h.Connect() }); err != nil {
-		return err
+	err := hosts.ParallelEach(func(h *api.Host) error {
+		if err := h.Connect(); err != nil {
+			return fmt.Errorf("connect to host %s: %w", h.Address(), err)
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to connect to hosts: %w", err)
 	}
 
 	var linuxcount, windowscount int
-	hosts.Each(func(h *api.Host) error {
+	err = hosts.Each(func(h *api.Host) error {
 		if h.IsWindows() {
 			if linuxcount > 0 {
-				return fmt.Errorf("mixed target operating systems, use --os linux or --os windows")
+				return fmt.Errorf("%w mixed target operating systems, use --os linux or --os windows", errInvalidTarget)
 			}
 			windowscount++
 		} else {
 			if windowscount > 0 {
-				return fmt.Errorf("mixed target operating systems, use --os linux or --os windows")
+				return fmt.Errorf("%w: mixed target operating systems, use --os linux or --os windows", errInvalidTarget)
 			}
 			linuxcount++
 		}
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("target operating system check failed: %w", err)
+	}
 
 	if cmd == "" {
 		if stdin != "" {
-			return fmt.Errorf("can't pipe to a remote shell without a command")
+			return fmt.Errorf("%w: can't pipe to a remote shell without a command", errInvalidTarget)
 		}
 		log.Tracef("assuming intention to run a shell with --interactive")
-		return hosts[0].Connection.ExecInteractive("")
+		err := hosts[0].Connection.ExecInteractive("")
+		if err != nil {
+			return fmt.Errorf("failed to run interactive shell: %w", err)
+		}
 	}
 
 	if interactive {
 		log.Tracef("running interactive with cmd: %q", cmd)
-		return hosts[0].Connection.ExecInteractive(cmd)
+		if err := hosts[0].Connection.ExecInteractive(cmd); err != nil {
+			return fmt.Errorf("failed to run interactive shell: %w", err)
+		}
+		return nil
 	}
 
 	log.Tracef("running non-interactive with cmd: %q", cmd)
-	if parallel {
-		return hosts.ParallelEach(func(h *api.Host) error { return h.Exec(cmd, exec.Stdin(stdin), exec.StreamOutput()) })
+	runFunc := func(h *api.Host) error {
+		if err := h.Exec(cmd, exec.Stdin(stdin), exec.StreamOutput()); err != nil {
+			return fmt.Errorf("failed on host %s: %w", h.Address(), err)
+		}
+		return nil
 	}
-	return hosts.Each(func(h *api.Host) error { return h.Exec(cmd, exec.Stdin(stdin), exec.StreamOutput()) })
+	if parallel {
+		err = hosts.ParallelEach(runFunc)
+	} else {
+		err = hosts.Each(runFunc)
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to run command on hosts: %w", err)
+	}
+
+	return nil
 }

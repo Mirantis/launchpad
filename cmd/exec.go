@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v2"
@@ -56,12 +58,16 @@ func NewExecCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load product configuration: %w", err)
 			}
 
 			args := ctx.Args().Slice()
 
-			return product.Exec(ctx.StringSlice("target"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.Bool("all"), ctx.Bool("parallel"), ctx.String("role"), ctx.String("os"), shellquote.Join(args...))
+			err = product.Exec(ctx.StringSlice("target"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.Bool("all"), ctx.Bool("parallel"), ctx.String("role"), ctx.String("os"), shellquote.Join(args...))
+			if err != nil {
+				return fmt.Errorf("failed to execute command: %w", err)
+			}
+			return nil
 		},
 	}
 }

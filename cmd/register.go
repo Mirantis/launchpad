@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/AlecAivazis/survey/v2/terminal"
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/cmd/register"
@@ -49,15 +52,21 @@ func RegisterCommand() *cli.Command {
 				Eula:    ctx.Bool("accept-license"),
 			}
 			err := register.Register(userConfig)
-			if err == terminal.InterruptErr {
-				analytics.TrackEvent("User Register Cancelled", nil)
+			if err != nil {
+				switch {
+				case errors.Is(err, register.ErrEULADeclined):
+					analytics.TrackEvent("User Register Declined", nil)
+				case errors.Is(err, terminal.InterruptErr):
+					analytics.TrackEvent("User Register Cancelled", nil)
+				default:
+					analytics.TrackEvent("User Register Failed", nil)
+					return fmt.Errorf("failed to register user: %w", err)
+				}
 				return nil
-			} else if err != nil {
-				analytics.TrackEvent("User Register Failed", nil)
-			} else {
-				analytics.TrackEvent("User Register Completed", nil)
 			}
-			return err
+
+			analytics.TrackEvent("User Register Completed", nil)
+			return nil
 		},
 	}
 }

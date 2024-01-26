@@ -1,6 +1,8 @@
 package swarm
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
@@ -22,7 +24,11 @@ func IsSwarmNode(h *api.Host) bool {
 
 // NodeID returns the hosts node id in swarm cluster.
 func NodeID(h *api.Host) (string, error) {
-	return h.ExecOutput(h.Configurer.DockerCommandf(`info --format "{{.Swarm.NodeID}}"`))
+	out, err := h.ExecOutput(h.Configurer.DockerCommandf(`info --format "{{.Swarm.NodeID}}"`))
+	if err != nil {
+		return "", fmt.Errorf("failed to get host's swarm node id: %w", err)
+	}
+	return out, nil
 }
 
 // ClusterID digs the swarm cluster id from swarm leader host.

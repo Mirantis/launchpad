@@ -162,7 +162,9 @@ func initExec(ctx *cli.Context) error {
 
 func checkLicense(ctx *cli.Context) error {
 	if !ctx.Bool("accept-license") {
-		return analytics.RequireRegisteredUser()
+		if err := analytics.RequireRegisteredUser(); err != nil {
+			return fmt.Errorf("error while checking license agreement: %w", err)
+		}
 	}
 	return nil
 }
@@ -170,7 +172,7 @@ func checkLicense(ctx *cli.Context) error {
 func addFileLogger(clusterName, filename string) (*os.File, error) {
 	home, err := homedir.Dir()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
 	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
@@ -180,7 +182,7 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 	logFileName := path.Join(clusterDir, filename)
 	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create log file at %s: %s", logFileName, err.Error())
+		return nil, fmt.Errorf("failed to create log file at %s: %w", logFileName, err)
 	}
 
 	// Send all logs to named file, this ensures we always have debug logs also available when needed.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -15,6 +16,8 @@ import (
 func init() {
 	log.SetOutput(os.Stdout)
 }
+
+var errUnsupportedShell = errors.New("unsupported shell")
 
 func main() {
 	versionCmd := &cli.Command{
@@ -53,11 +56,11 @@ func main() {
 			case "fish":
 				t, err := ctx.App.ToFishCompletion()
 				if err != nil {
-					return err
+					return fmt.Errorf("failed to generate fish completion: %w", err)
 				}
 				fmt.Print(t)
 			default:
-				return fmt.Errorf("no completion script available for %s", ctx.String("shell"))
+				return fmt.Errorf("%w: no completion script available for %s", errUnsupportedShell, ctx.String("shell"))
 			}
 
 			return nil

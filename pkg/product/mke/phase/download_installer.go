@@ -36,28 +36,28 @@ func (p *DownloadInstaller) Run() error {
 	}
 	f, err := os.CreateTemp("", "installerLinux")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create temporary file: %w", err)
 	}
 
 	_, err = f.WriteString(linuxScript)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write to temporary file: %w", err)
 	}
 	p.linuxPath = f.Name()
 
 	if p.Config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() }) > 0 {
 		winScript, err := p.getScript(p.Config.Spec.MCR.InstallURLWindows)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get Windows installer script: %w", err)
 		}
 		f, err := os.CreateTemp("", "installerWindows")
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create temporary file for windows installer script: %w", err)
 		}
 
 		_, err = f.WriteString(winScript)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to write to temporary file for windows installer script: %w", err)
 		}
 		p.winPath = f.Name()
 	}
@@ -78,8 +78,14 @@ func (p *DownloadInstaller) parseURL(uri string) (*url.URL, error) {
 		return &url.URL{Path: uri, Scheme: "file"}, nil
 	}
 
-	return url.ParseRequestURI(uri)
+	u, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse installer URL: %w", err)
+	}
+	return u, nil
 }
+
+var errInvalidScript = fmt.Errorf("invalid container runtime install script")
 
 func (p *DownloadInstaller) getScript(uri string) (string, error) {
 	u, err := p.parseURL(uri)
@@ -103,7 +109,7 @@ func (p *DownloadInstaller) getScript(uri string) (string, error) {
 
 	if len(data) < 10 {
 		// cant fit an installer into that!
-		return "", fmt.Errorf("invalid container runtime install script in %s", uri)
+		return "", fmt.Errorf("%w: script is too short", errInvalidScript)
 	}
 
 	if !strings.HasPrefix(data, "#") {
@@ -115,15 +121,15 @@ func (p *DownloadInstaller) getScript(uri string) (string, error) {
 
 func (p *DownloadInstaller) downloadFile(url string) (string, error) {
 	log.Infof("downloading container runtime install script from %s", url)
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:gosec // "G107: Url provided to HTTP request as taint input" -- user-provided URL is ok here
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to download container runtime install script: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 	return string(body), nil
 }

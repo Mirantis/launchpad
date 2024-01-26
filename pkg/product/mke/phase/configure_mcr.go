@@ -1,6 +1,8 @@
 package phase
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
@@ -19,7 +21,11 @@ func (p *ConfigureMCR) HostFilterFunc(h *api.Host) bool {
 
 // Prepare collects the hosts.
 func (p *ConfigureMCR) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	cfg, ok := config.(*api.ClusterConfig)
+	if !ok {
+		return errInvalidConfig
+	}
+	p.Config = cfg
 	log.Debugf("collecting hosts for phase %s", p.Title())
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
 	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
@@ -37,8 +43,15 @@ func (p *ConfigureMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
 		"engine_version": p.Config.Spec.MCR.Version,
 	}
-	return p.Hosts.ParallelEach(func(h *api.Host) error {
+	err := p.Hosts.ParallelEach(func(h *api.Host) error {
 		log.Infof("%s: configuring container runtime", h)
-		return h.ConfigureMCR()
+		if err := h.ConfigureMCR(); err != nil {
+			return fmt.Errorf("failed to configure container runtime on %s: %w", h, err)
+		}
+		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("failed to configure container runtime: %w", err)
+	}
+	return nil
 }

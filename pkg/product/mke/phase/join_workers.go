@@ -37,7 +37,7 @@ func (p *JoinWorkers) Run() error {
 		log.Debugf("%s: joining as worker", h)
 		err := h.Exec(joinCmd, exec.RedactString(p.Config.Spec.MKE.Metadata.WorkerJoinToken))
 		if err != nil {
-			return fmt.Errorf("Failed to join worker %s node to swarm", h)
+			return fmt.Errorf("failed to join worker %s node to swarm: %w", h, err)
 		}
 		log.Infof("%s: joined successfully", h)
 		if h.IsWindows() {
@@ -56,7 +56,7 @@ func (p *JoinWorkers) Run() error {
 					return nil
 				})
 			if err != nil {
-				return err
+				return fmt.Errorf("retry count exceeded: %w", err)
 			}
 			log.Infof("%s: reconnected", h)
 		}

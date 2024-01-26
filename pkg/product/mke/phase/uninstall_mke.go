@@ -46,12 +46,12 @@ func (p *UninstallMKE) Run() error {
 	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", runFlags.Join(), image, uninstallFlags.Join())
 	err := swarmLeader.Exec(uninstallCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.InstallFlags.GetValue("--admin-username"), p.Config.Spec.MKE.InstallFlags.GetValue("--admin-password")))
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE uninstaller: %s", swarmLeader, err.Error())
+		return fmt.Errorf("%s: failed to run MKE uninstaller: %w", swarmLeader, err)
 	}
 
 	if p.Config.Spec.MKE.CertData != "" {
 		managers := p.Config.Spec.Managers()
-		managers.ParallelEach(func(h *api.Host) error {
+		_ = managers.ParallelEach(func(h *api.Host) error {
 			log.Infof("%s: removing ucp-controller-server-certs volume", h)
 			err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
 			if err != nil {

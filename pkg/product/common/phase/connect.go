@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -51,35 +50,28 @@ func (p *Connect) Title() string {
 
 // Run connects to all the hosts in parallel.
 func (p *Connect) Run() error {
-	var wg sync.WaitGroup
-	var errors []string
-	type erritem struct {
-		address string
-		err     error
-	}
-	ec := make(chan erritem, 1)
-
-	wg.Add(len(p.hosts))
+	var (
+		wg     sync.WaitGroup
+		result error
+		mu     sync.Mutex
+	)
 
 	for _, h := range p.hosts {
+		wg.Add(1)
 		go func(h connectable) {
-			ec <- erritem{h.String(), p.connectHost(h)}
+			defer wg.Done()
+			if err := p.connectHost(h); err != nil {
+				mu.Lock()
+				result = errors.Join(result, fmt.Errorf("connect %s: %w", h, err))
+				mu.Unlock()
+			}
 		}(h)
 	}
 
-	go func() {
-		for e := range ec {
-			if e.err != nil {
-				errors = append(errors, fmt.Sprintf("%s: %s", e.address, e.err.Error()))
-			}
-			wg.Done()
-		}
-	}()
-
 	wg.Wait()
 
-	if len(errors) > 0 {
-		return fmt.Errorf("failed on %d hosts:\n - %s", len(errors), strings.Join(errors, "\n - "))
+	if result != nil {
+		return fmt.Errorf("failed to connect all hosts: %w", result)
 	}
 
 	return nil
@@ -87,14 +79,17 @@ func (p *Connect) Run() error {
 
 const retries = 60
 
-func (p *Connect) connectHost(h connectable) error {
+func (p *Connect) connectHost(host connectable) error {
 	err := retry.Do(
 		func() error {
-			return h.Connect()
+			if err := host.Connect(); err != nil {
+				return fmt.Errorf("connect: %w", err)
+			}
+			return nil
 		},
 		retry.OnRetry(
 			func(n uint, err error) {
-				log.Errorf("%s: attempt %d of %d.. failed to connect: %s", h, n+1, retries, err.Error())
+				log.Errorf("%s: attempt %d of %d.. failed to connect: %s", host, n+1, retries, err.Error())
 			},
 		),
 		retry.RetryIf(
@@ -108,17 +103,17 @@ func (p *Connect) connectHost(h connectable) error {
 		retry.Attempts(retries),
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect: %w", err)
 	}
 
-	return p.testConnection(h)
+	return p.testConnection(host)
 }
 
 func (p *Connect) testConnection(h connectable) error {
 	log.Infof("%s: testing connection", h)
 
 	if err := h.Exec("echo"); err != nil {
-		return err
+		return fmt.Errorf("failed to test connection to %s: %w", h, err)
 	}
 
 	return nil

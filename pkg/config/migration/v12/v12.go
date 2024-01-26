@@ -10,9 +10,8 @@ func Migrate(plain map[string]interface{}) error {
 	plain["apiVersion"] = "launchpad.mirantis.com/mke/v1.3"
 
 	if spec, ok := plain["spec"].(map[interface{}]interface{}); ok {
-		if hosts, ok := spec["hosts"]; ok {
-			hslice := hosts.([]interface{})
-			for _, h := range hslice {
+		if hosts, ok := spec["hosts"].([]interface{}); ok {
+			for _, h := range hosts {
 				host, ok := h.(map[interface{}]interface{})
 				if ok {
 					if addr, ok := host["address"].(string); ok {

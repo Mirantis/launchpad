@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -32,7 +33,7 @@ import (
 )
 
 // ProductFromFile loads a yaml file and returns a Product that matches its Kind or an error if the file loading or validation fails.
-func ProductFromFile(path string) (product.Product, error) {
+func ProductFromFile(path string) (product.Product, error) { //nolint:ireturn
 	data, err := resolveClusterFile(path)
 	if err != nil {
 		return nil, err
@@ -40,29 +41,31 @@ func ProductFromFile(path string) (product.Product, error) {
 	return ProductFromYAML(data)
 }
 
+var errMissingKind = errors.New("configuration does not contain the required keyword 'kind'")
+
 // ProductFromYAML returns a Product from YAML bytes, or an error.
-func ProductFromYAML(data []byte) (product.Product, error) {
-	c := make(map[string]interface{})
-	if err := yaml.Unmarshal(data, c); err != nil {
-		return nil, err
+func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
+	config := make(map[string]interface{})
+	if err := yaml.Unmarshal(data, config); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal configuration: %w", err)
 	}
 
-	if err := migration.Migrate(c); err != nil {
-		return nil, err
+	if err := migration.Migrate(config); err != nil {
+		return nil, fmt.Errorf("failed to migrate configuration: %w", err)
 	}
 
-	if c["kind"] == nil {
-		return nil, fmt.Errorf("configuration does not contain the required keyword 'kind'")
+	if config["kind"] == nil {
+		return nil, errMissingKind
 	}
 
-	data, err := yaml.Marshal(c)
+	data, err := yaml.Marshal(config)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal configuration: %w", err)
 	}
 
 	plain, err := envsubst.Bytes(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to substitute environment variables: %w", err)
 	}
 
 	cfg := string(plain)
@@ -73,13 +76,23 @@ func ProductFromYAML(data []byte) (product.Product, error) {
 
 	log.Debugf("loaded configuration:\n%s", cfg)
 
-	switch c["kind"].(string) {
+	kindStr, ok := config["kind"].(string)
+	if !ok {
+		return nil, errMissingKind
+	}
+	switch kindStr {
 	case "mke", "mke+msr":
-		return mke.NewMKE(plain)
+		mke, err := mke.NewMKE(plain)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse MKE configuration: %w", err)
+		}
+		return mke, nil
 	default:
-		return nil, fmt.Errorf("unknown configuration kind '%s'", c["kind"].(string))
+		return nil, fmt.Errorf("%w: %s", errUnknownConfigKind, kindStr)
 	}
 }
+
+var errUnknownConfigKind = errors.New("unknown configuration kind")
 
 // Init returns an example cluster configuration.
 func Init(kind string) (interface{}, error) {
@@ -87,35 +100,50 @@ func Init(kind string) (interface{}, error) {
 	case "mke", "mke+msr":
 		return mke.Init(kind), nil
 	default:
-		return "", fmt.Errorf("unknown configuration kind '%s'", kind)
+		return "", fmt.Errorf("%w: %s", errUnknownConfigKind, kind)
 	}
 }
+
+var errIsCharDevice = errors.New("is a character device")
 
 func resolveClusterFile(clusterFile string) ([]byte, error) {
 	if clusterFile == "-" {
 		stat, err := os.Stdin.Stat()
-		if err == nil {
-			if (stat.Mode() & os.ModeCharDevice) == 0 {
-				return io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, fmt.Errorf("can't open cluster configuration from stdin: stat: %w", err)
+		}
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return nil, fmt.Errorf("error while reading cluster configuration from stdin: %w", err)
 			}
+			return data, nil
 		}
 
-		return nil, fmt.Errorf("can't open cluster configuration from stdin")
+		return nil, fmt.Errorf("can't read from stdin: %w", errIsCharDevice)
 	}
 
 	file, err := openClusterFile(clusterFile)
-	defer file.Close() //nolint:staticcheck
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = file.Close()
+	}()
 
-	return io.ReadAll(file)
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("error while reading cluster file %s: %w", clusterFile, err)
+	}
+	return data, nil
 }
+
+var errEmptyFileName = errors.New("empty file name")
 
 func openClusterFile(clusterFile string) (*os.File, error) {
 	clusterFileName := detectClusterFile(clusterFile)
 	if clusterFileName == "" {
-		return nil, fmt.Errorf("can't find cluster configuration file %s", clusterFile)
+		return nil, fmt.Errorf("can't find cluster configuration file: %w", errEmptyFileName)
 	}
 
 	file, fp, err := openFile(clusterFileName)
@@ -151,11 +179,11 @@ func detectClusterFile(clusterFile string) string {
 func openFile(fileName string) (file *os.File, path string, err error) {
 	fp, err := filepath.Abs(fileName)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to lookup current directory name: %v", err)
+		return nil, "", fmt.Errorf("failed to lookup current directory name: %w", err)
 	}
 	file, err = os.Open(fp)
 	if err != nil {
-		return nil, fp, fmt.Errorf("can not find cluster configuration file: %v", err)
+		return nil, fp, fmt.Errorf("can not find cluster configuration file: %w", err)
 	}
 	return file, fp, nil
 }

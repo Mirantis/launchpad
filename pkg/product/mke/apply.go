@@ -1,14 +1,13 @@
 package mke
 
 import (
-	"crypto/sha1"
+	"crypto/sha1" //nolint:gosec // sha1 is used for simple analytics id generation
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
-	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
@@ -59,7 +58,7 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
 	)
 
 	if err := phaseManager.Run(); err != nil {
-		return err
+		return fmt.Errorf("failed to apply MKE: %w", err)
 	}
 
 	windowsWorkersCount := 0
@@ -83,12 +82,10 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
 		"engine_version":  p.ClusterConfig.Spec.MCR.Version,
 		"cluster_id":      clusterID,
 		// send mke analytics user id as ucp_instance_id property
-		"ucp_instance_id": fmt.Sprintf("%x", sha1.Sum([]byte(clusterID))),
+		"ucp_instance_id": fmt.Sprintf("%x", sha1.Sum([]byte(clusterID))), //nolint:gosec // sha1 is used for simple analytics id generation
 	}
 
-	if err := analytics.TrackEvent("Cluster Installed", props); err != nil {
-		log.Warnf("tracking failed: %v", err)
-	}
+	analytics.TrackEvent("Cluster Installed", props)
 
 	return nil
 }

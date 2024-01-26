@@ -40,8 +40,7 @@ complete -o bashdefault -o default -o nospace -F _launchpad_bash_autocomplete %s
 
 // ZshTemplate returns a completion script for zsh.
 func ZshTemplate() string {
-	p := prog()
-	return fmt.Sprintf(`#compdef %s
+	return fmt.Sprintf(`#compdef %[1]s
 
 _launchpad_zsh_autocomplete() {
   local -a opts
@@ -62,6 +61,8 @@ _launchpad_zsh_autocomplete() {
   return
 }
 
-compdef _launchpad_zsh_autocomplete %s
-`, p, p)
+compdef _launchpad_zsh_autocomplete %[1]s
+`,
+		prog(),
+	)
 }

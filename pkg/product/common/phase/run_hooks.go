@@ -1,9 +1,9 @@
 package phase
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
@@ -31,16 +31,21 @@ func (p *RunHooks) Prepare(config interface{}) error {
 	spec := r.FieldByName("Spec").Elem()
 	hosts := spec.FieldByName("Hosts")
 	for i := 0; i < hosts.Len(); i++ {
-		h := hosts.Index(i)
-		hooksF := h.Elem().FieldByName("Hooks")
+		hostVal := hosts.Index(i)
+		hooksF := hostVal.Elem().FieldByName("Hooks")
 		if hooksF.IsNil() {
 			continue
 		}
-		hooksI := hooksF.Interface().(common.Hooks)
+		hooksI, ok := hooksF.Interface().(common.Hooks)
+		if !ok {
+			continue
+		}
 		if action := hooksI[p.Action]; action != nil {
 			if steps := action[p.Stage]; steps != nil {
-				he := h.Interface().(host)
-				p.steps[he] = steps
+				he, ok := hostVal.Interface().(host)
+				if ok {
+					p.steps[he] = steps
+				}
 			}
 		}
 	}
@@ -68,35 +73,29 @@ func (p *RunHooks) Title() string {
 
 // Run does all the prep work on the hosts in parallel.
 func (p *RunHooks) Run() error {
-	var wg sync.WaitGroup
-	var errors []string
-	type erritem struct {
-		host string
-		err  error
-	}
-	ec := make(chan erritem, 1)
-
-	wg.Add(len(p.steps))
+	var (
+		wg     sync.WaitGroup
+		result error
+		mu     sync.Mutex
+	)
 
 	for h, steps := range p.steps {
-		go func(h host, steps []string) {
-			ec <- erritem{h.String(), h.ExecAll(steps)}
-		}(h, steps)
-	}
-
-	go func() {
-		for e := range ec {
-			if e.err != nil {
-				errors = append(errors, fmt.Sprintf("%s: %s", e.host, e.err.Error()))
+		h, steps := h, steps // capture range variables
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := h.ExecAll(steps); err != nil {
+				mu.Lock()
+				result = errors.Join(result, fmt.Errorf("%s: %w", h.String(), err))
+				mu.Unlock()
 			}
-			wg.Done()
-		}
-	}()
+		}()
+	}
 
 	wg.Wait()
 
-	if len(errors) > 0 {
-		return fmt.Errorf("failed on %d hosts:\n - %s", len(errors), strings.Join(errors, "\n - "))
+	if result != nil {
+		return fmt.Errorf("hook execution failed: %w", result)
 	}
 
 	return nil

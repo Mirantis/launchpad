@@ -26,6 +26,8 @@ type MSRConfig struct {
 	KeyData      string       `yaml:"keyData,omitempty"`
 }
 
+var errInvalidMSRConfig = fmt.Errorf("invalid MSR config")
+
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type msr MSRConfig
@@ -35,17 +37,17 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if c.Version == "" {
-		return fmt.Errorf("missing spec.msr.version")
+		return fmt.Errorf("%w: missing spec.msr.version", errInvalidMSRConfig)
 	}
 
 	if _, err := version.NewVersion(c.Version); err != nil {
-		return fmt.Errorf("error in field spec.msr.version: %s", err.Error())
+		return fmt.Errorf("%w: error in field spec.msr.version: %w", errInvalidMSRConfig, err)
 	}
 
 	if c.CACertPath != "" {
 		caCertData, err := util.LoadExternalFile(c.CACertPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load msr ca cert file: %w", err)
 		}
 		c.CACertData = string(caCertData)
 	}
@@ -53,7 +55,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if c.CertPath != "" {
 		certData, err := util.LoadExternalFile(c.CertPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load msr cert file: %w", err)
 		}
 		c.CertData = string(certData)
 	}
@@ -61,12 +63,15 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if c.KeyPath != "" {
 		keyData, err := util.LoadExternalFile(c.KeyPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load msr key file: %w", err)
 		}
 		c.KeyData = string(keyData)
 	}
 
-	return defaults.Set(c)
+	if err := defaults.Set(c); err != nil {
+		return fmt.Errorf("set msr defaults: %w", err)
+	}
+	return nil
 }
 
 // SetDefaults sets default values.

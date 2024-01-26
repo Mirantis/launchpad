@@ -61,24 +61,24 @@ func (m *Manager) AddPhase(p phase) {
 
 // Run executes all the added Phases in order.
 func (m *Manager) Run() error {
-	for _, p := range m.phases {
-		title := p.Title()
+	for _, phase := range m.phases {
+		title := phase.Title()
 
-		if p, ok := p.(withconfig); ok {
+		if p, ok := phase.(withconfig); ok {
 			log.Debugf("preparing phase '%s'", title)
 			if err := p.Prepare(m.config); err != nil {
-				return err
+				return fmt.Errorf("phase '%s' failed to prepare: %w", title, err)
 			}
 		}
 
 		if m.SkipCleanup {
-			if p, ok := p.(cleanupdisabling); ok {
+			if p, ok := phase.(cleanupdisabling); ok {
 				log.Debugf("disabling in-phase cleanup for '%s'", title)
 				p.DisableCleanup()
 			}
 		}
 
-		if p, ok := p.(conditional); ok {
+		if p, ok := phase.(conditional); ok {
 			if !p.ShouldRun() {
 				log.Debugf("skipping phase '%s'", title)
 				continue
@@ -89,12 +89,12 @@ func (m *Manager) Run() error {
 		log.Infof(text, title)
 		start := time.Now()
 
-		result := p.Run()
+		result := phase.Run()
 
 		duration := time.Since(start)
 		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Minute))
 
-		if e, ok := p.(Eventable); ok {
+		if e, ok := phase.(Eventable); ok {
 			r := reflect.ValueOf(m.config).Elem()
 			props := event.Properties{
 				"kind":        r.FieldByName("Kind").String(),
@@ -105,22 +105,26 @@ func (m *Manager) Run() error {
 				props[k] = v
 			}
 			props["success"] = result == nil
-			defer analytics.TrackEvent(title, props)
+			defer func() { analytics.TrackEvent(title, props) }()
 		}
 
-		if result != nil {
-			if p, ok := p.(withcleanup); ok {
-				if !m.SkipCleanup {
-					defer p.CleanUp()
-				}
-			}
-			if m.IgnoreErrors {
-				log.Debugf("ignoring phase '%s' error: %s", title, result.Error())
-				return nil
-			}
-
-			return fmt.Errorf("phase failure: %s => %w", title, result)
+		if result == nil {
+			log.Debugf("phase '%s' completed successfully", title)
+			return nil
 		}
+
+		if p, ok := phase.(withcleanup); ok {
+			if !m.SkipCleanup {
+				defer p.CleanUp()
+			}
+		}
+
+		if m.IgnoreErrors {
+			log.Debugf("ignoring phase '%s' error: %s", title, result.Error())
+			return nil
+		}
+
+		return fmt.Errorf("phase failure: %s => %w", title, result)
 	}
 
 	return nil

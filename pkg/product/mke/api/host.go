@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -39,23 +40,23 @@ type MSRMetadata struct {
 	ReplicaID               string
 }
 
-type errors struct {
+type errs struct {
 	errors []string
 }
 
-func (errors *errors) Count() int {
+func (errors *errs) Count() int {
 	return len(errors.errors)
 }
 
-func (errors *errors) Add(e string) {
+func (errors *errs) Add(e string) {
 	errors.errors = append(errors.errors, e)
 }
 
-func (errors *errors) Addf(template string, args ...interface{}) {
+func (errors *errs) Addf(template string, args ...interface{}) {
 	errors.errors = append(errors.errors, fmt.Sprintf(template, args...))
 }
 
-func (errors *errors) String() string {
+func (errors *errs) String() string {
 	if errors.Count() == 0 {
 		return ""
 	}
@@ -77,7 +78,7 @@ type Host struct {
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
 	Configurer  HostConfigurer `yaml:"-"`
-	Errors      errors         `yaml:"-"`
+	Errors      errs           `yaml:"-"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
@@ -93,7 +94,10 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		log.Warnf("%s: spec.hosts[*].ssh.hostKey is deprecated, please use ssh known hosts file instead (.ssh/config, SSH_KNOWN_HOSTS)", h)
 	}
 
-	return defaults.Set(h)
+	if err := defaults.Set(h); err != nil {
+		return fmt.Errorf("failed to set host defaults: %w", err)
+	}
+	return nil
 }
 
 // IsLocal returns true for localhost connections.
@@ -108,7 +112,7 @@ func (h *Host) ExecAll(cmds []string) error {
 		output, err := h.ExecOutput(cmd)
 		if err != nil {
 			log.Errorf("%s: %s", h, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h)))
-			return err
+			return fmt.Errorf("failed to execute step command: %w", err)
 		}
 		if strings.TrimSpace(output) != "" {
 			log.Infof("%s: %s", h, strings.ReplaceAll(output, "\n", fmt.Sprintf("\n%s: ", h)))
@@ -117,20 +121,24 @@ func (h *Host) ExecAll(cmds []string) error {
 	return nil
 }
 
+var errAuthFailed = errors.New("authentication failed")
+
 // AuthenticateDocker performs a docker login on the host using local REGISTRY_USERNAME
 // and REGISTRY_PASSWORD when set.
 func (h *Host) AuthenticateDocker(imageRepo string) error {
 	if user := os.Getenv("REGISTRY_USERNAME"); user != "" {
 		pass := os.Getenv("REGISTRY_PASSWORD")
 		if pass == "" {
-			return fmt.Errorf("REGISTRY_PASSWORD not set")
+			return fmt.Errorf("%w: REGISTRY_PASSWORD not set", errAuthFailed)
 		}
 
 		log.Infof("%s: authenticating docker for image repo %s", h, imageRepo)
 		if strings.HasPrefix(imageRepo, "docker.io/") { // docker.io is a special case for auth
 			imageRepo = ""
 		}
-		return h.Configurer.AuthenticateDocker(h, user, pass, imageRepo)
+		if err := h.Configurer.AuthenticateDocker(h, user, pass, imageRepo); err != nil {
+			return fmt.Errorf("%w: %s", errAuthFailed, err.Error())
+		}
 	}
 	return nil
 }
@@ -144,22 +152,24 @@ func (h *Host) SwarmAddress() string {
 func (h *Host) MCRVersion() (string, error) {
 	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`version -f "{{.Server.Version}}"`))
 	if err != nil {
-		return "", fmt.Errorf("failed to get container runtime version: %s", err.Error())
+		return "", fmt.Errorf("failed to get container runtime version: %w", err)
 	}
 
 	return version, nil
 }
 
+var errUnexpectedResponse = errors.New("unexpected response")
+
 // CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected.
 func (h *Host) CheckHTTPStatus(url string, expected int) error {
 	status, err := h.Configurer.HTTPStatus(h, url)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get http status: %w", err)
 	}
 
 	log.Debugf("%s: response code: %d, expected %d", h, status, expected)
 	if status != expected {
-		return fmt.Errorf("unexpected response code %d", status)
+		return fmt.Errorf("%w: code %d", errUnexpectedResponse, status)
 	}
 
 	return nil
@@ -171,14 +181,14 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	startTime := time.Now()
 	stat, err := os.Stat(src)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to stat file: %w", err)
 	}
 	size := stat.Size()
 
 	log.Infof("%s: uploading %s to %s", h, util.FormatBytes(uint64(stat.Size())), dst)
 
 	if err := h.Connection.Upload(src, dst); err != nil {
-		return fmt.Errorf("upload failed: %s", err.Error())
+		return fmt.Errorf("upload failed: %w", err)
 	}
 
 	duration := time.Since(startTime).Seconds()
@@ -193,22 +203,29 @@ func (h *Host) Reconnect() error {
 	h.Disconnect()
 
 	log.Infof("%s: waiting for reconnection", h)
-	return retry.Do(
+	err := retry.Do(
 		func() error {
-			return h.Connect()
+			if err := h.Connect(); err != nil {
+				return fmt.Errorf("failed to reconnect: %w", err)
+			}
+			return nil
 		},
 		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
 		retry.MaxJitter(time.Second*2),
 		retry.Delay(time.Second*3),
 		retry.Attempts(60),
 	)
+	if err != nil {
+		return fmt.Errorf("retry count exceeded: %w", err)
+	}
+	return nil
 }
 
 // Reboot reboots the host and waits for it to become responsive.
 func (h *Host) Reboot() error {
 	log.Infof("%s: rebooting", h)
 	if err := h.Configurer.Reboot(h); err != nil {
-		return err
+		return fmt.Errorf("failed to reboot: %w", err)
 	}
 	log.Infof("%s: waiting for host to go offline", h)
 	if err := h.waitForHost(false); err != nil {
@@ -218,7 +235,7 @@ func (h *Host) Reboot() error {
 
 	log.Infof("%s: waiting for reconnection", h)
 	if err := h.Reconnect(); err != nil {
-		return fmt.Errorf("unable to reconnect after reboot")
+		return fmt.Errorf("unable to reconnect after reboot: %w", err)
 	}
 
 	log.Infof("%s: waiting for host to become active", h)
@@ -227,7 +244,7 @@ func (h *Host) Reboot() error {
 	}
 
 	if err := h.Reconnect(); err != nil {
-		return fmt.Errorf("unable to reconnect after reboot: %s", err.Error())
+		return fmt.Errorf("unable to reconnect after reboot: %w", err)
 	}
 
 	return nil
@@ -276,7 +293,7 @@ func (h *Host) ConfigureMCR() error {
 	}
 
 	if err := h.Configurer.WriteFile(h, cfgPath, daemonJSONContent, "0600"); err != nil {
-		return err
+		return fmt.Errorf("failed to write daemon.json: %w", err)
 	}
 
 	if h.Metadata.MCRVersion != "" {
@@ -287,15 +304,17 @@ func (h *Host) ConfigureMCR() error {
 	return nil
 }
 
+var errUnexpectedState = errors.New("unexpected state")
+
 // when state is true wait for host to become active, when state is false, wait for connection to go down.
 func (h *Host) waitForHost(state bool) error {
 	err := retry.Do(
 		func() error {
 			err := h.Exec("echo")
 			if !state && err == nil {
-				return fmt.Errorf("still online")
+				return fmt.Errorf("%w: still online", errUnexpectedState)
 			} else if state && err != nil {
-				return fmt.Errorf("still offline")
+				return fmt.Errorf("%w: still offline", errUnexpectedState)
 			}
 			return nil
 		},
@@ -305,16 +324,18 @@ func (h *Host) waitForHost(state bool) error {
 		retry.Attempts(60),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to wait for host to go offline")
+		return fmt.Errorf("failed to wait for host to go offline: %w", err)
 	}
 	return nil
 }
+
+var errUnsupportedOS = errors.New("unsupported OS")
 
 // ResolveConfigurer assigns a rig-style configurer to the Host (see configurer/).
 func (h *Host) ResolveConfigurer() error {
 	bf, err := registry.GetOSModuleBuilder(*h.OSVersion)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: failed to get OS module builder: %w", errUnsupportedOS, err)
 	}
 
 	if c, ok := bf().(HostConfigurer); ok {
@@ -323,5 +344,5 @@ func (h *Host) ResolveConfigurer() error {
 		return nil
 	}
 
-	return fmt.Errorf("unsupported OS")
+	return errUnsupportedOS
 }

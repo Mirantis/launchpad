@@ -1,6 +1,7 @@
 package sles
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/configurer"
@@ -20,39 +21,44 @@ type Configurer struct {
 
 // InstallMKEBasePackages installs the needed base packages on Ubuntu.
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
-	return c.InstallPackage(h, "curl", "socat")
+	if err := c.InstallPackage(h, "curl", "socat"); err != nil {
+		return fmt.Errorf("failed to install base packages: %w", err)
+	}
+	return nil
 }
 
 // UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	var err error
 	info, getDockerError := c.GetDockerInfo(h, c.Kind())
-	if getDockerError == nil {
-		if err = h.Exec(c.DockerCommandf("system prune -f")); err != nil {
-			return err
-		}
-
-		if err = c.StopService(h, "docker"); err != nil {
-			return err
-		}
-
-		if err = c.StopService(h, "containerd"); err != nil {
-			return err
-		}
-
-		err = h.Exec("sudo zypper -n remove -y --clean-deps docker-ee docker-ee-cli")
-	}
 	if engineConfig.Prune {
-		c.CleanupLingeringMCR(h, info)
+		defer c.CleanupLingeringMCR(h, info)
 	}
-	return err
+	if getDockerError == nil {
+		if err := h.Exec("sudo docker system prune -f"); err != nil {
+			return fmt.Errorf("prune docker: %w", err)
+		}
+
+		if err := c.StopService(h, "docker"); err != nil {
+			return fmt.Errorf("stop docker: %w", err)
+		}
+
+		if err := c.StopService(h, "containerd"); err != nil {
+			return fmt.Errorf("stop containerd: %w", err)
+		}
+
+		if err := h.Exec("sudo zypper -n remove -y --clean-deps docker-ee docker-ee-cli"); err != nil {
+			return fmt.Errorf("remove docker-ee zypper package: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // LocalAddresses returns a list of local addresses, SLES12 has an old version of "hostname" without "--all-ip-addresses" and because of that, ip addr show is used here.
 func (c Configurer) LocalAddresses(h os.Host) ([]string, error) {
 	output, err := h.ExecOutput("ip addr show | grep 'inet ' | awk '{print $2}' | cut -d/ -f1")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get local addresses: %w", err)
 	}
 
 	return strings.Fields(output), nil

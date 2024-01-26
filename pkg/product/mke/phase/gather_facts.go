@@ -2,6 +2,7 @@ package phase
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 
@@ -41,7 +42,7 @@ func (p *GatherFacts) Title() string {
 func (p *GatherFacts) Run() error {
 	err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.investigateHost)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to gather facts: %w", err)
 	}
 	// Gather MKE related facts
 
@@ -51,7 +52,7 @@ func (p *GatherFacts) Run() error {
 	if swarmLeader.Metadata.MCRVersion != "" {
 		err := mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata)
 		if err != nil {
-			return fmt.Errorf("%s: failed to collect existing MKE details: %s", swarmLeader, err.Error())
+			return fmt.Errorf("%s: failed to collect existing MKE details: %w", swarmLeader, err)
 		}
 		if p.Config.Spec.MKE.Metadata.Installed {
 			log.Infof("%s: MKE has version %s", swarmLeader, p.Config.Spec.MKE.Metadata.InstalledVersion)
@@ -67,7 +68,7 @@ func (p *GatherFacts) Run() error {
 		}
 
 		msrHosts := p.Config.Spec.MSRs()
-		msrHosts.ParallelEach(func(h *api.Host) error {
+		_ = msrHosts.ParallelEach(func(h *api.Host) error {
 			if h.Metadata != nil && h.Metadata.MCRVersion != "" {
 				msrMeta, err := msr.CollectFacts(h)
 				if err != nil {
@@ -87,14 +88,16 @@ func (p *GatherFacts) Run() error {
 	return nil
 }
 
-func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
+var errInvalidIP = errors.New("invalid IP address")
+
+func (p *GatherFacts) investigateHost(h *api.Host, _ *api.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h)
 	if h.Metadata == nil {
 		h.Metadata = &api.HostMetadata{}
 	}
 
 	if err := h.Configurer.CheckPrivilege(h); err != nil {
-		return err
+		return fmt.Errorf("privilege check failed: %w", err)
 	}
 
 	version, err := h.MCRVersion()
@@ -124,7 +127,7 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	if h.PrivateInterface == "" {
 		i, err := h.Configurer.ResolvePrivateInterface(h)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: failed to resolve private interface: %w", h, err)
 		}
 		log.Infof("%s: detected private interface '%s'", h, i)
 		h.PrivateInterface = i
@@ -132,10 +135,10 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 
 	a, err := h.Configurer.ResolveInternalIP(h, h.PrivateInterface, h.Address())
 	if err != nil {
-		return fmt.Errorf("%s: failed to resolve internal address: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to resolve internal address: %w", h, err)
 	}
 	if net.ParseIP(a) == nil {
-		return fmt.Errorf("%s: failed to resolve internal address: invalid IP address: %q", h, a)
+		return fmt.Errorf("%s: %w: failed to resolve internal address: invalid IP address: %q", h, errInvalidIP, a)
 	}
 	h.Metadata.InternalAddress = a
 
@@ -143,40 +146,6 @@ func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
 	log.Infof("%s: internal address: %s", h, h.Metadata.InternalAddress)
 
 	log.Infof("%s: gathered all facts", h)
-
-	return nil
-}
-
-//nolint:unused
-func (p *GatherFacts) testConnection(h *api.Host) error {
-	testfn := "launchpad_connection_test.txt"
-
-	// cleanup
-	if h.Configurer.FileExist(h, testfn) {
-		if err := h.Configurer.DeleteFile(h, testfn); err != nil {
-			return fmt.Errorf("failed to delete connection test file: %w", err)
-		}
-	}
-
-	if err := h.Configurer.WriteFile(h, testfn, "test", "0600"); err != nil {
-		return fmt.Errorf("failed to write connection test file: %w", err)
-	}
-
-	if !h.Configurer.FileExist(h, testfn) {
-		return fmt.Errorf("file does not exist after connection test file write")
-	}
-
-	content, err := h.Configurer.ReadFile(h, testfn)
-	if content != "test" || err != nil {
-		h.Configurer.DeleteFile(h, testfn)
-
-		return fmt.Errorf(`connection file write test failed, expected "test", received "%s" (%w)`, content, err)
-	}
-
-	err = h.Configurer.DeleteFile(h, testfn)
-	if err != nil || h.Configurer.FileExist(h, testfn) {
-		return fmt.Errorf("connection file write test failed at file exist after delete check")
-	}
 
 	return nil
 }

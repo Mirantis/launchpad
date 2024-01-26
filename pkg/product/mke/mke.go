@@ -1,6 +1,8 @@
 package mke
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"gopkg.in/yaml.v2"
 )
@@ -19,11 +21,11 @@ func (p *MKE) ClusterName() string {
 func NewMKE(data []byte) (*MKE, error) {
 	c := api.ClusterConfig{}
 	if err := yaml.UnmarshalStrict(data, &c); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse cluster config: %w", err)
 	}
 
 	if err := c.Validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to validate cluster config: %w", err)
 	}
 	return &MKE{ClusterConfig: c}, nil
 }

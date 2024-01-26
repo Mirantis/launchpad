@@ -34,7 +34,7 @@ func (p *UpgradeMSR) Run() error {
 
 	err := p.Config.Spec.CheckMKEHealthRemote(h)
 	if err != nil {
-		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", h)
+		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity: %w", h, err)
 	}
 
 	p.EventProperties = map[string]interface{}{
@@ -65,19 +65,19 @@ func (p *UpgradeMSR) Run() error {
 	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
 	log.Debugf("%s: Running msr upgrade via bootstrapper", h)
 	if err := h.Exec(upgradeCmd, exec.StreamOutput()); err != nil {
-		return fmt.Errorf("%s: failed to run msr upgrade: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to run msr upgrade: %w", h, err)
 	}
 
 	msrMeta, err := msr.CollectFacts(h)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing msr details: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to collect existing msr details: %w", h, err)
 	}
 
 	// Check to make sure installedversion matches bootstrapperVersion
 	if msrMeta.InstalledVersion != p.Config.Spec.MSR.Version {
 		// If our newly collected facts do not match the version we upgraded to
 		// then the upgrade has failed
-		return fmt.Errorf("%s: upgraded msr version: %s does not match intended upgrade version: %s", h, msrMeta.InstalledVersion, p.Config.Spec.MSR.Version)
+		return fmt.Errorf("%s: %w: upgraded msr version: %s does not match intended upgrade version: %s", h, errVersionMismatch, msrMeta.InstalledVersion, p.Config.Spec.MSR.Version)
 	}
 
 	p.EventProperties["msr_upgraded"] = true

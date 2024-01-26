@@ -19,6 +19,8 @@ type tagListResponse struct {
 	} `json:"results"`
 }
 
+var errQueryFailed = fmt.Errorf("latest version query failed, you can try running with --disable-upgrade-check")
+
 // LatestTag returns the latest tag name from a public docker hub repository.
 // If pre is true, also prereleases are considered.
 func LatestTag(org, image string, pre bool) (string, error) {
@@ -29,34 +31,34 @@ func LatestTag(org, image string, pre bool) (string, error) {
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: %w", errQueryFailed, err)
 	}
 
 	req.Header.Set("Accept", "application/json")
 	res, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("latest version query failed, you can try running with --disable-upgrade-check: %s", err.Error())
+		return "", fmt.Errorf("%w: %w", errQueryFailed, err)
 	}
 
 	if res == nil {
-		return "", fmt.Errorf("latest version query failed for an unknown reason, you can try running with --disable-upgrade-check")
+		return "", errQueryFailed
 	}
 
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
-	if res.StatusCode > 299 || res.StatusCode < 200 {
-		return "", fmt.Errorf("response status %d", res.StatusCode)
+	if res.StatusCode > 299 || res.StatusCode < http.StatusOK {
+		return "", fmt.Errorf("%w: response status %d", errQueryFailed, res.StatusCode)
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: read response body: %w", errQueryFailed, err)
 	}
 	var taglist tagListResponse
 
 	if err := json.Unmarshal(body, &taglist); err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: unmarshal response: %w", errQueryFailed, err)
 	}
 
 	var tags []*version.Version
@@ -70,7 +72,7 @@ func LatestTag(org, image string, pre bool) (string, error) {
 		}
 	}
 	if len(tags) == 0 {
-		return "", fmt.Errorf("no tags received")
+		return "", fmt.Errorf("%w: no tags received", errQueryFailed)
 	}
 	sort.Sort(version.Collection(tags))
 	return tags[len(tags)-1].String(), nil

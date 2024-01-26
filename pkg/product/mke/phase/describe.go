@@ -24,11 +24,12 @@ func (p *Describe) Title() string {
 
 // Run does the actual saving of the local state file.
 func (p *Describe) Run() error {
-	if p.MKE {
+	switch {
+	case p.MKE:
 		p.mkeReport()
-	} else if p.MSR {
+	case p.MSR:
 		p.msrReport()
-	} else {
+	default:
 		p.hostReport()
 	}
 
@@ -40,12 +41,12 @@ func (p *Describe) mkeReport() {
 		fmt.Println("Not installed")
 		return
 	}
-	w := new(tabwriter.Writer)
+	tabWriter := new(tabwriter.Writer)
 
 	// minwidth, tabwidth, padding, padchar, flags
-	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
+	tabWriter.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
-	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
+	fmt.Fprintf(tabWriter, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
 	uv := p.Config.Spec.MKE.Metadata.InstalledVersion
 	mkeurl := "n/a"
 
@@ -55,8 +56,8 @@ func (p *Describe) mkeReport() {
 		mkeurl = url.String()
 	}
 
-	fmt.Fprintf(w, "%s\t%s\t\n", uv, mkeurl)
-	w.Flush()
+	fmt.Fprintf(tabWriter, "%s\t%s\t\n", uv, mkeurl)
+	tabWriter.Flush()
 }
 
 func (p *Describe) msrReport() {
@@ -66,12 +67,12 @@ func (p *Describe) msrReport() {
 		return
 	}
 
-	w := new(tabwriter.Writer)
+	tabWriter := new(tabwriter.Writer)
 
 	// minwidth, tabwidth, padding, padchar, flags
-	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
+	tabWriter.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
-	fmt.Fprintf(w, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
+	fmt.Fprintf(tabWriter, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
 	uv := msrLeader.MSRMetadata.InstalledVersion
 	msrurl := "n/a"
 
@@ -81,46 +82,46 @@ func (p *Describe) msrReport() {
 		msrurl = url.String()
 	}
 
-	fmt.Fprintf(w, "%s\t%s\t\n", uv, msrurl)
-	w.Flush()
+	fmt.Fprintf(tabWriter, "%s\t%s\t\n", uv, msrurl)
+	tabWriter.Flush()
 }
 
 func (p *Describe) hostReport() {
-	w := new(tabwriter.Writer)
+	tabWriter := new(tabwriter.Writer)
 
 	// minwidth, tabwidth, padding, padchar, flags
-	w.Init(os.Stdout, 8, 8, 1, '\t', 0)
+	tabWriter.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
-	fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "INTERNAL_IP", "HOSTNAME", "ROLE", "OS", "RUNTIME")
+	fmt.Fprintf(tabWriter, "%s\t%s\t%s\t%s\t%s\t%s\t\n", "ADDRESS", "INTERNAL_IP", "HOSTNAME", "ROLE", "OS", "RUNTIME")
 
 	for _, h := range p.Config.Spec.Hosts {
-		ev := "n/a"
-		os := "n/a"
-		ia := "n/a"
-		hn := "n/a"
+		mcrV := "n/a"
+		hostOS := "n/a"
+		internalAddr := "n/a"
+		hostname := "n/a"
 		if h.Metadata != nil {
 			if h.Metadata.MCRVersion != "" {
-				ev = h.Metadata.MCRVersion
+				mcrV = h.Metadata.MCRVersion
 			}
 			if h.OSVersion.ID != "" {
-				os = fmt.Sprintf("%s/%s", h.OSVersion.ID, h.OSVersion.Version)
+				hostOS = fmt.Sprintf("%s/%s", h.OSVersion.ID, h.OSVersion.Version)
 			}
 			if h.Metadata.InternalAddress != "" {
-				ia = h.Metadata.InternalAddress
+				internalAddr = h.Metadata.InternalAddress
 			}
 			if h.Metadata.Hostname != "" {
-				hn = h.Metadata.Hostname
+				hostname = h.Metadata.Hostname
 			}
 		}
-		fmt.Fprintf(w,
+		fmt.Fprintf(tabWriter,
 			"%s\t%s\t%s\t%s\t%s\t%s\t\n",
 			h.Address(),
-			ia,
-			hn,
+			internalAddr,
+			hostname,
 			h.Role,
-			os,
-			ev,
+			hostOS,
+			mcrV,
 		)
 	}
-	w.Flush()
+	tabWriter.Flush()
 }

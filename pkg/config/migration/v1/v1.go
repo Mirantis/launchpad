@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -10,7 +11,7 @@ import (
 )
 
 // Migrate migrates an v1 format configuration into the v1.1 api format and replaces the contents of the supplied data byte slice.
-func Migrate(plain map[string]interface{}) error {
+func Migrate(plain map[string]interface{}) error { //nolint:maintidx
 	plain["apiVersion"] = "launchpad.mirantis.com/mke/v1.1"
 
 	// Need to marshal back to yaml to find $VARIABLES.
@@ -23,7 +24,9 @@ func Migrate(plain map[string]interface{}) error {
 		varsFound = true
 	}
 	if varsFound {
-		yaml.Unmarshal(re.ReplaceAll(s, []byte("$1$$$2")), plain)
+		if err := yaml.Unmarshal(re.ReplaceAll(s, []byte("$1$$$2")), plain); err != nil {
+			return fmt.Errorf("failed to escape variables: %w", err)
+		}
 	}
 
 	hasMsr := false
@@ -32,15 +35,17 @@ func Migrate(plain map[string]interface{}) error {
 
 	spec, ok := plain["spec"].(map[interface{}]interface{})
 	if ok {
-		hosts, ok := spec["hosts"]
+		hosts, ok := spec["hosts"].([]interface{})
 		if ok {
-			hslice := hosts.([]interface{})
-			for _, h := range hslice {
-				host := h.(map[interface{}]interface{})
-				if host["role"].(string) == "dtr" {
-					host["role"] = "msr"
-					log.Debugf("changed v1 host.role[dtr] to v1.1 host.role[msr]")
-					hasMsr = true
+			for _, h := range hosts {
+				host, ok := h.(map[interface{}]interface{})
+				if ok {
+					role, ok := host["role"].(string)
+					if ok && role == "dtr" {
+						host["role"] = "msr"
+						log.Debugf("changed v1 host.role[dtr] to v1.1 host.role[msr]")
+						hasMsr = true
+					}
 				}
 			}
 		}
@@ -51,8 +56,9 @@ func Migrate(plain map[string]interface{}) error {
 			if ok {
 				drop := -1
 				for idx, val := range installFlags {
-					if strings.HasPrefix(val.(string), "--admin-username") {
-						user := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
+					valStr, ok := val.(string)
+					if ok && strings.HasPrefix(valStr, "--admin-username") {
+						user := valStr[strings.IndexAny(valStr, `=" `)+1:]
 						user = strings.TrimSpace(user)
 						user = strings.Trim(user, `"`)
 						if user != "" {
@@ -67,15 +73,18 @@ func Migrate(plain map[string]interface{}) error {
 				}
 
 				drop = -1
-				installFlags = ucp["installFlags"].([]interface{})
-				for idx, val := range installFlags {
-					if strings.HasPrefix(val.(string), "--admin-password") {
-						pass := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
-						pass = strings.TrimSpace(pass)
-						pass = strings.Trim(pass, `"`)
-						if pass != "" {
-							ucp["adminPassword"] = pass
-							drop = idx
+				installFlags, ok = ucp["installFlags"].([]interface{})
+				if ok {
+					for idx, val := range installFlags {
+						valStr, ok := val.(string)
+						if ok && strings.HasPrefix(valStr, "--admin-password") {
+							pass := valStr[strings.IndexAny(valStr, `=" `)+1:]
+							pass = strings.TrimSpace(pass)
+							pass = strings.Trim(pass, `"`)
+							if pass != "" {
+								ucp["adminPassword"] = pass
+								drop = idx
+							}
 						}
 					}
 				}
@@ -97,19 +106,23 @@ func Migrate(plain map[string]interface{}) error {
 			if ok {
 				drop := -1
 				for idx, val := range installFlags {
-					if strings.HasPrefix(val.(string), "--ucp-username") {
-						user := val.(string)[strings.IndexAny(val.(string), `=" `):]
+					valStr, ok := val.(string)
+					if ok && strings.HasPrefix(valStr, "--ucp-username") {
+						user := valStr[strings.IndexAny(valStr, `=" `):]
 						user = strings.TrimSpace(user)
 						user = strings.Trim(user, `"`)
 						if user != "" {
-							if spec["mke"] == nil {
-								spec["mke"] = make(map[interface{}]interface{})
-								spec["mke"].(map[interface{}]interface{})["adminUsername"] = user
+							mkeMap, ok := spec["mke"].(map[interface{}]interface{})
+							if !ok {
+								mkeMap = make(map[interface{}]interface{})
+								spec["mke"] = mkeMap
+							}
+
+							switch {
+							case mkeMap["adminUsername"] == nil:
+								mkeMap["adminUsername"] = user
 								drop = idx
-							} else if spec["mke"].(map[interface{}]interface{})["adminUsername"] == nil {
-								spec["mke"].(map[interface{}]interface{})["adminUsername"] = user
-								drop = idx
-							} else if spec["mke"].(map[interface{}]interface{})["adminUsername"] != user {
+							case mkeMap["adminUsername"] != user:
 								log.Warnf("spec.dtr.installFlags[--ucp-username] and spec.mke.adminUsername mismatch")
 							}
 						}
@@ -121,22 +134,31 @@ func Migrate(plain map[string]interface{}) error {
 				}
 
 				drop = -1
-				installFlags = dtr["installFlags"].([]interface{})
-				for idx, val := range installFlags {
-					if strings.HasPrefix(val.(string), "--ucp-password") {
-						pass := val.(string)[strings.IndexAny(val.(string), `=" `)+1:]
-						pass = strings.TrimSpace(pass)
-						pass = strings.Trim(pass, `"`)
-						if pass != "" {
-							if spec["mke"] == nil {
-								spec["mke"] = make(map[interface{}]interface{})
-								spec["mke"].(map[interface{}]interface{})["adminPassword"] = pass
-								drop = idx
-							} else if spec["mke"].(map[interface{}]interface{})["adminPassword"] == nil {
-								spec["mke"].(map[interface{}]interface{})["adminPassword"] = pass
-								drop = idx
-							} else if spec["mke"].(map[interface{}]interface{})["adminPassword"] != pass {
-								log.Warnf("spec.dtr.installFlags[--ucp-password] and spec.mke.adminPassword mismatch")
+				installFlags, ok = dtr["installFlags"].([]interface{})
+				if ok {
+					for idx, val := range installFlags {
+						valStr, ok := val.(string)
+						if ok && strings.HasPrefix(valStr, "--ucp-password") {
+							pass := valStr[strings.IndexAny(valStr, `=" `)+1:]
+							pass = strings.TrimSpace(pass)
+							pass = strings.Trim(pass, `"`)
+							if pass != "" {
+								var specMke map[interface{}]interface{}
+								if s, ok := spec["mke"].(map[interface{}]interface{}); ok && s != nil {
+									specMke = s
+								} else {
+									specMke = make(map[interface{}]interface{})
+									spec["mke"] = specMke
+								}
+								switch specMke["adminPassword"] {
+								case pass:
+									// do nothing
+								case nil:
+									specMke["adminPassword"] = pass
+									drop = idx
+								default:
+									log.Warnf("spec.dtr.installFlags[--ucp-password] and spec.mke.adminPassword mismatch")
+								}
 							}
 						}
 					}
@@ -159,7 +181,8 @@ func Migrate(plain map[string]interface{}) error {
 		}
 	}
 
-	if plain["kind"].(string) == "DockerEnterprise" {
+	kind, ok := plain["kind"].(string)
+	if ok && kind == "DockerEnterprise" {
 		if hasMsr {
 			plain["kind"] = "mke+msr"
 			log.Debugf("migrated v1 kind[DockerEnterprise] to v1.1 kind[mke+msr]")

@@ -46,7 +46,7 @@ func (i *Image) String() string {
 
 // Pull pulls an image on a host.
 func (i *Image) Pull(h *api.Host) error {
-	return retry.Do(
+	err := retry.Do(
 		func() error {
 			log.Infof("%s: pulling image %s", h, i)
 			if i.Exist(h) {
@@ -55,26 +55,33 @@ func (i *Image) Pull(h *api.Host) error {
 			}
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("pull %s", i))
 			if err != nil {
-				return fmt.Errorf("%s: failed to pull image: %s", h, output)
+				return fmt.Errorf("%s: failed to pull image: %s: %w", h, output, err)
 			}
 			return nil
 		},
 		retry.RetryIf(func(err error) bool {
 			return !(strings.Contains(err.Error(), "pull access") || strings.Contains(err.Error(), "manifest unknown"))
 		}),
-		retry.OnRetry(func(n uint, err error) {
+		retry.OnRetry(func(_ uint, err error) {
 			if err != nil {
 				log.Warnf("%s: failed to pull image %s - retrying", h, i)
 			}
 		}),
 		retry.Attempts(2),
 	)
+	if err != nil {
+		return fmt.Errorf("retry count exceeded: %w", err)
+	}
+	return nil
 }
 
 // Retag retags image A to image B.
 func (i *Image) Retag(h *api.Host, a, b *Image) error {
 	log.Debugf("%s: retag %s --> %s", h, a, b)
-	return h.Exec(h.Configurer.DockerCommandf("tag %s %s", a, b))
+	if err := h.Exec(h.Configurer.DockerCommandf("tag %s %s", a, b)); err != nil {
+		return fmt.Errorf("%s: failed to retag image %s --> %s: %w", h, a, b, err)
+	}
+	return nil
 }
 
 // Exist returns true if a docker image exists on the host.

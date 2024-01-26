@@ -1,6 +1,8 @@
 package mke
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
@@ -29,5 +31,8 @@ func (p *MKE) Reset() error {
 		&common.Disconnect{},
 	)
 
-	return phaseManager.Run()
+	if err := phaseManager.Run(); err != nil {
+		return fmt.Errorf("reset failed: %w", err)
+	}
+	return nil
 }

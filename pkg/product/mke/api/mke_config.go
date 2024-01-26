@@ -53,6 +53,8 @@ type MKECloud struct {
 	ConfigData string `yaml:"configData,omitempty"`
 }
 
+var errMKEConfigInvalid = fmt.Errorf("invalid MKE config")
+
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type mke MKEConfig
@@ -67,7 +69,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if raw.ConfigFile != "" {
 		configData, err := util.LoadExternalFile(raw.ConfigFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("error in field spec.mke.configFile: %w", err)
 		}
 		raw.ConfigData = string(configData)
 	}
@@ -75,7 +77,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if raw.Cloud != nil && raw.Cloud.ConfigFile != "" {
 		cloudConfigData, err := util.LoadExternalFile(raw.Cloud.ConfigFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("error in field spec.mke.cloud.configFile: %w", err)
 		}
 		raw.Cloud.ConfigData = string(cloudConfigData)
 	}
@@ -85,7 +87,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			raw.AdminUsername = flagValue
 			raw.InstallFlags.Delete("--admin-username")
 		} else if flagValue != raw.AdminUsername {
-			return fmt.Errorf("both Spec.mke.AdminUsername and Spec.mke.InstallFlags --admin-username set, only one allowed")
+			return fmt.Errorf("%w: both Spec.mke.AdminUsername and Spec.mke.InstallFlags --admin-username set, only one allowed", errMKEConfigInvalid)
 		}
 	}
 
@@ -94,7 +96,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			raw.AdminPassword = flagValue
 			raw.InstallFlags.Delete("--admin-password")
 		} else if flagValue != raw.AdminPassword {
-			return fmt.Errorf("both Spec.mke.AdminPassword and Spec.mke.InstallFlags --admin-password set, only one allowed")
+			return fmt.Errorf("%w: both Spec.mke.AdminPassword and Spec.mke.InstallFlags --admin-password set, only one allowed", errMKEConfigInvalid)
 		}
 	}
 
@@ -103,7 +105,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			raw.AdminUsername = flagValue
 			raw.UpgradeFlags.Delete("--admin-username")
 		} else if flagValue != raw.AdminUsername {
-			return fmt.Errorf("both Spec.mke.AdminUsername and Spec.mke.UpgradeFlags --admin-username set, only one allowed")
+			return fmt.Errorf("%w: both Spec.mke.AdminUsername and Spec.mke.UpgradeFlags --admin-username set, only one allowed", errMKEConfigInvalid)
 		}
 	}
 
@@ -112,18 +114,18 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 			raw.AdminPassword = flagValue
 			raw.UpgradeFlags.Delete("--admin-password")
 		} else if flagValue != raw.AdminPassword {
-			return fmt.Errorf("both Spec.mke.AdminPassword and Spec.mke.UpgradeFlags --admin-password set, only one allowed")
+			return fmt.Errorf("%w: both Spec.mke.AdminPassword and Spec.mke.UpgradeFlags --admin-password set, only one allowed", errMKEConfigInvalid)
 		}
 	}
 
 	if raw.SwarmInstallFlags.Include("--advertise-addr") {
-		return fmt.Errorf("Spec.mke.SwarmInstallFlags: specifying --advertise-addr is not allowed")
+		return fmt.Errorf("%w: spec.mke.SwarmInstallFlags: specifying --advertise-addr is not allowed", errMKEConfigInvalid)
 	}
 
 	if raw.CACertPath != "" {
 		caCertData, err := util.LoadExternalFile(raw.CACertPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load CA cert file: %w", err)
 		}
 		raw.CACertData = string(caCertData)
 	}
@@ -131,7 +133,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if raw.CertPath != "" {
 		certData, err := util.LoadExternalFile(raw.CertPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load cert file: %w", err)
 		}
 		raw.CertData = string(certData)
 	}
@@ -139,7 +141,7 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if raw.KeyPath != "" {
 		keyData, err := util.LoadExternalFile(raw.KeyPath)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load key file: %w", err)
 		}
 		raw.KeyData = string(keyData)
 	}
@@ -150,12 +152,12 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if raw.Version == "" {
-		return fmt.Errorf("missing spec.mke.version")
+		return fmt.Errorf("%w: missing spec.mke.version", errMKEConfigInvalid)
 	}
 
 	v, err := version.NewVersion(raw.Version)
 	if err != nil {
-		return fmt.Errorf("error in field spec.mke.version: %s", err.Error())
+		return fmt.Errorf("%w: error in field spec.mke.version: %w", errMKEConfigInvalid, err)
 	}
 
 	if raw.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
@@ -179,18 +181,18 @@ func (c *MKEConfig) UseLegacyImageRepo(v *version.Version) bool {
 	// Strip out anything after -, seems like go-version thinks
 	// 3.1.16-rc1 does not satisfy >= 3.1.15  (nor >= 3.1.15-a)
 	vs := v.String()
-	var v2 *version.Version
-	if strings.Contains(vs, "-") {
-		v2, _ = version.NewVersion(vs[0:strings.Index(vs, "-")])
+	var vBase *version.Version
+	if idx := strings.Index(vs, "-"); idx != -1 {
+		vBase, _ = version.NewVersion(vs[:idx])
 	} else {
-		v2 = v
+		vBase = v
 	}
 
 	c1, _ := version.NewConstraint("< 3.2, >= 3.1.15")
 	c2, _ := version.NewConstraint("> 3.1, < 3.3, >= 3.2.8")
 	c3, _ := version.NewConstraint("> 3.3, < 3.4, >= 3.3.2")
 	c4, _ := version.NewConstraint(">= 3.4")
-	return !(c1.Check(v2) || c2.Check(v2) || c3.Check(v2) || c4.Check(v2))
+	return c1.Check(vBase) && c2.Check(vBase) && c3.Check(vBase) && c4.Check(vBase)
 }
 
 // GetBootstrapperImage combines the bootstrapper image name based on user given config.

@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -33,7 +34,7 @@ func (p *InstallMKE) Title() string {
 }
 
 // Run the installer container.
-func (p *InstallMKE) Run() (err error) {
+func (p *InstallMKE) Run() error {
 	p.leader = p.Config.Spec.SwarmLeader()
 	h := p.leader
 
@@ -66,7 +67,7 @@ func (p *InstallMKE) Run() (err error) {
 		configCmd := h.Configurer.DockerCommandf("config create %s -", configName)
 		err := h.Exec(configCmd, exec.Stdin(p.Config.Spec.MKE.ConfigData))
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: failed to create MKE configuration: %w", h, err)
 		}
 	}
 
@@ -74,7 +75,7 @@ func (p *InstallMKE) Run() (err error) {
 		log.Debugf("Installing MKE with LicenseFilePath: %s", licenseFilePath)
 		licenseFlag, err := util.SetupLicenseFile(p.Config.Spec.MKE.LicenseFilePath)
 		if err != nil {
-			return fmt.Errorf("error while reading license file %s: %v", licenseFilePath, err)
+			return fmt.Errorf("error while reading license file %s: %w", licenseFilePath, err)
 		}
 		installFlags.AddUnlessExist(licenseFlag)
 	}
@@ -84,7 +85,9 @@ func (p *InstallMKE) Run() (err error) {
 			installFlags.AddUnlessExist("--cloud-provider " + p.Config.Spec.MKE.Cloud.Provider)
 		}
 		if p.Config.Spec.MKE.Cloud.ConfigData != "" {
-			applyCloudConfig(p.Config)
+			if err := applyCloudConfig(p.Config); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -112,7 +115,7 @@ func (p *InstallMKE) Run() (err error) {
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
 	output, err := h.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE installer: \n output:%s \n error:%w", h, output, err)
+		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", h, output, err)
 	}
 
 	if installFlags.GetValue("--admin-password") == "" {
@@ -130,42 +133,91 @@ func (p *InstallMKE) Run() (err error) {
 
 	err = mke.CollectFacts(h, p.Config.Spec.MKE.Metadata)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing MKE details: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to collect existing MKE details: %w", h, err)
 	}
 
 	return nil
 }
+
+// installCertificates installs user supplied MKE certificates.
+func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
+	log.Infof("Installing MKE certificates")
+	managers := config.Spec.Managers()
+	err := managers.ParallelEach(func(h *api.Host) error {
+		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
+		if err != nil {
+			log.Infof("%s: creating ucp-controller-server-certs volume", h)
+			err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"))
+			if err != nil {
+				return fmt.Errorf("%s: failed to create ucp-controller-server-certs volume: %w", h, err)
+			}
+		}
+
+		dir, err := h.ExecOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
+		if err != nil {
+			return fmt.Errorf("%s: failed to get ucp-controller-server-certs volume mountpoint: %w", h, err)
+		}
+
+		log.Infof("%s: installing certificate files to %s", h, dir)
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600")
+		if err != nil {
+			return fmt.Errorf("%s: failed to write ca.pem: %w", h, err)
+		}
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600")
+		if err != nil {
+			return fmt.Errorf("%s: failed to write cert.pem: %w", h, err)
+		}
+		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600")
+		if err != nil {
+			return fmt.Errorf("%s: failed to write key.pem: %w", h, err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to install certificates: %w", err)
+	}
+	return nil
+}
+
+var errUnsupportedProvider = errors.New("unsupported cloud provider")
 
 func applyCloudConfig(config *api.ClusterConfig) error {
 	configData := config.Spec.MKE.Cloud.ConfigData
 	provider := config.Spec.MKE.Cloud.Provider
 
 	var destFile string
-	if provider == "azure" {
+	switch provider {
+	case "azure":
 		destFile = "/etc/kubernetes/azure.json"
-	} else if provider == "openstack" {
+	case "openstack":
 		destFile = "/etc/kubernetes/openstack.conf"
-	} else {
-		return fmt.Errorf("Spec.Cloud.configData is only supported with Azure and OpenStack cloud providers")
+	default:
+		return fmt.Errorf("%w: spec.Cloud.configData is only supported with Azure and OpenStack cloud providers", errUnsupportedProvider)
 	}
 
-	err := phase.RunParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, c *api.ClusterConfig) error {
+	err := phase.RunParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, _ *api.ClusterConfig) error {
 		if h.IsWindows() {
 			log.Warnf("%s: cloud provider configuration is not suppported on windows", h)
 			return nil
 		}
 
 		log.Infof("%s: copying cloud provider (%s) config to %s", h, provider, destFile)
-		return h.Configurer.WriteFile(h, destFile, configData, "0700")
+		if err := h.Configurer.WriteFile(h, destFile, configData, "0600"); err != nil {
+			return fmt.Errorf("%s: failed to write cloud provider config: %w", h, err)
+		}
+		return nil
 	})
-
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to apply cloud provider config: %w", err)
+	}
+	return nil
 }
 
 func cleanupmke(h *api.Host) error {
 	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: failed to list mke containers: %w", h, err)
 	}
 	if strings.Trim(containersToRemove, " ") == "" {
 		log.Debugf("No containers to remove")
@@ -173,7 +225,7 @@ func cleanupmke(h *api.Host) error {
 	}
 	containersToRemove = strings.ReplaceAll(containersToRemove, "\n", " ")
 	if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
-		return err
+		return fmt.Errorf("%s: failed to remove mke containers: %w", h, err)
 	}
 
 	return nil

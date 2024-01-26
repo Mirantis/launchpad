@@ -15,8 +15,8 @@ func Register(apiVersion string, migrator func(map[string]interface{}) error) {
 // Migrate will run through the migrations until there is no more migrators found and returns an error if any of the migrations fail.
 func Migrate(data map[string]interface{}) error {
 	for {
-		migrator := migrators[data["apiVersion"].(string)]
-		if migrator == nil {
+		migrator, ok := migrators[data["apiVersion"].(string)]
+		if migrator == nil || !ok {
 			return nil
 		}
 

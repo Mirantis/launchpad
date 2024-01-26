@@ -1,6 +1,7 @@
 package mke
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -24,7 +25,10 @@ func (p *MKE) Describe(reportName string) error {
 
 	if reportName == "config" {
 		encoder := yaml.NewEncoder(os.Stdout)
-		return encoder.Encode(p.ClusterConfig)
+		if err := encoder.Encode(p.ClusterConfig); err != nil {
+			return fmt.Errorf("failed to encode cluster config: %w", err)
+		}
+		return nil
 	}
 
 	phaseManager := phase.NewManager(&p.ClusterConfig)
@@ -38,5 +42,8 @@ func (p *MKE) Describe(reportName string) error {
 		&de.Describe{MKE: mke, MSR: msr},
 	)
 
-	return phaseManager.Run()
+	if err := phaseManager.Run(); err != nil {
+		return fmt.Errorf("failed to describe cluster: %w", err)
+	}
+	return nil
 }
