@@ -177,22 +177,34 @@ func NewMKEConfig() MKEConfig {
 }
 
 // UseLegacyImageRepo returns true if the version number does not satisfy >=3.1.15 || >=3.2.8 || >=3.3.2.
-func (c *MKEConfig) UseLegacyImageRepo(v *version.Version) bool {
+func (c *MKEConfig) UseLegacyImageRepo(mkeVersion *version.Version) bool {
 	// Strip out anything after -, seems like go-version thinks
 	// 3.1.16-rc1 does not satisfy >= 3.1.15  (nor >= 3.1.15-a)
-	vs := v.String()
-	var vBase *version.Version
-	if idx := strings.Index(vs, "-"); idx != -1 {
-		vBase, _ = version.NewVersion(vs[:idx])
-	} else {
-		vBase = v
+	vs := mkeVersion.String()
+	if idx := strings.Index(vs, "-"); idx >= 0 {
+		vBase, err := version.NewVersion(vs[:idx])
+		if err == nil {
+			mkeVersion = vBase
+		}
 	}
 
-	c1, _ := version.NewConstraint("< 3.2, >= 3.1.15")
-	c2, _ := version.NewConstraint("> 3.1, < 3.3, >= 3.2.8")
-	c3, _ := version.NewConstraint("> 3.3, < 3.4, >= 3.3.2")
-	c4, _ := version.NewConstraint(">= 3.4")
-	return c1.Check(vBase) && c2.Check(vBase) && c3.Check(vBase) && c4.Check(vBase)
+	constraints := []string{
+		"< 3.2, >= 3.1.15",
+		"> 3.1, < 3.3, >= 3.2.8",
+		"> 3.2, < 3.4, >= 3.3.2",
+		">= 3.4",
+	}
+
+	for _, cs := range constraints {
+		constraint, err := version.NewConstraint(cs)
+		if err != nil {
+			return false
+		}
+		if constraint.Check(mkeVersion) {
+			return false
+		}
+	}
+	return true
 }
 
 // GetBootstrapperImage combines the bootstrapper image name based on user given config.

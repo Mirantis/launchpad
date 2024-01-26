@@ -90,7 +90,7 @@ func (p *ValidateFacts) validateMKEVersionJump() error {
 		}
 
 		if mke.VersionGreaterThan(installedMKE, targetMKE) {
-			return fmt.Errorf("%w: trying to downgrade %s to %s", errInvalidUpgradePath, installedMKE, targetMKE)
+			return fmt.Errorf("%w: can't downgrade MKE %s to %s", errInvalidUpgradePath, installedMKE, targetMKE)
 		}
 
 		installedSegments := installedMKE.Segments()
