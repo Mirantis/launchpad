@@ -45,9 +45,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 		return nil, fmt.Errorf("unable to determine version from found MSR: %w", err)
 	}
 
-	filter := constant.MSROperator + "|" + constant.PostgresOperator + "|" + constant.RethinkDBOperator + "|" + constant.CertManager
-
-	releases, err := h.List(ctx, filter)
+	releases, err := h.List(ctx, constant.InstalledDependenciesFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list helm releases: %w", err)
 	}

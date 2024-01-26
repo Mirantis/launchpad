@@ -41,14 +41,6 @@ const (
 	KubernetesOrchestratorTaint = "com.docker.ucp.orchestrator.kubernetes"
 	// MSROperatorDeploymentLabels are the labels the msr-operator deployment uses.
 	MSROperatorDeploymentLabels = "app.kubernetes.io/name=msr-operator"
-	// MSROperator is the name of the MSR operator.
-	MSROperator = "msr-operator"
-	// PostgresOperator is the name of the postgres operator.
-	PostgresOperator = "postgres-operator"
-	// CertManager is the name of the cert manager.
-	CertManager = "cert-manager"
-	// RethinkDBOperator is the name of the rethinkdb operator.
-	RethinkDBOperator = "rethinkdb-operator"
 	// KubeConfigFile is the name of the kubeconfig file.
 	KubeConfigFile = "kube.yml"
 	// MSRNodeSelector is the node selector for MSR nodes.
@@ -58,3 +50,21 @@ const (
 	// DefaultStorageClassAnnotation is the annotation to set a StorageClass to the default.
 	DefaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
 )
+
+const (
+	// MSROperator is the name of the MSR operator.
+	MSROperator = "msr-operator"
+	// PostgresOperator is the name of the postgres operator.
+	PostgresOperator = "postgres-operator"
+	// CertManager is the name of the cert manager.
+	CertManager = "cert-manager"
+	// RethinkDBOperator is the name of the rethinkdb operator.
+	RethinkDBOperator = "rethinkdb-operator"
+)
+
+// InstalledDependenciesFilter is the filter used by Helm list for gathering
+// facts about installed MSR3 dependencies.
+var InstalledDependenciesFilter = MSROperator + "|" +
+	PostgresOperator + "|" +
+	RethinkDBOperator + "|" +
+	CertManager

@@ -75,7 +75,7 @@ func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
 }
 
 func (p *ConfigureDepsMSR3) ShouldRun() bool {
-	return len(p.dependencyUpgrades) > 0
+	return p.Config.Spec.ContainsMSR3() && len(p.dependencyUpgrades) > 0
 }
 
 // Run configures the dependencies for an MSR CR to be able to deploy by

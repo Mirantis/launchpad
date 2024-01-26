@@ -64,8 +64,11 @@ func (p *UninstallMSR3) Run() error {
 	// Add the storage provisioner chart to the list of charts to uninstall
 	// if it's configured.
 	if p.Config.Spec.MSR.V3.ShouldConfigureStorageClass() {
-		_, releaseDetails := storageProvisionerChart(p.Config)
-		chartsToUninstall = append(chartsToUninstall, releaseDetails)
+		sp := storageProvisionerChart(p.Config)
+
+		if sp != nil {
+			chartsToUninstall = append(chartsToUninstall, sp.releaseDetails)
+		}
 	}
 
 	var errs error

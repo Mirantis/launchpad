@@ -84,11 +84,11 @@ func (p *GatherFacts) Run() error {
 		msr3Installed := p.collectMSR3Facts()
 
 		if msr3Installed && p.Config.Spec.MSR.MajorVersion() == 2 {
-			return fmt.Errorf("cannot install MSR v2 when MSR v3 is already installed, please uninstall MSR v3 first")
+			return fmt.Errorf("cannot install MSR v2 when MSR v3 is already installed, please uninstall MSR v3 first or modify the 'spec.msr.version' field in the cluster configuration to a 3.x version")
 		}
 
 		if msr2Installed && p.Config.Spec.MSR.MajorVersion() == 3 {
-			return fmt.Errorf("cannot install MSR v3 when MSR v2 is already installed, if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt)")
+			return fmt.Errorf("cannot install MSR v3 when MSR v2 is already installed, if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt) or modify the 'spec.msr.version' field in the cluster configuration to a 2.x version")
 		}
 
 	}
