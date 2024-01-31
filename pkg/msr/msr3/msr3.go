@@ -4,14 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	msrv1 "github.com/Mirantis/msr-operator/api/v1"
-	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/release"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/Mirantis/mcc/pkg/constant"
@@ -22,7 +19,12 @@ import (
 
 // CollectFacts gathers the current status of the installed MSR3 setup.
 func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, h *helm.Helm) (*api.MSRMetadata, error) {
-	obj, err := kc.GetMSRCR(ctx, msrName)
+	rc, err := kc.GetMSRResourceClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resource client for MSR CR: %w", err)
+	}
+
+	obj, err := kc.GetMSRCR(ctx, msrName, rc)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Infof("MSR CR: %s not found: %s", msrName, err)
@@ -31,7 +33,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 		return nil, err
 	}
 
-	if err := kc.WaitForMSRCRReady(ctx, obj); err != nil {
+	if err := kc.WaitForMSRCRReady(ctx, obj, rc); err != nil {
 		// If we've failed to validate the MSR CR is ready then we cannot
 		// reliably determine whether it is installed or not.
 		return nil, err
@@ -78,34 +80,19 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 
 // ApplyCRD applies the MSR CRD to the cluster then waits for it to be ready.
 func ApplyCRD(ctx context.Context, msr *msrv1.MSR, kc *kubeclient.KubeClient) error {
-	result := make(map[string]interface{})
-
-	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:  &result,
-		TagName: "json",
-	})
+	obj, err := kubeclient.DecodeIntoUnstructured(msr)
 	if err != nil {
-		return fmt.Errorf("failed to create decoder: %w", err)
+		return fmt.Errorf("failed to decode MSR CR: %w", err)
 	}
 
-	if err := d.Decode(msr); err != nil {
-		return fmt.Errorf("failed to decode MSR CRD into map: %w", err)
+	rc, err := kc.GetMSRResourceClient()
+	if err != nil {
+		return fmt.Errorf("failed to get resource client for MSR CR: %w", err)
 	}
 
-	obj := &unstructured.Unstructured{Object: result}
-
-	// Set specific fields to ensure the object is valid and remove the TypeMeta
-	// field, this is to workaround an issue with mapstructure decoding "inline"
-	// tagged fields into map, we're effectively rebuilding the inlined TypeMeta
-	// fields here.
-	obj.SetKind(msr.Kind)
-	obj.SetAPIVersion(msr.APIVersion)
-	obj.SetCreationTimestamp(metav1.Time{Time: time.Now()})
-	delete(obj.Object, "TypeMeta")
-
-	if err := kc.ApplyMSRCR(ctx, obj); err != nil {
+	if err := kc.ApplyMSRCR(ctx, obj, rc); err != nil {
 		return err
 	}
 
-	return kc.WaitForMSRCRReady(ctx, obj)
+	return kc.WaitForMSRCRReady(ctx, obj, rc)
 }

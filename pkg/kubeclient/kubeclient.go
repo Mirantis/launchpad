@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -107,15 +110,21 @@ func (kc *KubeClient) deploymentReady(ctx context.Context, labels string) error 
 // object to check for should be provided as an unstructured object, a
 // resourceClient affiliated with the CR is also required.
 func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructured, resourceClient dynamic.ResourceInterface) (bool, error) {
-	crdObj, err := resourceClient.Get(ctx, obj.GetName(), metav1.GetOptions{})
+	name := obj.GetName()
+
+	crdObj, err := resourceClient.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return false, fmt.Errorf("failed to get resource: %q: %w", obj.GetName(), err)
+		return false, fmt.Errorf("failed to get resource: %q: %w", name, err)
 	}
 
 	// Check readiness condition
 	conditions, found, err := unstructured.NestedSlice(crdObj.Object, "status", "conditions")
 	if err != nil || !found {
-		return false, fmt.Errorf("cannot find status condition: %w", err)
+		if !found {
+			return false, fmt.Errorf("status.conditions not found in CR: %q", name)
+		}
+
+		return false, fmt.Errorf("failed to get status.conditions from CR: %q: %w", name, err)
 	}
 
 	for _, cond := range conditions {
@@ -134,8 +143,8 @@ func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructu
 	return false, nil
 }
 
-// SetStorageClassDefault configures the given storageclass name as the default,
-// ensuring that no other storageclass has the default annotation.
+// SetStorageClassDefault configures the given StorageClass name as the default,
+// ensuring that no other StorageClass has the default annotation.
 func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) error {
 	log.Debugf("setting: %s as default StorageClass", name)
 
@@ -144,13 +153,19 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 		return fmt.Errorf("failed to list StorageClasses: %w", err)
 	}
 
-	var needsUpdate bool
+	var needsUpdate, found bool
 
 	for _, sc := range storageClasses.Items {
 		if sc.Name == name {
+			found = true
+
 			// Apply the default annotation to the named StorageClass.
 			if _, ok := sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; !ok {
 				log.Debugf("setting default StorageClass annotation on: %s", name)
+
+				if sc.ObjectMeta.Annotations == nil {
+					sc.ObjectMeta.Annotations = make(map[string]string)
+				}
 
 				sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation] = "true"
 			}
@@ -173,6 +188,11 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 		}
 	}
 
+	// If the named StorageClass was not found, return an error.
+	if !found {
+		return fmt.Errorf("StorageClass: %q not found", name)
+	}
+
 	return nil
 }
 
@@ -185,4 +205,35 @@ func (kc *KubeClient) DeleteService(ctx context.Context, name string) error {
 // the equivalent of 'kubectl expose'.
 func (kc *KubeClient) ExposeLoadBalancer(ctx context.Context, url string) error {
 	return fmt.Errorf("not yet implemented")
+}
+
+// DecodeIntoUnstructured converts a given runtime.Object into an
+// unstructured object for use with a dynamic client.
+func DecodeIntoUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
+	result := make(map[string]interface{})
+
+	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:  &result,
+		TagName: "json",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create decoder: %w", err)
+	}
+
+	if err := d.Decode(obj); err != nil {
+		return nil, fmt.Errorf("failed to decode object into map: %w", err)
+	}
+
+	unstructuredObj := &unstructured.Unstructured{Object: result}
+
+	// Set specific fields to ensure the object is valid and remove the TypeMeta
+	// field, this is to workaround an issue with mapstructure decoding "inline"
+	// tagged fields into map, we're effectively rebuilding the inlined TypeMeta
+	// fields here.
+	unstructuredObj.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
+	if unstructuredObj.GetCreationTimestamp().Time.IsZero() {
+		unstructuredObj.SetCreationTimestamp(metav1.NewTime(time.Now().UTC()))
+	}
+
+	return &unstructured.Unstructured{Object: result}, nil
 }

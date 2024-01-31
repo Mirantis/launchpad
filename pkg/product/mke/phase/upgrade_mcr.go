@@ -227,12 +227,17 @@ func validateMSRReady(config *api.ClusterConfig, h *api.Host, port int) error {
 			return fmt.Errorf("failed to create Kubernetes and Helm clients from config: %w", err)
 		}
 
-		obj, err := kc.GetMSRCR(ctx, config.Spec.MSR.V3.CRD.GetName())
+		rc, err := kc.GetMSRResourceClient()
+		if err != nil {
+			return fmt.Errorf("failed to get resource client for MSR CR: %w", err)
+		}
+
+		obj, err := kc.GetMSRCR(ctx, config.Spec.MSR.V3.CRD.GetName(), rc)
 		if err != nil {
 			return err
 		}
 
-		if err := kc.WaitForMSRCRReady(ctx, obj); err != nil {
+		if err := kc.WaitForMSRCRReady(ctx, obj, rc); err != nil {
 			return err
 		}
 	}

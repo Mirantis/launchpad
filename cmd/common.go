@@ -16,7 +16,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/product/mke/phase"
-	"github.com/Mirantis/mcc/pkg/util/ioutil"
 	"github.com/Mirantis/mcc/version"
 )
 
@@ -177,9 +176,10 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 	}
 
 	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
-	if err := ioutil.EnsureDir(clusterDir); err != nil {
+	if err := os.MkdirAll(clusterDir, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("error while creating directory for logs: %w", err)
 	}
+
 	logFileName := path.Join(clusterDir, filename)
 	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {

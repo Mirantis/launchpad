@@ -12,7 +12,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util/ioutil"
+	"github.com/Mirantis/mcc/pkg/util/fileutil"
 )
 
 // DownloadInstaller phase implementation does all the prep work we need for the hosts.
@@ -138,7 +138,7 @@ func (p *DownloadInstaller) downloadFile(url string) (string, error) {
 func (p *DownloadInstaller) readFile(path string) (string, error) {
 	log.Infof("reading container runtime install script from %s", path)
 
-	data, err := ioutil.LoadExternalFile(path)
+	data, err := fileutil.LoadExternalFile(path)
 	return string(data), err
 }
 

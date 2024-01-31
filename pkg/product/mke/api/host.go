@@ -16,10 +16,9 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/Mirantis/mcc/pkg/util/ioutil"
-
 	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/util/byteutil"
 )
 
 // HostMetadata resolved metadata for host.
@@ -201,7 +200,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 	}
 	size := stat.Size()
 
-	log.Infof("%s: uploading %s to %s", h, ioutil.FormatBytes(uint64(stat.Size())), dst)
+	log.Infof("%s: uploading %s to %s", h, byteutil.FormatBytes(uint64(stat.Size())), dst)
 
 	if err := h.Connection.Upload(src, dst); err != nil {
 		return fmt.Errorf("upload failed: %w", err)
@@ -209,7 +208,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 
 	duration := time.Since(startTime).Seconds()
 	speed := float64(size) / duration
-	log.Infof("%s: transferred %s in %.1f seconds (%s/s)", h, ioutil.FormatBytes(uint64(size)), duration, ioutil.FormatBytes(uint64(speed)))
+	log.Infof("%s: transferred %s in %.1f seconds (%s/s)", h, byteutil.FormatBytes(uint64(size)), duration, byteutil.FormatBytes(uint64(speed)))
 
 	return nil
 }

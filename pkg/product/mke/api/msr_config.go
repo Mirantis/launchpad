@@ -11,7 +11,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util/ioutil"
+	"github.com/Mirantis/mcc/pkg/util/fileutil"
 )
 
 type MSRConfig struct {
@@ -195,7 +195,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 	switch c.MajorVersion() {
 	case 2:
 		if c.V2.CACertPath != "" {
-			caCertData, err := ioutil.LoadExternalFile(c.V2.CACertPath)
+			caCertData, err := fileutil.LoadExternalFile(c.V2.CACertPath)
 			if err != nil {
 				return err
 			}
@@ -203,7 +203,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		}
 
 		if c.V2.CertPath != "" {
-			certData, err := ioutil.LoadExternalFile(c.V2.CertPath)
+			certData, err := fileutil.LoadExternalFile(c.V2.CertPath)
 			if err != nil {
 				return fmt.Errorf("failed to load MSR CA cert file: %w", err)
 			}
@@ -211,7 +211,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		}
 
 		if c.V2.KeyPath != "" {
-			keyData, err := ioutil.LoadExternalFile(c.V2.KeyPath)
+			keyData, err := fileutil.LoadExternalFile(c.V2.KeyPath)
 			if err != nil {
 				return fmt.Errorf("failed to load msr cert file: %w", err)
 			}

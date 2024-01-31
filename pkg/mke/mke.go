@@ -26,7 +26,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/kubeclient"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util/ioutil"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // AuthToken represents a session token.
@@ -255,9 +256,10 @@ func safePath(base, rel string) (string, error) {
 }
 
 func writeBundle(bundleDir string, bundle *zip.Reader) error {
-	if err := ioutil.EnsureDir(bundleDir); err != nil {
+	if err := os.MkdirAll(bundleDir, os.ModePerm); err != nil {
 		return fmt.Errorf("error while creating directory: %w", err)
 	}
+
 	log.Debugf("Writing out bundle to %s", bundleDir)
 	for _, zipFile := range bundle.File {
 		src, err := zipFile.Open()

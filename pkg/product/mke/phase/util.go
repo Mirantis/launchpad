@@ -20,7 +20,12 @@ func getMSRURL(config *api.ClusterConfig) (string, error) {
 			return "", fmt.Errorf("failed to get kube client: %s", err)
 		}
 
-		url, err := kc.MSRURL(context.Background(), config.Spec.MSR.V3.CRD.GetName())
+		rc, err := kc.GetMSRResourceClient()
+		if err != nil {
+			return "", fmt.Errorf("failed to get resource client for MSR CR: %w", err)
+		}
+
+		url, err := kc.MSRURL(context.Background(), config.Spec.MSR.V3.CRD.GetName(), rc)
 		if err != nil {
 			return "", fmt.Errorf("failed to build MSR URL from Kubernetes services: %s", err)
 		} else {
