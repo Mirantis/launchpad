@@ -1,0 +1,16 @@
+name: Release binaries to Mirantis/Launchpad
+
+on:
+    push:
+        tags:
+            - v*
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+            - name: Run release script
+              env:
+                TAG_NAME: ${{  github.ref_name }}
+              run: make release
