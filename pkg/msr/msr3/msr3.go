@@ -10,6 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/dynamic"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
@@ -18,12 +19,7 @@ import (
 )
 
 // CollectFacts gathers the current status of the installed MSR3 setup.
-func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, h *helm.Helm) (*api.MSRMetadata, error) {
-	rc, err := kc.GetMSRResourceClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get resource client for MSR CR: %w", err)
-	}
-
+func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, rc dynamic.ResourceInterface, h *helm.Helm) (*api.MSRMetadata, error) {
 	obj, err := kc.GetMSRCR(ctx, msrName, rc)
 	if err != nil {
 		if apierrors.IsNotFound(err) {

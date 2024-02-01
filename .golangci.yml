@@ -1,6 +1,7 @@
+# Visit https://golangci-lint.run/ for usage documentation
+# and information on other useful linters
 run:
   timeout: 8m
-
   skip-dirs-use-default: false
   skip-files:
     - ".*\\.gen\\.go"
@@ -10,7 +11,6 @@ run:
     - logo_windows.go
   tests: false
   allow-parallel-runners: true
-
 linters:
   enable:
     # enabled by default
@@ -65,7 +65,6 @@ linters:
     - wastedassign
     - whitespace
     - wrapcheck
-
 linters-settings:
   varnamelen:
     max-distance: 10
@@ -82,7 +81,3 @@ linters-settings:
       - h *api.Host
       - ok bool
       - s string
-
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0

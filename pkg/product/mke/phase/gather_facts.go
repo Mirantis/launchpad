@@ -136,7 +136,13 @@ func (p *GatherFacts) collectMSR3Facts() bool {
 		return false
 	}
 
-	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.V3.CRD.GetName(), kc, hc)
+	rc, err := kc.GetMSRResourceClient()
+	if err != nil {
+		logrus.Debugf("failed to collect existing MSR details: cannot create MSR resource client: %s", err.Error())
+		return false
+	}
+
+	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.V3.CRD.GetName(), kc, rc, hc)
 	if err != nil {
 		logrus.Debugf("failed to collect existing MSR details: %s", err.Error())
 		return false

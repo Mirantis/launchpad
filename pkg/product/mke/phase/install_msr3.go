@@ -156,7 +156,12 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		}
 	}
 
-	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.V3.CRD.GetName(), p.Kube, p.Helm)
+	rc, err := p.Kube.GetMSRResourceClient()
+	if err != nil {
+		return fmt.Errorf("failed to get MSR resource client: %w", err)
+	}
+
+	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.V3.CRD.GetName(), p.Kube, rc, p.Helm)
 	if err != nil {
 		return fmt.Errorf("failed to collect MSR details: %w", err)
 	}
