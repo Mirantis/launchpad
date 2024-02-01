@@ -5,13 +5,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+
+	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
 )
 
 const configName string = "com.docker.ucp.config"
@@ -46,6 +48,10 @@ func (p *InstallMKE) Run() (err error) {
 
 	image := p.Config.Spec.MKE.GetBootstrapperImage()
 	installFlags := p.Config.Spec.MKE.InstallFlags
+
+	if mcclog.Debug {
+		installFlags.AddUnlessExist("--debug")
+	}
 
 	if p.Config.Spec.MKE.CACertData != "" && p.Config.Spec.MKE.CertData != "" && p.Config.Spec.MKE.KeyData != "" {
 		err := p.installCertificates(p.Config)
@@ -114,7 +120,7 @@ func (p *InstallMKE) Run() (err error) {
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
 	output, err := h.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE installer: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to run MKE installer: \n output:%s \n error:%w", h, output, err)
 	}
 
 	if installFlags.GetValue("--admin-password") == "" {

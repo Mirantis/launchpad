@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 
+	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -40,20 +41,25 @@ func (p *UpgradeMKE) Run() error {
 	if !p.CleanupDisabled() {
 		runFlags.Add("--rm")
 	}
+	upgradeFlags := p.Config.Spec.MKE.UpgradeFlags
+	upgradeFlags.Merge(common.Flags{"--id", swarmClusterID})
+
+	if mcclog.Debug {
+		upgradeFlags.AddUnlessExist("--debug")
+	}
 
 	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade --id %s %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), swarmClusterID, p.Config.Spec.MKE.UpgradeFlags.Join())
+	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade %s %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), upgradeFlags.Join())
 	err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
-		return fmt.Errorf("failed to run MKE upgrade")
+		return fmt.Errorf("%s: failed to run MKE upgrader: \n error:%w", swarmLeader, err)
 	}
 
 	originalInstalledVersion := p.Config.Spec.MKE.Metadata.InstalledVersion
 
-	err = mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata)
-	if err != nil {
+	if err := mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata); err != nil {
 		return fmt.Errorf("%s: failed to collect existing MKE details: %s", swarmLeader, err.Error())
 	}
 	p.EventProperties["upgraded"] = true
