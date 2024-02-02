@@ -17,7 +17,7 @@ import (
 )
 
 func TestValidateMSROperatorReady(t *testing.T) {
-	kc := newTestClient(t)
+	kc := NewTestClient(t)
 
 	err := kc.ValidateMSROperatorReady(context.Background())
 	assert.ErrorContains(t, err, "not found")
@@ -56,10 +56,10 @@ func TestValidateMSROperatorReady(t *testing.T) {
 }
 
 func TestApplyMSRCR(t *testing.T) {
-	kc := newTestClient(t)
-	rc := newTestResourceClient(t, kc.Namespace)
+	kc := NewTestClient(t)
+	rc := NewTestResourceClient(t, kc.Namespace)
 
-	msr := createUnstructuredTestMSR(t, true)
+	msr := CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 	t.Run("MSR CR does not yet exist", func(t *testing.T) {
 		t.Cleanup(func() {
@@ -77,7 +77,7 @@ func TestApplyMSRCR(t *testing.T) {
 	})
 
 	t.Run("MSR CR already exists and is updated", func(t *testing.T) {
-		newMsr := createUnstructuredTestMSR(t, true)
+		newMsr := CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 		// Update the license within the unstructured object.
 		newMsr.Object["spec"].(map[string]interface{})["license"] = "areallicense"
@@ -101,7 +101,7 @@ func TestApplyMSRCR(t *testing.T) {
 }
 
 func TestPrepareNodeForMSR(t *testing.T) {
-	kc := newTestClient(t)
+	kc := NewTestClient(t)
 
 	kc.client.CoreV1().Nodes().Create(context.Background(), &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -129,10 +129,10 @@ func TestPrepareNodeForMSR(t *testing.T) {
 
 func TestMSRURL(t *testing.T) {
 	t.Run("no spec.service.externalHTTPSPort", func(t *testing.T) {
-		kc := newTestClient(t)
-		rc := newTestResourceClient(t, kc.Namespace)
+		kc := NewTestClient(t)
+		rc := NewTestResourceClient(t, kc.Namespace)
 
-		msr := createUnstructuredTestMSR(t, true)
+		msr := CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 		_, err := rc.Create(context.Background(), msr, metav1.CreateOptions{})
 		require.NoError(t, err)
@@ -142,10 +142,10 @@ func TestMSRURL(t *testing.T) {
 	})
 
 	t.Run("no msr-test service found", func(t *testing.T) {
-		kc := newTestClient(t)
-		rc := newTestResourceClient(t, kc.Namespace)
+		kc := NewTestClient(t)
+		rc := NewTestResourceClient(t, kc.Namespace)
 
-		msr := createUnstructuredTestMSR(t, true)
+		msr := CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 		serviceTypes := []string{
 			"NodePort",
@@ -170,10 +170,10 @@ func TestMSRURL(t *testing.T) {
 	})
 
 	t.Run("no MSR nodes found, serviceType: NodePort", func(t *testing.T) {
-		kc := newTestClient(t)
-		rc := newTestResourceClient(t, kc.Namespace)
+		kc := NewTestClient(t)
+		rc := NewTestResourceClient(t, kc.Namespace)
 
-		msr := createUnstructuredTestMSR(t, true)
+		msr := CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 		msr.Object["spec"] = map[string]interface{}{
 			"service": map[string]interface{}{
@@ -190,10 +190,10 @@ func TestMSRURL(t *testing.T) {
 	})
 
 	t.Run("unsupported spec.serviceType", func(t *testing.T) {
-		kc := newTestClient(t)
-		rc := newTestResourceClient(t, kc.Namespace)
+		kc := NewTestClient(t)
+		rc := NewTestResourceClient(t, kc.Namespace)
 
-		msr := createUnstructuredTestMSR(t, true)
+		msr := CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 		msr.Object["spec"] = map[string]interface{}{
 			"service": map[string]interface{}{
@@ -230,8 +230,8 @@ func TestMSRURL(t *testing.T) {
 		t.Run(fmt.Sprintf("serviceType: %s, headless: %t, externalPort: %d", tc.serviceType, tc.headless, tc.externalPort), func(t *testing.T) {
 			tc := tc
 
-			kc := newTestClient(t)
-			rc := newTestResourceClient(t, kc.Namespace)
+			kc := NewTestClient(t)
+			rc := NewTestResourceClient(t, kc.Namespace)
 
 			if tc.headless {
 				// An nginx pod needs to exist to construct service details.
@@ -269,7 +269,7 @@ func TestMSRURL(t *testing.T) {
 				},
 			}, metav1.CreateOptions{})
 
-			msrCR := createUnstructuredTestMSR(t, true)
+			msrCR := CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 			msrCR.Object["spec"] = map[string]interface{}{
 				"service": map[string]interface{}{

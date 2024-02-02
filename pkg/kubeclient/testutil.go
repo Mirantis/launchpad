@@ -8,6 +8,8 @@ import (
 	msrv1 "github.com/Mirantis/msr-operator/api/v1"
 	"github.com/stretchr/testify/require"
 	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
@@ -42,4 +44,47 @@ func NewTestResourceClient(t *testing.T, namespace string) dynamic.ResourceInter
 
 	cl := fakedynamic.NewSimpleDynamicClient(scheme, &msrv1.MSR{})
 	return cl.Resource(msrv1.GroupVersion.WithResource("msrs")).Namespace(namespace)
+}
+
+// CreateUnstructuredTestMSR returns an unstructured object representing an MSR
+// CR for testing.  The name of the MSR is set to "msr-test" and the ready
+// status is set to the provided value.
+// The fake dynamic.ResourceInterface does not support the use of types
+// other than a select few (it panics if the type is not supported), so
+// construct a test MSR object that uses these supported types.
+// This limitation is only present in the fake client, so this is not an
+// issue outside of test.
+func CreateUnstructuredTestMSR(t *testing.T, version string, withReadyStatus bool) *unstructured.Unstructured {
+	t.Helper()
+
+	msr, err := DecodeIntoUnstructured(&msrv1.MSR{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "msr-test",
+		},
+	})
+	require.NoError(t, err)
+
+	msr.Object["spec"] = map[string]interface{}{
+		"image": map[string]interface{}{
+			"tag": version,
+		},
+		"nginx": map[string]interface{}{
+			"webtls": map[string]interface{}{
+				"create": false,
+			},
+		},
+	}
+
+	if withReadyStatus {
+		msr.Object["status"] = map[string]interface{}{
+			"conditions": []interface{}{
+				map[string]interface{}{
+					"type":   "Ready",
+					"status": "True",
+				},
+			},
+		}
+	}
+
+	return msr
 }

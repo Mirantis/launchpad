@@ -6,13 +6,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
+
+	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 type ErrReleaseNotFound struct {

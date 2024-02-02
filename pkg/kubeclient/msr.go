@@ -37,17 +37,47 @@ func (kc *KubeClient) ValidateMSROperatorReady(ctx context.Context) error {
 	return kc.deploymentReady(ctx, constant.MSROperatorDeploymentLabels)
 }
 
+type WaitOption func(*waitOptions)
+
+type waitOptions struct {
+	numRetries int
+	interval   time.Duration
+}
+
+// gatherOptions gathers custom WaitOption's and sets default values for the
+// options.
+func gatherOptions(opts []WaitOption) *waitOptions {
+	options := &waitOptions{
+		numRetries: 120,
+		interval:   5 * time.Second,
+	}
+
+	for _, o := range opts {
+		o(options)
+	}
+
+	return options
+}
+
+// WithCustomWait allows customization of the amount of retries and the interval
+// between those retries polling will use.
+func WithCustomWait(numRetries int, interval time.Duration) WaitOption {
+	return func(o *waitOptions) {
+		o.numRetries = numRetries
+		o.interval = interval
+	}
+}
+
 // WaitForMSRCRReady waits for CR object provided to be ready by polling the
 // status obtained from the given object.
-func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.Unstructured, rc dynamic.ResourceInterface) error {
-	numRetries := 120
-	interval := 5 * time.Second
+func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.Unstructured, rc dynamic.ResourceInterface, options ...WaitOption) error {
+	opts := gatherOptions(options)
 
-	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "waiting for %q CR Ready state for up to %s", obj.GetName(), interval*time.Duration(numRetries))
+	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "waiting for %q CR Ready state for up to %s", obj.GetName(), opts.interval*time.Duration(opts.numRetries))
 
 	// Wait for a maximum time of 10 minutes.
-	pollCfg.Interval = interval
-	pollCfg.NumRetries = numRetries
+	pollCfg.Interval = opts.interval
+	pollCfg.NumRetries = opts.numRetries
 
 	err := pollutil.Pollf(pollCfg)(func() error {
 		ready, e := kc.crIsReady(ctx, obj, rc)

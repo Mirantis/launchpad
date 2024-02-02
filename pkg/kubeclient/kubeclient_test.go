@@ -12,49 +12,13 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/dynamic"
-	fakedynamic "k8s.io/client-go/dynamic/fake"
-	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 )
 
-// newTestClient returns a new instance of KubeClient for testing purposes, if
-// access to the fake clientset is needed, it can be accessed via type assertion
-// to *fake.Clientset.
-func newTestClient(t *testing.T) *KubeClient {
-	t.Helper()
-
-	namespace := "test"
-
-	client := fake.NewSimpleClientset()
-	extendedClient := fakeapiextensions.NewSimpleClientset()
-
-	return &KubeClient{
-		Namespace:      namespace,
-		client:         client,
-		extendedClient: extendedClient,
-		config:         nil,
-	}
-}
-
-// newTestResourceClient returns a new fake msr.mirantis.com/v1 MSR resource
-// client for testing purposes.
-func newTestResourceClient(t *testing.T, namespace string) dynamic.ResourceInterface {
-	t.Helper()
-
-	scheme, err := msrv1.SchemeBuilder.Build()
-	require.NoError(t, err)
-
-	cl := fakedynamic.NewSimpleDynamicClient(scheme, &msrv1.MSR{})
-	return cl.Resource(msrv1.GroupVersion.WithResource("msrs")).Namespace(namespace)
-}
-
 func TestCRDReady(t *testing.T) {
-	kc := newTestClient(t)
+	kc := NewTestClient(t)
 
 	_, err := kc.extendedClient.ApiextensionsV1().CustomResourceDefinitions().Create(
 		context.Background(), &apiextensionsv1.CustomResourceDefinition{
@@ -69,7 +33,7 @@ func TestCRDReady(t *testing.T) {
 }
 
 func TestDeploymentReady(t *testing.T) {
-	kc := newTestClient(t)
+	kc := NewTestClient(t)
 
 	err := kc.deploymentReady(context.Background(), "app=test")
 	assert.ErrorContains(t, err, "not found")
@@ -151,52 +115,11 @@ func TestDecodeIntoUnstructured(t *testing.T) {
 	})
 }
 
-// createUnstructuredTestMSR returns an unstructured object representing an MSR
-// CR for testing.  The name of the MSR is set to "msr-test" and the ready
-// status is set to the provided value.
-// The fake dynamic.ResourceInterface does not support the use of types
-// other than a select few (it panics if the type is not supported), so
-// construct a test MSR object that uses these supported types.
-// This limitation is only present in the fake client, so this is not an
-// issue outside of test.
-func createUnstructuredTestMSR(t *testing.T, withReadyStatus bool) *unstructured.Unstructured {
-	t.Helper()
-
-	msr, err := DecodeIntoUnstructured(&msrv1.MSR{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "msr-test",
-		},
-	})
-	require.NoError(t, err)
-
-	msr.Object["spec"] = map[string]interface{}{
-		"nginx": map[string]interface{}{
-			"webtls": map[string]interface{}{
-				"create": false,
-			},
-		},
-	}
-
-	if withReadyStatus {
-		msr.Object["status"] = map[string]interface{}{
-			"conditions": []interface{}{
-				map[string]interface{}{
-					"type":   "Ready",
-					"status": "True",
-				},
-			},
-		}
-	}
-
-	return msr
-}
-
 func TestCRIsReady(t *testing.T) {
-	kc := newTestClient(t)
+	kc := NewTestClient(t)
+	rc := NewTestResourceClient(t, kc.Namespace)
 
-	rc := newTestResourceClient(t, kc.Namespace)
-
-	msr := createUnstructuredTestMSR(t, false)
+	msr := CreateUnstructuredTestMSR(t, "1.0.0", false)
 
 	_, err := kc.crIsReady(context.Background(), msr, rc)
 	assert.ErrorContains(t, err, "not found")
@@ -207,7 +130,7 @@ func TestCRIsReady(t *testing.T) {
 	_, err = kc.crIsReady(context.Background(), msr, rc)
 	assert.ErrorContains(t, err, "status.conditions not found")
 
-	msr = createUnstructuredTestMSR(t, true)
+	msr = CreateUnstructuredTestMSR(t, "1.0.0", true)
 
 	_, err = rc.Update(context.Background(), msr, metav1.UpdateOptions{})
 	require.NoError(t, err)
@@ -217,7 +140,7 @@ func TestCRIsReady(t *testing.T) {
 }
 
 func TestSetStorageClassDefault(t *testing.T) {
-	kc := newTestClient(t)
+	kc := NewTestClient(t)
 
 	logrus.SetLevel(logrus.DebugLevel)
 

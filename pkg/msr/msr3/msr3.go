@@ -19,7 +19,7 @@ import (
 )
 
 // CollectFacts gathers the current status of the installed MSR3 setup.
-func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, rc dynamic.ResourceInterface, h *helm.Helm) (*api.MSRMetadata, error) {
+func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, rc dynamic.ResourceInterface, h *helm.Helm, options ...kubeclient.WaitOption) (*api.MSRMetadata, error) {
 	obj, err := kc.GetMSRCR(ctx, msrName, rc)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -29,15 +29,15 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 		return nil, err
 	}
 
-	if err := kc.WaitForMSRCRReady(ctx, obj, rc); err != nil {
+	if err := kc.WaitForMSRCRReady(ctx, obj, rc, options...); err != nil {
 		// If we've failed to validate the MSR CR is ready then we cannot
 		// reliably determine whether it is installed or not.
 		return nil, err
 	}
 
 	version, found, err := unstructured.NestedString(obj.Object, "spec", "image", "tag")
-	if !found {
-		err = errors.New("unable to find spec.image.tag")
+	if !found || version == "" {
+		err = errors.New("unable to determine version from found MSR: spec.image.tag not populated")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("unable to determine version from found MSR: %w", err)

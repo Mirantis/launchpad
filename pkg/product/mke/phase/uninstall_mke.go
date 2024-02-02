@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
 
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/mke"
