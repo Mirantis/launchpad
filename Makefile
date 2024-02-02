@@ -3,9 +3,9 @@ ifdef TAG_NAME
 	ENVIRONMENT = "production"
 endif
 ENVIRONMENT ?= "development"
+BUILD_FLAGS = -trimpath -a -tags "netgo static_build" -installsuffix netgo -ldflags "$(LD_FLAGS) -extldflags '-static'" -v
 LAUNCHPAD_VERSION ?= $(or ${TAG_NAME},dev)
 LD_FLAGS = -s -w -X github.com/Mirantis/mcc/version.Environment=$(ENVIRONMENT) -X github.com/Mirantis/mcc/version.GitCommit=$(GIT_COMMIT) -X github.com/Mirantis/mcc/version.Version=$(LAUNCHPAD_VERSION)
-BUILD_FLAGS = -trimpath -a -tags "netgo static_build" -installsuffix netgo -ldflags "$(LD_FLAGS) -extldflags '-static'" -v
 ifeq ($(OS),Windows_NT)
        uname_s := "windows"
        TARGET ?= "bin\\launchpad.exe"
@@ -38,7 +38,7 @@ builder:
 	docker build --ssh default=${SSH_AUTH_SOCK} -t $(BUILDER_IMAGE) -f Dockerfile.builder .
 
 unit-test: builder
-	$(GO) go test -v ./...
+	$(GO) go test -v ./... -tags testing
 
 $(TARGET): $(gosrc)
 	docker build --ssh default=${SSH_AUTH_SOCK} -t $(BUILDER_IMAGE) -f Dockerfile.builder .

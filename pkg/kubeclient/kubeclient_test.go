@@ -110,7 +110,7 @@ func TestDecodeIntoUnstructured(t *testing.T) {
 		if assert.NotZero(t, obj.GetCreationTimestamp()) {
 			time.Sleep(1 * time.Second)
 			// obj.GetCreationTimestamp() returns local time in RFC3339 format.
-			assert.Equal(t, msr.ObjectMeta.CreationTimestamp.Rfc3339Copy(), obj.GetCreationTimestamp())
+			assert.Equal(t, metav1.Time{Time: msr.ObjectMeta.CreationTimestamp.Rfc3339Copy().Local()}, obj.GetCreationTimestamp())
 		}
 	})
 }

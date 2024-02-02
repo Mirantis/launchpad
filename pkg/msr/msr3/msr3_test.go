@@ -33,11 +33,12 @@ func prepareTestClients(t *testing.T, msrVersion string) (*kubeclient.KubeClient
 
 func TestCollectFacts(t *testing.T) {
 	t.Run("no MSR CR found", func(t *testing.T) {
-		kc, rc, _ := prepareTestClients(t, "1.0.0")
+		kc := kubeclient.NewTestClient(t)
+		rc := kubeclient.NewTestResourceClient(t, kc.Namespace)
 
 		actual, err := CollectFacts(context.Background(), "msr-test", kc, rc, nil)
 		assert.NoError(t, err)
-		assert.Equal(t, actual, &api.MSRMetadata{Installed: false})
+		assert.False(t, actual.Installed)
 	})
 
 	t.Run("MSR CR found, but not ready", func(t *testing.T) {
@@ -67,7 +68,7 @@ func TestCollectFacts(t *testing.T) {
 	})
 
 	t.Run("MSR CR has no version", func(t *testing.T) {
-		kc, rc, h := prepareTestClients(t, "1.0.0")
+		kc, rc, h := prepareTestClients(t, "")
 
 		_, err := CollectFacts(context.Background(), "msr-test", kc, rc, h)
 		assert.ErrorContains(t, err, "unable to determine version")

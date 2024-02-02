@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -384,6 +385,10 @@ spec:
 
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "root")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 22)
+	home, _ := os.UserHomeDir()
+	if c.Spec.Hosts[0].SSH.KeyPath != nil {
+		require.Equal(t, *c.Spec.Hosts[0].SSH.KeyPath, path.Join(home, ".ssh", "id_rsa"))
+	}
 }
 
 func TestHostWinRMDefaults(t *testing.T) {

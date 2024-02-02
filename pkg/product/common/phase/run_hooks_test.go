@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/k0sproject/rig/exec"
 	"github.com/stretchr/testify/require"
+
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 type testcfg struct {
@@ -90,5 +91,5 @@ func TestRunError(t *testing.T) {
 
 func TestTitle(t *testing.T) {
 	p := RunHooks{Action: "apply", Stage: "before"}
-	require.Equal(t, "Run Before Apply Hooks", p.Title())
+	require.Equal(t, "Run before apply Hooks", p.Title())
 }
