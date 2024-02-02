@@ -22,7 +22,7 @@ func prepareTestClients(t *testing.T, msrVersion string) (*kubeclient.KubeClient
 
 	kc := kubeclient.NewTestClient(t)
 	rc := kubeclient.NewTestResourceClient(t, kc.Namespace)
-	h, _ := helm.NewHelmTestClient(t, nil)
+	h := helm.NewHelmTestClient(t)
 
 	msr := kubeclient.CreateUnstructuredTestMSR(t, msrVersion, true)
 	_, err := rc.Create(context.Background(), msr, metav1.CreateOptions{})

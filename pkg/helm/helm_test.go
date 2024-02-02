@@ -12,7 +12,7 @@ import (
 )
 
 func TestChartNeedsUpgrade(t *testing.T) {
-	h, _ := NewHelmTestClient(t, nil)
+	h := NewHelmTestClient(t)
 	InstallRethinkDBOperatorChart(t, h)
 
 	testCases := []struct {

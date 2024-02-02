@@ -9,6 +9,9 @@ export MKE_VERSION=${MKE_VERSION:-"3.3.3"}
 export MKE_IMAGE_REPO=${MKE_IMAGE_REPO:-"docker.io/mirantis"}
 export MSR_VERSION=${MSR_VERSION:-"2.8.3"}
 export MSR_IMAGE_REPO=${MSR_IMAGE_REPO:-"docker.io/mirantis"}
+export MSR3_VERSION=${MSR_VERSION:-"3.1.1"}
+export MSR3_IMAGE_REGISTRY=${MSR_IMAGE_REGISTRY:-"registry.mirantis.com"}
+export MSR3_IMAGE_REPO=${MSR_IMAGE_REPO:-"msr"}
 export MCR_VERSION=${MCR_VERSION:-"19.03.12"}
 export PRESERVE_CLUSTER=${PRESERVE_CLUSTER:-""}
 export REUSE_CLUSTER=${REUSE_CLUSTER:-""}
@@ -134,7 +137,26 @@ function cloneImages() {
        docker push 172.16.86.100:5000/test/$imagebase:$MKE_VERSION"
   done
 
-  echo "Pulling + pushing MSR images..."
+  echo "Pulling + pushing MSR3 images..."
+
+  $MSR3_REPO=$MSR3_IMAGE_REGISTRY/$MSR3_IMAGE_REPO
+  for image in {enzi:1.0.85,rethinkdb/rethinkdb:2.4.3-mirantis-0.1.3}; do
+    fullimage="$MSR3_REPO/$image"
+    ./footloose ssh $FLOPT root@pusher0 -- \
+      "docker pull ${fullimage} && \
+      docker tag ${fullimage} 172.16.86.100:5000/test/$image && \
+      docker push 172.16.86.100:5000/test/$image"
+  done
+
+  for image in {msr-nginx,msr-registry,msr-garant,msr-notary-signer,msr-notary-server,msr-jobrunner}; do
+    fullimage="$MSR3_REPO/$image:$MSR3_VERSION"
+    ./footloose ssh $FLOPT root@pusher0 -- \
+      "docker pull ${fullimage} && \
+      docker tag ${fullimage} 172.16.86.100:5000/test/$image:$MSR_VERSION && \
+      docker push 172.16.86.100:5000/test/$imagebase:$MSR_VERSION"
+  done
+
+  echo "Pulling + pushing MSR2 images..."
 
   docker pull $MSR_IMAGE_REPO/dtr:$MSR_VERSION
   for image in $(docker run --rm ${MSR_IMAGE_REPO}/dtr:${MSR_VERSION} images | sort | uniq); do
@@ -151,5 +173,7 @@ function cloneImages() {
 
   export MKE_IMAGE_REPO=172.16.86.100:5000/test
   export MSR_IMAGE_REPO=172.16.86.100:5000/test
+  export MSR3_IMAGE_REGISTRY="172.16.86.100:5000"
+  export MSR3_IMAGE_REPO="test"
 }
 

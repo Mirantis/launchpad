@@ -9,7 +9,7 @@ import (
 )
 
 func TestUpgradeSuccess(t *testing.T) {
-	h, _ := NewHelmTestClient(t, nil)
+	h := NewHelmTestClient(t)
 
 	t.Run("Upgrade success", func(t *testing.T) {
 		rd, uninstallFunc := InstallRethinkDBOperatorChart(t, h)

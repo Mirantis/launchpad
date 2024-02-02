@@ -9,7 +9,7 @@ import (
 )
 
 func TestUninstall(t *testing.T) {
-	h, _ := NewHelmTestClient(t, nil)
+	h := NewHelmTestClient(t)
 	rd, _ := InstallRethinkDBOperatorChart(t, h)
 
 	err := h.Uninstall(context.Background(), &Options{

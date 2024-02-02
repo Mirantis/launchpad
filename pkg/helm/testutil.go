@@ -3,8 +3,6 @@
 package helm
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"testing"
@@ -24,31 +22,50 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 )
 
+type HelmTestClientOption func(*helmTestClientOptions)
+
+type helmTestClientOptions struct {
+	failing *kubefake.FailingKubeClient
+}
+
+// WithFailingKubeClient configures the Helm test client to use a failing
+// kube client for testing failing scenarios.
+func WithFailingKubeClient(failing *kubefake.FailingKubeClient) HelmTestClientOption {
+	return func(o *helmTestClientOptions) {
+		o.failing = failing
+	}
+}
+
+func gatherOptions(options []HelmTestClientOption) *helmTestClientOptions {
+	o := &helmTestClientOptions{}
+
+	for _, opt := range options {
+		opt(o)
+	}
+
+	return o
+}
+
 // NewHelmTestClient creates a new Helm for testing purposes and returns a
 // writer to capture the output of the Helm client.  Pass a
 // *kubefake.FailingKubeClient with options to simulate failing Helm actions,
 // for a passing Helm client pass nil.
-func NewHelmTestClient(t *testing.T, failing *kubefake.FailingKubeClient) (*Helm, io.Writer) {
+func NewHelmTestClient(t *testing.T, options ...HelmTestClientOption) *Helm {
 	t.Helper()
+
+	opts := gatherOptions(options)
 
 	registryClient, err := registry.NewClient()
 	require.NoError(t, err)
 
-	var b bytes.Buffer
-	out := bufio.NewWriter(&b)
-
 	config := action.Configuration{
 		Releases: storage.Init(driver.NewMemory()),
 		KubeClient: func() kube.Interface {
-			printer := &kubefake.PrintingKubeClient{Out: out}
-
-			if failing == nil {
-				return printer
+			if opts.failing != nil {
+				return opts.failing
 			}
 
-			failing.PrintingKubeClient = *printer
-
-			return failing
+			return &kubefake.PrintingKubeClient{Out: io.Discard}
 		}(),
 		Capabilities:   chartutil.DefaultCapabilities,
 		RegistryClient: registryClient,
@@ -61,7 +78,7 @@ func NewHelmTestClient(t *testing.T, failing *kubefake.FailingKubeClient) (*Helm
 	return &Helm{
 		config:   config,
 		settings: *settings,
-	}, out
+	}
 }
 
 // InstallRethinkDBOperatorChart installs version 1.0.0 of rethinkdb-operator
