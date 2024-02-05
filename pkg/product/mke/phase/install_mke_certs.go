@@ -18,12 +18,15 @@ func (p *InstallMKECerts) Title() string {
 }
 
 // Run the installer container.
-func (p *InstallMKECerts) Run() (err error) {
-
+func (p *InstallMKECerts) ShouldRun() bool {
 	if p.Config.Spec.MKE.CACertData == "" || p.Config.Spec.MKE.CertData == "" || p.Config.Spec.MKE.KeyData == "" {
 		log.Debug("Skipping cert install as some data is not available in config")
-		return nil
+		return false
 	}
+	return true
+}
+
+func (p *InstallMKECerts) Run() (err error) {
 
 	log.Debug("Certificate installation data has been provided, so an install flag '--external-server-cert' will be added if this is a new installation")
 	p.Config.Spec.MKE.InstallFlags.AddUnlessExist("--external-server-cert")
