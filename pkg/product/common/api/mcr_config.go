@@ -4,6 +4,19 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 )
 
+type DockerInfo struct {
+	ServerVersion string `json:"ServerVersion"`
+	APIVersion    string `json:"APIVersion"`
+	OS            string `json:"OperatingSystem"`
+	KernelVersion string `json:"KernelVersion"`
+	DockerRootDir string `json:"DockerRootDir"`
+}
+
+type DockerDaemonConfig struct {
+	ExecRoot string `json:"exec-root"`
+	Root     string `json:"root-data"`
+}
+
 // MCRConfig holds the Mirantis Container Runtime installation specific options.
 type MCRConfig struct {
 	Version           string `yaml:"version"`
@@ -11,6 +24,7 @@ type MCRConfig struct {
 	InstallURLLinux   string `yaml:"installURLLinux,omitempty"`
 	InstallURLWindows string `yaml:"installURLWindows,omitempty"`
 	Channel           string `yaml:"channel,omitempty"`
+	Prune             bool   `yaml:"prune,omitempty"`
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml.

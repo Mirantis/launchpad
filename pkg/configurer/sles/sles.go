@@ -25,20 +25,27 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 
 // UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	err := h.Exec("sudo docker system prune -f")
-	if err != nil {
-		return err
-	}
+	var err error
+	info, getDockerError := c.GetDockerInfo(h, c.Kind())
+	if getDockerError == nil {
+		if err = h.Exec("sudo docker system prune -f"); err != nil {
+			return err
+		}
 
-	if err := c.StopService(h, "docker"); err != nil {
-		return err
-	}
+		if err = c.StopService(h, "docker"); err != nil {
+			return err
+		}
 
-	if err := c.StopService(h, "containerd"); err != nil {
-		return err
-	}
+		if err = c.StopService(h, "containerd"); err != nil {
+			return err
+		}
 
-	return h.Exec("sudo zypper -n remove -y --clean-deps docker-ee docker-ee-cli")
+		err = h.Exec("sudo zypper -n remove -y --clean-deps docker-ee docker-ee-cli")
+	}
+	if engineConfig.Prune {
+		c.CleanupLingeringMCR(h, info)
+	}
+	return err
 }
 
 // LocalAddresses returns a list of local addresses, SLES12 has an old version of "hostname" without "--all-ip-addresses" and because of that, ip addr show is used here.

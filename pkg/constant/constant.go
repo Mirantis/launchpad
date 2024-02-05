@@ -21,4 +21,14 @@ const (
 	ManagedLabelCmd = "node update --label-add com.mirantis.launchpad.managed=true"
 	// ManagedMSRLabelCmd marks a MSR node as being managed by launchpad.
 	ManagedMSRLabelCmd = "node update --label-add com.mirantis.launchpad.managed.dtr=true"
+	// LinuxDefaultDockerRoot defines the default docker root.
+	LinuxDefaultDockerRoot = "/var/lib/docker"
+	// LinuxDefaultDockerExecRoot defines the default docker exec root.
+	LinuxDefaultDockerExecRoot = "/var/run/docker"
+	// LinuxDefaultDockerDaemonPath defines the default docker daemon path.
+	LinuxDefaultDockerDaemonPath = "/etc/docker/daemon.json"
+	// LinuxDefaultRootlessDockerDaemonPath defines the default rootless docker daemon path.
+	LinuxDefaultRootlessDockerDaemonPath = "~/.config/docker/daemon.json"
+	// WindowsDefaultDockerRoot defines the default windows docker root.
+	WindowsDefaultDockerRoot = "C:\\ProgramData\\Docker"
 )

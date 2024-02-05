@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
@@ -20,6 +21,7 @@ import (
 // LinuxConfigurer is a generic linux host configurer.
 type LinuxConfigurer struct {
 	riglinux os.Linux
+	DockerConfigurer
 }
 
 // SbinPath is for adding sbin directories to current $PATH.
@@ -277,4 +279,94 @@ func (c LinuxConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	}
 
 	return status, nil
+}
+
+// CleanupLingeringMCR removes left over MCR files after Launchpad reset.
+func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.DockerInfo) {
+	// Use default docker root dir if not specified in docker info
+	dockerRootDir := constant.LinuxDefaultDockerRoot
+	dockerExecRootDir := constant.LinuxDefaultDockerExecRoot
+	dockerDaemonPath := constant.LinuxDefaultDockerDaemonPath
+
+	// set the docker root dir from docker info if it exists
+	if dockerInfo != (common.DockerInfo{}) {
+		dockerRootDir = dockerInfo.DockerRootDir
+	}
+
+	// https://docs.docker.com/config/daemon/
+	if !c.riglinux.FileExist(h, dockerDaemonPath) {
+		// Check if the default Rootless Docker daemon config file exists
+		log.Debugf("%s attempting to detect Rootless docker installation", h)
+		// Extract the value from the XDG_CONFIG_HOME environment variable
+		XDG_CONFIG_HOME, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
+		if XDG_CONFIG_HOME != "" && err == nil {
+			log.Debugf("%s XDG_CONFIG_HOME set to %s", h, XDG_CONFIG_HOME)
+			dockerDaemonPath = path.Join(strings.TrimSpace(XDG_CONFIG_HOME), "docker", "daemon.json")
+		} else {
+			dockerDaemonPath = constant.LinuxDefaultRootlessDockerDaemonPath
+			log.Debugf("%s XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, dockerDaemonPath)
+		}
+	}
+
+	dockerDaemonString, err := c.riglinux.ReadFile(h, dockerDaemonPath)
+	if err != nil {
+		log.Debugf("%s couldn't read the Docker Daemon config file %s: %s", h, dockerDaemonPath, err)
+	}
+	dockerConfig, err := c.GetDockerDaemonConfig(dockerDaemonString)
+	if err != nil {
+		log.Debugf("%s failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
+	}
+
+	if dockerConfig.Root != "" {
+		dockerRootDir = dockerConfig.Root
+	}
+	if dockerConfig.ExecRoot != "" {
+		dockerExecRootDir = dockerConfig.ExecRoot
+	}
+
+	// /var/lib/ Root folder
+	c.attemptPathDelete(h, dockerRootDir)
+	if idx := strings.LastIndex(dockerRootDir, "/"); idx != -1 {
+		dockerRootDir = dockerRootDir[:idx]
+	}
+	dockerCriPath := path.Join(dockerRootDir, "cri-dockerd")
+	c.attemptPathDelete(h, dockerCriPath)
+
+	// /var/run/ Exec-root folder
+	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
+	if err := h.Exec(fmt.Sprintf("sudo umount %s", execRootNetnsUnmount)); err != nil {
+		log.Debugf("%s failed to umount %s: %s", h, execRootNetnsUnmount, err)
+	}
+
+	// Extras to delete if they exist
+	if idx := strings.LastIndex(dockerExecRootDir, "/"); idx != -1 {
+		dockerExecRootDir = dockerExecRootDir[:idx]
+	}
+	criDockerdMkeSock := path.Join(dockerExecRootDir, "cri-dockerd-mke.sock")
+	c.attemptPathDelete(h, criDockerdMkeSock)
+
+	dockerSock := path.Join(dockerExecRootDir, "docker.sock")
+	c.attemptPathDelete(h, dockerSock)
+
+	// /lib/systemd/system/ folder
+	c.attemptPathDelete(h, "/lib/systemd/system/cri-dockerd-mke.service")
+	c.attemptPathDelete(h, "/lib/systemd/system/cri-dockerd-mke.socket")
+}
+
+func (c LinuxConfigurer) attemptPathDelete(h os.Host, path string) {
+	fileInfo, err := c.riglinux.Stat(h, path)
+	if err != nil {
+		log.Debugf("%s error getting file information for %s: %s", h, path, err)
+	} else {
+		command := fmt.Sprintf("sudo rm %s", path)
+		if fileInfo.IsDir() {
+			command = fmt.Sprintf("sudo rm -rf %s", path)
+		}
+		if c.riglinux.FileExist(h, path) {
+			if err := h.Exec(command); err != nil {
+				log.Infof("%s failed to remove %s: %s", h, path, err)
+			}
+			log.Infof("%s removed %s successfully", h, path)
+		}
+	}
 }
