@@ -145,7 +145,7 @@ func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Con
 	if manager.Configurer.SELinuxEnabled(manager) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	output, err := manager.ExecOutput(fmt.Sprintf(`sudo docker run %s %s/ucp:%s dump-certs --ca`, runFlags.Join(), imageRepo, mkeVersion), exec.Redact(`[A-Za-z0-9+/=_\-]{64}`))
+	output, err := manager.ExecOutput(fmt.Sprintf(`docker run %s %s/ucp:%s dump-certs --ca`, runFlags.Join(), imageRepo, mkeVersion), exec.Redact(`[A-Za-z0-9+/=_\-]{64}`))
 	if err != nil {
 		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
 	}

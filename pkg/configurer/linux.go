@@ -93,8 +93,7 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 // DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host.
 func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) string {
-	cmd := fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
-	return fmt.Sprintf("%[1]s || sudo -n %[1]s", cmd)
+	return fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
 }
 
 // ValidateLocalhost returns an error if "localhost" is not a local address.
@@ -131,10 +130,10 @@ type reconnectable interface {
 
 // AuthorizeDocker adds the current user to the docker group.
 func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
-	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
-		log.Debugf("%s: current user is uid 0 - no need to authorize", h)
-		return nil
-	}
+	// if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
+	// 	log.Debugf("%s: current user is uid 0 - no need to authorize", h)
+	// 	return nil
+	// }
 
 	if err := h.Exec("[ -d $HOME/.docker ] && ([ ! -r $HOME/.docker ] || [ ! -w $HOME/.docker ]) && sudo chown -hR $USER:$(id -gn) $HOME/.docker"); err == nil {
 		log.Warnf("%s: changed the owner of ~/.docker to be the current user", h)
