@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/avast/retry-go"
@@ -24,6 +25,7 @@ type WindowsConfigurer struct {
 	os.Windows
 
 	PowerShellVersion *version.Version
+	DockerConfigurer
 }
 
 // MCRConfigPath returns the configuration file path.
@@ -71,22 +73,31 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
 func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	err := h.Exec(c.DockerCommandf("system prune --volumes --all -f"))
-	if err != nil {
-		return err
+	var err error
+	info, getDockerError := c.GetDockerInfo(h, c.Kind())
+	if getDockerError == nil {
+		err = h.Exec(c.DockerCommandf("system prune --volumes --all -f"))
+		if err != nil {
+			return err
+		}
+
+		pwd := c.Pwd(h)
+		base := path.Base(scriptPath)
+		uninstaller := pwd + "\\" + base + ".ps1"
+		err = h.Upload(scriptPath, uninstaller)
+		if err != nil {
+			return err
+		}
+		defer c.DeleteFile(h, uninstaller)
+
+		uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", ps.DoubleQuote(uninstaller))
+		err = h.Exec(uninstallCommand)
+	}
+	if engineConfig.Prune {
+		c.CleanupLingeringMCR(h, info)
 	}
 
-	pwd := c.Pwd(h)
-	base := path.Base(scriptPath)
-	uninstaller := pwd + "\\" + base + ".ps1"
-	err = h.Upload(scriptPath, uninstaller)
-	if err != nil {
-		return err
-	}
-	defer c.DeleteFile(h, uninstaller)
-
-	uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", ps.DoubleQuote(uninstaller))
-	return h.Exec(uninstallCommand)
+	return err
 }
 
 // RestartMCR restarts Docker EE engine.
@@ -233,4 +244,45 @@ func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 // AuthorizeDocker does nothing on windows.
 func (c WindowsConfigurer) AuthorizeDocker(h os.Host) error {
 	return nil
+}
+
+// CleanupLingeringMCR cleans up lingering MCR configuration files.
+func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.DockerInfo) {
+	dockerRootDir := constant.WindowsDefaultDockerRoot
+	if dockerInfo.DockerRootDir != "" {
+		dockerRootDir = dockerInfo.DockerRootDir
+	}
+
+	// Check if the Docker daemon configuration file exists
+	exists, err := h.ExecOutput(ps.Cmd(fmt.Sprintf("Test-Path %s", ps.SingleQuote(c.MCRConfigPath()))))
+	if err != nil {
+		log.Errorf("error checking if Docker Daemon configuration file exists at %s: %v", c.MCRConfigPath(), err)
+	}
+	if exists == "True" {
+		log.Infof("%s MCR configuration file exists at %s", h, c.MCRConfigPath())
+		var dockerDaemon common.DockerDaemonConfig
+		dockerDaemonString, err := h.ExecOutput(ps.Cmd(fmt.Sprintf("Get-Content -Path %s", ps.SingleQuote(c.MCRConfigPath()))))
+		if err != nil {
+			dockerDaemon, err := c.DockerConfigurer.GetDockerDaemonConfig(dockerDaemonString)
+			if err != nil {
+				log.Errorf("%s error constructing dockerDaemon struct %+v: %s", h, dockerDaemon, err)
+			}
+		}
+		if dockerDaemon.Root != "" {
+			dockerRootDir = strings.TrimSpace(dockerDaemon.Root)
+		}
+	}
+
+	c.attemptPathDelete(h, dockerRootDir)
+}
+
+func (c WindowsConfigurer) attemptPathDelete(h os.Host, path string) {
+	// Remove a folder using PowerShell command.
+	removeCommand := fmt.Sprintf("powershell Remove-Item -LiteralPath %s -Force -Recurse ", ps.SingleQuote(path))
+
+	if err := h.Exec(removeCommand); err != nil {
+		log.Debugf("%s failed to remove %s: %s", h, path, err)
+	} else {
+		log.Infof("%s removed %s successfully", h, path)
+	}
 }

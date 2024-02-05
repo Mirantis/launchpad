@@ -22,17 +22,28 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 
 // UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	err := h.Exec("sudo docker system prune -f")
-	if err != nil {
-		return err
+	var err error
+	info, getDockerError := c.GetDockerInfo(h, c.Kind())
+	if getDockerError == nil {
+		if err = h.Exec("sudo docker system prune -f"); err != nil {
+			return err
+		}
+
+		if err = c.StopService(h, "docker"); err != nil {
+			return err
+		}
+
+		if err = c.StopService(h, "containerd"); err != nil {
+			return err
+		}
+
+		err = h.Exec("sudo yum remove -y docker-ee docker-ee-cli")
 	}
-	if err := c.StopService(h, "docker"); err != nil {
-		return err
+	if engineConfig.Prune {
+		c.CleanupLingeringMCR(h, info)
 	}
-	if err := c.StopService(h, "containerd"); err != nil {
-		return err
-	}
-	return h.Exec("sudo yum remove -y docker-ee docker-ee-cli")
+
+	return err
 }
 
 // InstallMCR install Docker EE engine on Linux.
