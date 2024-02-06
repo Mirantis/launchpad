@@ -3,21 +3,23 @@ package phase
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 
 	retry "github.com/avast/retry-go"
 	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
+	rig_exec "github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
 type connectable interface {
 	Connect() error
 	String() string
-	Exec(cmd string, opts ...exec.Option) error
+	Exec(cmd string, opts ...rig_exec.Option) error
 }
 
 // Connect connects to each of the hosts.
@@ -62,6 +64,9 @@ func (p *Connect) Run() error {
 	wg.Add(len(p.hosts))
 
 	for _, h := range p.hosts {
+		if err := p.pruneKnownHosts(h); err != nil {
+			log.Warnf("skipped pruning known_hosts file for %s: %s", h, err.Error())
+		}
 		go func(h connectable) {
 			ec <- erritem{h.String(), p.connectHost(h)}
 		}(h)
@@ -122,5 +127,17 @@ func (p *Connect) testConnection(h connectable) error {
 		return err
 	}
 
+	return nil
+}
+
+func (p *Connect) pruneKnownHosts(h connectable) error {
+	if runtime.GOOS == "linux" || runtime.GOOS == "darwin" && !strings.HasPrefix(h.String(), "[winrm]") {
+		parts := strings.Split(strings.TrimPrefix(h.String(), "[ssh] "), ":")
+		th := parts[0]
+		log.Infof("Pruning known_hosts file for %s", th)
+		cmd := exec.Command("ssh-keygen", "-R", th)
+
+		return cmd.Run()
+	}
 	return nil
 }
