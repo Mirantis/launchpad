@@ -27,6 +27,8 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
 		&mke.DownloadInstaller{},
 		&common.RunHooks{Stage: "before", Action: "apply"},
 		&mke.PrepareHost{},
+
+		// begin mcr/mke phases
 		&mke.ConfigureMCR{},
 		&mke.InstallMCR{},
 		&mke.UpgradeMCR{Concurrency: concurrency},
@@ -35,6 +37,7 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
 		&mke.AuthenticateDocker{},
 		&mke.PullMKEImages{},
 		&mke.InitSwarm{},
+		&mke.InstallMKECerts{},
 		&mke.InstallMKE{},
 		&mke.UpgradeMKE{},
 		&mke.JoinManagers{},
