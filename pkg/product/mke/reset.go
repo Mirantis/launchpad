@@ -14,6 +14,7 @@ func (p *MKE) Reset() error {
 		&common.Connect{},
 		&mke.DetectOS{},
 		&mke.GatherFacts{},
+		&mke.PrepareHost{},
 		&common.RunHooks{Stage: "before", Action: "reset"},
 
 		// begin MSR phases

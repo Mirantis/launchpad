@@ -14,21 +14,17 @@ type DockerConfigurer struct{}
 // GetDockerInfo gets docker info from the host
 func (c DockerConfigurer) GetDockerInfo(h os.Host, hostKind string) (common.DockerInfo, error) {
 	command := "docker info --format \"{{json . }}\""
-	log.Infof("%s attempting to execute `docker info`", h)
+	log.Debugf("%s attempting to gather info with `%s`", h, command)
 	info, err := h.ExecOutput(command)
-
-	if err != nil && hostKind != "windows" {
-		log.Infof("%s attempting to execute `docker info` with sudo", h)
-		info, err = h.ExecOutput(fmt.Sprintf("sudo %s", command))
-		if err != nil {
-			return common.DockerInfo{}, err
-		}
+	if err != nil {
+		log.Debugf("%s cmd `%s` failed with %s ", h, command, err)
+		return common.DockerInfo{}, err
 	}
 
 	var dockerInfo common.DockerInfo
 	err = json.Unmarshal([]byte(info), &dockerInfo)
 	if err != nil {
-		log.Infof("%s no `docker info` found", h)
+		log.Debugf("%s unmarshal failed of `%s` with %s ", h, command, err)
 		return common.DockerInfo{}, err
 	}
 

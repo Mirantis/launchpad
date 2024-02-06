@@ -214,7 +214,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 func isSwarmLeader(h *Host) bool {
 	// We can by-pass the Configurer interface as managers are always linux boxes
-	output, err := h.ExecOutput(`sudo docker info --format "{{ .Swarm.ControlAvailable}}"`)
+	output, err := h.ExecOutput(h.Configurer.DockerCommandf(`info --format "{{ .Swarm.ControlAvailable}}"`))
 	if err != nil {
 		log.Debugf("%s: failed to get host's swarm leader status, probably not part of swarm", h)
 		return false

@@ -25,7 +25,7 @@ func (c Configurer) UninstallMCR(h os.Host, scriptPath string, engineConfig comm
 	var err error
 	info, getDockerError := c.GetDockerInfo(h, c.Kind())
 	if getDockerError == nil {
-		if err = h.Exec("sudo docker system prune -f"); err != nil {
+		if err = h.Exec(c.DockerCommandf("system prune -f")); err != nil {
 			return err
 		}
 
