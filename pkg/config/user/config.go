@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
+
+	"github.com/Mirantis/mcc/pkg/util/fileutil"
 )
 
 const (
@@ -23,7 +24,7 @@ type Config struct {
 
 // GetConfig returns a new decoded Config struct.
 func GetConfig() (*Config, error) {
-	configFile, err := homedir.Expand(configFile)
+	configFile, err := fileutil.Expand(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to expand config file path: %w", err)
 	}
@@ -49,7 +50,7 @@ func GetConfig() (*Config, error) {
 
 // SaveConfig saves config struct to yaml file.
 func SaveConfig(config *Config) error {
-	configFile, err := homedir.Expand(configFile)
+	configFile, err := fileutil.Expand(configFile)
 	if err != nil {
 		return fmt.Errorf("failed to expand config file path: %w", err)
 	}

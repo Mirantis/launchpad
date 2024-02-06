@@ -18,7 +18,6 @@ import (
 	"strings"
 
 	"github.com/k0sproject/rig/exec"
-	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/Mirantis/mcc/pkg/constant"
@@ -26,8 +25,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/kubeclient"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // AuthToken represents a session token.
@@ -299,7 +296,7 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 }
 
 func getBundleDir(config *api.ClusterConfig) (string, error) {
-	home, err := homedir.Dir()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}

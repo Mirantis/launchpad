@@ -1,7 +1,7 @@
 # syntax = docker/dockerfile:experimental
-FROM golang:1.21
+FROM golang:1.21-alpine3.18
 
-RUN apt-get update
+RUN apk add git openssh build-base curl
 
 RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 

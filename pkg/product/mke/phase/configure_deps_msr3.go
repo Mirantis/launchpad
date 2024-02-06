@@ -53,7 +53,7 @@ func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
 
 		needsUpgrade, err := p.Helm.ChartNeedsUpgrade(context.Background(), rd.ReleaseName, vers)
 		if err != nil {
-			// Log any errors that are different then NotFound, but try to
+			// Log any errors that are different than NotFound, but try to
 			// upgrade anyway.
 			var notFoundErr helm.ErrReleaseNotFound
 

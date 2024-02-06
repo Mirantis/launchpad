@@ -8,7 +8,6 @@ import (
 
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
-	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
@@ -170,7 +169,7 @@ func checkLicense(ctx *cli.Context) error {
 }
 
 func addFileLogger(clusterName, filename string) (*os.File, error) {
-	home, err := homedir.Dir()
+	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user home directory: %w", err)
 	}

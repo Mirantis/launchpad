@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 )
 
@@ -87,7 +88,7 @@ func (p *Describe) msrReport() {
 			msrURL = url.String()
 		}
 	case 3:
-		msrURL, err = getMSRURL(p.Config)
+		msrURL, err = msr3.GetMSRURL(p.Config)
 		if err != nil {
 			log.Infof("failed to get MSR URL: %s", err)
 		}

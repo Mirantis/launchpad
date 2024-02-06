@@ -87,11 +87,12 @@ func DebugPollfConfig(format string, args ...interface{}) PollfConfig {
 	return DefaultPollfConfig(logrus.DebugLevel, format, args...)
 }
 
-// Pollf polls and prints periodically until the given function passes, aborts
-// or exhausts all retries.
+// Pollf configures and returns a polling function. This function accepts a
+// second function as input and will poll and log periodically until the
+// provided function passes or aborts, or all retries have been exhausted.
 // Example usage:
 //
-//	err = Pollf(time.Second, 3, "stuff %s", "aaaaaa")(func() error {
+//	err = Pollf(PollfConfig{time.Second, 3, logrus.InfoLevel, "stuff %s", []interface{"aaaaaa"}})(func() error {
 //	    return testtt()
 //	})
 func Pollf(pollfConfig PollfConfig) func(func() error) error {
@@ -102,12 +103,13 @@ func Pollf(pollfConfig PollfConfig) func(func() error) error {
 	}
 }
 
-// Waitf takes a function and a format string and periodically prints that
-// string until the function exits. The error is passed on from the return value
-// of the function.
+// Waitf returns a waiting function that is configured with a logging message.
+// This function accepts a second function as input and will periodically log
+// the message until the provided function exits. The error is passed on from
+// the return value of the called function.
 // Usage:
 //
-//	err = Waitf("things: %d", 3)(func() error {
+//	err = Waitf(logrus.InfoLevel, "things: %d", 3)(func() error {
 //	    return nil
 //	})
 func Waitf(level logrus.Level, format string, args ...interface{}) func(func() error) error {
@@ -118,9 +120,10 @@ func Waitf(level logrus.Level, format string, args ...interface{}) func(func() e
 	}
 }
 
-// waitf prints meaningful waiting info to the log until you call the func it
-// returns. The returned func is not thread-safe but it's safe to call more than
-// once.
+// waitf starts a separate Go routine which periodically writes waiting info to the
+// log. The function returns immediately and provides a "cancel function" to the
+// caller. The logging is stopped by calling this cancel function. The cancel function
+// is not thread-safe but is safe to call more than once.
 func waitf(level logrus.Level, format string, args ...interface{}) func() {
 	elapsed := time.Duration(0)
 	ticker := time.NewTicker(timeStep)

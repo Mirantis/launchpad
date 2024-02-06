@@ -89,6 +89,10 @@ func (h *Helm) getChartVersion(ctx context.Context, releaseName string) (*versio
 		return nil, ErrReleaseNotFound{ReleaseName: releaseName}
 	}
 
+	if len(releases) > 1 {
+		return nil, fmt.Errorf("more than one release matches the provided name: %q", releaseName)
+	}
+
 	chartVersion := releases[0].Chart.Metadata.Version
 
 	v, err := version.NewVersion(chartVersion)
