@@ -12,9 +12,10 @@ func FormatBytes(bytes uint64) string {
 		"KiB",
 		"MiB",
 		"GiB",
+		"TiB",
 	}
 	logBase1024 := 0
-	for f > 1024.0 && logBase1024 < len(units) {
+	for f >= 1024.0 && logBase1024 < len(units) {
 		f /= 1024.0
 		logBase1024++
 	}
