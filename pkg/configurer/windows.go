@@ -93,7 +93,11 @@ func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConf
 		if err := h.Upload(scriptPath, uninstaller); err != nil {
 			return fmt.Errorf("upload MCR uninstaller: %w", err)
 		}
-		defer c.DeleteFile(h, uninstaller)
+		defer func() {
+			if err := c.DeleteFile(h, uninstaller); err != nil {
+				log.Warnf("failed to delete MCR uninstaller: %s", err.Error())
+			}
+		}()
 
 		uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", ps.DoubleQuote(uninstaller))
 		if err := h.Exec(uninstallCommand); err != nil {

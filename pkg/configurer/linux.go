@@ -328,11 +328,11 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	if !c.riglinux.FileExist(h, dockerDaemonPath) {
 		// Check if the default Rootless Docker daemon config file exists
 		log.Debugf("%s attempting to detect Rootless docker installation", h)
-		// Extract the value from the XDG_CONFIG_HOME environment variable
-		XDG_CONFIG_HOME, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
-		if XDG_CONFIG_HOME != "" && err == nil {
-			log.Debugf("%s XDG_CONFIG_HOME set to %s", h, XDG_CONFIG_HOME)
-			dockerDaemonPath = path.Join(strings.TrimSpace(XDG_CONFIG_HOME), "docker", "daemon.json")
+		// Extract the value from the xdgConfigHome environment variable
+		xdgConfigHome, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
+		if xdgConfigHome != "" && err == nil {
+			log.Debugf("%s XDG_CONFIG_HOME set to %s", h, xdgConfigHome)
+			dockerDaemonPath = path.Join(strings.TrimSpace(xdgConfigHome), "docker", "daemon.json")
 		} else {
 			dockerDaemonPath = constant.LinuxDefaultRootlessDockerDaemonPath
 			log.Debugf("%s XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, dockerDaemonPath)

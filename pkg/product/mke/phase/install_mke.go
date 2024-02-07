@@ -139,47 +139,6 @@ func (p *InstallMKE) Run() error {
 	return nil
 }
 
-// installCertificates installs user supplied MKE certificates.
-func (p *InstallMKE) installCertificates(config *api.ClusterConfig) error {
-	log.Infof("Installing MKE certificates")
-	managers := config.Spec.Managers()
-	err := managers.ParallelEach(func(h *api.Host) error {
-		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
-		if err != nil {
-			log.Infof("%s: creating ucp-controller-server-certs volume", h)
-			err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"))
-			if err != nil {
-				return fmt.Errorf("%s: failed to create ucp-controller-server-certs volume: %w", h, err)
-			}
-		}
-
-		dir, err := h.ExecOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
-		if err != nil {
-			return fmt.Errorf("%s: failed to get ucp-controller-server-certs volume mountpoint: %w", h, err)
-		}
-
-		log.Infof("%s: installing certificate files to %s", h, dir)
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600")
-		if err != nil {
-			return fmt.Errorf("%s: failed to write ca.pem: %w", h, err)
-		}
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600")
-		if err != nil {
-			return fmt.Errorf("%s: failed to write cert.pem: %w", h, err)
-		}
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600")
-		if err != nil {
-			return fmt.Errorf("%s: failed to write key.pem: %w", h, err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("failed to install certificates: %w", err)
-	}
-	return nil
-}
-
 var errUnsupportedProvider = errors.New("unsupported cloud provider")
 
 func applyCloudConfig(config *api.ClusterConfig) error {
