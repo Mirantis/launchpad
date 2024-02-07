@@ -6,6 +6,8 @@ run:
     - ".*\\.gen\\.go"
     - examples/*
     - test/*
+    - logo.go
+    - logo_windows.go
   tests: false
   allow-parallel-runners: true
 
