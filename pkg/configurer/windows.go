@@ -277,13 +277,13 @@ func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Dock
 		log.Errorf("error checking if Docker Daemon configuration file exists at %s: %v", c.MCRConfigPath(), err)
 	}
 	if exists == "True" {
-		log.Infof("%s MCR configuration file exists at %s", h, c.MCRConfigPath())
+		log.Infof("%s: MCR configuration file exists at %s", h, c.MCRConfigPath())
 		var dockerDaemon common.DockerDaemonConfig
 		dockerDaemonString, err := h.ExecOutput(ps.Cmd(fmt.Sprintf("Get-Content -Path %s", ps.SingleQuote(c.MCRConfigPath()))))
 		if err != nil {
 			dockerDaemon, err := c.DockerConfigurer.GetDockerDaemonConfig(dockerDaemonString)
 			if err != nil {
-				log.Errorf("%s error constructing dockerDaemon struct %+v: %s", h, dockerDaemon, err)
+				log.Errorf("%s: error constructing dockerDaemon struct %+v: %s", h, dockerDaemon, err)
 			}
 		}
 		if dockerDaemon.Root != "" {
@@ -299,8 +299,8 @@ func (c WindowsConfigurer) attemptPathDelete(h os.Host, path string) {
 	removeCommand := fmt.Sprintf("powershell Remove-Item -LiteralPath %s -Force -Recurse ", ps.SingleQuote(path))
 
 	if err := h.Exec(removeCommand); err != nil {
-		log.Debugf("%s failed to remove %s: %s", h, path, err)
+		log.Debugf("%s: failed to remove %s: %s", h, path, err)
 	} else {
-		log.Infof("%s removed %s successfully", h, path)
+		log.Infof("%s: removed %s successfully", h, path)
 	}
 }

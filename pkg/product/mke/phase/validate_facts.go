@@ -41,7 +41,7 @@ func (p *ValidateFacts) Run() error {
 
 	if err := p.validateMKEVersionJump(); err != nil {
 		if p.Force {
-			log.Warnf("%s - continuing anyway because --force given", err.Error())
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}
@@ -49,7 +49,7 @@ func (p *ValidateFacts) Run() error {
 
 	if err := p.validateMSRVersionJump(); err != nil {
 		if p.Force {
-			log.Warnf("%s - continuing anyway because --force given", err.Error())
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}
@@ -57,7 +57,7 @@ func (p *ValidateFacts) Run() error {
 
 	if err := p.validateDataPlane(); err != nil {
 		if p.Force {
-			log.Warnf("%s - continuing anyway because --force given", err.Error())
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}

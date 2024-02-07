@@ -327,25 +327,25 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	// https://docs.docker.com/config/daemon/
 	if !c.riglinux.FileExist(h, dockerDaemonPath) {
 		// Check if the default Rootless Docker daemon config file exists
-		log.Debugf("%s attempting to detect Rootless docker installation", h)
+		log.Debugf("%s: attempting to detect Rootless docker installation", h)
 		// Extract the value from the xdgConfigHome environment variable
 		xdgConfigHome, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
 		if xdgConfigHome != "" && err == nil {
-			log.Debugf("%s XDG_CONFIG_HOME set to %s", h, xdgConfigHome)
+			log.Debugf("%s: XDG_CONFIG_HOME set to %s", h, xdgConfigHome)
 			dockerDaemonPath = path.Join(strings.TrimSpace(xdgConfigHome), "docker", "daemon.json")
 		} else {
 			dockerDaemonPath = constant.LinuxDefaultRootlessDockerDaemonPath
-			log.Debugf("%s XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, dockerDaemonPath)
+			log.Debugf("%s: XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, dockerDaemonPath)
 		}
 	}
 
 	dockerDaemonString, err := c.riglinux.ReadFile(h, dockerDaemonPath)
 	if err != nil {
-		log.Debugf("%s couldn't read the Docker Daemon config file %s: %s", h, dockerDaemonPath, err)
+		log.Debugf("%s: couldn't read the Docker Daemon config file %s: %s", h, dockerDaemonPath, err)
 	}
 	dockerConfig, err := c.GetDockerDaemonConfig(dockerDaemonString)
 	if err != nil {
-		log.Debugf("%s failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
+		log.Debugf("%s: failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
 	}
 
 	if dockerConfig.Root != "" {
@@ -366,7 +366,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
 	if err := h.Exec(fmt.Sprintf("sudo umount %s", execRootNetnsUnmount)); err != nil {
-		log.Debugf("%s failed to umount %s: %s", h, execRootNetnsUnmount, err)
+		log.Debugf("%s: failed to umount %s: %s", h, execRootNetnsUnmount, err)
 	}
 
 	// Extras to delete if they exist
@@ -387,7 +387,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 func (c LinuxConfigurer) attemptPathDelete(h os.Host, path string) {
 	fileInfo, err := c.riglinux.Stat(h, path)
 	if err != nil {
-		log.Debugf("%s error getting file information for %s: %s", h, path, err)
+		log.Debugf("%s: error getting file information for %s: %s", h, path, err)
 	} else {
 		command := fmt.Sprintf("sudo rm %s", path)
 		if fileInfo.IsDir() {
@@ -395,9 +395,9 @@ func (c LinuxConfigurer) attemptPathDelete(h os.Host, path string) {
 		}
 		if c.riglinux.FileExist(h, path) {
 			if err := h.Exec(command); err != nil {
-				log.Infof("%s failed to remove %s: %s", h, path, err)
+				log.Infof("%s: failed to remove %s: %s", h, path, err)
 			}
-			log.Infof("%s removed %s successfully", h, path)
+			log.Infof("%s: removed %s successfully", h, path)
 		}
 	}
 }
