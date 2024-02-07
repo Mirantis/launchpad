@@ -53,6 +53,9 @@ build-all: builder
 	GOOS=darwin GOARCH=amd64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-x64 main.go
 	GOOS=darwin GOARCH=arm64 $(GO) go build $(BUILD_FLAGS) -o bin/launchpad-darwin-arm64 main.go
 
+go-mod-tidy: builder
+	$(GO) go mod tidy
+
 release: build-all sign-win
 	./release.sh
 
