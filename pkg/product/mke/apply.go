@@ -12,7 +12,7 @@ import (
 )
 
 // Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are defined in the config.
-func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
+func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.SkipCleanup = disableCleanup
 
@@ -30,7 +30,7 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
 		// begin mcr/mke phases
 		&mke.ConfigureMCR{},
 		&mke.InstallMCR{},
-		&mke.UpgradeMCR{Concurrency: concurrency},
+		&mke.UpgradeMCR{Concurrency: concurrency, ForceUpgrade: forceUpgrade},
 		&mke.RestartMCR{},
 		&mke.LoadImages{},
 		&mke.AuthenticateDocker{},

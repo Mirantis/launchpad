@@ -25,6 +25,7 @@ type MCRConfig struct {
 	InstallURLWindows string `yaml:"installURLWindows,omitempty"`
 	Channel           string `yaml:"channel,omitempty"`
 	Prune             bool   `yaml:"prune,omitempty"`
+	ForceUpgrade      bool   `yaml:"forceUpgrade,omitempty"`
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml.

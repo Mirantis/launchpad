@@ -44,6 +44,12 @@ func NewApplyCommand() *cli.Command {
 				Value:  false,
 				Hidden: true,
 			},
+			&cli.BoolFlag{
+				Name:   "force-upgrade",
+				Usage:  "force upgrade to run on compatible components, even if it doesn't look necessary",
+				Value:  false,
+				Hidden: true,
+			},
 		}...),
 		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec),
 		After:  actions(closeAnalytics, upgradeCheckResult),
@@ -79,7 +85,7 @@ func NewApplyCommand() *cli.Command {
 				fmt.Fprintf(os.Stdout, "   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version)
 			}
 
-			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"))
+			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"), ctx.Bool("force-upgrade"))
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 				return fmt.Errorf("failed to apply cluster: %w", err)
