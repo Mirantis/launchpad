@@ -89,7 +89,6 @@ func (p *PullMKEImages) Run() error {
 		}
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to pull linux images: %w", err)
 	}

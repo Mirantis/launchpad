@@ -80,7 +80,6 @@ func NewApplyCommand() *cli.Command {
 			}
 
 			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"))
-
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
 				return fmt.Errorf("failed to apply cluster: %w", err)

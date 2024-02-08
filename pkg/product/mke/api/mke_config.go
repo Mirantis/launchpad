@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -53,7 +54,7 @@ type MKECloud struct {
 	ConfigData string `yaml:"configData,omitempty"`
 }
 
-var errMKEConfigInvalid = fmt.Errorf("invalid MKE config")
+var errMKEConfigInvalid = errors.New("invalid MKE config")
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {

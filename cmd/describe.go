@@ -61,7 +61,6 @@ func NewDescribeCommand() *cli.Command {
 			}
 
 			err = product.Describe(ctx.Args().First())
-
 			if err != nil {
 				analytics.TrackEvent("Cluster Describe Failed", nil)
 				return fmt.Errorf("failed to describe cluster: %w", err)

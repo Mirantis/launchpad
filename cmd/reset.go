@@ -40,7 +40,6 @@ func NewResetCommand() *cli.Command {
 			}
 
 			err = product.Reset()
-
 			if err != nil {
 				analytics.TrackEvent("Cluster Reset Failed", nil)
 				return fmt.Errorf("failed to reset cluster: %w", err)

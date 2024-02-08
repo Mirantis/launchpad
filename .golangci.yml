@@ -52,7 +52,6 @@ linters:
     - nilnil
     - nolintlint
     - nosprintfhostport
-    - perfsprint
     - prealloc
     - predeclared
     - reassign
