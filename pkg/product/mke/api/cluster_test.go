@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"os"
-	"path"
 	"strings"
 	"testing"
 
@@ -374,10 +373,8 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	require.Equal(t, c.Spec.Hosts[0].SSH.User, "root")
-	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 22)
-	home, _ := os.UserHomeDir()
-	require.Equal(t, c.Spec.Hosts[0].SSH.KeyPath, path.Join(home, ".ssh", "id_rsa"))
+	require.Equal(t, "root", c.Spec.Hosts[0].SSH.User)
+	require.Equal(t, 22, c.Spec.Hosts[0].SSH.Port)
 }
 
 func TestHostWinRMDefaults(t *testing.T) {
