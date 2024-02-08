@@ -17,7 +17,7 @@ import (
 func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 	rethinkdbContainerID, err := h.ExecOutput(h.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get MSR container ID: %w", err)
 	}
 	if rethinkdbContainerID == "" {
 		return &api.MSRMetadata{Installed: false}, nil
@@ -25,11 +25,11 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 
 	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get MSR version: %w", err)
 	}
 	replicaID, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`, rethinkdbContainerID))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get MSR replicaID: %w", err)
 	}
 	if version == "" || replicaID == "" {
 		// If we failed to obtain either label then this MSR version does not
@@ -37,7 +37,7 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 		// wrong, attempt to pull these details with the old method
 		output, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get MSR rethink container labels: %w", err)
 		}
 		outputFields := strings.Fields(output)
 		if version == "" {
@@ -154,14 +154,14 @@ func Destroy(h *api.Host) error {
 	log.Debugf("%s: Removing MSR containers", h)
 	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get MSR container list: %w", err)
 	}
 	if strings.TrimSpace(containersToRemove) == "" {
 		log.Debugf("No MSR containers to remove")
 	} else {
 		containersToRemove = strings.Join(strings.Fields(containersToRemove), " ")
 		if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
-			return err
+			return fmt.Errorf("failed to remove MSR containers: %w", err)
 		}
 	}
 
@@ -169,7 +169,7 @@ func Destroy(h *api.Host) error {
 	log.Debugf("%s: Removing MSR volumes", h)
 	volumeOutput, err := h.ExecOutput(h.Configurer.DockerCommandf("volume ls -q"))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get MSR volume list: %w", err)
 	}
 	if strings.Trim(volumeOutput, " ") == "" {
 		log.Debugf("No volumes in volume list")
@@ -190,11 +190,13 @@ func Destroy(h *api.Host) error {
 		volumes := strings.Join(volumesToRemove, " ")
 		err = h.Exec(h.Configurer.DockerCommandf("volume rm -f %s", volumes))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to remove MSR volumes: %w", err)
 		}
 	}
 	return nil
 }
+
+var errMaxReplicaID = fmt.Errorf("max sequential msr replica id exceeded")
 
 // AssignSequentialReplicaIDs goes through all the MSR hosts, finds the highest replica id and assigns sequential ones starting from that to all the hosts without replica ids.
 func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
@@ -209,7 +211,7 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 		if h.MSRMetadata.ReplicaID != "" {
 			ri, err := strconv.ParseUint(h.MSRMetadata.ReplicaID, 16, 48)
 			if err != nil {
-				return fmt.Errorf("%s: invalid MSR replicaID '%s': %s", h, h.MSRMetadata.ReplicaID, err)
+				return fmt.Errorf("%s: invalid MSR replicaID '%s': %w", h, h.MSRMetadata.ReplicaID, err)
 			}
 			if maxReplicaID < ri {
 				maxReplicaID = ri
@@ -218,18 +220,21 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 		return nil
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to find max MSR replicaID: %w", err)
 	}
 	if maxReplicaID+uint64(len(msrHosts)) > 0xffffffffffff {
-		return fmt.Errorf("can not assign sequential MSR replica ids: cluster already has replica id %012x which will overflow", maxReplicaID)
+		return fmt.Errorf("%w: cluster already has replica id %012x which will overflow", errMaxReplicaID, maxReplicaID)
 	}
-	return msrHosts.Each(func(h *api.Host) error {
+
+	_ = msrHosts.Each(func(h *api.Host) error {
 		if h.MSRMetadata.ReplicaID == "" {
 			maxReplicaID++
 			h.MSRMetadata.ReplicaID = FormatReplicaID(maxReplicaID)
 		}
 		return nil
 	})
+
+	return nil
 }
 
 // Cleanup accepts a list of msrHosts to remove all containers, volumes
@@ -240,12 +245,14 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
 		log.Debugf("%s: Destroying MSR host", h)
 		err := Destroy(h)
 		if err != nil {
-			return fmt.Errorf("failed to run MSR destroy: %s", err)
+			return fmt.Errorf("failed to run MSR destroy: %w", err)
 		}
 	}
 	// Remove dtr-ol via the swarmLeader
 	log.Infof("%s: Removing dtr-ol network", swarmLeader)
-	swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("network rm dtr-ol"))
+	if err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("network rm dtr-ol")); err != nil {
+		return fmt.Errorf("failed to remove dtr-ol network: %w", err)
+	}
 	return nil
 }
 
@@ -255,7 +262,7 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 		func() error {
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
 			if err != nil || strings.TrimSpace(output) == "" {
-				return fmt.Errorf("msr nginx container not running")
+				return fmt.Errorf("msr nginx container not running: %w", err)
 			}
 			return nil
 		},
@@ -264,15 +271,14 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 		retry.Delay(time.Second*3),
 		retry.Attempts(60),
 	)
-
 	if err != nil {
-		return err
+		return fmt.Errorf("retry limit exceeded: %w", err)
 	}
 
-	return retry.Do(
+	err = retry.Do(
 		func() error {
 			if err := h.CheckHTTPStatus(fmt.Sprintf("https://localhost:%d/_ping", port), 200); err != nil {
-				return fmt.Errorf("msr invalid ping response")
+				return fmt.Errorf("msr invalid ping response: %w", err)
 			}
 
 			return nil
@@ -282,4 +288,8 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 		retry.Delay(time.Second*3),
 		retry.Attempts(120),
 	)
+	if err != nil {
+		return fmt.Errorf("retry limit exceeded: %w", err)
+	}
+	return nil
 }

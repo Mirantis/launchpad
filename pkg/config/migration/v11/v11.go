@@ -9,15 +9,14 @@ import (
 func Migrate(plain map[string]interface{}) error {
 	plain["apiVersion"] = "launchpad.mirantis.com/mke/v1.2"
 
-	spec, ok := plain["spec"].(map[interface{}]interface{})
-	if ok {
-		hosts, ok := spec["hosts"]
-		if ok {
-			hslice := hosts.([]interface{})
-			for _, h := range hslice {
-				host := h.(map[interface{}]interface{})
-				ec, ok := host["engineConfig"]
-				if ok {
+	if spec, ok := plain["spec"].(map[interface{}]interface{}); ok {
+		if hosts, ok := spec["hosts"].([]interface{}); ok {
+			for _, h := range hosts {
+				host, ok := h.(map[interface{}]interface{})
+				if !ok {
+					continue
+				}
+				if ec, ok := host["engineConfig"]; ok {
 					host["mcrConfig"] = ec
 					delete(host, "engineConfig")
 					log.Debugf("migrated v1.1 spec.hosts[*].engineConfig to v1.2 spec.hosts[*].mcrConfig")
@@ -25,8 +24,7 @@ func Migrate(plain map[string]interface{}) error {
 			}
 		}
 
-		eng, ok := spec["engine"].(map[interface{}]interface{})
-		if ok {
+		if eng, ok := spec["engine"].(map[interface{}]interface{}); ok {
 			spec["mcr"] = eng
 			delete(spec, "engine")
 			log.Debugf("migrated v1.1 spec.engine to v1.2 spec.mcr")

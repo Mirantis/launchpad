@@ -12,7 +12,7 @@ func EnsureDir(dirPath string) error {
 	if _, serr := os.Stat(dirPath); os.IsNotExist(serr) {
 		merr := os.MkdirAll(dirPath, os.ModePerm)
 		if merr != nil {
-			return merr
+			return fmt.Errorf("failed to create directory %s: %w", dirPath, merr)
 		}
 	}
 	return nil
@@ -22,19 +22,19 @@ func EnsureDir(dirPath string) error {
 var LoadExternalFile = func(path string) ([]byte, error) {
 	realpath, err := homedir.Expand(path)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("failed to expand path %s: %w", path, err)
 	}
 
 	filedata, err := os.ReadFile(realpath)
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("failed to read file %s: %w", realpath, err)
 	}
 	return filedata, nil
 }
 
 // FormatBytes formats a number of bytes into something like "200 KiB".
 func FormatBytes(bytes uint64) string {
-	f := float64(bytes)
+	floatBytes := float64(bytes)
 	units := []string{
 		"bytes",
 		"KiB",
@@ -42,9 +42,9 @@ func FormatBytes(bytes uint64) string {
 		"GiB",
 	}
 	logBase1024 := 0
-	for f > 1024.0 && logBase1024 < len(units) {
-		f /= 1024.0
+	for floatBytes > 1024.0 && logBase1024 < len(units) {
+		floatBytes /= 1024.0
 		logBase1024++
 	}
-	return fmt.Sprintf("%d %s", uint64(f), units[logBase1024])
+	return fmt.Sprintf("%d %s", uint64(floatBytes), units[logBase1024])
 }

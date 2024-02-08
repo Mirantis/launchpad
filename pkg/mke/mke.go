@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,7 +18,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,18 +34,20 @@ type Credentials struct {
 	Password string `json:"password,omitempty"`
 }
 
+var errInvalidVersion = errors.New("invalid version")
+
 // CollectFacts gathers the current status of installed mke setup.
 func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
 	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
 		mkeMeta.Installed = false
 		mkeMeta.InstalledVersion = ""
-		return nil //nolint:nilerr
+		return nil
 	}
 
 	vparts := strings.Split(output, ":")
 	if len(vparts) != 2 {
-		return fmt.Errorf("malformed version output: %s", output)
+		return fmt.Errorf("%w: malformed version output: %s", errInvalidVersion, output)
 	}
 	repo := vparts[0][:strings.LastIndexByte(vparts[0], '/')]
 
@@ -83,7 +85,7 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 	// Login and get a token for the user
 	token, err := GetToken(client, mkeURL, username, password)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get token for (%s:%s) : %s", username, password, err)
+		return nil, fmt.Errorf("failed to get token for (%s:%s): %w", username, password, err)
 	}
 
 	mkeURL.Path = "/api/clientbundle"
@@ -91,24 +93,27 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 	// Now download the bundle
 	req, err := http.NewRequest(http.MethodGet, mkeURL.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Debugf("Failed to get bundle: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to request client bundle: %w", err)
 	}
 	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		if err == nil {
-			return nil, fmt.Errorf("Failed to get client bundle (%d): %s", resp.StatusCode, string(body))
-		}
-		return nil, err
+		return nil, fmt.Errorf("failed to read client bundle (%d): %s: %w", resp.StatusCode, string(body), err)
 	}
-	return zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create a reader for client bundle: %w", err)
+	}
+	return reader, nil
 }
+
+var errGetToken = errors.New("failed to get token")
 
 // GetToken gets a mke Authtoken from the given mkeURL.
 func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (string, error) {
@@ -120,24 +125,26 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 
 	reqJSON, err := json.Marshal(creds)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to marshal credentials: %w", err)
 	}
 	resp, err := client.Post(mkeURL.String(), "application/json", bytes.NewBuffer(reqJSON))
 	if err != nil {
 		log.Debugf("Failed to POST %s: %v", mkeURL.String(), err)
-		return "", err
+		return "", fmt.Errorf("failed to request token: %w", err)
 	}
 	body, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
-	if resp.StatusCode == 200 {
+	if resp.StatusCode == http.StatusOK {
 		var authToken AuthToken
 		if err := json.Unmarshal(body, &authToken); err != nil {
-			return "", err
+			return "", fmt.Errorf("failed to unmarshal token response: %w", err)
 		}
 		return authToken.Token, nil
 	}
-	return "", fmt.Errorf("Unexpected error logging in to mke: %s", string(body))
+	return "", fmt.Errorf("%w: unexpected error logging in to mke: %s", errGetToken, string(body))
 }
+
+var errGetTLSConfig = errors.New("failed to get TLS config")
 
 // GetTLSConfigFrom retrieves the valid tlsConfig from the given mke manager.
 func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Config, error) {
@@ -147,33 +154,34 @@ func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Con
 	}
 	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf(`run %s %s/ucp:%s dump-certs --ca`, runFlags.Join(), imageRepo, mkeVersion, exec.Redact(`[A-Za-z0-9+/=_\-]{64}`)))
 	if err != nil {
-		return nil, fmt.Errorf("error while exec-ing into the container: %w", err)
+		return nil, fmt.Errorf("%w: error while exec-ing into the container: %w", errGetTLSConfig, err)
 	}
 	i := strings.Index(output, "-----BEGIN CERTIFICATE-----")
 	if i < 0 {
-		return nil, fmt.Errorf("malformed certificate")
+		return nil, fmt.Errorf("%w: malformed certificate", errGetTLSConfig)
 	}
 
 	cert := []byte(output[i:])
 	block, _ := pem.Decode(cert)
 	if block == nil {
-		return nil, fmt.Errorf("no certificates found in output")
+		return nil, fmt.Errorf("%w: no certificates found in output", errGetTLSConfig)
 	}
 
 	if block.Type != "CERTIFICATE" || len(block.Headers) != 0 {
-		return nil, fmt.Errorf("invalid certificate: %#v", block)
+		return nil, fmt.Errorf("%w: invalid certificate: %#v", errGetTLSConfig, block)
 	}
 	if _, err = x509.ParseCertificate(block.Bytes); err != nil {
-		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+		return nil, fmt.Errorf("%w: failed to parse certificate: %w", errGetTLSConfig, err)
 	}
 
 	caCertPool := x509.NewCertPool()
 	ok := caCertPool.AppendCertsFromPEM(cert)
 	if !ok {
-		return nil, fmt.Errorf("error while appending certs to PEM")
+		return nil, fmt.Errorf("%w: error while appending certs to PEM", errGetTLSConfig)
 	}
 	return &tls.Config{
-		RootCAs: caCertPool,
+		RootCAs:    caCertPool,
+		MinVersion: tls.VersionTLS12,
 	}, nil
 }
 

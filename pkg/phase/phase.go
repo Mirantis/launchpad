@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -36,13 +37,19 @@ func (p *CleanupDisabling) CleanupDisabled() bool {
 
 // Prepare rceives the cluster config and stores it to the phase's config field.
 func (p *BasicPhase) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	if cfg, ok := config.(*api.ClusterConfig); ok {
+		p.Config = cfg
+	}
 	return nil
 }
 
 // Prepare HostSelectPhase implementation which runs the supplied HostFilterFunc to populate the phase's hosts field.
 func (p *HostSelectPhase) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	cfg, ok := config.(*api.ClusterConfig)
+	if !ok {
+		return nil
+	}
+	p.Config = cfg
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
 	p.Hosts = hosts
 	return nil
@@ -54,7 +61,7 @@ func (p *HostSelectPhase) ShouldRun() bool {
 }
 
 // HostFilterFunc default implementation, matches all hosts.
-func (p *HostSelectPhase) HostFilterFunc(host *api.Host) bool {
+func (p *HostSelectPhase) HostFilterFunc(_ *api.Host) bool {
 	return true
 }
 
@@ -100,11 +107,15 @@ func (e *Error) Error() string {
 
 // RunParallelOnHosts runs a function parallelly on the listed hosts.
 func RunParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(h *api.Host, config *api.ClusterConfig) error) error {
-	return hosts.ParallelEach(func(h *api.Host) error {
+	result := hosts.ParallelEach(func(h *api.Host) error {
 		err := action(h, config)
 		if err != nil {
 			log.Error(err.Error())
 		}
 		return err
 	})
+	if result != nil {
+		return fmt.Errorf("run parallel on hosts: %w", result)
+	}
+	return nil
 }

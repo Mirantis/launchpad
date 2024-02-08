@@ -1,6 +1,8 @@
 package centos
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/os"
@@ -14,7 +16,10 @@ type Configurer struct {
 
 // InstallMKEBasePackages install all the needed base packages on the host.
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
-	return c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip")
+	if err := c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip"); err != nil {
+		return fmt.Errorf("failed to install base packages: %w", err)
+	}
+	return nil
 }
 
 func init() {

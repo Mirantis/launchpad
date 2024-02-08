@@ -3,6 +3,7 @@ package phase
 import (
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,7 +36,7 @@ func (p *ValidateMKEHealth) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 
 	if err := p.Config.Spec.CheckMKEHealthLocal(swarmLeader); err != nil {
-		return err
+		return fmt.Errorf("%w: failed to validate MKE health: %w", errValidationFailed, err)
 	}
 
 	retries := p.Config.Spec.MKE.NodesHealthRetry
@@ -49,30 +50,41 @@ func (p *ValidateMKEHealth) Run() error {
 
 		url, err := p.Config.Spec.MKEURL()
 		if err != nil {
-			return err
+			return fmt.Errorf("%w: get mke url: %w", errValidationFailed, err)
 		}
 
 		user := p.Config.Spec.MKE.AdminUsername
 		if user == "" {
-			return fmt.Errorf("config Spec.MKE.AdminUsername not set")
+			return fmt.Errorf("%w: config Spec.MKE.AdminUsername not set", errValidationFailed)
 		}
 		pass := p.Config.Spec.MKE.AdminPassword
 		if pass == "" {
-			return fmt.Errorf("config Spec.MKE.AdminPassword not set")
+			return fmt.Errorf("%w: config Spec.MKE.AdminPassword not set", errValidationFailed)
 		}
 
 		delay, _ := time.ParseDuration("10s")
 		// Retry for total of 150 seconds
-		return retry.Do(
+		err = retry.Do(
 			func() error {
 				log.Infof("%s: waiting for MKE nodes to become healthy", h)
-				return checkMKENodesReady(url, tlsConfig, user, pass)
+				if err := checkMKENodesReady(url, tlsConfig, user, pass); err != nil {
+					return fmt.Errorf("mke not ready: %w", err)
+				}
+				return nil
 			},
 			retry.Attempts(retries), retry.Delay(delay),
 		)
+		if err != nil {
+			return fmt.Errorf("%w: failed to validate MKE health: %w", errValidationFailed, err)
+		}
 	}
 	return nil
 }
+
+var (
+	errRequestFailed = errors.New("request failed")
+	errNodeNotReady  = errors.New("node not ready")
+)
 
 // checkMKENodesReady verifies the MKE nodes are in 'ready' state.
 func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, password string) error {
@@ -85,7 +97,7 @@ func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, passwo
 	// Login and get a token for the user
 	token, err := mke.GetToken(client, mkeURL, username, password)
 	if err != nil {
-		return fmt.Errorf("failed to get token for (%s:%s) : %s", username, password, err)
+		return fmt.Errorf("failed to get token: %w", err)
 	}
 
 	mkeURL.Path = "/nodes"
@@ -93,32 +105,35 @@ func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, passwo
 	// Perform the request
 	req, err := http.NewRequest(http.MethodGet, mkeURL.String(), nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create request for %s: %w", mkeURL.String(), err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Debugf("Failed to get response from %s: %v", mkeURL.String(), err)
-		return err
+		return fmt.Errorf("failed to get response from %s: %w", mkeURL.String(), err)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to poll /nodes endpoint. (%d): %w", resp.StatusCode, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%w: failed to poll /nodes endpoint. (http %d)", errRequestFailed, resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		if err == nil {
-			return fmt.Errorf("failed to poll /nodes endpoint. (%d): %s", resp.StatusCode, string(body))
-		}
-		return err
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	var nodes []api.Node
 	if err := json.Unmarshal(body, &nodes); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal response body: %w", err)
 	}
 
 	for _, node := range nodes {
 		if !node.IsReady() {
 			log.Debugf("node %+v is not in ready state. State: '%+s'", node, node.Status.State)
-			return fmt.Errorf("node %+v is in state '%+s'", node, node.Status.State)
+			return fmt.Errorf("%w: node %+v is in state '%+s'", errNodeNotReady, node, node.Status.State)
 		}
 	}
 

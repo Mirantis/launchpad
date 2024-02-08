@@ -9,30 +9,34 @@ import (
 func Migrate(plain map[string]interface{}) error {
 	plain["apiVersion"] = "launchpad.mirantis.com/v1beta2"
 
-	if plain["spec"] != nil {
-		hosts, ok := plain["spec"].(map[interface{}]interface{})["hosts"]
-		if ok {
-			hslice := hosts.([]interface{})
+	if spec, ok := plain["spec"].(map[interface{}]interface{}); ok {
+		if hosts, ok := spec["hosts"].([]interface{}); ok {
+			for _, h := range hosts {
+				host, ok := h.(map[interface{}]interface{})
+				if !ok {
+					continue
+				}
+				ssh := make(map[string]interface{})
+				host["ssh"] = ssh
 
-			for _, h := range hslice {
-				host := h.(map[interface{}]interface{})
-				host["ssh"] = make(map[string]interface{})
-				ssh := host["ssh"].(map[string]interface{})
-
-				for k, v := range host {
-					switch k.(string) {
+				for key, val := range host {
+					keyStr, ok := key.(string)
+					if !ok {
+						continue
+					}
+					switch keyStr {
 					case "sshKeyPath":
-						ssh["keyPath"] = v
-						delete(host, k)
-						log.Debugf("migrated v1beta1 host sshKeyPath '%s' to v1beta2 ssh[keyPath]", v)
+						ssh["keyPath"] = val
+						delete(host, key)
+						log.Debugf("migrated v1beta1 host sshKeyPath '%s' to v1beta2 ssh[keyPath]", val)
 					case "sshPort":
-						ssh["port"] = v
-						delete(host, k)
-						log.Debugf("migrated v1beta1 host sshPort '%d' to v1beta2 ssh[port]", v)
+						ssh["port"] = val
+						delete(host, key)
+						log.Debugf("migrated v1beta1 host sshPort '%d' to v1beta2 ssh[port]", val)
 					case "user":
-						ssh["user"] = v
-						delete(host, k)
-						log.Debugf("migrated v1beta1 host user '%s' to v1beta2 ssh[user]", v)
+						ssh["user"] = val
+						delete(host, key)
+						log.Debugf("migrated v1beta1 host user '%s' to v1beta2 ssh[user]", val)
 					}
 				}
 			}

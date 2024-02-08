@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"fmt"
 	"io"
 	logger "log"
 	"runtime"
@@ -14,9 +15,9 @@ import (
 
 const (
 	// ProdSegmentToken is the API token we use for Segment in production.
-	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z"
+	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z" //nolint:gosec // intentionally public
 	// DevSegmentToken is the API token we use for Segment in development.
-	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE"
+	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE" //nolint:gosec // intentionally public
 )
 
 // Analytics is the interface used for our analytics client.
@@ -50,13 +51,17 @@ func init() {
 }
 
 // NewSegmentClient returns a Segment client for uploading analytics data.
-func NewSegmentClient(segmentToken string) (Analytics, error) {
+func NewSegmentClient(segmentToken string) (Analytics, error) { //nolint:ireturn
 	segmentLogger := analytics.StdLogger(logger.New(io.Discard, "segment ", logger.LstdFlags))
 	segmentConfig := analytics.Config{
 		Logger: segmentLogger,
 	}
 
-	return analytics.NewWithConfig(segmentToken, segmentConfig)
+	client, err := analytics.NewWithConfig(segmentToken, segmentConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize segment client: %w", err)
+	}
+	return client, nil
 }
 
 // TrackEvent uploads the given event to segment if analytics tracking
@@ -75,12 +80,15 @@ func (c *Client) TrackEvent(event string, properties analytics.Properties) error
 	properties["os"] = runtime.GOOS
 	properties["version"] = version.Version
 
-	return c.AnalyticsClient.Enqueue(analytics.Track{
+	if err := c.AnalyticsClient.Enqueue(analytics.Track{
 		UserId:      UserID(),
 		AnonymousId: MachineID(),
 		Event:       event,
 		Properties:  properties,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to enqueue analytics message: %w", err)
+	}
+	return nil
 }
 
 // IdentifyUser identifies user on analytics service if analytics
@@ -99,12 +107,17 @@ func (c *Client) IdentifyUser(userConfig *user.Config) error {
 			Set("company", userConfig.Company),
 	}
 	log.Debugf("identified analytics user %+v", msg)
-	return c.AnalyticsClient.Enqueue(msg)
+	if err := c.AnalyticsClient.Enqueue(msg); err != nil {
+		return fmt.Errorf("failed to enqueue analytics message: %w", err)
+	}
+	return nil
 }
 
 // TrackEvent uses the default analytics client to track an event.
-func TrackEvent(event string, properties map[string]interface{}) error {
-	return defaultClient.TrackEvent(event, properties)
+func TrackEvent(event string, properties map[string]interface{}) {
+	if err := defaultClient.TrackEvent(event, properties); err != nil {
+		log.Debugf("failed to track event '%s': %v", event, err)
+	}
 }
 
 // IdentifyUser uses the default analytics client to identify the user.
@@ -120,7 +133,9 @@ func RequireRegisteredUser() error {
 // Close closes the default analytics client.
 func Close() error {
 	if defaultClient.AnalyticsClient != nil {
-		return defaultClient.AnalyticsClient.Close()
+		if err := defaultClient.AnalyticsClient.Close(); err != nil {
+			return fmt.Errorf("failed to close analytics client: %w", err)
+		}
 	}
 	return nil
 }

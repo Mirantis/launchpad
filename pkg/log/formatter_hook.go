@@ -30,10 +30,12 @@ func (hook *FormatterWriterHook) Fire(entry *log.Entry) error {
 	line, err := hook.Formatter.Format(entry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to format log entry: %v", err)
-		return err
+		return fmt.Errorf("unable to format log entry: %w", err)
 	}
-	_, err = hook.Writer.Write(line)
-	return err
+	if _, err = hook.Writer.Write(line); err != nil {
+		return fmt.Errorf("unable to write log entry to writer: %w", err)
+	}
+	return nil
 }
 
 // Levels define on which log levels this hook would trigger.
@@ -67,7 +69,6 @@ func NewStdoutHook() *FormatterWriterHook {
 
 // NewFileHook creates logrus hook for logging all levels to file.
 func NewFileHook(logFile *os.File) *FormatterWriterHook {
-
 	fileFormatter := &log.TextFormatter{
 		DisableColors:   true,
 		FullTimestamp:   true,

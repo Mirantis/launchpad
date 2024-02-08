@@ -1,16 +1,16 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
+	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var reports = []string{"hosts", "mke", "msr", "config"}
@@ -23,6 +23,8 @@ func reportIsKnown(n string) bool {
 	}
 	return false
 }
+
+var errInvalidReport = errors.New("invalid report")
 
 // NewDescribeCommand creates new describe command to be called from cli.
 func NewDescribeCommand() *cli.Command {
@@ -40,10 +42,10 @@ func NewDescribeCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			report := ctx.Args().First()
 			if report == "" {
-				return fmt.Errorf("missing report name argument")
+				return fmt.Errorf("%w: missing report name", errInvalidReport)
 			}
 			if !reportIsKnown(report) {
-				return fmt.Errorf("unknown report %s - must be one of %s", report, strings.Join(reports, ","))
+				return fmt.Errorf("%w: unknown report %s - must be one of %s", errInvalidReport, report, strings.Join(reports, ","))
 			}
 
 			if !(ctx.Bool("debug") || ctx.Bool("trace")) {
@@ -55,21 +57,20 @@ func NewDescribeCommand() *cli.Command {
 
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load product config: %w", err)
 			}
 
 			err = product.Describe(ctx.Args().First())
-
 			if err != nil {
 				analytics.TrackEvent("Cluster Describe Failed", nil)
-			} else {
-				duration := time.Since(start)
-				props := event.Properties{
-					"duration": duration.Seconds(),
-				}
-				analytics.TrackEvent("Cluster Describe Completed", props)
+				return fmt.Errorf("failed to describe cluster: %w", err)
 			}
-			return err
+			duration := time.Since(start)
+			props := event.Properties{
+				"duration": duration.Seconds(),
+			}
+			analytics.TrackEvent("Cluster Describe Completed", props)
+			return nil
 		},
 	}
 }

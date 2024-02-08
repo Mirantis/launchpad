@@ -1,6 +1,8 @@
 package phase
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
@@ -41,33 +43,32 @@ func (p *InstallMKECerts) installCertificates(config *api.ClusterConfig) error {
 		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
 		if err != nil {
 			log.Infof("%s: creating ucp-controller-server-certs volume", h)
-			err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs"))
-			if err != nil {
-				return err
+			if err := h.Exec(h.Configurer.DockerCommandf("volume create ucp-controller-server-certs")); err != nil {
+				return fmt.Errorf("create ucp-controller-server-certs volume: %w", err)
 			}
 		}
 
 		dir, err := h.ExecOutput(h.Configurer.DockerCommandf(`volume inspect ucp-controller-server-certs --format "{{ .Mountpoint }}"`))
 		if err != nil {
-			return err
+			return fmt.Errorf("get ucp-controller-server-certs volume mountpoint: %w", err)
 		}
 
 		log.Infof("%s: installing certificate files to %s", h, dir)
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600")
-		if err != nil {
-			return err
+		if err := h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600"); err != nil {
+			return fmt.Errorf("write ca.pem: %w", err)
 		}
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600")
-		if err != nil {
-			return err
+		if err := h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600"); err != nil {
+			return fmt.Errorf("write cert.pem: %w", err)
 		}
-		err = h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600")
-		if err != nil {
-			return err
+		if err := h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600"); err != nil {
+			return fmt.Errorf("write key.pem: %w", err)
 		}
 
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("install certificates: %w", err)
+	}
 
-	return err
+	return nil
 }

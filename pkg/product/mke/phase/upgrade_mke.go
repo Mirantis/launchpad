@@ -54,14 +54,15 @@ func (p *UpgradeMKE) Run() error {
 	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade %s %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), upgradeFlags.Join())
 	err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE upgrader: \n error:%w", swarmLeader, err)
+		return fmt.Errorf("%s: failed to run MKE upgrader: %w", swarmLeader, err)
 	}
 
 	originalInstalledVersion := p.Config.Spec.MKE.Metadata.InstalledVersion
 
 	if err := mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata); err != nil {
-		return fmt.Errorf("%s: failed to collect existing MKE details: %s", swarmLeader, err.Error())
+		return fmt.Errorf("%s: failed to collect existing MKE details: %w", swarmLeader, err)
 	}
+
 	p.EventProperties["upgraded"] = true
 	p.EventProperties["installed_version"] = originalInstalledVersion
 	p.EventProperties["upgraded_version"] = p.Config.Spec.MKE.Version

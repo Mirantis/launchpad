@@ -7,7 +7,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,7 +33,6 @@ func (p *PullMKEImages) isMKESwarmOnly() bool {
 
 // Run pulls images in parallel across nodes via a workerpool of 5.
 func (p *PullMKEImages) Run() error {
-
 	swarmOnly := p.isMKESwarmOnly()
 
 	images, err := p.ListImages(false, swarmOnly)
@@ -44,7 +42,7 @@ func (p *PullMKEImages) Run() error {
 	log.Debugf("loaded linux images list: %v", images)
 
 	var winImages []*docker.Image
-	var winHosts api.Hosts = p.Config.Spec.Hosts.Filter(func(h *api.Host) bool { return h.IsWindows() })
+	winHosts := p.Config.Spec.Hosts.Filter(func(h *api.Host) bool { return h.IsWindows() })
 
 	if len(winHosts) > 0 {
 		winImages, err = p.ListImages(true, swarmOnly)
@@ -59,8 +57,7 @@ func (p *PullMKEImages) Run() error {
 	if api.IsCustomImageRepo(imageRepo) {
 		pullList := docker.AllToRepository(images, imageRepo)
 		pullListWin := docker.AllToRepository(winImages, imageRepo)
-		return phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *api.Host, c *api.ClusterConfig) error {
-			var err error
+		err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *api.Host, _ *api.ClusterConfig) error {
 			var list []*docker.Image
 
 			if h.IsWindows() {
@@ -69,29 +66,44 @@ func (p *PullMKEImages) Run() error {
 				list = pullList
 			}
 
-			if err = docker.PullImages(h, list); err != nil {
-				return err
+			if err := docker.PullImages(h, list); err != nil {
+				return fmt.Errorf("%s: failed to pull images: %w", h, err)
 			}
 
 			log.Debugf("%s: retagging images", h)
-			return docker.RetagAllToRepository(h, list, "mirantis")
+			if err := docker.RetagAllToRepository(h, list, "mirantis"); err != nil {
+				return fmt.Errorf("%s: failed to retag images: %w", h, err)
+			}
+			return nil
 		})
+		if err != nil {
+			return fmt.Errorf("pull images: %w", err)
+		}
+		return nil
 	}
 
-	err = phase.RunParallelOnHosts(p.Config.Spec.Managers(), p.Config, func(h *api.Host, c *api.ClusterConfig) error {
+	err = phase.RunParallelOnHosts(p.Config.Spec.Managers(), p.Config, func(h *api.Host, _ *api.ClusterConfig) error {
 		log.Infof("%s: pulling linux images", h)
-		return docker.PullImages(h, images)
+		if err := docker.PullImages(h, images); err != nil {
+			return fmt.Errorf("%s: failed to pull linux images: %w", h, err)
+		}
+		return nil
 	})
-
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to pull linux images: %w", err)
 	}
 
 	if len(winHosts) > 0 {
-		return phase.RunParallelOnHosts(winHosts, p.Config, func(h *api.Host, c *api.ClusterConfig) error {
+		err := phase.RunParallelOnHosts(winHosts, p.Config, func(h *api.Host, _ *api.ClusterConfig) error {
 			log.Infof("%s: pulling windows images", h)
-			return docker.PullImages(h, winImages)
+			if err := docker.PullImages(h, winImages); err != nil {
+				return fmt.Errorf("%s: failed to pull windows images: %w", h, err)
+			}
+			return nil
 		})
+		if err != nil {
+			return fmt.Errorf("failed to pull windows images: %w", err)
+		}
 	}
 
 	return nil
@@ -104,7 +116,7 @@ func (p *PullMKEImages) ListImages(win, swarmOnly bool) ([]*docker.Image, error)
 
 	if !bootstrap.Exist(manager) {
 		if err := bootstrap.Pull(manager); err != nil {
-			return []*docker.Image{}, err
+			return nil, fmt.Errorf("%s: failed to pull MKE bootstrapper image: %w", manager, err)
 		}
 	}
 
@@ -126,7 +138,7 @@ func (p *PullMKEImages) ListImages(win, swarmOnly bool) ([]*docker.Image, error)
 
 	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images %s", runFlags.Join(), bootstrap, imageFlags.Join()))
 	if err != nil {
-		return []*docker.Image{}, fmt.Errorf("%s: failed to get MKE image list", manager)
+		return nil, fmt.Errorf("%s: failed to get MKE image list: %w", manager, err)
 	}
 
 	return docker.AllFromString(output), nil

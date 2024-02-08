@@ -9,7 +9,7 @@ import (
 func TestNodeReadyState(t *testing.T) {
 	n := Node{
 		Status: NodeStatus{
-			State: NODE_READY_STATE,
+			State: READY,
 		},
 	}
 

@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -8,7 +9,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util"
-
 	"github.com/alessio/shellescape"
 	log "github.com/sirupsen/logrus"
 )
@@ -60,7 +60,11 @@ func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 
 // Prepare collects the hosts.
 func (p *LoadImages) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	cfg, ok := config.(*api.ClusterConfig)
+	if !ok {
+		return errInvalidConfig
+	}
+	p.Config = cfg
 	log.Debugf("collecting hosts for phase %s", p.Title())
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
 	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
@@ -71,14 +75,14 @@ func (p *LoadImages) Prepare(config interface{}) error {
 // Run does all the work.
 func (p *LoadImages) Run() error {
 	var totalBytes uint64
-	p.Hosts.Each(func(h *api.Host) error {
+	_ = p.Hosts.Each(func(h *api.Host) error {
 		totalBytes += h.Metadata.TotalImageBytes
 		return nil
 	})
 
 	log.Infof("total %s of images to upload", util.FormatBytes(totalBytes))
 
-	return p.Hosts.Each(func(h *api.Host) error {
+	err := p.Hosts.Each(func(h *api.Host) error {
 		for idx, f := range h.Metadata.ImagesToUpload {
 			log.Debugf("%s: uploading image %d/%d", h, idx+1, len(h.Metadata.ImagesToUpload))
 
@@ -86,15 +90,19 @@ func (p *LoadImages) Run() error {
 			df := h.Configurer.JoinPath(h.Configurer.Pwd(h), base)
 			err := h.WriteFileLarge(f, df)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to write file %s: %w", f, err)
 			}
 
 			log.Infof("%s: loading image %d/%d : %s", h, idx+1, len(h.Metadata.ImagesToUpload), base)
 			err = h.Exec(h.Configurer.DockerCommandf("load -i %s", shellescape.Quote(base)))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load image %s: %w", base, err)
 			}
 		}
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("failed to upload images: %w", err)
+	}
+	return nil
 }

@@ -1,6 +1,8 @@
 package phase
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
@@ -19,15 +21,17 @@ func (p *CleanUp) Title() string {
 func (p *CleanUp) Run() error {
 	err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.cleanupEnv)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to cleanup environment: %w", err)
 	}
 
 	return nil
 }
 
-func (p *CleanUp) cleanupEnv(h *api.Host, c *api.ClusterConfig) error {
+func (p *CleanUp) cleanupEnv(h *api.Host, _ *api.ClusterConfig) error {
 	if len(h.Environment) > 0 {
-		return h.Configurer.CleanupEnvironment(h, h.Environment)
+		if err := h.Configurer.CleanupEnvironment(h, h.Environment); err != nil {
+			return fmt.Errorf("failed to cleanup environment: %w", err)
+		}
 	}
 	return nil
 }

@@ -1,7 +1,9 @@
 package api
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -63,6 +65,8 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 	return m.First()
 }
 
+var errGenerateURL = errors.New("unable to generate url")
+
 // MKEURL returns a URL for MKE or an error if one can not be generated.
 func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 	// Easy route, user has provided one in MSR --ucp-url
@@ -73,7 +77,7 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 			}
 			u, err := url.Parse(f)
 			if err != nil {
-				return nil, fmt.Errorf("invalid MSR --ucp-url install flag '%s': %s", f, err.Error())
+				return nil, fmt.Errorf("invalid MSR --ucp-url install flag '%s': %w", f, err)
 			}
 			if u.Path == "" {
 				u.Path = "/"
@@ -90,7 +94,7 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 		// Option 3: Use the first manager's address
 		mgrs := c.Managers()
 		if len(mgrs) < 1 {
-			return nil, fmt.Errorf("unable to generate a url for mke")
+			return nil, fmt.Errorf("%w: mke managers count is zero", errGenerateURL)
 		}
 		mkeAddr = mgrs[0].Address()
 	}
@@ -98,7 +102,7 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 	if portstr := c.MKE.InstallFlags.GetValue("--controller-port"); portstr != "" {
 		p, err := strconv.Atoi(portstr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid mke controller-port value: '%s': %s", portstr, err.Error())
+			return nil, fmt.Errorf("invalid mke controller-port value: '%s': %w", portstr, err)
 		}
 		mkeAddr = fmt.Sprintf("%s:%d", mkeAddr, p)
 	}
@@ -120,7 +124,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 			}
 			u, err := url.Parse(f)
 			if err != nil {
-				return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %s", f, err.Error())
+				return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %w", f, err)
 			}
 			if u.Scheme == "" {
 				u.Scheme = "https"
@@ -137,7 +141,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 	// Otherwise, use MSRLeaderAddress
 	msrLeader := c.MSRLeader()
 	if msrLeader == nil {
-		return nil, fmt.Errorf("unable to generate a MSR URL - no MSR nodes found")
+		return nil, fmt.Errorf("%w: no MSR nodes found", errGenerateURL)
 	}
 	msrAddr = msrLeader.Address()
 
@@ -145,7 +149,7 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 		if portstr := c.MSR.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
 			p, err := strconv.Atoi(portstr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %s", portstr, err.Error())
+				return nil, fmt.Errorf("invalid msr --replica-https-port value '%s': %w", portstr, err)
 			}
 			msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
 		}
@@ -158,29 +162,29 @@ func (c *ClusterSpec) MSRURL() (*url.URL, error) {
 	}, nil
 }
 
+var errInvalidConfig = errors.New("invalid configuration")
+
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type spec ClusterSpec
-	yc := (*spec)(c)
+	specAlias := (*spec)(c)
 	c.MCR = common.MCRConfig{}
 	c.MKE = NewMKEConfig()
 
-	if err := unmarshal(yc); err != nil {
+	if err := unmarshal(specAlias); err != nil {
 		return err
 	}
 
 	if c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
-		if yc.MSR == nil {
-			return fmt.Errorf("configuration error: hosts with msr role present, but no spec.msr defined")
+		if specAlias.MSR == nil {
+			return fmt.Errorf("%w: hosts with msr role present, but no spec.msr defined", errInvalidConfig)
 		}
-		if err := defaults.Set(yc.MSR); err != nil {
-			return err
+		if err := defaults.Set(specAlias.MSR); err != nil {
+			return fmt.Errorf("set defaults: %w", err)
 		}
-	} else {
-		if yc.MSR != nil {
-			yc.MSR = nil
-			log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
-		}
+	} else if specAlias.MSR != nil {
+		specAlias.MSR = nil
+		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
 	}
 
 	bastionHosts := c.Hosts.Filter(func(h *Host) bool {
@@ -209,7 +213,10 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 	}
 
-	return defaults.Set(c)
+	if err := defaults.Set(c); err != nil {
+		return fmt.Errorf("set defaults: %w", err)
+	}
+	return nil
 }
 
 func isSwarmLeader(h *Host) bool {
@@ -256,13 +263,20 @@ func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
 	}
 	u.Path = "/_ping"
 
-	return retry.Do(
+	err = retry.Do(
 		func() error {
 			log.Infof("%s: waiting for MKE at %s to become healthy", h, u.Host)
-			return h.CheckHTTPStatus(u.String(), 200)
+			if err := h.CheckHTTPStatus(u.String(), http.StatusOK); err != nil {
+				return fmt.Errorf("check http status: %w", err)
+			}
+			return nil
 		},
 		retry.Attempts(12), // last attempt should wait ~7min
 	)
+	if err != nil {
+		return fmt.Errorf("MKE health check failed: %w", err)
+	}
+	return nil
 }
 
 // CheckMKEHealthLocal will check the local mke health on a host and return an error if it failed.
@@ -272,13 +286,20 @@ func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
 		host = host + ":" + port
 	}
 
-	return retry.Do(
+	err := retry.Do(
 		func() error {
 			log.Infof("%s: waiting for MKE to become healthy", h)
-			return h.CheckHTTPStatus(fmt.Sprintf("https://%s/_ping", host), 200)
+			if err := h.CheckHTTPStatus(fmt.Sprintf("https://%s/_ping", host), http.StatusOK); err != nil {
+				return fmt.Errorf("check http status: %w", err)
+			}
+			return nil
 		},
 		retry.Attempts(12), // last attempt should wait ~7min
 	)
+	if err != nil {
+		return fmt.Errorf("MKE health check failed: %w", err)
+	}
+	return nil
 }
 
 // ContainsMSR returns true when the config has msr hosts.

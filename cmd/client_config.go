@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
@@ -36,17 +37,17 @@ func NewClientConfigCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to read product configuration: %w", err)
 			}
 
-			err = product.ClientConfig()
-			if err != nil {
+			if err := product.ClientConfig(); err != nil {
 				analytics.TrackEvent("Client configuration download Failed", nil)
-			} else {
-				analytics.TrackEvent("Client configuration download Completed", nil)
+				return fmt.Errorf("failed to download client configuration: %w", err)
 			}
 
-			return err
+			analytics.TrackEvent("Client configuration download Completed", nil)
+
+			return nil
 		},
 	}
 }

@@ -2,6 +2,7 @@ package phase
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,7 +18,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/k0sproject/rig/exec"
-
 	log "github.com/sirupsen/logrus"
 )
 
@@ -73,7 +73,11 @@ func (p *RemoveNodes) ShouldRun() bool {
 
 // Prepare finds the nodes/replica ids to be removed.
 func (p *RemoveNodes) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	cfg, ok := config.(*api.ClusterConfig)
+	if !ok {
+		return errInvalidConfig
+	}
+	p.Config = cfg
 
 	swarmLeader := p.Config.Spec.SwarmLeader()
 
@@ -103,7 +107,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 				// Get the hostname from the nodeID inspect
 				hostname, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Description.Hostname}}`, nodeID))
 				if err != nil {
-					return fmt.Errorf("failed to obtain hostname of MSR managed node: %s from swarm: %s", nodeID, err)
+					return fmt.Errorf("failed to obtain hostname of MSR managed node: %s from swarm: %w", nodeID, err)
 				}
 				// Using an httpClient, reach out to the MKE API to obtain the
 				// full list of running containers so replicaID associated with
@@ -129,7 +133,7 @@ func (p *RemoveNodes) Run() error {
 	if len(p.cleanupMSRs) > 0 {
 		err := msr.Cleanup(p.cleanupMSRs, swarmLeader)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to cleanup MSR nodes: %w", err)
 		}
 	}
 
@@ -158,7 +162,7 @@ func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error
 	for _, h := range config.Spec.Hosts {
 		nodeID, err := swarm.NodeID(h)
 		if err != nil {
-			return []string{}, err
+			return []string{}, fmt.Errorf("failed to get swarm node ID for host %s: %w", h, err)
 		}
 		nodeIDs = append(nodeIDs, nodeID)
 	}
@@ -169,7 +173,7 @@ func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
 	output, err := h.ExecOutput(h.Configurer.DockerCommandf(`node ls --format="{{.ID}}"`))
 	if err != nil {
 		log.Errorln(output)
-		return []string{}, err
+		return []string{}, fmt.Errorf("failed to get node IDs: %w", err)
 	}
 	return strings.Split(output, "\n"), nil
 }
@@ -177,27 +181,25 @@ func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
 func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 	nodeAddr, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Status.Addr}}`, nodeID))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get node address for node %s: %w", nodeID, err)
 	}
 	log.Infof("%s: removing orphan node %s", h, nodeAddr)
 	nodeRole, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Spec.Role}}`, nodeID))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get node role for node %s: %w", nodeID, err)
 	}
 	if nodeRole == "manager" {
 		log.Infof("%s: demoting orphan node %s", h, nodeAddr)
-		err = h.Exec(h.Configurer.DockerCommandf(`node demote %s`, nodeID))
-		if err != nil {
-			return err
+		if err := h.Exec(h.Configurer.DockerCommandf(`node demote %s`, nodeID)); err != nil {
+			return fmt.Errorf("failed to demote node %s: %w", nodeID, err)
 		}
 		log.Infof("%s: orphan node %s demoted", h, nodeAddr)
 	}
 
 	log.Infof("%s: draining orphan node %s", h, nodeAddr)
 	drainCmd := h.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
-	err = h.Exec(drainCmd)
-	if err != nil {
-		return err
+	if err := h.Exec(drainCmd); err != nil {
+		return fmt.Errorf("failed to drain node %s: %w", nodeID, err)
 	}
 	time.Sleep(30 * time.Second)
 	log.Infof("%s: orphan node %s drained", h, nodeAddr)
@@ -205,7 +207,7 @@ func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 	removeCmd := h.Configurer.DockerCommandf("node rm --force %s", nodeID)
 	err = h.Exec(removeCmd)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to remove node %s: %w", nodeID, err)
 	}
 	log.Infof("%s: removed orphan node %s", h, nodeAddr)
 	return nil
@@ -238,7 +240,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 	log.Debugf("%s: Removing MSR replica %s from cluster", msrLeader, replicaID)
 	err := msrLeader.Exec(removeCmd, exec.StreamOutput())
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MSR remove: %s", msrLeader, err.Error())
+		return fmt.Errorf("%s: failed to run MSR remove: %w", msrLeader, err)
 	}
 	return nil
 }
@@ -256,6 +258,8 @@ func (p *RemoveNodes) isManagedByUs(h *api.Host, nodeID string) isManaged {
 	return managed
 }
 
+var errGetReplicaID = errors.New("failed to get replicaID")
+
 // getReplicaIDFromHostname retreives the replicaID from the container name
 // associated with hostname.
 func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api.Host, hostname string) (string, error) {
@@ -271,13 +275,13 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 	}
 	mkeURL, err := config.Spec.MKEURL()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: failed to get MKE URL: %w", errGetReplicaID, err)
 	}
 
 	// Get a MKE token
 	token, err := mke.GetToken(client, mkeURL, config.Spec.MKE.AdminUsername, config.Spec.MKE.AdminPassword)
 	if err != nil {
-		return "", fmt.Errorf("failed to get auth token: %s", err.Error())
+		return "", fmt.Errorf("%w: failed to get auth token: %w", errGetReplicaID, err)
 	}
 
 	// Build the query
@@ -288,44 +292,46 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 	q.Add("size", "false")
 	mkeURL.RawQuery = q.Encode()
 
-	req, err := http.NewRequest("GET", mkeURL.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, mkeURL.String(), nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: create request: %w", errGetReplicaID, err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: failed to get containers from MKE: %w", errGetReplicaID, err)
 	}
-	if resp.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected response code: %d from %s endpoint: %s", resp.StatusCode, mkeURL.String(), err)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%w: unexpected response code: %d from %s endpoint: %w", errGetReplicaID, resp.StatusCode, mkeURL.String(), err)
 	}
 
 	var containersResponse []dockerContainer
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: failed to read response body: %w", errGetReplicaID, err)
 	}
 	err = json.Unmarshal(respBody, &containersResponse)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%w: failed to unmarshal response body: %w", errGetReplicaID, err)
 	}
 
 	// Iterate the containersResponse and check for hostname in the container
 	// names, even though regex is slow it's the safer choice here
 	var replicaID string
-	re, _ := regexp.Compile(`\s*(\d{12})`)
+	re := regexp.MustCompile(`\s*(\d{12})`)
 	for _, container := range containersResponse {
 		for _, n := range container.Names {
 			if strings.HasPrefix(n, fmt.Sprintf("/%s", hostname)) {
 				replicaID = re.FindString(n)
 				if replicaID == "" {
-					return "", fmt.Errorf("retrieved blank replicaID from hostname: %s", hostname)
+					return "", fmt.Errorf("%w: retrieved blank replicaID from hostname: %s", errGetReplicaID, hostname)
 				}
 				return replicaID, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("failed to obtain replicaID from hostname: %s", hostname)
+	return "", fmt.Errorf("%w: failed to obtain replicaID from hostname: %s", errGetReplicaID, hostname)
 }

@@ -1,13 +1,13 @@
 package phase
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 )
@@ -30,7 +30,7 @@ func (p *ValidateFacts) Run() error {
 		p.populateSan()
 	}
 
-	p.Config.Spec.Hosts.Each(func(h *api.Host) error {
+	_ = p.Config.Spec.Hosts.Each(func(h *api.Host) error {
 		if h.Configurer != nil && h.Configurer.SELinuxEnabled(h) {
 			h.DaemonConfig["selinux-enabled"] = true
 			log.Infof("%s: adding 'selinux-enabled=true' to host container runtime config", h)
@@ -41,7 +41,7 @@ func (p *ValidateFacts) Run() error {
 
 	if err := p.validateMKEVersionJump(); err != nil {
 		if p.Force {
-			log.Warnf("%s - continuing anyway because --force given", err.Error())
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}
@@ -49,7 +49,7 @@ func (p *ValidateFacts) Run() error {
 
 	if err := p.validateMSRVersionJump(); err != nil {
 		if p.Force {
-			log.Warnf("%s - continuing anyway because --force given", err.Error())
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}
@@ -57,7 +57,7 @@ func (p *ValidateFacts) Run() error {
 
 	if err := p.validateDataPlane(); err != nil {
 		if p.Force {
-			log.Warnf("%s - continuing anyway because --force given", err.Error())
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
 			return err
 		}
@@ -75,20 +75,22 @@ func (p *ValidateFacts) populateSan() {
 	}
 }
 
+var errInvalidUpgradePath = errors.New("invalid upgrade path")
+
 // validateMSRVersionJump validates MKE upgrade path.
 func (p *ValidateFacts) validateMKEVersionJump() error {
 	if p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
 		installedMKE, err := version.NewVersion(p.Config.Spec.MKE.Metadata.InstalledVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("can't parse installed MKE version: %w", err)
 		}
 		targetMKE, err := version.NewVersion(p.Config.Spec.MKE.Version)
 		if err != nil {
-			return err
+			return fmt.Errorf("can't parse target MKE version: %w", err)
 		}
 
 		if mke.VersionGreaterThan(installedMKE, targetMKE) {
-			return fmt.Errorf("can't downgrade MKE %s to %s", installedMKE.String(), targetMKE.String())
+			return fmt.Errorf("%w: can't downgrade MKE %s to %s", errInvalidUpgradePath, installedMKE, targetMKE)
 		}
 
 		installedSegments := installedMKE.Segments()
@@ -96,7 +98,7 @@ func (p *ValidateFacts) validateMKEVersionJump() error {
 
 		// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
 		if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-			return fmt.Errorf("can't upgrade MKE directly from %s to %s - need to upgrade to %d.%d first", installedMKE.String(), targetMKE.String(), installedSegments[0], installedSegments[1]+1)
+			return fmt.Errorf("%w: can't upgrade MKE directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installedMKE, targetMKE, installedSegments[0], installedSegments[1]+1)
 		}
 	}
 
@@ -109,15 +111,15 @@ func (p *ValidateFacts) validateMSRVersionJump() error {
 	if p.Config.Spec.MSR != nil && msrLeader.MSRMetadata != nil && msrLeader.MSRMetadata.Installed && msrLeader.MSRMetadata.InstalledVersion != "" {
 		installedMSR, err := version.NewVersion(msrLeader.MSRMetadata.InstalledVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("can't parse installed MSR version: %w", err)
 		}
 		targetMSR, err := version.NewVersion(p.Config.Spec.MSR.Version)
 		if err != nil {
-			return err
+			return fmt.Errorf("can't parse target MSR version: %w", err)
 		}
 
 		if mke.VersionGreaterThan(installedMSR, targetMSR) {
-			return fmt.Errorf("can't downgrade MSR %s to %s", installedMSR.String(), targetMSR.String())
+			return fmt.Errorf("%w: can't downgrade MSR %s to %s", errInvalidUpgradePath, installedMSR, targetMSR)
 		}
 
 		installedSegments := installedMSR.Segments()
@@ -125,12 +127,14 @@ func (p *ValidateFacts) validateMSRVersionJump() error {
 
 		// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
 		if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-			return fmt.Errorf("can't upgrade MSR directly from %s to %s - need to upgrade to %d.%d first", installedMSR.String(), targetMSR.String(), installedSegments[0], installedSegments[1]+1)
+			return fmt.Errorf("%w: can't upgrade MSR directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installedMSR, targetMSR, installedSegments[0], installedSegments[1]+1)
 		}
 	}
 
 	return nil
 }
+
+var errInvalidDataPlane = errors.New("invalid data plane settings")
 
 // validateDataPlane checks if the calico data plane would get changed (VXLAN <-> VPIP).
 func (p *ValidateFacts) validateDataPlane() error {
@@ -148,7 +152,7 @@ func (p *ValidateFacts) validateDataPlane() error {
 	} else {
 		v, err := strconv.ParseBool(val)
 		if err != nil {
-			return err
+			return fmt.Errorf("can't parse --calico-vxlan value: %w", err)
 		}
 		valB = v
 	}
@@ -156,7 +160,7 @@ func (p *ValidateFacts) validateDataPlane() error {
 	// User has explicitly defined --calico-vxlan=false but there is a windows host in the config
 	if !valB {
 		if p.Config.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
-			return fmt.Errorf("calico IPIP can't be used on Windows")
+			return fmt.Errorf("%w: calico IPIP can't be used on Windows", errInvalidDataPlane)
 		}
 
 		log.Debug("no windows hosts found")
@@ -171,13 +175,13 @@ func (p *ValidateFacts) validateDataPlane() error {
 	if p.Config.Spec.MKE.Metadata.VXLAN {
 		log.Debug("mke has been installed with calico + vxlan")
 		if !valB {
-			return fmt.Errorf("calico configured with VXLAN, can't automatically change to IPIP")
+			return fmt.Errorf("%w: calico configured with VXLAN, can't automatically change to IPIP", errInvalidDataPlane)
 		}
 	} else {
 		log.Debug("mke has been installed with calico + vpip")
 		// User has explicitly defined --calico-vxlan=true but there is already a calico with ipip
 		if valB {
-			return fmt.Errorf("calico configured with IPIP, can't automatically change to VXLAN")
+			return fmt.Errorf("%w: calico configured with IPIP, can't automatically change to VXLAN", errInvalidDataPlane)
 		}
 	}
 

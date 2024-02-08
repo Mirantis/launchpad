@@ -1,12 +1,12 @@
 package phase
 
 import (
+	"fmt"
 	"math"
 	"sync"
 
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,7 +24,11 @@ func (p *RestartMCR) HostFilterFunc(h *api.Host) bool {
 
 // Prepare collects the hosts.
 func (p *RestartMCR) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	cfg, ok := config.(*api.ClusterConfig)
+	if !ok {
+		return errInvalidConfig
+	}
+	p.Config = cfg
 	log.Debugf("collecting hosts for phase %s", p.Title())
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
 	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
@@ -59,7 +63,7 @@ func (p *RestartMCR) restartMCRs() error {
 
 	for _, h := range managers {
 		if err := h.Configurer.RestartMCR(h); err != nil {
-			return err
+			return fmt.Errorf("failed to restart MCR on manager %s: %w", h, err)
 		}
 	}
 
@@ -68,12 +72,12 @@ func (p *RestartMCR) restartMCRs() error {
 	if concurrentRestarts == 0 {
 		concurrentRestarts = 1
 	}
-	wp := workerpool.New(concurrentRestarts)
+	pool := workerpool.New(concurrentRestarts)
 	mu := sync.Mutex{}
 	restartErrors := &phase.Error{}
 	for _, w := range others {
 		h := w
-		wp.Submit(func() {
+		pool.Submit(func() {
 			err := h.Configurer.RestartMCR(h)
 			if err != nil {
 				mu.Lock()
@@ -83,7 +87,7 @@ func (p *RestartMCR) restartMCRs() error {
 			h.Metadata.MCRRestartRequired = false
 		})
 	}
-	wp.StopWait()
+	pool.StopWait()
 	if restartErrors.Count() > 0 {
 		return restartErrors
 	}

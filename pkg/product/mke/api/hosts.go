@@ -1,8 +1,8 @@
 package api
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 	"sync"
 )
 
@@ -77,7 +77,7 @@ func (hosts *Hosts) IndexAll(filter func(h *Host) bool) []int {
 func (hosts *Hosts) Each(filter func(h *Host) error) error {
 	for _, h := range *hosts {
 		if err := filter(h); err != nil {
-			return fmt.Errorf("%s: %s", h, err.Error())
+			return fmt.Errorf("%s: %w", h, err)
 		}
 	}
 	return nil
@@ -86,38 +86,27 @@ func (hosts *Hosts) Each(filter func(h *Host) error) error {
 // ParallelEach runs a function on every Host parallelly. The function should return nil or an error.
 // Any errors will be concatenated and returned.
 func (hosts *Hosts) ParallelEach(filter func(h *Host) error) error {
-	var wg sync.WaitGroup
-	var errors []string
-	type erritem struct {
-		address string
-		err     error
-	}
-	ec := make(chan erritem, 1)
-
-	wg.Add(len(*hosts))
+	var (
+		wg     sync.WaitGroup
+		result error
+		mu     sync.Mutex
+	)
 
 	for _, h := range *hosts {
+		wg.Add(1)
 		go func(h *Host) {
-			ec <- erritem{h.String(), filter(h)}
+			defer wg.Done()
+			if err := filter(h); err != nil {
+				mu.Lock()
+				result = errors.Join(result, fmt.Errorf("%s: %w", h, err))
+				mu.Unlock()
+			}
 		}(h)
 	}
 
-	go func() {
-		for e := range ec {
-			if e.err != nil {
-				errors = append(errors, fmt.Sprintf("%s: %s", e.address, e.err.Error()))
-			}
-			wg.Done()
-		}
-	}()
-
 	wg.Wait()
 
-	if len(errors) > 0 {
-		return fmt.Errorf("failed on %d hosts:\n - %s", len(errors), strings.Join(errors, "\n - "))
-	}
-
-	return nil
+	return result
 }
 
 // Map returns a new slice which is the result of running the map function on each host.

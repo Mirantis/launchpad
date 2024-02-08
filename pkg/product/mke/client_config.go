@@ -1,6 +1,8 @@
 package mke
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -9,7 +11,6 @@ import (
 
 // ClientConfig downloads MKE client bundle.
 func (p *MKE) ClientConfig() error {
-
 	manager := p.ClusterConfig.Spec.Managers()[0]
 	newHosts := make(api.Hosts, 1)
 	newHosts[0] = manager
@@ -25,5 +26,8 @@ func (p *MKE) ClientConfig() error {
 		&common.Disconnect{},
 	)
 
-	return phaseManager.Run()
+	if err := phaseManager.Run(); err != nil {
+		return fmt.Errorf("failed to download client bundle: %w", err)
+	}
+	return nil
 }

@@ -43,9 +43,9 @@ func (a *Asset) IsForHost() bool {
 		return false
 	}
 
-	os := runtime.GOOS
-	if os == "windows" {
-		os = "win"
+	goos := runtime.GOOS
+	if goos == "windows" {
+		goos = "win"
 	}
 
 	arch := runtime.GOARCH
@@ -54,7 +54,7 @@ func (a *Asset) IsForHost() bool {
 	}
 
 	parts := strings.Split(strings.TrimSuffix(a.Name, ".exe"), "-")
-	return parts[1] == os && parts[2] == arch
+	return parts[1] == goos && parts[2] == arch
 }
 
 // LaunchpadRelease describes a launchpad release.
@@ -105,7 +105,7 @@ func latestTag(timeout time.Duration) string {
 	if resp.Body != nil {
 		defer resp.Body.Close()
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
 		return "" // ignore backend failures
 	}
@@ -169,7 +169,7 @@ func GetLatest(timeout time.Duration) *LaunchpadRelease {
 	if resp.Body != nil {
 		defer resp.Body.Close()
 	}
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
 		return nil // ignore backend failures
 	}

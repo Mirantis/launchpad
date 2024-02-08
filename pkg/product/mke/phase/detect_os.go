@@ -1,7 +1,7 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"fmt"
 
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
@@ -15,9 +15,8 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
-
 	"github.com/Mirantis/mcc/pkg/phase"
-
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,13 +33,17 @@ func (p *DetectOS) Title() string {
 
 // Run the phase.
 func (p *DetectOS) Run() error {
-	return p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+	err := p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
 		if err := h.ResolveConfigurer(); err != nil {
-			return err
+			return fmt.Errorf("failed to resolve configurer for %s: %w", h, err)
 		}
 		os := h.OSVersion.String()
 		log.Infof("%s: is running %s", h, os)
 
 		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("failed to detect OS: %w", err)
+	}
+	return nil
 }

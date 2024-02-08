@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"sync"
@@ -9,7 +10,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +29,11 @@ func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
 
 // Prepare collects the hosts.
 func (p *UpgradeMCR) Prepare(config interface{}) error {
-	p.Config = config.(*api.ClusterConfig)
+	cfg, ok := config.(*api.ClusterConfig)
+	if !ok {
+		return errInvalidConfig
+	}
+	p.Config = cfg
 	log.Debugf("collecting hosts for phase %s", p.Title())
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)
 	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
@@ -50,6 +54,8 @@ func (p *UpgradeMCR) Run() error {
 	return p.upgradeMCRs()
 }
 
+var errUnknownRole = errors.New("unknown role")
+
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
 // TODO: should we drain?
 func (p *UpgradeMCR) upgradeMCRs() error {
@@ -65,7 +71,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 		case "msr":
 			msrs = append(msrs, h)
 		default:
-			return fmt.Errorf("%s: unknown role: %s", h, h.Role)
+			return fmt.Errorf("%s: %w: %s", h, errUnknownRole, h.Role)
 		}
 	}
 
@@ -78,7 +84,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 		if p.Config.Spec.MKE.Metadata.Installed {
 			err := p.Config.Spec.CheckMKEHealthLocal(h)
 			if err != nil {
-				return err
+				return fmt.Errorf("%s: %w", h, err)
 			}
 		}
 	}
@@ -96,7 +102,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 	for _, h := range msrs {
 		if h.MSRMetadata.Installed {
 			if err := msr.WaitMSRNodeReady(h, port); err != nil {
-				return err
+				return fmt.Errorf("%s: check msr node ready state: %w", h, err)
 			}
 		}
 		if err := p.upgradeMCR(h); err != nil {
@@ -104,12 +110,12 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 		}
 		if h.MSRMetadata.Installed {
 			if err := msr.WaitMSRNodeReady(h, port); err != nil {
-				return err
+				return fmt.Errorf("%s: check msr node ready state: %w", h, err)
 			}
 			err := retry.Do(
 				func() error {
 					if _, err := msr.CollectFacts(h); err != nil {
-						return err
+						return fmt.Errorf("%s: collect msr facts: %w", h, err)
 					}
 					return nil
 				},
@@ -119,18 +125,18 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 				retry.Attempts(3),
 			)
 			if err != nil {
-				return err
+				return fmt.Errorf("retry count exceeded: %w", err)
 			}
 		}
 	}
 
 	log.Debugf("concurrently upgrading workers in batches of %d", p.Concurrency)
-	wp := workerpool.New(p.Concurrency)
+	pool := workerpool.New(p.Concurrency)
 	mu := sync.Mutex{}
 	installErrors := &phase.Error{}
 	for _, w := range workers {
 		h := w
-		wp.Submit(func() {
+		pool.Submit(func() {
 			err := p.upgradeMCR(h)
 			if err != nil {
 				mu.Lock()
@@ -139,7 +145,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 			}
 		})
 	}
-	wp.StopWait()
+	pool.StopWait()
 	if installErrors.Count() > 0 {
 		return installErrors
 	}
@@ -150,12 +156,15 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
-			return h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR)
+			if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
+				return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
+			}
+			return nil
 		},
 	)
 	if err != nil {
 		log.Errorf("%s: failed to update container runtime -> %s", h, err.Error())
-		return err
+		return fmt.Errorf("retry count exceeded: %w", err)
 	}
 
 	// TODO: This exercise is duplicated in InstallMCR, maybe
@@ -163,27 +172,27 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	currentVersion, err := h.MCRVersion()
 	if err != nil {
 		if err := h.Reboot(); err != nil {
-			return err
+			return fmt.Errorf("%s: failed to reboot after container runtime installation: %w", h, err)
 		}
 		currentVersion, err = h.MCRVersion()
 		if err != nil {
-			return fmt.Errorf("%s: failed to query container runtime version after installation: %s", h, err.Error())
+			return fmt.Errorf("%s: failed to query container runtime version after installation: %w", h, err)
 		}
 	}
 
 	if currentVersion != p.Config.Spec.MCR.Version {
 		err = h.Configurer.RestartMCR(h)
 		if err != nil {
-			return fmt.Errorf("%s: failed to restart container runtime", h)
+			return fmt.Errorf("%s: failed to restart container runtime: %w", h, err)
 		}
 		currentVersion, err = h.MCRVersion()
 		if err != nil {
-			return fmt.Errorf("%s: failed to query container runtime version after restart: %s", h, err.Error())
+			return fmt.Errorf("%s: failed to query container runtime version after restart: %w", h, err)
 		}
 	}
 
 	if currentVersion != p.Config.Spec.MCR.Version {
-		return fmt.Errorf("%s: container runtime version not %s after upgrade", h, p.Config.Spec.MCR.Version)
+		return fmt.Errorf("%s: %w: container runtime version not %s after upgrade", h, errVersionMismatch, p.Config.Spec.MCR.Version)
 	}
 
 	log.Infof("%s: upgraded to mirantis container runtime version %s", h, p.Config.Spec.MCR.Version)

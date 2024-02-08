@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/docker/hub"
@@ -30,12 +31,13 @@ func (p *UpgradeCheck) ShouldRun() bool {
 
 // Run the installer container.
 func (p *UpgradeCheck) Run() (err error) {
-	mv, err := hub.LatestTag("mirantis", "ucp", strings.Contains(p.Config.Spec.MKE.Version, "-"))
+	mkeTag, err := hub.LatestTag("mirantis", "ucp", strings.Contains(p.Config.Spec.MKE.Version, "-"))
 	if err != nil {
-		log.Errorf("failed to check for MKE upgrade: %s", err.Error())
+		log.Errorf("failed to check for MKE upgrade: %v", err)
+		return nil
 	}
 
-	mkeV, err := version.NewVersion(mv)
+	mkeV, err := version.NewVersion(mkeTag)
 	if err != nil {
 		log.Errorf("invalid MKE version response: %s", err.Error())
 		return nil
@@ -44,11 +46,11 @@ func (p *UpgradeCheck) Run() (err error) {
 	mkeTargetV, err := version.NewVersion(p.Config.Spec.MKE.Version)
 	if err != nil {
 		log.Errorf("invalid MKE version in configuration: %s", err.Error())
-		return err
+		return fmt.Errorf("invalid MKE version in configuration: %w", err)
 	}
 
 	if mkeV.GreaterThan(mkeTargetV) {
-		log.Warnf("a newer version of MKE is available: %s (installing %s)", mv, mkeTargetV.String())
+		log.Warnf("a newer version of MKE is available: %s (installing %s)", mkeTag, mkeTargetV.String())
 	}
 
 	if !p.Config.Spec.ContainsMSR() {
@@ -70,7 +72,7 @@ func (p *UpgradeCheck) Run() (err error) {
 	msrTargetV, err := version.NewVersion(p.Config.Spec.MSR.Version)
 	if err != nil {
 		log.Errorf("invalid MSR version in configuration: %s", err.Error())
-		return err
+		return fmt.Errorf("invalid MSR version in configuration: %w", err)
 	}
 
 	if msrV.GreaterThan(msrTargetV) {

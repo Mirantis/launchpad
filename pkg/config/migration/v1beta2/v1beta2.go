@@ -17,8 +17,8 @@ func Migrate(plain map[string]interface{}) error {
 	if plain["spec"] != nil {
 		eint, ok := plain["spec"].(map[interface{}]interface{})["engine"]
 		if ok {
-			engine := eint.(map[interface{}]interface{})
-			if len(engine) > 0 {
+			engine, ok := eint.(map[interface{}]interface{})
+			if ok && len(engine) > 0 {
 				installURL := engine["installURL"]
 				if installURL != nil {
 					engine["installURLLinux"] = installURL

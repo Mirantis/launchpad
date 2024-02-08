@@ -43,7 +43,7 @@ func (p *InstallMSR) Run() error {
 
 	err := p.Config.Spec.CheckMKEHealthRemote(h)
 	if err != nil {
-		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity", h)
+		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity: %w", h, err)
 	}
 
 	p.EventProperties = map[string]interface{}{
@@ -105,12 +105,12 @@ func (p *InstallMSR) Run() error {
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
 	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(redacts...))
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MSR installer: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to run MSR installer: %w", h, err)
 	}
 
 	msrMeta, err := msr.CollectFacts(h)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing MSR details: %s", h, err)
+		return fmt.Errorf("%s: failed to collect existing MSR details: %w", h, err)
 	}
 	h.MSRMetadata = msrMeta
 	return nil

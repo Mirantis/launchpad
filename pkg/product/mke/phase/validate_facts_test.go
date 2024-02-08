@@ -23,7 +23,7 @@ func TestValidateFactsMKEVersionJumpFail(t *testing.T) {
 			},
 		},
 	}
-	require.EqualError(t, phase.validateMKEVersionJump(), "can't upgrade MKE directly from 3.1.1 to 3.3.3-tp9 - need to upgrade to 3.2 first")
+	require.ErrorContains(t, phase.validateMKEVersionJump(), "can't upgrade MKE directly from 3.1.1 to 3.3.3-tp9 - need to upgrade to 3.2 first")
 }
 
 func TestValidateFactsMKEVersionJumpDowngradeFail(t *testing.T) {
@@ -39,7 +39,7 @@ func TestValidateFactsMKEVersionJumpDowngradeFail(t *testing.T) {
 			},
 		},
 	}
-	require.EqualError(t, phase.validateMKEVersionJump(), "can't downgrade MKE 3.3.3-tp9 to 3.2.8")
+	require.ErrorContains(t, phase.validateMKEVersionJump(), "can't downgrade MKE 3.3.3-tp9 to 3.2.8")
 }
 
 func TestValidateFactsMKEVersionJumpSuccess(t *testing.T) {
@@ -73,7 +73,7 @@ func TestValidateFactsMSRVersionJumpFail(t *testing.T) {
 			},
 		},
 	}
-	require.EqualError(t, phase.validateMSRVersionJump(), "can't upgrade MSR directly from 2.6.4 to 2.8.4 - need to upgrade to 2.7 first")
+	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't upgrade MSR directly from 2.6.4 to 2.8.4 - need to upgrade to 2.7 first")
 }
 func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 	phase := ValidateFacts{}
@@ -90,7 +90,7 @@ func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 			},
 		},
 	}
-	require.EqualError(t, phase.validateMSRVersionJump(), "can't downgrade MSR 2.8.4 to 2.7.6")
+	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't downgrade MSR 2.8.4 to 2.7.6")
 }
 
 func TestValidateFactsMSRVersionJumpSuccess(t *testing.T) {
@@ -129,13 +129,13 @@ func TestValidateFactsValidateDataPlane(t *testing.T) {
 	}
 
 	// Test meta-vxlan: false, --calico-vxlan=true
-	require.EqualError(t, phase.validateDataPlane(), "calico configured with IPIP, can't automatically change to VXLAN")
+	require.ErrorContains(t, phase.validateDataPlane(), "calico configured with IPIP, can't automatically change to VXLAN")
 
 	// Test meta-vxlan: false, --calico-vxlan (should evaluate to true)
 	phase.Config.Spec.MKE.InstallFlags = []string{
 		"--calico-vxlan",
 	}
-	require.EqualError(t, phase.validateDataPlane(), "calico configured with IPIP, can't automatically change to VXLAN")
+	require.ErrorContains(t, phase.validateDataPlane(), "calico configured with IPIP, can't automatically change to VXLAN")
 
 	// Test with meta-vxlan: true, --calico-vxlan true
 	phase.Config.Spec.MKE.Metadata.VXLAN = true
@@ -145,7 +145,7 @@ func TestValidateFactsValidateDataPlane(t *testing.T) {
 	phase.Config.Spec.MKE.InstallFlags = []string{
 		"--calico-vxlan=false",
 	}
-	require.EqualError(t, phase.validateDataPlane(), "calico configured with VXLAN, can't automatically change to IPIP")
+	require.ErrorContains(t, phase.validateDataPlane(), "calico configured with VXLAN, can't automatically change to IPIP")
 
 	// Test with meta-vxlan: false, --calico-vxlan false
 	phase.Config.Spec.MKE.Metadata.VXLAN = false

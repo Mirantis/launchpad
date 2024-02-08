@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -380,8 +381,8 @@ spec:
 `
 	c := loadYaml(t, data)
 
-	require.Equal(t, "root", c.Spec.Hosts[0].SSH.User)
-	require.Equal(t, 22, c.Spec.Hosts[0].SSH.Port)
+	require.Equal(t, c.Spec.Hosts[0].SSH.User, "root")
+	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 22)
 }
 
 func TestHostWinRMDefaults(t *testing.T) {
@@ -487,7 +488,10 @@ func validateErrorField(t *testing.T, err error, field string) {
 }
 
 func getAllErrorFields(err error) []string {
-	validationErrors := err.(validator.ValidationErrors)
+	var validationErrors validator.ValidationErrors
+	if !errors.As(err, &validationErrors) {
+		return nil
+	}
 	fields := make([]string, len(validationErrors))
 
 	// Collect all fields that failed validation

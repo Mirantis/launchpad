@@ -1,15 +1,15 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/yaml.v2"
 )
 
 var kinds = []string{"mke", "mke+msr"}
@@ -22,6 +22,8 @@ func kindIsKnown(n string) bool {
 	}
 	return false
 }
+
+var errUnknownConfigKind = errors.New("unknown config kind")
 
 // NewInitCommand creates new init command to be called from cli.
 func NewInitCommand() *cli.Command {
@@ -44,24 +46,21 @@ func NewInitCommand() *cli.Command {
 		Action: func(ctx *cli.Context) error {
 			kind := ctx.String("kind")
 			if !kindIsKnown(kind) {
-				return fmt.Errorf("unknown kind %s - must be one of %s", kind, strings.Join(kinds, ","))
+				return fmt.Errorf("%w: unknown kind %s - must be one of %s", errUnknownConfigKind, kind, strings.Join(kinds, ","))
 			}
 			analytics.TrackEvent("Cluster Init Started", nil)
 
 			cfg, err := config.Init(kind)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to initialize config: %w", err)
 			}
 
 			encoder := yaml.NewEncoder(os.Stdout)
-			err = encoder.Encode(cfg)
-
-			if err != nil {
-				analytics.TrackEvent("Cluster Init Failed", nil)
-			} else {
-				analytics.TrackEvent("Cluster Init Completed", nil)
+			if err = encoder.Encode(cfg); err != nil {
+				return fmt.Errorf("failed to encode config: %w", err)
 			}
-			return err
+			analytics.TrackEvent("Cluster Init Completed", nil)
+			return nil
 		},
 	}
 }

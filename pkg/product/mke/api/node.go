@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	NODE_READY_STATE = "ready"
+	READY = "ready"
 )
 
 // NodeDescriptionEnginePlugin node description struct for the engine plugin.
@@ -111,5 +111,5 @@ type Node struct {
 
 // IsReady returns if node is in 'ready' state.
 func (n *Node) IsReady() bool {
-	return n.Status.State == NODE_READY_STATE
+	return n.Status.State == READY
 }

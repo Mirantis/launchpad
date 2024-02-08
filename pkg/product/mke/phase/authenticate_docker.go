@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -27,7 +28,14 @@ func (p *AuthenticateDocker) Title() string {
 func (p *AuthenticateDocker) Run() error {
 	imageRepo := p.Config.Spec.MKE.ImageRepo
 
-	return phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *api.Host, c *api.ClusterConfig) error {
-		return h.AuthenticateDocker(imageRepo)
+	err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *api.Host, _ *api.ClusterConfig) error {
+		if err := h.AuthenticateDocker(imageRepo); err != nil {
+			return fmt.Errorf("%s: authenticate docker: %w", h, err)
+		}
+		return nil
 	})
+	if err != nil {
+		return fmt.Errorf("authentication failed: %w", err)
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package configurer
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
@@ -8,14 +9,12 @@ import (
 	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util"
+	escape "github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
-
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	log "github.com/sirupsen/logrus"
-
-	escape "github.com/alessio/shellescape"
 )
 
 // LinuxConfigurer is a generic linux host configurer.
@@ -40,35 +39,46 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 	err := h.Upload(scriptPath, installer)
 	if err != nil {
 		log.Errorf("failed: %s", err.Error())
-		return err
+		return fmt.Errorf("upload %s to %s: %w", scriptPath, installer, err)
 	}
-	defer c.riglinux.DeleteFile(h, installer)
+	defer func() {
+		if err := c.riglinux.DeleteFile(h, installer); err != nil {
+			log.Warnf("failed to delete installer script: %s", err.Error())
+		}
+	}()
 
 	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash %s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version, escape.Quote(installer))
 
 	log.Infof("%s: running installer", h)
 
 	if err := h.Exec(cmd); err != nil {
-		return err
+		return fmt.Errorf("run MCR installer: %w", err)
 	}
 
 	if err := c.riglinux.EnableService(h, "docker"); err != nil {
-		return err
+		return fmt.Errorf("enable docker service: %w", err)
 	}
 
-	return c.riglinux.StartService(h, "docker")
+	if err := c.riglinux.StartService(h, "docker"); err != nil {
+		return fmt.Errorf("start docker service: %w", err)
+	}
+
+	return nil
 }
 
 // RestartMCR restarts Docker EE engine.
 func (c LinuxConfigurer) RestartMCR(h os.Host) error {
-	return c.riglinux.RestartService(h, "docker")
+	if err := c.riglinux.RestartService(h, "docker"); err != nil {
+		return fmt.Errorf("restart docker service: %w", err)
+	}
+	return nil
 }
 
 // ResolveInternalIP resolves internal ip from private interface.
 func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP string) (string, error) {
 	output, err := h.ExecOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, privateInterface))
 	if err != nil {
-		return "", fmt.Errorf("failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", privateInterface, output)
+		return "", fmt.Errorf("%w: failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", err, privateInterface, output)
 	}
 
 	lines := strings.Split(output, "\n")
@@ -78,7 +88,14 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 			log.Debugf("not enough items in ip address line (%s), skipping...", items)
 			continue
 		}
-		addr := items[3][:strings.Index(items[3], "/")]
+
+		idx := strings.Index(items[3], "/")
+		if idx == -1 {
+			log.Debugf("no CIDR mask in ip address line (%s), skipping...", items)
+			continue
+		}
+		addr := items[3][:idx]
+
 		if addr != publicIP {
 			log.Infof("%s: using %s as private IP", h, addr)
 			if util.IsValidAddress(addr) {
@@ -101,15 +118,15 @@ func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) st
 // ValidateLocalhost returns an error if "localhost" is not a local address.
 func (c LinuxConfigurer) ValidateLocalhost(h os.Host) error {
 	if err := h.Exec("sudo ping -c 1 -w 1 -r localhost"); err != nil {
-		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host")
+		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host: %w", err)
 	}
 	return nil
 }
 
 // CheckPrivilege returns an error if the user does not have passwordless sudo enabled.
 func (c LinuxConfigurer) CheckPrivilege(h os.Host) error {
-	if h.Exec("sudo -n true") != nil {
-		return fmt.Errorf("user does not have passwordless sudo access")
+	if err := h.Exec("sudo -n true"); err != nil {
+		return fmt.Errorf("user does not have passwordless sudo access: %w", err)
 	}
 
 	return nil
@@ -119,7 +136,7 @@ func (c LinuxConfigurer) CheckPrivilege(h os.Host) error {
 func (c LinuxConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 	output, err := h.ExecOutput("sudo hostname --all-ip-addresses")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get local addresses: %w", err)
 	}
 
 	return strings.Split(output, " "), nil
@@ -152,7 +169,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	}
 
 	if err := h.Exec("sudo -i usermod -aG docker $USER"); err != nil {
-		return err
+		return fmt.Errorf("failed to add the current user to the 'docker' group: %w", err)
 	}
 
 	log.Warnf("%s: added the current user to the 'docker' group", h)
@@ -160,12 +177,12 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 	if h, ok := h.(reconnectable); ok {
 		log.Infof("%s: reconnecting", h)
 		if err := h.Reconnect(); err != nil {
-			return fmt.Errorf("failed to reconnect: %s", err.Error())
+			return fmt.Errorf("failed to reconnect: %w", err)
 		}
 	}
 
 	if err := h.Exec("groups | grep -q docker"); err != nil {
-		return fmt.Errorf("user is not in the 'docker' group")
+		return fmt.Errorf("user is not in the 'docker' group: %w", err)
 	}
 
 	return nil
@@ -173,7 +190,10 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 
 // AuthenticateDocker performs a docker login on the host.
 func (c LinuxConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
-	return h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.RedactString(user, pass))
+	if err := h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.RedactString(user, pass)); err != nil {
+		return fmt.Errorf("failed to login to the docker registry: %w", err)
+	}
+	return nil
 }
 
 // LineIntoFile tries to find a matching line in a file and replace it with a new entry
@@ -182,11 +202,14 @@ func (c LinuxConfigurer) LineIntoFile(h os.Host, path, matcher, newLine string) 
 	if c.riglinux.FileExist(h, path) {
 		err := h.Exec(fmt.Sprintf(`file=%s; match=%s; line=%s; sudo grep -q "${match}" "$file" && sudo sed -i "/${match}/c ${line}" "$file" || (echo "$line" | sudo tee -a "$file" > /dev/null)`, escape.Quote(path), escape.Quote(matcher), escape.Quote(newLine)))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to update %s: %w", path, err)
 		}
 		return nil
 	}
-	return c.riglinux.WriteFile(h, path, newLine, "0700")
+	if err := c.riglinux.WriteFile(h, path, newLine, "0600"); err != nil {
+		return fmt.Errorf("failed to create %s: %w", path, err)
+	}
+	return nil
 }
 
 // UpdateEnvironment updates the hosts's environment variables.
@@ -201,7 +224,7 @@ func (c LinuxConfigurer) UpdateEnvironment(h os.Host, env map[string]string) err
 	// Update current environment from the /etc/environment
 	err := h.Exec(`while read -r pair; do if [[ $pair == ?* && $pair != \#* ]]; then export "$pair" || exit 2; fi; done < /etc/environment`)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update current environment: %w", err)
 	}
 
 	return c.ConfigureDockerProxy(h, env)
@@ -216,7 +239,11 @@ func (c LinuxConfigurer) CleanupEnvironment(h os.Host, env map[string]string) er
 		}
 	}
 	// remove empty lines
-	return h.Exec(`sudo sed -i '/^$/d' /etc/environment`)
+	if err := h.Exec(`sudo sed -i '/^$/d' /etc/environment`); err != nil {
+		return fmt.Errorf("failed to remove empty lines from /etc/environment: %w", err)
+	}
+
+	return nil
 }
 
 // ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables.
@@ -239,7 +266,7 @@ func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) 
 
 	err := h.Exec(fmt.Sprintf("sudo mkdir -p %s", dir))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create %s: %w", dir, err)
 	}
 
 	content := "[Service]\n"
@@ -247,22 +274,27 @@ func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) 
 		content += fmt.Sprintf("Environment=\"%s=%s\"\n", escape.Quote(k), escape.Quote(v))
 	}
 
-	return c.riglinux.WriteFile(h, cfg, content, "0600")
+	if err := c.riglinux.WriteFile(h, cfg, content, "0600"); err != nil {
+		return fmt.Errorf("failed to create %s: %w", cfg, err)
+	}
+
+	return nil
 }
+
+var errDetectPrivateInterface = errors.New("failed to detect a private network interface, define the host privateInterface manually")
 
 // ResolvePrivateInterface tries to find a private network interface.
 func (c LinuxConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
 	output, err := h.ExecOutput(fmt.Sprintf(`%s; (ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`, SbinPath))
-	if err == nil {
-		re := regexp.MustCompile(`\bdev (\w+)`)
-		match := re.FindSubmatch([]byte(output))
-		if len(match) > 0 {
-			return string(match[1]), nil
-		}
-		err = fmt.Errorf("can't find 'dev' in output")
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", errDetectPrivateInterface, err)
 	}
-
-	return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually (%s)", err.Error())
+	re := regexp.MustCompile(`\bdev (\w+)`)
+	match := re.FindSubmatch([]byte(output))
+	if len(match) == 0 {
+		return "", fmt.Errorf("can't find 'dev' in output: %w", errDetectPrivateInterface)
+	}
+	return string(match[1]), nil
 }
 
 // HTTPStatus makes a HTTP GET request to the url and returns the status code or an error.
@@ -270,11 +302,11 @@ func (c LinuxConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 	log.Debugf("%s: requesting %s", h, url)
 	output, err := h.ExecOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("failed to perform http request: %w", err)
 	}
 	status, err := strconv.Atoi(output)
 	if err != nil {
-		return -1, fmt.Errorf("%s: invalid response: %s", h, err.Error())
+		return -1, fmt.Errorf("invalid http response: %w", err)
 	}
 
 	return status, nil
@@ -295,25 +327,25 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	// https://docs.docker.com/config/daemon/
 	if !c.riglinux.FileExist(h, dockerDaemonPath) {
 		// Check if the default Rootless Docker daemon config file exists
-		log.Debugf("%s attempting to detect Rootless docker installation", h)
-		// Extract the value from the XDG_CONFIG_HOME environment variable
-		XDG_CONFIG_HOME, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
-		if XDG_CONFIG_HOME != "" && err == nil {
-			log.Debugf("%s XDG_CONFIG_HOME set to %s", h, XDG_CONFIG_HOME)
-			dockerDaemonPath = path.Join(strings.TrimSpace(XDG_CONFIG_HOME), "docker", "daemon.json")
+		log.Debugf("%s: attempting to detect Rootless docker installation", h)
+		// Extract the value from the xdgConfigHome environment variable
+		xdgConfigHome, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
+		if xdgConfigHome != "" && err == nil {
+			log.Debugf("%s: XDG_CONFIG_HOME set to %s", h, xdgConfigHome)
+			dockerDaemonPath = path.Join(strings.TrimSpace(xdgConfigHome), "docker", "daemon.json")
 		} else {
 			dockerDaemonPath = constant.LinuxDefaultRootlessDockerDaemonPath
-			log.Debugf("%s XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, dockerDaemonPath)
+			log.Debugf("%s: XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, dockerDaemonPath)
 		}
 	}
 
 	dockerDaemonString, err := c.riglinux.ReadFile(h, dockerDaemonPath)
 	if err != nil {
-		log.Debugf("%s couldn't read the Docker Daemon config file %s: %s", h, dockerDaemonPath, err)
+		log.Debugf("%s: couldn't read the Docker Daemon config file %s: %s", h, dockerDaemonPath, err)
 	}
 	dockerConfig, err := c.GetDockerDaemonConfig(dockerDaemonString)
 	if err != nil {
-		log.Debugf("%s failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
+		log.Debugf("%s: failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
 	}
 
 	if dockerConfig.Root != "" {
@@ -334,7 +366,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
 	if err := h.Exec(fmt.Sprintf("sudo umount %s", execRootNetnsUnmount)); err != nil {
-		log.Debugf("%s failed to umount %s: %s", h, execRootNetnsUnmount, err)
+		log.Debugf("%s: failed to umount %s: %s", h, execRootNetnsUnmount, err)
 	}
 
 	// Extras to delete if they exist
@@ -355,7 +387,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 func (c LinuxConfigurer) attemptPathDelete(h os.Host, path string) {
 	fileInfo, err := c.riglinux.Stat(h, path)
 	if err != nil {
-		log.Debugf("%s error getting file information for %s: %s", h, path, err)
+		log.Debugf("%s: error getting file information for %s: %s", h, path, err)
 	} else {
 		command := fmt.Sprintf("sudo rm %s", path)
 		if fileInfo.IsDir() {
@@ -363,9 +395,9 @@ func (c LinuxConfigurer) attemptPathDelete(h os.Host, path string) {
 		}
 		if c.riglinux.FileExist(h, path) {
 			if err := h.Exec(command); err != nil {
-				log.Infof("%s failed to remove %s: %s", h, path, err)
+				log.Infof("%s: failed to remove %s: %s", h, path, err)
 			}
-			log.Infof("%s removed %s successfully", h, path)
+			log.Infof("%s: removed %s successfully", h, path)
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -35,37 +36,41 @@ func NewResetCommand() *cli.Command {
 			analytics.TrackEvent("Cluster Reset Started", nil)
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load product config: %w", err)
 			}
 
 			err = product.Reset()
-
 			if err != nil {
 				analytics.TrackEvent("Cluster Reset Failed", nil)
-			} else {
-				duration := time.Since(start)
-				props := event.Properties{
-					"duration": duration.Seconds(),
-				}
-				analytics.TrackEvent("Cluster Reset Completed", props)
+				return fmt.Errorf("failed to reset cluster: %w", err)
 			}
-			return err
+
+			duration := time.Since(start)
+			props := event.Properties{
+				"duration": duration.Seconds(),
+			}
+			analytics.TrackEvent("Cluster Reset Completed", props)
+			return nil
 		},
 	}
 }
 
+var errForceRequired = errors.New("confirmation or --force required")
+
 func requireForce(ctx *cli.Context) error {
 	if !ctx.Bool("force") {
 		if !isatty.IsTerminal(os.Stdout.Fd()) {
-			return fmt.Errorf("reset requires --force")
+			return fmt.Errorf("%w: reset requires --force", errForceRequired)
 		}
 		confirmed := false
 		prompt := &survey.Confirm{
 			Message: "Going to reset all of the hosts, which will destroy all configuration and data, Are you sure?",
 		}
-		survey.AskOne(prompt, &confirmed)
+		if err := survey.AskOne(prompt, &confirmed); err != nil {
+			return fmt.Errorf("failed to ask for confirmation: %w", err)
+		}
 		if !confirmed {
-			return fmt.Errorf("Confirmation or --force required to proceed")
+			return errForceRequired
 		}
 	}
 	return nil

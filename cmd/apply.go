@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -9,12 +10,13 @@ import (
 	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/Mirantis/mcc/version"
-
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
+
+var errInvalidArguments = errors.New("invalid arguments")
 
 // NewApplyCommand creates new apply command to be called from cli.
 func NewApplyCommand() *cli.Command {
@@ -47,7 +49,7 @@ func NewApplyCommand() *cli.Command {
 		After:  actions(closeAnalytics, upgradeCheckResult),
 		Action: func(ctx *cli.Context) (err error) {
 			if ctx.Int("concurrency") < 1 {
-				return fmt.Errorf("invalid --concurrency %d (must be 1 or more)", ctx.Int("concurrency"))
+				return fmt.Errorf("%w: invalid --concurrency %d (must be 1 or more)", errInvalidArguments, ctx.Int("concurrency"))
 			}
 
 			var logFile *os.File
@@ -57,40 +59,39 @@ func NewApplyCommand() *cli.Command {
 
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
-				return
+				return fmt.Errorf("failed to load product config: %w", err)
 			}
 
 			defer func() {
 				if err != nil && logFile != nil {
 					log.Infof("See %s for more logs ", logFile.Name())
 				}
-
 			}()
 
 			// Add logger to dump all log levels to file
 			logFile, err = addFileLogger(product.ClusterName(), "apply.log")
 			if err != nil {
-				return
+				return fmt.Errorf("failed to add file logger: %w", err)
 			}
 
 			if isatty.IsTerminal(os.Stdout.Fd()) {
 				os.Stdout.WriteString(util.Logo)
-				os.Stdout.WriteString(fmt.Sprintf("   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version))
+				fmt.Fprintf(os.Stdout, "   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version)
 			}
 
 			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"))
-
 			if err != nil {
 				analytics.TrackEvent("Cluster Apply Failed", nil)
-			} else {
-				duration := time.Since(start)
-				props := event.Properties{
-					"duration": duration.Seconds(),
-				}
-				analytics.TrackEvent("Cluster Apply Completed", props)
+				return fmt.Errorf("failed to apply cluster: %w", err)
 			}
 
-			return
+			duration := time.Since(start)
+			props := event.Properties{
+				"duration": duration.Seconds(),
+			}
+			analytics.TrackEvent("Cluster Apply Completed", props)
+
+			return nil
 		},
 	}
 }

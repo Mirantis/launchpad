@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/docker/hub"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -32,7 +34,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	yc := (*spec)(c)
 
 	if err := unmarshal(yc); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal cluster config: %w", err)
 	}
 
 	return nil
@@ -43,11 +45,17 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (c *ClusterConfig) Validate() error {
 	validator := validator.New(validator.WithRequiredStructEnabled())
 	validator.RegisterStructValidation(roleChecks, ClusterSpec{})
-	return validator.Struct(c)
+	if err := validator.Struct(c); err != nil {
+		return fmt.Errorf("cluster config validation failed: %w", err)
+	}
+	return nil
 }
 
 func roleChecks(sl validator.StructLevel) {
-	spec := sl.Current().Interface().(ClusterSpec)
+	spec, ok := sl.Current().Interface().(ClusterSpec)
+	if !ok {
+		return
+	}
 	hosts := spec.Hosts
 	if hosts.Count(func(h *Host) bool { return h.Role == "manager" }) == 0 {
 		sl.ReportError(hosts, "hosts", "", "manager required", "")
