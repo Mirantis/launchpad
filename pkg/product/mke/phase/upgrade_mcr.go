@@ -19,12 +19,21 @@ import (
 type UpgradeMCR struct {
 	phase.Analytics
 	phase.HostSelectPhase
-	Concurrency int
+
+	Concurrency  int
+	ForceUpgrade bool
 }
 
 // HostFilterFunc returns true for hosts that do not have engine installed.
 func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
-	return h.Metadata.MCRVersion != p.Config.Spec.MCR.Version
+	if h.Metadata.MCRVersion != p.Config.Spec.MCR.Version {
+		return true
+	}
+	if p.ForceUpgrade {
+		log.Warnf("%s: MCR version is already %s but attempting an upgrade anyway because --force-upgrade was given", h, h.Metadata.MCRVersion)
+		return true
+	}
+	return false
 }
 
 // Prepare collects the hosts.
