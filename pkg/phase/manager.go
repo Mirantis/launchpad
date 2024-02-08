@@ -108,23 +108,20 @@ func (m *Manager) Run() error {
 			defer func() { analytics.TrackEvent(title, props) }()
 		}
 
-		if result == nil {
-			log.Debugf("phase '%s' completed successfully", title)
-			return nil
-		}
-
-		if p, ok := phase.(withcleanup); ok {
-			if !m.SkipCleanup {
-				defer p.CleanUp()
+		if result != nil {
+			if p, ok := phase.(withcleanup); ok {
+				if !m.SkipCleanup {
+					defer p.CleanUp()
+				}
 			}
-		}
 
-		if m.IgnoreErrors {
-			log.Debugf("ignoring phase '%s' error: %s", title, result.Error())
-			return nil
+			if m.IgnoreErrors {
+				log.Debugf("ignoring phase '%s' error: %s", title, result.Error())
+				return nil
+			}
+			return fmt.Errorf("phase failure: %s => %w", title, result)
 		}
-
-		return fmt.Errorf("phase failure: %s => %w", title, result)
+		log.Debugf("phase '%s' completed successfully", title)
 	}
 
 	return nil
