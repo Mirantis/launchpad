@@ -92,7 +92,9 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	u.Wait = opts.Wait
 	u.Atomic = opts.Atomic
 	u.Version = opts.Version
-	u.Timeout = *opts.Timeout
+	if opts.Timeout != nil {
+		u.Timeout = *opts.Timeout
+	}
 
 	return u.RunWithContext(ctx, opts.ReleaseDetails.ReleaseName, ch, opts.Values)
 }

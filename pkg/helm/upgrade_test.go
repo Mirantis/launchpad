@@ -8,13 +8,12 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestUpgradeSuccess(t *testing.T) {
+func TestUpgrade(t *testing.T) {
 	h := NewHelmTestClient(t)
 
 	t.Run("Upgrade success", func(t *testing.T) {
 		rd, uninstallFunc := InstallRethinkDBOperatorChart(t, h)
-		t.Cleanup(func() { uninstallFunc() })
-
+		t.Cleanup(uninstallFunc)
 		rd.Values = map[string]interface{}{
 			"controllerManager": map[string]interface{}{
 				"manager": map[string]interface{}{
@@ -27,15 +26,15 @@ func TestUpgradeSuccess(t *testing.T) {
 			ReleaseDetails: rd,
 			Timeout:        ptr.To(DefaultTimeout),
 		})
-		assert.NoError(t, err)
-
-		assert.Equal(t, rd.ChartName, rel.Chart.Metadata.Name)
-		assert.ObjectsAreEqualValues(rd.Values, rel.Chart.Values)
+		if assert.NoError(t, err) {
+			assert.Equal(t, rd.ChartName, rel.Chart.Metadata.Name)
+			assert.ObjectsAreEqualValues(rd.Values, rel.Chart.Values)
+		}
 	})
 
 	t.Run("Upgrade, reuse values", func(t *testing.T) {
 		rd, uninstallFunc := InstallRethinkDBOperatorChart(t, h)
-		t.Cleanup(func() { uninstallFunc() })
+		t.Cleanup(uninstallFunc)
 
 		rd.Values = map[string]interface{}{
 			"rethinkdb": map[string]interface{}{
@@ -48,13 +47,13 @@ func TestUpgradeSuccess(t *testing.T) {
 			ReuseValues:    true,
 			Timeout:        ptr.To(DefaultTimeout),
 		})
-		assert.NoError(t, err)
-
-		assert.Equal(t, rd.ChartName, rel.Chart.Metadata.Name)
-		// ReuseValues should not change the values, but reuse the previous
-		// ones.
-		assert.NotEqual(t, "cooler-rethinkdb", rel.Chart.Values["rethinkdb"].(map[string]interface{})["name"])
-		assert.ObjectsAreEqualValues(rd.Values, rel.Chart.Values)
+		if assert.NoError(t, err) {
+			assert.Equal(t, rd.ChartName, rel.Chart.Metadata.Name)
+			// ReuseValues should not change the values, but reuse the previous
+			// ones.
+			assert.NotEqual(t, "cooler-rethinkdb", rel.Chart.Values["rethinkdb"].(map[string]interface{})["name"])
+			assert.ObjectsAreEqualValues(rd.Values, rel.Chart.Values)
+		}
 	})
 
 	t.Run("Upgrade failure, empty release details", func(t *testing.T) {

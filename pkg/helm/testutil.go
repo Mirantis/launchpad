@@ -46,10 +46,8 @@ func gatherOptions(options []HelmTestClientOption) *helmTestClientOptions {
 	return o
 }
 
-// NewHelmTestClient creates a new Helm for testing purposes and returns a
-// writer to capture the output of the Helm client.  Pass a
-// *kubefake.FailingKubeClient with options to simulate failing Helm actions,
-// for a passing Helm client pass nil.
+// NewHelmTestClient creates a new Helm for testing purposes. Pass a
+// *kubefake.FailingKubeClient with options to simulate failing Helm actions.
 func NewHelmTestClient(t *testing.T, options ...HelmTestClientOption) *Helm {
 	t.Helper()
 
@@ -81,7 +79,7 @@ func NewHelmTestClient(t *testing.T, options ...HelmTestClientOption) *Helm {
 	}
 }
 
-// InstallRethinkDBOperatorChart installs version 1.0.0 of rethinkdb-operator
+// InstallRethinkDBOperatorChart installs rethinkdb-operator
 // to use as a chart to query for testing purposes and returns the
 // ReleaseDetails for the chart as well as a function to uninstall the chart.
 func InstallRethinkDBOperatorChart(t *testing.T, h *Helm) (ReleaseDetails, func()) {

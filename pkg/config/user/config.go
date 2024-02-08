@@ -24,7 +24,7 @@ type Config struct {
 
 // GetConfig returns a new decoded Config struct.
 func GetConfig() (*Config, error) {
-	configFile, err := fileutil.Expand(configFile)
+	configFile, err := fileutil.ExpandHomeDir(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to expand config file path: %w", err)
 	}
@@ -50,7 +50,7 @@ func GetConfig() (*Config, error) {
 
 // SaveConfig saves config struct to yaml file.
 func SaveConfig(config *Config) error {
-	configFile, err := fileutil.Expand(configFile)
+	configFile, err := fileutil.ExpandHomeDir(configFile)
 	if err != nil {
 		return fmt.Errorf("failed to expand config file path: %w", err)
 	}

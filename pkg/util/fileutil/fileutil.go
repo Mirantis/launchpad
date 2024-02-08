@@ -8,7 +8,7 @@ import (
 
 // LoadExternalFile helper for reading data from references to external files.
 var LoadExternalFile = func(path string) ([]byte, error) {
-	realpath, err := Expand(path)
+	realpath, err := ExpandHomeDir(path)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -20,10 +20,10 @@ var LoadExternalFile = func(path string) ([]byte, error) {
 	return filedata, nil
 }
 
-// Expand  expands the path to include the home directory if the path
+// ExpandHomeDir expands the path to include the home directory if the path
 // is prefixed with `~`. If it isn't prefixed with `~`, the path is
 // returned as-is.
-func Expand(path string) (string, error) {
+func ExpandHomeDir(path string) (string, error) {
 	if len(path) == 0 {
 		return path, nil
 	}

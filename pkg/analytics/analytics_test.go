@@ -56,10 +56,6 @@ func TestTrackAnalyticsEvent(t *testing.T) {
 
 func TestIdentifyAnalyticsUser(t *testing.T) {
 	client := &mockClient{}
-	analyticsClient := Client{
-		IsEnabled:       true,
-		AnalyticsClient: client,
-	}
 
 	userConfig := user.Config{
 		Name:    "John Doe",
@@ -67,14 +63,14 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 		Company: "Acme, Inc.",
 	}
 	t.Run("Analytics disabled", func(t *testing.T) {
-		analyticsClient.IsEnabled = false
-		t.Cleanup(func() { analyticsClient.IsEnabled = true })
+		analyticsClient := Client{false, client}
 
 		analyticsClient.IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage
 		require.Nil(t, lastMessage)
 	})
 	t.Run("Analytics enabled", func(t *testing.T) {
+		analyticsClient := Client{true, client}
 		analyticsClient.IdentifyUser(&userConfig)
 		lastMessage := client.lastMessage.(analytics.Identify)
 		require.NotNil(t, client.lastMessage)

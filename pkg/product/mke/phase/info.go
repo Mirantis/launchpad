@@ -30,8 +30,10 @@ func (p *Info) Run() error {
 		switch p.Config.Spec.MSR.MajorVersion() {
 		case 2:
 			msrURL, err := p.Config.Spec.MSR2URL()
-			if err == nil {
-				log.Infof("MSR cluster admin UI: %s", msrURL.String())
+			if err != nil {
+				log.Infof("failed to get MSR URL: %s", err)
+			} else {
+				log.Infof("MSR cluster admin UI: %s", msrURL)
 			}
 		case 3:
 			msrURL, err := msr3.GetMSRURL(p.Config)
