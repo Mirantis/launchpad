@@ -95,8 +95,7 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 // DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host.
 func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) string {
-	cmd := fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
-	return fmt.Sprintf("%[1]s || sudo -n %[1]s", cmd)
+	return fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
 }
 
 // ValidateLocalhost returns an error if "localhost" is not a local address.
