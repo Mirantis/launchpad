@@ -90,5 +90,6 @@ func (p *InstallMCR) installMCR(h *api.Host) error {
 	log.Infof("%s: mirantis container runtime version %s installed", h, p.Config.Spec.MCR.Version)
 	h.Metadata.MCRVersion = p.Config.Spec.MCR.Version
 	h.Metadata.MCRRestartRequired = false
+	h.Metadata.MCRInstalled = true
 	return nil
 }
