@@ -12,8 +12,8 @@ import (
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
-// Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are defined in the config
-func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
+// Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are defined in the config.
+func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.SkipCleanup = disableCleanup
 
@@ -29,7 +29,7 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int) error {
 		&mke.PrepareHost{},
 		&mke.ConfigureMCR{},
 		&mke.InstallMCR{},
-		&mke.UpgradeMCR{Concurrency: concurrency},
+		&mke.UpgradeMCR{Concurrency: concurrency, ForceUpgrade: forceUpgrade},
 		&mke.RestartMCR{},
 		&mke.LoadImages{},
 		&mke.AuthenticateDocker{},

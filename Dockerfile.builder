@@ -1,7 +1,5 @@
 FROM golang:1.19
 
-RUN apt-get update && apt-get install -y golint
-
 WORKDIR /go/src/github.com/Mirantis/mcc
 
 ENV GO111MODULE=on

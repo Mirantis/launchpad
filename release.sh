@@ -7,12 +7,6 @@ if [ -z "${TAG_NAME}" ]; then
   exit 1
 fi
 
-echo "Signing windows binary"
-command -v osslsigncode || sudo apt-get install -y osslsigncode
-echo -n "${WIN_PKCS12}" | base64 -d > windows.pkcs12
-sudo osslsigncode sign -pkcs12 windows.pkcs12 -pass "${WIN_PKCS12_PASSWD}" -i https://mirantis.com -n "Launchpad" -in ./bin/launchpad-win-x64.exe -out ./bin/launchpad-signed-win-x64.exe
-rm -f windows.pkcs12
-sudo mv ./bin/launchpad-signed-win-x64.exe ./bin/launchpad-win-x64.exe
 
 declare -a binaries=("launchpad-darwin-x64" "launchpad-darwin-arm64" "launchpad-win-x64.exe" "launchpad-linux-x64" "launchpad-linux-arm64")
 
@@ -36,12 +30,18 @@ else
   releaseopt=""
 fi
 
+echo "Creating release named ${TAG_NAME} in MCC repo"
+
 ./github-release release \
   $releaseopt \
   --user Mirantis \
   --repo mcc \
   --tag "${TAG_NAME}" \
   --name "${TAG_NAME}"
+
+sleep 10
+
+echo "Uploading the artifacts to ${TAG_NAME} in MCC repo"
 
 for bin in "${binaries[@]}"
 do
@@ -60,31 +60,39 @@ do
     --file "./tmp.sha256/${bin}.sha256"
 done
 
-# Release to the public repo
-./github-release release \
-  $releaseopt \
-  --draft \
-  --user Mirantis \
-  --repo launchpad \
-  --tag "${TAG_NAME}" \
-  --name "${TAG_NAME}"
+if [ -z "$releaseopt"]; then
+  echo "Creating release named ${TAG_NAME} in Launchpad repo"
 
-for bin in "${binaries[@]}"
-do
-  ./github-release upload \
+  # Release to the public repo
+  ./github-release release \
+    $releaseopt \
+    --draft \
     --user Mirantis \
     --repo launchpad \
     --tag "${TAG_NAME}" \
-    --name "${bin}" \
-    --file "./bin/${bin}"
+    --name "${TAG_NAME}"
 
-  ./github-release upload \
-    --user Mirantis \
-    --repo launchpad \
-    --tag "${TAG_NAME}" \
-    --name "${bin}.sha256" \
-    --file "./tmp.sha256/${bin}.sha256"
+  sleep 10
+
+  echo "Uploading the artifacts to ${TAG_NAME} in Launchpad repo"
+
+  for bin in "${binaries[@]}"
+  do
+    ./github-release upload \
+      --user Mirantis \
+      --repo launchpad \
+      --tag "${TAG_NAME}" \
+      --name "${bin}" \
+      --file "./bin/${bin}"
+
+    ./github-release upload \
+      --user Mirantis \
+      --repo launchpad \
+      --tag "${TAG_NAME}" \
+      --name "${bin}.sha256" \
+      --file "./tmp.sha256/${bin}.sha256"
   done
+fi
 
 rm ./github-release
 rm -rf tmp.sha256
