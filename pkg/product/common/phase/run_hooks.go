@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"unicode"
+	"unicode/utf8"
 
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
@@ -51,9 +53,17 @@ func (p *RunHooks) ShouldRun() bool {
 	return len(p.steps) > 0
 }
 
+func ucFirst(s string) string {
+	if s == "" {
+		return ""
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[size:]
+}
+
 // Title for the phase.
 func (p *RunHooks) Title() string {
-	return fmt.Sprintf("Run %s %s Hooks", p.Stage, p.Action)
+	return fmt.Sprintf("Run %s %s Hooks", ucFirst(p.Stage), ucFirst(p.Action))
 }
 
 // Run does all the prep work on the hosts in parallel.
