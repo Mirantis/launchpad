@@ -29,7 +29,7 @@ func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
 	if h.Metadata.MCRVersion != p.Config.Spec.MCR.Version {
 		return true
 	}
-	if p.ForceUpgrade {
+	if p.ForceUpgrade && !h.Metadata.MCRInstalled {
 		log.Warnf("%s: MCR version is already %s but attempting an upgrade anyway because --force-upgrade was given", h, h.Metadata.MCRVersion)
 		return true
 	}
@@ -198,5 +198,6 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 	log.Infof("%s: upgraded to mirantis container runtime version %s", h, p.Config.Spec.MCR.Version)
 	h.Metadata.MCRVersion = p.Config.Spec.MCR.Version
 	h.Metadata.MCRRestartRequired = false
+	h.Metadata.MCRUpgraded = true
 	return nil
 }

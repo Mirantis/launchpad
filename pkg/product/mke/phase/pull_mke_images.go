@@ -24,9 +24,9 @@ func (p *PullMKEImages) Title() string {
 
 func (p *PullMKEImages) isMKESwarmOnly() bool {
 	for _, flag := range p.Config.Spec.MKE.InstallFlags {
-	        if flag == "--swarm-only" {
-                        return true
-	        }
+		if flag == "--swarm-only" {
+			return true
+		}
 	}
 
 	return false
@@ -35,7 +35,7 @@ func (p *PullMKEImages) isMKESwarmOnly() bool {
 // Run pulls images in parallel across nodes via a workerpool of 5
 func (p *PullMKEImages) Run() error {
 
-        swarmOnly := p.isMKESwarmOnly()
+	swarmOnly := p.isMKESwarmOnly()
 
 	images, err := p.ListImages(false, swarmOnly)
 	if err != nil {
