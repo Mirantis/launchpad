@@ -13,7 +13,7 @@ import (
 type DockerConfigurer struct{}
 
 // GetDockerInfo gets docker info from the host.
-func (c DockerConfigurer) GetDockerInfo(h os.Host, hostKind string) (common.DockerInfo, error) {
+func (c DockerConfigurer) GetDockerInfo(h os.Host) (common.DockerInfo, error) {
 	command := "docker info --format \"{{json . }}\""
 	log.Debugf("%s attempting to gather info with `%s`", h, command)
 	info, err := h.ExecOutput(command)

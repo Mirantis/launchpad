@@ -78,7 +78,7 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
 func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	info, getDockerError := c.GetDockerInfo(h, c.Kind())
+	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
 	}

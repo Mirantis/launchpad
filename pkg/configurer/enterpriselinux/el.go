@@ -26,7 +26,7 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 
 // UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRConfig) error {
-	info, getDockerError := c.GetDockerInfo(h, c.Kind())
+	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
 	}
