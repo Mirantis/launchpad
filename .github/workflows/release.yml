@@ -12,5 +12,8 @@ jobs:
               uses: actions/checkout@v2
             - name: Run release script
               env:
-                TAG_NAME: ${{  github.ref_name }}
+                TAG_NAME: ${{ github.ref_name }}
+                SM_API_KEY: ${{ secrets.SM_API_KEY }}
+                SM_CLIENT_CERT_FILE: ${{ secrets.SM_CLIENT_CERT_FILE }}
+                SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
               run: make release
