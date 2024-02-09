@@ -1,3 +1,4 @@
+// Package Entrypoing into launchpad executable
 package main
 
 import (
@@ -22,7 +23,7 @@ var errUnsupportedShell = errors.New("unsupported shell")
 func main() {
 	versionCmd := &cli.Command{
 		Name: "version",
-		Action: func(ctx *cli.Context) error {
+		Action: func(_ *cli.Context) error {
 			fmt.Printf("version: %s\n", version.Version)
 			fmt.Printf("commit: %s\n", version.GitCommit)
 			return nil
