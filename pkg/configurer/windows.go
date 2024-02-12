@@ -215,20 +215,16 @@ func (c WindowsConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo s
 
 // UpdateEnvironment updates the hosts's environment variables.
 func (c WindowsConfigurer) UpdateEnvironment(h os.Host, env map[string]string) error {
-	for k, v := range env {
-		err := h.Exec(fmt.Sprintf(`setx %s %s`, ps.DoubleQuote(k), ps.DoubleQuote(v)))
-		if err != nil {
-			return fmt.Errorf("failed to set environment variable %s: %w", k, err)
-		}
+	if err := c.Windows.UpdateEnvironment(h, env); err != nil {
+		return fmt.Errorf("failed updating the env: %w", err)
 	}
 	return nil
 }
 
 // CleanupEnvironment removes environment variable configuration.
 func (c WindowsConfigurer) CleanupEnvironment(h os.Host, env map[string]string) error {
-	for k := range env {
-		_ = h.Exec(ps.Cmd(fmt.Sprintf(`[Environment]::SetEnvironmentVariable(%s, $null, 'User')`, ps.SingleQuote(k))))
-		_ = h.Exec(ps.Cmd(fmt.Sprintf(`[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')`, ps.SingleQuote(k))))
+	if err := c.Windows.CleanupEnvironment(h, env); err != nil {
+		return fmt.Errorf("failed cleaning the env: %w", err)
 	}
 	return nil
 }
