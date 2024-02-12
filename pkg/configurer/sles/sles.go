@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/configurer"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/k0sproject/rig"
+	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/linux"
 	"github.com/k0sproject/rig/os/registry"
@@ -34,7 +35,7 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 		defer c.CleanupLingeringMCR(h, info)
 	}
 	if getDockerError == nil {
-		if err := h.Exec("sudo docker system prune -f"); err != nil {
+		if err := h.Exec("docker system prune -f"); err != nil {
 			return fmt.Errorf("prune docker: %w", err)
 		}
 
@@ -46,7 +47,7 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 			return fmt.Errorf("stop containerd: %w", err)
 		}
 
-		if err := h.Exec("sudo zypper -n remove -y --clean-deps docker-ee docker-ee-cli"); err != nil {
+		if err := h.Exec("zypper -n remove -y --clean-deps docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
 			return fmt.Errorf("remove docker-ee zypper package: %w", err)
 		}
 	}
