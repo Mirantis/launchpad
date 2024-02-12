@@ -2,6 +2,7 @@ package enterpriselinux
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/mcc/pkg/configurer"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -54,10 +55,10 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 
 // InstallMCR install Docker EE engine on Linux.
 func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	if h.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
-		if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
-			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
-		}
+	if isEC2, err := c.isAWSInstance(h); err != nil {
+		return fmt.Errorf("couldn't determine if running on AWS EC2 instance: %w", err)
+	} else if isEC2 && c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
+		log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
 	}
 
 	if h.Exec("sh -c 'yum-config-manager --enable rhel-7-server-rhui-extras-rpms && yum makecache fast'", exec.Sudo(h)) == nil {
@@ -68,4 +69,10 @@ func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common
 		return fmt.Errorf("failed to install MCR: %w", err)
 	}
 	return nil
+}
+
+// function to check if the host is an AWS instance - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
+func (c Configurer) isAWSInstance(h os.Host) (bool, error) {
+	found, err := h.ExecOutput("curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep region")
+	return strings.Contains(found, "region"), err
 }
