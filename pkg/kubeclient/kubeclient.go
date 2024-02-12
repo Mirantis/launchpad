@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -65,7 +63,7 @@ func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 	return kc, nil
 }
 
-// CRDReady verifies that the CRD is available.
+// crdReady verifies that the CRD is available.
 // This is the equivalent of running `kubectl get crd crdName`.
 func (kc *KubeClient) crdReady(ctx context.Context, name string) error {
 	_, err := kc.extendedClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
@@ -74,6 +72,30 @@ func (kc *KubeClient) crdReady(ctx context.Context, name string) error {
 	}
 
 	return nil
+}
+
+type ErrDeploymentNotReady struct {
+	Labels string
+}
+
+func (e *ErrDeploymentNotReady) Error() string {
+	return fmt.Sprintf("deployment with %q labels was found, but is not yet ready", e.Labels)
+}
+
+type ErrDeploymentNotFound struct {
+	Labels string
+}
+
+func (e *ErrDeploymentNotFound) Error() string {
+	return fmt.Sprintf("deployment with %q labels not found", e.Labels)
+}
+
+type ErrMultipleDeploymentsFound struct {
+	Labels string
+}
+
+func (e *ErrMultipleDeploymentsFound) Error() string {
+	return fmt.Sprintf("deployment with %q labels found more than once, ensure the deployment is unique", e.Labels)
 }
 
 // deploymentReady verifies that the Deployment is available.
@@ -85,22 +107,22 @@ func (kc *KubeClient) deploymentReady(ctx context.Context, labels string) error 
 	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("deployment with %q labels not found, ensure the deployment exists", labels)
+			return &ErrDeploymentNotFound{Labels: labels}
 		}
 
 		return err
 	}
 
 	if len(d.Items) > 1 {
-		return fmt.Errorf("deployment with %q labels found more than once, ensure the deployment is unique", labels)
+		return &ErrMultipleDeploymentsFound{Labels: labels}
 	}
 
 	if len(d.Items) < 1 {
-		return fmt.Errorf("deployment with %q labels not found, ensure the deployment exists", labels)
+		return &ErrDeploymentNotFound{Labels: labels}
 	}
 
 	if d.Items[0].Status.ReadyReplicas < 1 {
-		return fmt.Errorf("deployment with %q labels was found, but is not yet ready", labels)
+		return &ErrDeploymentNotReady{Labels: labels}
 	}
 
 	return nil
@@ -210,29 +232,9 @@ func (kc *KubeClient) ExposeLoadBalancer(ctx context.Context, url string) error 
 // DecodeIntoUnstructured converts a given runtime.Object into an
 // unstructured object for use with a dynamic client.
 func DecodeIntoUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) {
-	result := make(map[string]interface{})
-
-	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:  &result,
-		TagName: "json",
-	})
+	result, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create decoder: %w", err)
-	}
-
-	if err := d.Decode(obj); err != nil {
-		return nil, fmt.Errorf("failed to decode object into map: %w", err)
-	}
-
-	unstructuredObj := &unstructured.Unstructured{Object: result}
-
-	// Set specific fields to ensure the object is valid and remove the TypeMeta
-	// field, this is to workaround an issue with mapstructure decoding "inline"
-	// tagged fields into map, we're effectively rebuilding the inlined TypeMeta
-	// fields here.
-	unstructuredObj.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
-	if unstructuredObj.GetCreationTimestamp().Time.IsZero() {
-		unstructuredObj.SetCreationTimestamp(metav1.NewTime(time.Now().UTC()))
+		return nil, fmt.Errorf("failed to convert object to unstructured: %w", err)
 	}
 
 	return &unstructured.Unstructured{Object: result}, nil

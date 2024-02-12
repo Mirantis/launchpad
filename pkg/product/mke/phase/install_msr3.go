@@ -26,7 +26,7 @@ type InstallOrUpgradeMSR3 struct {
 
 // Title prints the phase title.
 func (p *InstallOrUpgradeMSR3) Title() string {
-	return "Configuring MSR Custom Resource"
+	return "Configure MSR Custom Resource"
 }
 
 // Prepare collects the hosts and labels them with the MSR role via the
@@ -76,20 +76,20 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 	for _, msrH := range msrHosts {
 		hostname := msrH.Metadata.Hostname
 
-		// If MKE is the target Kubernetes cluster, set the orchestrator
-		// type to Kubernetes for the node.
 		swarmLeader := p.Config.Spec.SwarmLeader()
 		nodeID, err := swarm.NodeID(msrH)
 		if err != nil {
 			return fmt.Errorf("%s: failed to get node ID: %w", msrH, err)
 		}
 
+		// Set the orchestrator type to Kubernetes for the node.
 		kubeOrchestratorLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.KubernetesOrchestratorLabelCmd, nodeID)
 		err = swarmLeader.Exec(kubeOrchestratorLabelCmd)
 		if err != nil {
 			return fmt.Errorf("failed to label node %s (%s) for kube orchestration: %w", hostname, nodeID, err)
 		}
 
+		// Remove Swarm as an orchestrator type for the node (if present).
 		swarmOrchestratorCheckLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.SwarmOrchestratorCheckLabelCmd, nodeID)
 		output, err := swarmLeader.ExecOutput(swarmOrchestratorCheckLabelCmd)
 		if err != nil {
@@ -104,15 +104,15 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 			}
 		}
 
-		err = p.Kube.PrepareNodeForMSR(context.Background(), hostname)
+		err = p.Kube.PrepareNodeForMSR(ctx, hostname)
 		if err != nil {
-			return fmt.Errorf("%s: failed to label node: %s", msrH, err.Error())
+			return fmt.Errorf("%s: failed to prepare node for MSR: %w", msrH, err)
 		}
 
 	}
 
 	if err := p.Config.Spec.CheckMKEHealthRemote(h); err != nil {
-		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installation flag and check connectivity", h)
+		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installation flag and check connectivity: %w", h, err)
 	}
 
 	if err := p.Kube.ValidateMSROperatorReady(ctx); err != nil {
@@ -133,7 +133,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 	// Ensure the postgresql.spec.volume.size field is sane, postgres-operator
 	// doesn't default the Size field and is picky about the format.
 	if msr.Spec.Postgresql.Volume.Size == "" {
-		msr.Spec.Postgresql.Volume.Size = "20Gi"
+		msr.Spec.Postgresql.Volume.Size = constant.DefaultPostgresVolumeSize
 	}
 
 	// Set the version tag to the desired MSR version specified in config.
@@ -141,7 +141,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 
 	// Configure Nginx.DNSNames if a LoadBalancerURL is specified.
 	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
-		msr.Spec.Nginx.DNSNames = []string{"nginx", "localhost", p.Config.Spec.MSR.V3.LoadBalancerURL}
+		msr.Spec.Nginx.DNSNames = append(msr.Spec.Nginx.DNSNames, p.Config.Spec.MSR.V3.LoadBalancerURL)
 	}
 
 	// TODO: Differentiate an upgrade from an install and set analytics

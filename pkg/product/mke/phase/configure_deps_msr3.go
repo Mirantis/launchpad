@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
@@ -26,7 +26,7 @@ type ConfigureDepsMSR3 struct {
 
 // Title for the phase.
 func (p *ConfigureDepsMSR3) Title() string {
-	return "Configuring MSR dependencies"
+	return "Configure MSR dependencies"
 }
 
 func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
@@ -88,7 +88,7 @@ func (p *ConfigureDepsMSR3) Run() error {
 			ReuseValues:    true,
 			Wait:           true,
 			Atomic:         true,
-			Timeout:        pointer.Duration(helm.DefaultTimeout),
+			Timeout:        ptr.To(helm.DefaultTimeout),
 		})
 		if err != nil {
 			return fmt.Errorf("failed to install/upgrade Helm release %q: %w", rd.ReleaseName, err)

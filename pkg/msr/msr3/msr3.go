@@ -24,7 +24,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 	obj, err := kc.GetMSRCR(ctx, msrName, rc)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			log.Infof("MSR CR: %s not found: %s", msrName, err)
+			log.Infof("MSR CR: %s not found", msrName)
 			return &api.MSRMetadata{Installed: false}, nil
 		}
 		return nil, err
@@ -38,7 +38,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 
 	version, found, err := unstructured.NestedString(obj.Object, "spec", "image", "tag")
 	if !found || version == "" {
-		err = errors.New("unable to determine version from found MSR: spec.image.tag not populated")
+		err = errors.New("spec.image.tag not populated")
 	}
 	if err != nil {
 		return nil, fmt.Errorf("unable to determine version from found MSR: %w", err)
@@ -61,7 +61,7 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 			ChartName:   rel.Chart.Name(),
 			Version:     rel.Chart.Metadata.Version,
 			Installed: func() bool {
-				return rel.Info.Status.String() == string(release.StatusDeployed)
+				return rel.Info.Status == release.StatusDeployed
 			}(),
 		}
 	}
@@ -103,7 +103,7 @@ func GetMSRURL(config *api.ClusterConfig) (string, error) {
 	} else {
 		kc, _, err := mke.KubeAndHelmFromConfig(config)
 		if err != nil {
-			return "", fmt.Errorf("failed to get kube client: %s", err)
+			return "", fmt.Errorf("failed to get kube client: %w", err)
 		}
 
 		rc, err := kc.GetMSRResourceClient()
@@ -113,7 +113,7 @@ func GetMSRURL(config *api.ClusterConfig) (string, error) {
 
 		url, err := kc.MSRURL(context.Background(), config.Spec.MSR.V3.CRD.GetName(), rc)
 		if err != nil {
-			return "", fmt.Errorf("failed to build MSR URL from Kubernetes services: %s", err)
+			return "", fmt.Errorf("failed to build MSR URL from Kubernetes services: %w", err)
 		} else {
 			msrURL = url.String()
 		}

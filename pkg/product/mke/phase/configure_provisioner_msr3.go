@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
@@ -63,6 +63,10 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 		return fmt.Errorf("failed to list storage provisioner Helm releases: %w", err)
 	}
 
+	if len(releases) > 1 {
+		return fmt.Errorf("found more than one release for storage provisioner %q", sp.name)
+	}
+
 	if len(releases) == 1 {
 		if sp.releaseDetails.Version != releases[0].Chart.Metadata.Version {
 			log.Debugf("storage provisioner %q already installed, but at version %q, upgrading to %q", sp.name, releases[0].Version, sp.releaseDetails.Version)
@@ -88,7 +92,7 @@ func (p *ConfigureStorageProvisioner) Run() error {
 	if p.storageProvisioner != nil {
 		if _, err := p.Helm.Upgrade(ctx, &helm.Options{
 			ReleaseDetails: *p.storageProvisioner.releaseDetails,
-			Timeout:        pointer.Duration(helm.DefaultTimeout),
+			Timeout:        ptr.To(helm.DefaultTimeout),
 		}); err != nil {
 			return err
 		}

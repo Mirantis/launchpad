@@ -51,11 +51,13 @@ func (p *UninstallMSR3) Prepare(config interface{}) error {
 func (p *UninstallMSR3) Run() error {
 	ctx := context.Background()
 
+	var errs error
+
 	// Remove the LB service if it's being used, ignoring if it's not found.
 	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
 		err := p.Kube.DeleteService(ctx, constant.ExposedLBServiceName)
 		if err != nil && !apierrors.IsNotFound(err) {
-			return err
+			errs = errors.Join(errs)
 		}
 	}
 
@@ -70,8 +72,6 @@ func (p *UninstallMSR3) Run() error {
 			chartsToUninstall = append(chartsToUninstall, sp.releaseDetails)
 		}
 	}
-
-	var errs error
 
 	for _, d := range chartsToUninstall {
 		// Uninstalling the msr-operator chart will remove the CRD which

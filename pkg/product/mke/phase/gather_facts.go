@@ -84,11 +84,11 @@ func (p *GatherFacts) Run() error {
 		msr3Installed := p.collectMSR3Facts()
 
 		if msr3Installed && p.Config.Spec.MSR.MajorVersion() == 2 {
-			return fmt.Errorf("cannot install MSR v2 when MSR v3 is already installed, please uninstall MSR v3 first or modify the 'spec.msr.version' field in the cluster configuration to a 3.x version")
+			return fmt.Errorf("cannot install MSR v2 when MSR v3 is already installed - please uninstall MSR v3 first, otherwise modify the 'spec.msr.version' field in the cluster configuration to a 3.x version")
 		}
 
 		if msr2Installed && p.Config.Spec.MSR.MajorVersion() == 3 {
-			return fmt.Errorf("cannot install MSR v3 when MSR v2 is already installed, if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt) or modify the 'spec.msr.version' field in the cluster configuration to a 2.x version")
+			return fmt.Errorf("cannot install MSR v3 when MSR v2 is already installed - if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt), otherwise modify the 'spec.msr.version' field in the cluster configuration to a 2.x version")
 		}
 
 	}
@@ -128,23 +128,23 @@ func (p *GatherFacts) collectMSR3Facts() bool {
 	kc, hc, err := mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
 		if errors.Is(err, mke.ErrMKENotInstalled) {
-			log.Infof("mke is not yet installed, skipping msr fact collection")
+			log.Infof("MKE is not yet installed, skipping MSR fact collection")
 			return false
 		}
 
-		logrus.Debugf("failed to collect existing MSR details: cannot create Helm and Kubernetes clients: %s", err.Error())
+		logrus.Warnf("failed to collect existing MSR details: cannot create Helm and Kubernetes clients: %s", err.Error())
 		return false
 	}
 
 	rc, err := kc.GetMSRResourceClient()
 	if err != nil {
-		logrus.Debugf("failed to collect existing MSR details: cannot create MSR resource client: %s", err.Error())
+		logrus.Warnf("failed to collect existing MSR details: cannot create MSR resource client: %s", err.Error())
 		return false
 	}
 
 	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.V3.CRD.GetName(), kc, rc, hc)
 	if err != nil {
-		logrus.Debugf("failed to collect existing MSR details: %s", err.Error())
+		logrus.Warnf("failed to collect existing MSR details: %s", err.Error())
 		return false
 	}
 

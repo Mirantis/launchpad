@@ -49,6 +49,8 @@ const (
 	ExposedLBServiceName = "msr-public-lb"
 	// DefaultStorageClassAnnotation is the annotation to set a StorageClass to the default.
 	DefaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
+	// DefaultPostgresVolumeSize is the default size for the postgres volume.
+	DefaultPostgresVolumeSize = "20Gi"
 )
 
 const (
@@ -64,7 +66,7 @@ const (
 
 // InstalledDependenciesFilter is the filter used by Helm list for gathering
 // facts about installed MSR3 dependencies.
-var InstalledDependenciesFilter = MSROperator + "|" +
+const InstalledDependenciesFilter = MSROperator + "|" +
 	PostgresOperator + "|" +
 	RethinkDBOperator + "|" +
 	CertManager

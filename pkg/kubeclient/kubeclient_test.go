@@ -36,7 +36,8 @@ func TestDeploymentReady(t *testing.T) {
 	kc := NewTestClient(t)
 
 	err := kc.deploymentReady(context.Background(), "app=test")
-	assert.ErrorContains(t, err, "not found")
+	notFoundErr := &ErrDeploymentNotFound{Labels: "app=test"}
+	assert.ErrorAs(t, err, &notFoundErr)
 
 	d := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -54,7 +55,8 @@ func TestDeploymentReady(t *testing.T) {
 	require.NoError(t, err)
 
 	err = kc.deploymentReady(context.Background(), "app=test")
-	assert.ErrorContains(t, err, "found", "not yet ready")
+	notReadyErr := &ErrDeploymentNotReady{Labels: "app=test"}
+	assert.ErrorAs(t, err, &notReadyErr)
 
 	d.Status.ReadyReplicas = 1
 
@@ -69,7 +71,8 @@ func TestDeploymentReady(t *testing.T) {
 	require.NoError(t, err)
 
 	err = kc.deploymentReady(context.Background(), "app=test")
-	assert.ErrorContains(t, err, "found more than once")
+	multipleFoundErr := &ErrMultipleDeploymentsFound{Labels: "app=test"}
+	assert.ErrorAs(t, err, &multipleFoundErr)
 }
 
 func TestDecodeIntoUnstructured(t *testing.T) {
@@ -101,14 +104,13 @@ func TestDecodeIntoUnstructured(t *testing.T) {
 	assert.Equal(t, "msr.mirantis.com/v1", obj.GetAPIVersion())
 	assert.Equal(t, "MSR", obj.GetKind())
 	assert.Equal(t, "veryrealisticlicense", obj.Object["spec"].(map[string]interface{})["license"])
-	assert.NotZero(t, obj.GetCreationTimestamp())
 
 	t.Run("Given object's creation timestamp is not stripped if present", func(t *testing.T) {
-		msr.ObjectMeta.CreationTimestamp = metav1.Now()
+		// Set the object to have been created 10 seconds ago.
+		msr.ObjectMeta.CreationTimestamp = metav1.NewTime(time.Now().Add(-10 * time.Second))
 		obj, err = DecodeIntoUnstructured(msr)
 		require.NoError(t, err)
 		if assert.NotZero(t, obj.GetCreationTimestamp()) {
-			time.Sleep(1 * time.Second)
 			// obj.GetCreationTimestamp() returns local time in RFC3339 format.
 			assert.Equal(t, metav1.Time{Time: msr.ObjectMeta.CreationTimestamp.Rfc3339Copy().Local()}, obj.GetCreationTimestamp())
 		}
@@ -142,6 +144,8 @@ func TestCRIsReady(t *testing.T) {
 func TestSetStorageClassDefault(t *testing.T) {
 	kc := NewTestClient(t)
 
+	initialLogLevel := logrus.GetLevel()
+	t.Cleanup(func() { logrus.SetLevel(initialLogLevel) })
 	logrus.SetLevel(logrus.DebugLevel)
 
 	_, err := kc.client.StorageV1().StorageClasses().Create(context.Background(), &storagev1.StorageClass{
@@ -167,18 +171,19 @@ func TestSetStorageClassDefault(t *testing.T) {
 		require.NoError(t, err)
 
 		err = kc.SetStorageClassDefault(context.Background(), "test-sc")
-		assert.NoError(t, err)
-
-		// Ensure the old default StorageClass no longer has the default
-		// annotation.
-		sc, err := kc.client.StorageV1().StorageClasses().Get(context.Background(), "some-sc-that-exists", metav1.GetOptions{})
-		require.NoError(t, err)
-		assert.Empty(t, sc.Annotations[constant.DefaultStorageClassAnnotation])
-
-		// Ensure the new default StorageClass has the default annotation.
-		newSC, err := kc.client.StorageV1().StorageClasses().Get(context.Background(), "test-sc", metav1.GetOptions{})
-		require.NoError(t, err)
-		assert.Equal(t, "true", newSC.Annotations[constant.DefaultStorageClassAnnotation])
+		if assert.NoError(t, err) {
+			// Ensure the old default StorageClass no longer has the default
+			// annotation.
+			sc, err := kc.client.StorageV1().StorageClasses().Get(context.Background(), "some-sc-that-exists", metav1.GetOptions{})
+			if assert.NoError(t, err) {
+				assert.Empty(t, sc.Annotations[constant.DefaultStorageClassAnnotation])
+			}
+			// Ensure the new default StorageClass has the default annotation.
+			newSC, err := kc.client.StorageV1().StorageClasses().Get(context.Background(), "test-sc", metav1.GetOptions{})
+			if assert.NoError(t, err) {
+				assert.Equal(t, "true", newSC.Annotations[constant.DefaultStorageClassAnnotation])
+			}
+		}
 	})
 
 }

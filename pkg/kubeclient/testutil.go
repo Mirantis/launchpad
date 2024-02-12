@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// NewTestClient returns a new instance of KubeClient for testing purposes, if
+// NewTestClient returns a new instance of KubeClient for testing purposes. If
 // access to the fake clientset is needed, it can be accessed via type assertion
 // to *fake.Clientset.
 func NewTestClient(t *testing.T) *KubeClient {

@@ -74,8 +74,6 @@ func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.U
 	opts := gatherOptions(options)
 
 	pollCfg := pollutil.DefaultPollfConfig(log.InfoLevel, "waiting for %q CR Ready state for up to %s", obj.GetName(), opts.interval*time.Duration(opts.numRetries))
-
-	// Wait for a maximum time of 10 minutes.
 	pollCfg.Interval = opts.interval
 	pollCfg.NumRetries = opts.numRetries
 
@@ -91,7 +89,7 @@ func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.U
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to obtain MSR CR Ready state after %d retries: %w", pollCfg.NumRetries, err)
+		return fmt.Errorf("failed to obtain MSR CR Ready state after %s: %w", opts.interval*time.Duration(opts.numRetries), err)
 	}
 
 	return nil
@@ -140,7 +138,7 @@ func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstruct
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to apply resource YAML after %d retries: %w", pollCfg.NumRetries, err)
+		return fmt.Errorf("failed to apply resource YAML after: %s: %w", pollCfg.Interval*time.Duration(pollCfg.NumRetries), err)
 	}
 
 	return nil
@@ -224,6 +222,11 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 		port    string
 	)
 
+	svc, err := kc.client.CoreV1().Services(kc.Namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service: %q: %w", name, err)
+	}
+
 	switch serviceType {
 	case string(corev1.ServiceTypeNodePort):
 		nodes, err := kc.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{
@@ -235,11 +238,6 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 
 		if len(nodes.Items) == 0 {
 			return nil, fmt.Errorf("no MSR nodes found")
-		}
-
-		svc, err := kc.client.CoreV1().Services(kc.Namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get service: %q: %w", name, err)
 		}
 
 		for _, p := range svc.Spec.Ports {
@@ -269,19 +267,13 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 		}
 
 	case string(corev1.ServiceTypeLoadBalancer):
-		svc, err := kc.client.CoreV1().Services(kc.Namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get service: %q: %w", name, err)
+		if len(svc.Status.LoadBalancer.Ingress) > 0 {
+			msrAddr = svc.Status.LoadBalancer.Ingress[0].IP
+		} else {
+			return nil, fmt.Errorf("no LoadBalancer IP found for MSR service: %q", name)
 		}
-
-		msrAddr = svc.Status.LoadBalancer.Ingress[0].IP
 
 	case string(corev1.ServiceTypeClusterIP):
-		svc, err := kc.client.CoreV1().Services(kc.Namespace).Get(ctx, name, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("failed to get service: %q: %w", name, err)
-		}
-
 		if svc.Spec.ClusterIP == "None" {
 			// The service is headless, construct the DNS record from one
 			// of the nginx pods.
@@ -302,7 +294,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 		}
 
 	default:
-		return nil, fmt.Errorf("unknown MSR spec.serviceType: %q", serviceType)
+		return nil, fmt.Errorf("unknown MSR spec.service.serviceType: %q", serviceType)
 	}
 
 	if port == "" {
