@@ -188,53 +188,19 @@ func (c LinuxConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo str
 	return nil
 }
 
-// LineIntoFile tries to find a matching line in a file and replace it with a new entry
-// TODO refactor this into go because it's too magical.
-func (c LinuxConfigurer) LineIntoFile(h os.Host, path, matcher, newLine string) error {
-	if c.riglinux.FileExist(h, path) {
-		err := h.Exec(fmt.Sprintf(`file=%s; match=%s; line=%s; sudo grep -q "${match}" "$file" && sudo sed -i "/${match}/c ${line}" "$file" || (echo "$line" | sudo tee -a "$file" > /dev/null)`, escape.Quote(path), escape.Quote(matcher), escape.Quote(newLine)))
-		if err != nil {
-			return fmt.Errorf("failed to update %s: %w", path, err)
-		}
-		return nil
-	}
-	if err := c.riglinux.WriteFile(h, path, newLine, "0600"); err != nil {
-		return fmt.Errorf("failed to create %s: %w", path, err)
-	}
-	return nil
-}
-
 // UpdateEnvironment updates the hosts's environment variables.
 func (c LinuxConfigurer) UpdateEnvironment(h os.Host, env map[string]string) error {
-	for k, v := range env {
-		err := c.LineIntoFile(h, "/etc/environment", fmt.Sprintf("^%s=", k), fmt.Sprintf("%s=%s", k, v))
-		if err != nil {
-			return err
-		}
+	if err := c.riglinux.UpdateEnvironment(h, env); err != nil {
+		return fmt.Errorf("failed updating the env: %w", err)
 	}
-
-	// Update current environment from the /etc/environment
-	err := h.Exec(`while read -r pair; do if [[ $pair == ?* && $pair != \#* ]]; then export "$pair" || exit 2; fi; done < /etc/environment`)
-	if err != nil {
-		return fmt.Errorf("failed to update current environment: %w", err)
-	}
-
 	return c.ConfigureDockerProxy(h, env)
 }
 
 // CleanupEnvironment removes environment variable configuration.
 func (c LinuxConfigurer) CleanupEnvironment(h os.Host, env map[string]string) error {
-	for k := range env {
-		err := c.LineIntoFile(h, "/etc/environment", fmt.Sprintf("^%s=", k), "")
-		if err != nil {
-			return err
-		}
+	if err := c.riglinux.CleanupEnvironment(h, env); err != nil {
+		return fmt.Errorf("failed cleaning the env: %w", err)
 	}
-	// remove empty lines
-	if err := h.Exec(`sed -i '/^$/d' /etc/environment`, exec.Sudo(h)); err != nil {
-		return fmt.Errorf("failed to remove empty lines from /etc/environment: %w", err)
-	}
-
 	return nil
 }
 
