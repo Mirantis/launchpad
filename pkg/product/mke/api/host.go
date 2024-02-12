@@ -29,6 +29,7 @@ type HostMetadata struct {
 	MCRRestartRequired bool
 	ImagesToUpload     []string
 	TotalImageBytes    uint64
+	MCRInstalled       bool
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
