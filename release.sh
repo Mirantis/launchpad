@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 
 if [ -z "${TAG_NAME}" ]; then
@@ -7,18 +6,10 @@ if [ -z "${TAG_NAME}" ]; then
   exit 1
 fi
 
-
-declare -a binaries=("launchpad-darwin-x64" "launchpad-darwin-arm64" "launchpad-win-x64.exe" "launchpad-linux-x64" "launchpad-linux-arm64")
-
-mkdir -p tmp.sha256
-pushd bin
-
-for bin in "${binaries[@]}"
-do
-  sha256sum -b "${bin}" > "../tmp.sha256/${bin}.sha256"
-done
-
-popd
+artifact_path="dist/artifacts"
+artifacts=$(find ${artifact_path}/* -exec basename {} \;)
+echo "Releasing with:"
+for artifact in ${artifacts}; do echo "- ${artifact}"; done
 
 curl -L https://github.com/github-release/github-release/releases/download/v0.8.1/linux-amd64-github-release.bz2 > ./github-release.bz2
 bunzip2 -f ./github-release.bz2
@@ -43,21 +34,14 @@ sleep 10
 
 echo "Uploading the artifacts to ${TAG_NAME} in MCC repo"
 
-for bin in "${binaries[@]}"
+for artifact in ${artifacts}
 do
    ./github-release upload \
     --user Mirantis \
     --repo mcc \
     --tag "${TAG_NAME}" \
-    --name "${bin}" \
-    --file "./bin/${bin}"
-
-   ./github-release upload \
-    --user Mirantis \
-    --repo mcc \
-    --tag "${TAG_NAME}" \
-    --name "${bin}.sha256" \
-    --file "./tmp.sha256/${bin}.sha256"
+    --name "${artifact}" \
+    --file "${artifact_path}/${artifact}"
 done
 
 if [ -z "$releaseopt"]; then
@@ -76,23 +60,15 @@ if [ -z "$releaseopt"]; then
 
   echo "Uploading the artifacts to ${TAG_NAME} in Launchpad repo"
 
-  for bin in "${binaries[@]}"
+  for artifact in ${artifacts}
   do
     ./github-release upload \
       --user Mirantis \
       --repo launchpad \
       --tag "${TAG_NAME}" \
-      --name "${bin}" \
-      --file "./bin/${bin}"
-
-    ./github-release upload \
-      --user Mirantis \
-      --repo launchpad \
-      --tag "${TAG_NAME}" \
-      --name "${bin}.sha256" \
-      --file "./tmp.sha256/${bin}.sha256"
+      --name "${artifact}" \
+      --file "${artifact_path}/${artifact}"
   done
 fi
 
 rm ./github-release
-rm -rf tmp.sha256
