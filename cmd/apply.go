@@ -45,10 +45,9 @@ func NewApplyCommand() *cli.Command {
 				Hidden: true,
 			},
 			&cli.BoolFlag{
-				Name:   "force-upgrade",
-				Usage:  "force upgrade to run on compatible components, even if it doesn't look necessary",
-				Value:  false,
-				Hidden: true,
+				Name:  "force-upgrade",
+				Usage: "force upgrade to run on compatible components, even if it doesn't look necessary",
+				Value: false,
 			},
 		}...),
 		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec),
