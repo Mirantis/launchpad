@@ -5,6 +5,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/configurer"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/linux"
 )
@@ -31,7 +32,7 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 		defer c.CleanupLingeringMCR(h, info)
 	}
 	if getDockerError == nil {
-		if err := h.Exec("sudo docker system prune -f"); err != nil {
+		if err := h.Exec("docker system prune -f"); err != nil {
 			return fmt.Errorf("prune docker: %w", err)
 		}
 
@@ -43,7 +44,7 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 			return fmt.Errorf("stop containerd: %w", err)
 		}
 
-		if err := h.Exec("sudo apt-get remove -y docker-ee docker-ee-cli && sudo apt autoremove -y"); err != nil {
+		if err := h.Exec("apt-get -y remove docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
 			return fmt.Errorf("failed to uninstall docker-ee apt package: %w", err)
 		}
 	}

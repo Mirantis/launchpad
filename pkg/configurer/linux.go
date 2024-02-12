@@ -117,24 +117,20 @@ func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) st
 
 // ValidateLocalhost returns an error if "localhost" is not a local address.
 func (c LinuxConfigurer) ValidateLocalhost(h os.Host) error {
-	if err := h.Exec("sudo ping -c 1 -w 1 -r localhost"); err != nil {
+	if err := h.Exec("ping -c 1 -w 1 localhost"); err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host: %w", err)
 	}
 	return nil
 }
 
 // CheckPrivilege returns an error if the user does not have passwordless sudo enabled.
-func (c LinuxConfigurer) CheckPrivilege(h os.Host) error {
-	if err := h.Exec("sudo -n true"); err != nil {
-		return fmt.Errorf("user does not have passwordless sudo access: %w", err)
-	}
-
+func (c LinuxConfigurer) CheckPrivilege(_ os.Host) error {
 	return nil
 }
 
 // LocalAddresses returns a list of local addresses.
 func (c LinuxConfigurer) LocalAddresses(h os.Host) ([]string, error) {
-	output, err := h.ExecOutput("sudo hostname --all-ip-addresses")
+	output, err := h.ExecOutput("hostname --all-ip-addresses")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get local addresses: %w", err)
 	}
@@ -154,10 +150,6 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return nil
 	}
 
-	if err := h.Exec("[ -d $HOME/.docker ] && ([ ! -r $HOME/.docker ] || [ ! -w $HOME/.docker ]) && sudo chown -hR $USER:$(id -gn) $HOME/.docker"); err == nil {
-		log.Warnf("%s: changed the owner of ~/.docker to be the current user", h)
-	}
-
 	if err := h.Exec("groups | grep -q docker"); err == nil {
 		log.Debugf("%s: user already in the 'docker' group", h)
 		return nil
@@ -168,7 +160,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return nil //nolint:nilerr
 	}
 
-	if err := h.Exec("sudo -i usermod -aG docker $USER"); err != nil {
+	if err := h.Exec("usermod -aG docker $USER", exec.Sudo(h)); err != nil {
 		return fmt.Errorf("failed to add the current user to the 'docker' group: %w", err)
 	}
 
@@ -239,7 +231,7 @@ func (c LinuxConfigurer) CleanupEnvironment(h os.Host, env map[string]string) er
 		}
 	}
 	// remove empty lines
-	if err := h.Exec(`sudo sed -i '/^$/d' /etc/environment`); err != nil {
+	if err := h.Exec(`sed -i '/^$/d' /etc/environment`, exec.Sudo(h)); err != nil {
 		return fmt.Errorf("failed to remove empty lines from /etc/environment: %w", err)
 	}
 
@@ -264,7 +256,7 @@ func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) 
 	dir := "/etc/systemd/system/docker.service.d"
 	cfg := path.Join(dir, "http-proxy.conf")
 
-	err := h.Exec(fmt.Sprintf("sudo mkdir -p %s", dir))
+	err := c.riglinux.MkDir(h, dir, exec.Sudo(h))
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %w", dir, err)
 	}
@@ -356,16 +348,16 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	}
 
 	// /var/lib/ Root folder
-	c.attemptPathDelete(h, dockerRootDir)
+	c.attemptPathSudoDelete(h, dockerRootDir)
 	if idx := strings.LastIndex(dockerRootDir, "/"); idx != -1 {
 		dockerRootDir = dockerRootDir[:idx]
 	}
 	dockerCriPath := path.Join(dockerRootDir, "cri-dockerd")
-	c.attemptPathDelete(h, dockerCriPath)
+	c.attemptPathSudoDelete(h, dockerCriPath)
 
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
-	if err := h.Exec(fmt.Sprintf("sudo umount %s", execRootNetnsUnmount)); err != nil {
+	if err := h.Exec(fmt.Sprintf("umount %s", execRootNetnsUnmount), exec.Sudo(h)); err != nil {
 		log.Debugf("%s: failed to umount %s: %s", h, execRootNetnsUnmount, err)
 	}
 
@@ -374,30 +366,35 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 		dockerExecRootDir = dockerExecRootDir[:idx]
 	}
 	criDockerdMkeSock := path.Join(dockerExecRootDir, "cri-dockerd-mke.sock")
-	c.attemptPathDelete(h, criDockerdMkeSock)
+	c.attemptPathSudoDelete(h, criDockerdMkeSock)
 
 	dockerSock := path.Join(dockerExecRootDir, "docker.sock")
-	c.attemptPathDelete(h, dockerSock)
+	c.attemptPathSudoDelete(h, dockerSock)
 
 	// /lib/systemd/system/ folder
-	c.attemptPathDelete(h, "/lib/systemd/system/cri-dockerd-mke.service")
-	c.attemptPathDelete(h, "/lib/systemd/system/cri-dockerd-mke.socket")
+	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.service")
+	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.socket")
 }
 
-func (c LinuxConfigurer) attemptPathDelete(h os.Host, path string) {
-	fileInfo, err := c.riglinux.Stat(h, path)
+func (c LinuxConfigurer) attemptPathSudoDelete(h os.Host, path string) {
+	fileInfo, err := c.riglinux.Stat(h, path, exec.Sudo(h))
 	if err != nil {
 		log.Debugf("%s: error getting file information for %s: %s", h, path, err)
-	} else {
-		command := fmt.Sprintf("sudo rm %s", path)
-		if fileInfo.IsDir() {
-			command = fmt.Sprintf("sudo rm -rf %s", path)
-		}
-		if c.riglinux.FileExist(h, path) {
-			if err := h.Exec(command); err != nil {
-				log.Infof("%s: failed to remove %s: %s", h, path, err)
-			}
-			log.Infof("%s: removed %s successfully", h, path)
-		}
+		return
 	}
+
+	if !c.riglinux.FileExist(h, path) {
+		log.Infof("%s: file %s doesn't exist", h, path)
+		return
+	}
+
+	command := fmt.Sprintf("rm %s", path)
+	if fileInfo.IsDir() {
+		command = fmt.Sprintf("rm -rf %s", path)
+	}
+
+	if err := h.Exec(command, exec.Sudo(h)); err != nil {
+		log.Infof("%s: failed to remove %s: %s", h, path, err)
+	}
+	log.Infof("%s: removed %s successfully", h, path)
 }

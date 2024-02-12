@@ -5,6 +5,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/configurer"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/linux"
 	log "github.com/sirupsen/logrus"
@@ -31,7 +32,7 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 		defer c.CleanupLingeringMCR(h, info)
 	}
 	if getDockerError == nil {
-		if err := h.Exec("sudo docker system prune -f"); err != nil {
+		if err := h.Exec("docker system prune -f"); err != nil {
 			return fmt.Errorf("prune docker: %w", err)
 		}
 
@@ -43,7 +44,7 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 			return fmt.Errorf("stop containerd: %w", err)
 		}
 
-		if err := h.Exec("sudo yum remove -y docker-ee docker-ee-cli"); err != nil {
+		if err := h.Exec("yum remove -y docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
 			return fmt.Errorf("remove docker-ee yum package: %w", err)
 		}
 	}
@@ -59,7 +60,7 @@ func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common
 		}
 	}
 
-	if h.Exec("sudo yum-config-manager --enable rhel-7-server-rhui-extras-rpms && sudo yum makecache fast") == nil {
+	if h.Exec("sh -c 'yum-config-manager --enable rhel-7-server-rhui-extras-rpms && yum makecache fast'", exec.Sudo(h)) == nil {
 		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", h)
 	}
 
