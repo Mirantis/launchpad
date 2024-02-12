@@ -53,12 +53,6 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 
 // InstallMCR install Docker EE engine on Linux.
 func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	if h.Exec("sudo dmidecode -s system-manufacturer|grep -q EC2") == nil {
-		if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
-			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
-		}
-	}
-
 	if h.Exec("sudo yum-config-manager --enable rhel-7-server-rhui-extras-rpms && sudo yum makecache fast") == nil {
 		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", h)
 	}
