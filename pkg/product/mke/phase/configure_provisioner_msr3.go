@@ -74,7 +74,7 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 		}
 
 		log.Debugf("storage provisioner %q already installed, at version: %s", sp.name, sp.releaseDetails.Version)
-		sp = nil
+		p.storageProvisioner = nil
 	}
 
 	return nil
