@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          check-latest: true
 
       - name: Check go.mod/go.sum to be consistent
         run: go mod tidy -v && git diff --exit-code

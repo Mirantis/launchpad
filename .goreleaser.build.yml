@@ -1,0 +1,30 @@
+#
+# GOReleaser instructions for build
+#
+# We use only the build components of goreleaser because;
+# 1. we need to use digicert to sign, no option here
+# 2. we would need the pro version to use the prebuilt
+#    option to get the signing and packaging features
+#
+project_name: launchpad
+builds:
+- env:
+    # goreleaser does not work with CGO, it could also complicate CI/CD
+    - CGO_ENABLED=0
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  flags:
+    - -trimpath
+  ldflags:
+    - -X github.com/Mirantis/mcc/version.Environment=Production
+    - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
+    - -X github.com/Mirantis/mcc/version.Version={{ .Tag }}
+  goos:
+    - freebsd
+    - windows
+    - linux
+    - darwin
+  goarch:
+    - amd64
+    - arm64
+  no_unique_dist_dir: true  
+  binary: 'artifacts/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}_{{ .Version }}'

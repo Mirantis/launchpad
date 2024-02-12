@@ -1,5 +1,7 @@
-bin/
+dist/
 .idea/
 .DS_Store
 
 .tfstate
+
+github-release

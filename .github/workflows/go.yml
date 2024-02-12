@@ -22,7 +22,6 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
-        check-latest: true
 
     - name: Unit Tests
       run: go test -v ./... -tags=unit
