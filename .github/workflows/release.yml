@@ -3,7 +3,7 @@ name: Release binaries to Mirantis/Launchpad
 on:
     push:
         tags:
-            - v*
+            - test*
 jobs:
     release:
         runs-on: ubuntu-latest
