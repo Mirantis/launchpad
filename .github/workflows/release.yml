@@ -12,7 +12,7 @@ jobs:
               uses: actions/checkout@v2
             - name: Set up ENVs
               run: |
-                echo "${{ secrets.SM_CLIENT_PKC12_CERT }}" > secret.txt
+                echo -n "${{ secrets.SM_CLIENT_PKC12_CERT }}" > sign_cert.p12
                 echo "SM_CLIENT_CERT_FILE_PATH=$(pwd)/secret.txt" >> $GITHUB_ENV
             - name: Run release script
               env:
