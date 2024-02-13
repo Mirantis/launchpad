@@ -1,14 +1,12 @@
 package helm
 
 import (
-	"context"
 	"testing"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 func TestChartNeedsUpgrade(t *testing.T) {
@@ -38,7 +36,7 @@ func TestChartNeedsUpgrade(t *testing.T) {
 		vers, err := version.NewVersion(tc)
 		require.NoError(t, err)
 
-		actual, err := h.ChartNeedsUpgrade(context.Background(), constant.RethinkDBOperator, vers)
+		actual, err := h.ChartNeedsUpgrade(constant.RethinkDBOperator, vers)
 		if assert.NoError(t, err) {
 			if tc == rdbOperatorVersion {
 				assert.False(t, actual, "version: %s does match current version: %s", tc, rdbOperatorVersion)

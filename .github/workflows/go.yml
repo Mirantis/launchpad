@@ -1,6 +1,6 @@
 name: Go unit tests
 
-on: 
+on:
   pull_request:
     paths:
       - '**.go'
@@ -24,5 +24,13 @@ jobs:
         go-version-file: go.mod
         check-latest: true
 
+    - name: Configure Git SSH keys
+      uses: shaunco/ssh-agent@git-repo-mapping
+      with:
+        ssh-private-key: |
+          ${{ secrets.MSR_OPERATOR_SSH_PRIVATE_KEY }}
+        repo-mappings: |
+            github.com/Mirantis/msr-operator
+
     - name: Test
-      run: go test -v ./...
+      run: go test -v --tags 'testing' ./...

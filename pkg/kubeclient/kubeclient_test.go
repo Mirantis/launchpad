@@ -36,7 +36,7 @@ func TestDeploymentReady(t *testing.T) {
 	kc := NewTestClient(t)
 
 	err := kc.deploymentReady(context.Background(), "app=test")
-	notFoundErr := &ErrDeploymentNotFound{Labels: "app=test"}
+	notFoundErr := &DeploymentNotFoundError{Labels: "app=test"}
 	assert.ErrorAs(t, err, &notFoundErr)
 
 	d := &appsv1.Deployment{
@@ -55,7 +55,7 @@ func TestDeploymentReady(t *testing.T) {
 	require.NoError(t, err)
 
 	err = kc.deploymentReady(context.Background(), "app=test")
-	notReadyErr := &ErrDeploymentNotReady{Labels: "app=test"}
+	notReadyErr := &DeploymentNotReadyError{Labels: "app=test"}
 	assert.ErrorAs(t, err, &notReadyErr)
 
 	d.Status.ReadyReplicas = 1
@@ -71,7 +71,7 @@ func TestDeploymentReady(t *testing.T) {
 	require.NoError(t, err)
 
 	err = kc.deploymentReady(context.Background(), "app=test")
-	multipleFoundErr := &ErrMultipleDeploymentsFound{Labels: "app=test"}
+	multipleFoundErr := &MultipleDeploymentsFoundError{Labels: "app=test"}
 	assert.ErrorAs(t, err, &multipleFoundErr)
 }
 

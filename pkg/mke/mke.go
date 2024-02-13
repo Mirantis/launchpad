@@ -17,14 +17,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/kubeclient"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
 )
 
 // AuthToken represents a session token.
@@ -195,9 +194,11 @@ func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Con
 	}, nil
 }
 
+var errNoManagersInConfig = errors.New("no managers found in config")
+
 func DownloadBundle(config *api.ClusterConfig) error {
 	if len(config.Spec.Managers()) == 0 {
-		return fmt.Errorf("no managers found in config")
+		return errNoManagersInConfig
 	}
 
 	m := config.Spec.Managers()[0]
@@ -347,7 +348,7 @@ func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *
 
 	kube, err := kubeclient.NewFromBundle(bundleDir, config.Spec.Namespace)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to create kube client: %w", err)
 	}
 
 	helm, err := helm.New(bundleDir, config.Spec.Namespace)

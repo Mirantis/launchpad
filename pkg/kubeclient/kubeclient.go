@@ -2,10 +2,12 @@ package kubeclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	log "github.com/sirupsen/logrus"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,8 +18,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 type KubeClient struct {
@@ -63,6 +63,15 @@ func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 	return kc, nil
 }
 
+type NotFoundError struct {
+	Kind string
+	Name string
+}
+
+func (e *NotFoundError) Error() string {
+	return fmt.Sprintf("%s: %q not found", e.Kind, e.Name)
+}
+
 // crdReady verifies that the CRD is available.
 // This is the equivalent of running `kubectl get crd crdName`.
 func (kc *KubeClient) crdReady(ctx context.Context, name string) error {
@@ -74,27 +83,27 @@ func (kc *KubeClient) crdReady(ctx context.Context, name string) error {
 	return nil
 }
 
-type ErrDeploymentNotReady struct {
+type DeploymentNotReadyError struct {
 	Labels string
 }
 
-func (e *ErrDeploymentNotReady) Error() string {
+func (e *DeploymentNotReadyError) Error() string {
 	return fmt.Sprintf("deployment with %q labels was found, but is not yet ready", e.Labels)
 }
 
-type ErrDeploymentNotFound struct {
+type DeploymentNotFoundError struct {
 	Labels string
 }
 
-func (e *ErrDeploymentNotFound) Error() string {
+func (e *DeploymentNotFoundError) Error() string {
 	return fmt.Sprintf("deployment with %q labels not found", e.Labels)
 }
 
-type ErrMultipleDeploymentsFound struct {
+type MultipleDeploymentsFoundError struct {
 	Labels string
 }
 
-func (e *ErrMultipleDeploymentsFound) Error() string {
+func (e *MultipleDeploymentsFoundError) Error() string {
 	return fmt.Sprintf("deployment with %q labels found more than once, ensure the deployment is unique", e.Labels)
 }
 
@@ -102,30 +111,39 @@ func (e *ErrMultipleDeploymentsFound) Error() string {
 // This is the equivalent of running `kubectl list deployment -l labels`.
 // The labels should be formatted as a comma separated list of key=value pairs.
 func (kc *KubeClient) deploymentReady(ctx context.Context, labels string) error {
-	d, err := kc.client.AppsV1().Deployments(kc.Namespace).List(ctx, metav1.ListOptions{
+	deployments, err := kc.client.AppsV1().Deployments(kc.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels,
 	})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return &ErrDeploymentNotFound{Labels: labels}
+			return &DeploymentNotFoundError{Labels: labels}
 		}
 
-		return err
+		return fmt.Errorf("failed to list deployments with labels: %q: %w", labels, err)
 	}
 
-	if len(d.Items) > 1 {
-		return &ErrMultipleDeploymentsFound{Labels: labels}
+	if len(deployments.Items) > 1 {
+		return &MultipleDeploymentsFoundError{Labels: labels}
 	}
 
-	if len(d.Items) < 1 {
-		return &ErrDeploymentNotFound{Labels: labels}
+	if len(deployments.Items) < 1 {
+		return &DeploymentNotFoundError{Labels: labels}
 	}
 
-	if d.Items[0].Status.ReadyReplicas < 1 {
-		return &ErrDeploymentNotReady{Labels: labels}
+	if deployments.Items[0].Status.ReadyReplicas < 1 {
+		return &DeploymentNotReadyError{Labels: labels}
 	}
 
 	return nil
+}
+
+type ConditionsNotFoundError struct {
+	Kind string
+	Name string
+}
+
+func (e *ConditionsNotFoundError) Error() string {
+	return fmt.Sprintf("status.conditions not found in %s: %q", e.Kind, e.Name)
 }
 
 // crIsReady verifies that the Custom Resource is available and ready, the CR
@@ -143,7 +161,7 @@ func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructu
 	conditions, found, err := unstructured.NestedSlice(crdObj.Object, "status", "conditions")
 	if err != nil || !found {
 		if !found {
-			return false, fmt.Errorf("status.conditions not found in CR: %q", name)
+			return false, &ConditionsNotFoundError{Kind: obj.GetKind(), Name: name}
 		}
 
 		return false, fmt.Errorf("failed to get status.conditions from CR: %q: %w", name, err)
@@ -165,6 +183,14 @@ func (kc *KubeClient) crIsReady(ctx context.Context, obj *unstructured.Unstructu
 	return false, nil
 }
 
+type StorageClassNotFoundError struct {
+	Name string
+}
+
+func (e *StorageClassNotFoundError) Error() string {
+	return fmt.Sprintf("storage class: %q not found", e.Name)
+}
+
 // SetStorageClassDefault configures the given StorageClass name as the default,
 // ensuring that no other StorageClass has the default annotation.
 func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) error {
@@ -177,34 +203,35 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 
 	var needsUpdate, found bool
 
-	for _, sc := range storageClasses.Items {
-		if sc.Name == name {
+	for _, storageClass := range storageClasses.Items {
+		storageClass := storageClass
+
+		if storageClass.Name == name {
 			found = true
 
 			// Apply the default annotation to the named StorageClass.
-			if _, ok := sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; !ok {
+			if _, ok := storageClass.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; !ok {
 				log.Debugf("setting default StorageClass annotation on: %s", name)
 
-				if sc.ObjectMeta.Annotations == nil {
-					sc.ObjectMeta.Annotations = make(map[string]string)
+				if storageClass.ObjectMeta.Annotations == nil {
+					storageClass.ObjectMeta.Annotations = make(map[string]string)
 				}
 
-				sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation] = "true"
+				storageClass.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation] = "true"
 			}
 			needsUpdate = true
 		} else {
 			// Strip the default annotation if found from a different StorageClass.
-			if _, ok := sc.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; ok {
-				log.Debugf("found existing default StorageClass: %s, removing default annotation", sc.Name)
+			if _, ok := storageClass.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; ok {
+				log.Debugf("found existing default StorageClass: %s, removing default annotation", storageClass.Name)
 
-				delete(sc.ObjectMeta.Annotations, constant.DefaultStorageClassAnnotation)
+				delete(storageClass.ObjectMeta.Annotations, constant.DefaultStorageClassAnnotation)
 				needsUpdate = true
 			}
 		}
 
 		if needsUpdate {
-			// Apply the annotation modifications if they were made.
-			if _, err := kc.client.StorageV1().StorageClasses().Update(ctx, &sc, metav1.UpdateOptions{}); err != nil {
+			if _, err := kc.client.StorageV1().StorageClasses().Update(ctx, &storageClass, metav1.UpdateOptions{}); err != nil {
 				return fmt.Errorf("failed to update StorageClass: %q annotations: %w", name, err)
 			}
 		}
@@ -212,7 +239,7 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 
 	// If the named StorageClass was not found, return an error.
 	if !found {
-		return fmt.Errorf("StorageClass: %q not found", name)
+		return &StorageClassNotFoundError{Name: name}
 	}
 
 	return nil
@@ -220,13 +247,19 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 
 // DeleteService deletes service by name.
 func (kc *KubeClient) DeleteService(ctx context.Context, name string) error {
-	return kc.client.CoreV1().Services(kc.Namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err := kc.client.CoreV1().Services(kc.Namespace).Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return fmt.Errorf("failed to delete service: %q: %w", name, err)
+	}
+
+	return nil
 }
+
+var errNotYetImplemented = errors.New("not yet implemented")
 
 // ExposeLoadBalancer creates a new service of Type: LoadBalancer, it's
 // the equivalent of 'kubectl expose'.
-func (kc *KubeClient) ExposeLoadBalancer(ctx context.Context, url string) error {
-	return fmt.Errorf("not yet implemented")
+func (kc *KubeClient) ExposeLoadBalancer(_ context.Context, _ string) error {
+	return errNotYetImplemented
 }
 
 // DecodeIntoUnstructured converts a given runtime.Object into an

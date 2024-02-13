@@ -10,9 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -20,6 +17,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
 	"github.com/Mirantis/mcc/pkg/util/stringutil"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
 )
 
 // RemoveNodes phase implementation.

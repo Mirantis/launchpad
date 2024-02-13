@@ -10,6 +10,13 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
+            - name: Configure Git SSH keys
+              uses: shaunco/ssh-agent@git-repo-mapping
+              with:
+                ssh-private-key: |
+                  ${{ secrets.MSR_OPERATOR_SSH_PRIVATE_KEY }}
+                repo-mappings: |
+                  github.com/Mirantis/msr-operator
             - name: Run release script
               env:
                 TAG_NAME: ${{ github.ref_name }}

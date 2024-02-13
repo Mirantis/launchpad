@@ -3,12 +3,11 @@ package phase
 import (
 	"fmt"
 
-	retry "github.com/avast/retry-go"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	retry "github.com/avast/retry-go"
+	log "github.com/sirupsen/logrus"
 )
 
 // PrepareHost phase implementation does all the prep work we need for the hosts.

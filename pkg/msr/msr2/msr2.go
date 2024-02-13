@@ -6,12 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/avast/retry-go"
-	log "github.com/sirupsen/logrus"
-
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util/stringutil"
+	"github.com/avast/retry-go"
+	"github.com/k0sproject/rig/log"
 )
 
 // CollectFacts gathers the current status of the installed MSR setup.
@@ -116,8 +115,13 @@ func FormatReplicaID(num uint64) string {
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR.
 func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
-	mkeUser := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-username")
-	mkePass := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-password")
+	var mkeUser string
+	var mkePass string
+
+	if config.Spec.MSR != nil {
+		mkeUser = config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-username")
+		mkePass = config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-password")
+	}
 
 	if mkeUser == "" {
 		mkeUser = config.Spec.MKE.AdminUsername
@@ -210,7 +214,7 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 		if h.MSRMetadata.MSR2.ReplicaID != "" {
 			ri, err := strconv.ParseUint(h.MSRMetadata.MSR2.ReplicaID, 16, 48)
 			if err != nil {
-				return fmt.Errorf("%s: invalid MSR replicaID %q: %s", h, h.MSRMetadata.MSR2.ReplicaID, err)
+				return fmt.Errorf("%s: invalid MSR replicaID %q: %w", h, h.MSRMetadata.MSR2.ReplicaID, err)
 			}
 			if maxReplicaID < ri {
 				maxReplicaID = ri
@@ -224,14 +228,16 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 	if maxReplicaID+uint64(len(msrHosts)) > 0xffffffffffff {
 		return fmt.Errorf("%w: cluster already has replica id %012x which will overflow", errMaxReplicaID, maxReplicaID)
 	}
-	return msrHosts.Each(func(h *api.Host) error {
+	err = msrHosts.Each(func(h *api.Host) error {
 		if h.MSRMetadata.MSR2.ReplicaID == "" {
 			maxReplicaID++
 			h.MSRMetadata.MSR2.ReplicaID = FormatReplicaID(maxReplicaID)
 		}
 		return nil
 	})
-
+	if err != nil {
+		return fmt.Errorf("failed to assign MSR replicaIDs: %w", err)
+	}
 	return nil
 }
 
@@ -260,7 +266,7 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 		func() error {
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))
 			if err != nil || strings.TrimSpace(output) == "" {
-				return fmt.Errorf("MSR nginx container not running: %w", err)
+				return fmt.Errorf("msr nginx container not running: %w", err)
 			}
 			return nil
 		},
@@ -276,7 +282,7 @@ func WaitMSRNodeReady(h *api.Host, port int) error {
 	err = retry.Do(
 		func() error {
 			if err := h.CheckHTTPStatus(fmt.Sprintf("https://localhost:%d/_ping", port), 200); err != nil {
-				return fmt.Errorf("MSR invalid ping response: %w", err)
+				return fmt.Errorf("msr invalid ping response: %w", err)
 			}
 
 			return nil

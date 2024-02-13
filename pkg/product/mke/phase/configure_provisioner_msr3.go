@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-	"k8s.io/utils/ptr"
-
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	log "github.com/sirupsen/logrus"
+	"k8s.io/utils/ptr"
 )
 
 // ConfigureStorageProvisioner sets up the default provisioner to use based on
@@ -29,20 +28,17 @@ func (p *ConfigureStorageProvisioner) Title() string {
 }
 
 func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
-	ctx := context.Background()
-
 	if _, ok := config.(*api.ClusterConfig); !ok {
-		return fmt.Errorf("expected ClusterConfig, got %T", config)
+		return errInvalidConfig
 	}
 
-	p.Config = config.(*api.ClusterConfig)
 	p.leader = p.Config.Spec.MSRLeader()
 
 	var err error
 
 	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get kube and helm clients: %w", err)
 	}
 
 	// Check to see if the storageProvisioner is already installed and at the
@@ -52,28 +48,28 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 	// phase, potentially uninstalling a prior storageProvisioner if the type
 	// has changed.  We can most likely add this when we support more than one
 	// storageProvisioner type.
-	sp := storageProvisionerChart(p.Config)
-	if sp == nil {
+	storageProvisioner := storageProvisionerChart(p.Config)
+	if storageProvisioner == nil {
 		log.Debugf("no storage provisioner to configure")
 		return nil
 	}
 
-	releases, err := p.Helm.List(ctx, fmt.Sprintf("^%s$", sp.releaseDetails.ChartName))
+	releases, err := p.Helm.List(fmt.Sprintf("^%s$", storageProvisioner.releaseDetails.ChartName))
 	if err != nil {
 		return fmt.Errorf("failed to list storage provisioner Helm releases: %w", err)
 	}
 
 	if len(releases) > 1 {
-		return fmt.Errorf("found more than one release for storage provisioner %q", sp.name)
+		return helm.MulipleReleasesFoundError{ReleaseName: storageProvisioner.name}
 	}
 
 	if len(releases) == 1 {
-		if sp.releaseDetails.Version != releases[0].Chart.Metadata.Version {
-			log.Debugf("storage provisioner %q already installed, but at version %q, upgrading to %q", sp.name, releases[0].Version, sp.releaseDetails.Version)
+		if storageProvisioner.releaseDetails.Version != releases[0].Chart.Metadata.Version {
+			log.Debugf("storage provisioner %q already installed, but at version %q, upgrading to %q", storageProvisioner.name, releases[0].Version, storageProvisioner.releaseDetails.Version)
 			return nil
 		}
 
-		log.Debugf("storage provisioner %q already installed, at version: %s", sp.name, sp.releaseDetails.Version)
+		log.Debugf("storage provisioner %q already installed, at version: %s", storageProvisioner.name, storageProvisioner.releaseDetails.Version)
 		p.storageProvisioner = nil
 	}
 
@@ -94,11 +90,11 @@ func (p *ConfigureStorageProvisioner) Run() error {
 			ReleaseDetails: *p.storageProvisioner.releaseDetails,
 			Timeout:        ptr.To(helm.DefaultTimeout),
 		}); err != nil {
-			return err
+			return fmt.Errorf("failed to install/upgrade Helm release %q: %w", p.storageProvisioner.name, err)
 		}
 
 		if err := p.Kube.SetStorageClassDefault(ctx, p.storageProvisioner.name); err != nil {
-			return err
+			return fmt.Errorf("failed to set default storage class to %q: %w", p.storageProvisioner.name, err)
 		}
 	}
 

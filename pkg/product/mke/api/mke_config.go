@@ -8,7 +8,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/fileutil"
-
 	"github.com/hashicorp/go-version"
 )
 

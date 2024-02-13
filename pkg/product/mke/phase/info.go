@@ -1,10 +1,9 @@
 package phase
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
+	log "github.com/sirupsen/logrus"
 )
 
 // Info shows information about the configured clusters.

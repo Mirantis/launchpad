@@ -8,13 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	escape "github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // LinuxConfigurer is a generic linux host configurer.

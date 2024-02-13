@@ -8,14 +8,13 @@ import (
 	"sync"
 	"time"
 
-	retry "github.com/avast/retry-go"
-	"github.com/gammazero/workerpool"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	retry "github.com/avast/retry-go"
+	"github.com/gammazero/workerpool"
+	log "github.com/sirupsen/logrus"
 )
 
 // UpgradeMCR phase implementation.
@@ -219,26 +218,26 @@ func validateMSRReady(config *api.ClusterConfig, h *api.Host, port int) error {
 	switch config.Spec.MSR.MajorVersion() {
 	case 2:
 		if err := msr2.WaitMSRNodeReady(h, port); err != nil {
-			return err
+			return fmt.Errorf("%s: failed to wait for MSR node to be ready: %w", h, err)
 		}
 	case 3:
-		kc, _, err := mke.KubeAndHelmFromConfig(config)
+		kubeClient, _, err := mke.KubeAndHelmFromConfig(config)
 		if err != nil {
 			return fmt.Errorf("failed to create Kubernetes and Helm clients from config: %w", err)
 		}
 
-		rc, err := kc.GetMSRResourceClient()
+		rc, err := kubeClient.GetMSRResourceClient()
 		if err != nil {
 			return fmt.Errorf("failed to get resource client for MSR CR: %w", err)
 		}
 
-		obj, err := kc.GetMSRCR(ctx, config.Spec.MSR.V3.CRD.GetName(), rc)
+		obj, err := kubeClient.GetMSRCR(ctx, config.Spec.MSR.V3.CRD.GetName(), rc)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get MSR CR: %w", err)
 		}
 
-		if err := kc.WaitForMSRCRReady(ctx, obj, rc); err != nil {
-			return err
+		if err := kubeClient.WaitForMSRCRReady(ctx, obj, rc); err != nil {
+			return fmt.Errorf("failed to wait for MSR CR to be ready: %w", err)
 		}
 	}
 

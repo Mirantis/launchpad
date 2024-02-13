@@ -3,12 +3,11 @@ package phase
 import (
 	"fmt"
 
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
 )
 
 // UpgradeMSR is the phase implementation for running the actual msr upgrade container.

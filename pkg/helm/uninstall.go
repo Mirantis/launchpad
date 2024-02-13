@@ -1,22 +1,28 @@
 package helm
 
 import (
-	"context"
+	"errors"
 	"fmt"
 
 	"helm.sh/helm/v3/pkg/action"
 )
 
+var errReleaseNameEmpty = errors.New("release name is empty")
+
 // Uninstall uninstalls a Helm release.
-func (h *Helm) Uninstall(ctx context.Context, opts *Options) error {
+func (h *Helm) Uninstall(opts *Options) error {
 	cfg := h.config
 
 	u := action.NewUninstall(&cfg)
 
 	if opts.ReleaseName == "" {
-		return fmt.Errorf("release name is empty")
+		return errReleaseNameEmpty
 	}
 
 	_, err := u.Run(opts.ReleaseName)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to uninstall Helm release %q: %w", opts.ReleaseName, err)
+	}
+
+	return nil
 }

@@ -5,9 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/Mirantis/mcc/pkg/util/fileutil"
+	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -56,7 +55,7 @@ func SaveConfig(config *Config) error {
 	}
 	configDir := filepath.Dir(configFile)
 	if err := os.MkdirAll(configDir, os.ModePerm); err != nil {
-		return err
+		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 	d, err := yaml.Marshal(&config)
 	if err != nil {

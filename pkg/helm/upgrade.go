@@ -67,7 +67,7 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 		Version: opts.Version,
 	}
 
-	ch, err := getChart(chartPathOptions, opts.ChartName, &settings)
+	chartToUpgrade, err := getChart(chartPathOptions, opts.ChartName, &settings)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	if _, err := histClient.Run(opts.ReleaseName); err != nil {
 		if errors.Is(err, driver.ErrReleaseNotFound) {
 			log.Infof("release %q not found, installing it now", opts.ReleaseName)
-			return h.install(ctx, opts, opts.Values, ch)
+			return h.install(ctx, opts, opts.Values, chartToUpgrade)
 		}
 
 		return nil, fmt.Errorf("failed to retrieve release history for %q: %w", opts.ReleaseName, err)
@@ -96,36 +96,51 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 		u.Timeout = *opts.Timeout
 	}
 
-	return u.RunWithContext(ctx, opts.ReleaseDetails.ReleaseName, ch, opts.Values)
+	release, err := u.RunWithContext(ctx, opts.ReleaseDetails.ReleaseName, chartToUpgrade, opts.Values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upgrade Helm release %q: %w", opts.ReleaseName, err)
+	}
+
+	return release, nil
 }
 
 // install is ran as part of the Upgrade process when the chart is not
 // yet installed.  Our Upgrade is essentially the equivalent of
 // 'helm upgrade --install'.
-func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]interface{}, ch *chart.Chart) (rel *release.Release, err error) {
+func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]interface{}, chartToInstall *chart.Chart) (rel *release.Release, err error) {
 	cfg := h.config
 	settings := h.settings
 
-	i := action.NewInstall(&cfg)
+	installAction := action.NewInstall(&cfg)
 
 	if opts.Timeout != nil {
-		i.Timeout = *opts.Timeout
+		installAction.Timeout = *opts.Timeout
 	}
 
-	i.Namespace = settings.Namespace()
-	i.ReleaseName = opts.ReleaseName
-	i.Version = opts.Version
-	i.Atomic = opts.Atomic
-	i.Wait = opts.Wait
+	installAction.Namespace = settings.Namespace()
+	installAction.ReleaseName = opts.ReleaseName
+	installAction.Version = opts.Version
+	installAction.Atomic = opts.Atomic
+	installAction.Wait = opts.Wait
 
-	return i.RunWithContext(ctx, ch, vals)
+	release, err := installAction.RunWithContext(ctx, chartToInstall, vals)
+	if err != nil {
+		return nil, fmt.Errorf("failed to install Helm release %q: %w", opts.ReleaseName, err)
+	}
+
+	return release, nil
 }
 
 func getChart(chartPathOptions action.ChartPathOptions, chartName string, settings *cli.EnvSettings) (*chart.Chart, error) {
 	chartPath, err := chartPathOptions.LocateChart(chartName, settings)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to locate chart %q: %w", chartName, err)
 	}
 
-	return loader.Load(chartPath)
+	loadedChart, err := loader.Load(chartPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load chart %q: %w", chartPath, err)
+	}
+
+	return loadedChart, nil
 }

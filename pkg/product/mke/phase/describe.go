@@ -5,10 +5,9 @@ import (
 	"os"
 	"text/tabwriter"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
+	log "github.com/sirupsen/logrus"
 )
 
 // Describe shows information about the current status of the cluster.
@@ -75,7 +74,7 @@ func (p *Describe) msrReport() {
 	tabWriter.Init(os.Stdout, 8, 8, 1, '\t', 0)
 
 	fmt.Fprintf(tabWriter, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
-	uv := msrLeader.MSRMetadata.InstalledVersion
+	installedVersion := msrLeader.MSRMetadata.InstalledVersion
 	msrURL := "n/a"
 
 	var err error
@@ -94,7 +93,7 @@ func (p *Describe) msrReport() {
 		}
 	}
 
-	fmt.Fprintf(tabWriter, "%s\t%s\t\n", uv, msrURL)
+	fmt.Fprintf(tabWriter, "%s\t%s\t\n", installedVersion, msrURL)
 	tabWriter.Flush()
 }
 

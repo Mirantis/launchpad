@@ -8,13 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/rig"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // Cluster is for universal cluster settings not applicable to single hosts, mke, msr or engine.
@@ -119,6 +118,8 @@ func (c *ClusterSpec) MKEURL() (*url.URL, error) {
 	}, nil
 }
 
+var errNoMSRNodesFound = errors.New("no MSR nodes found")
+
 // MSR2URL returns an url to an MSR2 or an error if one can't be generated.
 func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 	var msrAddr string
@@ -131,7 +132,7 @@ func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 			}
 			u, err := url.Parse(f)
 			if err != nil {
-				return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %s", f, err.Error())
+				return nil, fmt.Errorf("invalid MSR --dtr-external-url install flag '%s': %w", f, err)
 			}
 			if u.Scheme == "" {
 				u.Scheme = "https"
@@ -146,15 +147,16 @@ func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 	// Otherwise, use MSRLeaderAddress
 	msrLeader := c.MSRLeader()
 	if msrLeader == nil {
-		return nil, fmt.Errorf("unable to generate a MSR URL - no MSR nodes found")
+		return nil, fmt.Errorf("unable to generate a MSR URL: %w", errNoMSRNodesFound)
 	}
+
 	msrAddr = msrLeader.Address()
 
 	if c.MSR != nil {
 		if portstr := c.MSR.V2.InstallFlags.GetValue("--replica-https-port"); portstr != "" {
 			p, err := strconv.Atoi(portstr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid MSR --replica-https-port value '%s': %s", portstr, err.Error())
+				return nil, fmt.Errorf("invalid MSR --replica-https-port value '%s': %w", portstr, err)
 			}
 			msrAddr = fmt.Sprintf("%s:%d", msrAddr, p)
 		}
@@ -165,7 +167,6 @@ func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 		Path:   "/",
 		Host:   msrAddr,
 	}, nil
-
 }
 
 var errInvalidConfig = errors.New("invalid configuration")
@@ -183,16 +184,10 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	if c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
 		if specAlias.MSR == nil {
-			return fmt.Errorf("%w: hosts with msr role present, but no spec.msr defined", errInvalidConfig)
-		}
-		if err := defaults.Set(specAlias.MSR); err != nil {
-			return fmt.Errorf("set defaults: %w", err)
-		}
-		if specAlias.MSR == nil {
 			return fmt.Errorf("%w: hosts with 'msr' role present, but no spec.msr defined", errInvalidConfig)
 		}
 		if err := defaults.Set(specAlias.MSR); err != nil {
-			return err
+			return fmt.Errorf("set defaults: %w", err)
 		}
 	} else if specAlias.MSR != nil {
 		specAlias.MSR = nil

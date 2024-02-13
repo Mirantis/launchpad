@@ -3,12 +3,11 @@ package api
 import (
 	"testing"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/util/fileutil"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
-
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/util/fileutil"
 )
 
 func TestMKEConfigFlags(t *testing.T) {

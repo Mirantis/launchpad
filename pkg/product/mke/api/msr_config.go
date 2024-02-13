@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	msrv1 "github.com/Mirantis/msr-operator/api/v1"
-	"github.com/creasty/defaults"
-	"github.com/hashicorp/go-version"
-
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/fileutil"
+	msrv1 "github.com/Mirantis/msr-operator/api/v1"
+	"github.com/creasty/defaults"
+	"github.com/hashicorp/go-version"
 )
 
 type MSRConfig struct {
@@ -59,7 +58,7 @@ type MSR3Config struct {
 
 func (c *MSR3Config) Validate() error {
 	if c.StorageClassType != "" && c.StorageURL == "" {
-		return fmt.Errorf("spec.msr.storageURL is required when spec.msr.storageClassType is populated")
+		return fmt.Errorf("%w: spec.msr.storageURL is required when spec.msr.storageClassType is populated", errInvalidMSRConfig)
 	}
 
 	return nil
@@ -189,7 +188,11 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := c.setConfigForVersion(); err != nil {
 		return fmt.Errorf("failed to set MSR config for version: %w", err)
 	}
+
+	return nil
 }
+
+var errUnsupportedMSRVersion = fmt.Errorf("unsupported MSR major version: must be either 2 or 3")
 
 func (c *MSRConfig) setConfigForVersion() error {
 	switch c.MajorVersion() {
@@ -197,7 +200,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		if c.V2.CACertPath != "" {
 			caCertData, err := fileutil.LoadExternalFile(c.V2.CACertPath)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load MSR CA cert file: %w", err)
 			}
 			c.V2.CACertData = string(caCertData)
 		}
@@ -205,7 +208,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		if c.V2.CertPath != "" {
 			certData, err := fileutil.LoadExternalFile(c.V2.CertPath)
 			if err != nil {
-				return fmt.Errorf("failed to load MSR CA cert file: %w", err)
+				return fmt.Errorf("failed to load MSR cert file: %w", err)
 			}
 			c.V2.CertData = string(certData)
 		}
@@ -226,7 +229,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		c.V3.Dependencies.SetDefaults()
 
 	default:
-		return fmt.Errorf("unsupported MSR major version: must be either 2 or 3")
+		return errUnsupportedMSRVersion
 	}
 
 	return nil

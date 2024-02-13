@@ -7,6 +7,8 @@ import (
 	"io"
 	"testing"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
@@ -16,10 +18,6 @@ import (
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/utils/ptr"
-
-	"github.com/stretchr/testify/require"
-
-	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 type HelmTestClientOption func(*helmTestClientOptions)
@@ -98,7 +96,7 @@ func InstallRethinkDBOperatorChart(t *testing.T, h *Helm) (ReleaseDetails, func(
 	require.NoError(t, err)
 
 	uninstallFunc := func() {
-		err := h.Uninstall(context.Background(), &Options{
+		err := h.Uninstall(&Options{
 			ReleaseDetails: rd, Timeout: ptr.To(DefaultTimeout),
 		})
 		require.NoError(t, err)

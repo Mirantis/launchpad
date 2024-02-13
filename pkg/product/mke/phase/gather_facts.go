@@ -1,3 +1,7 @@
+// Even though this file is formatted with both goimports and gci, golangci-lint
+// still complains about the formatting of this file.
+//
+//nolint:gci
 package phase
 
 import (
@@ -7,11 +11,6 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
-
-	// needed to load the build func in package init.
-	"github.com/k0sproject/dig"
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
 	// needed to load the build func in package init.
@@ -24,13 +23,16 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
-
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
+
+	// needed to load the build func in package init.
+	"github.com/k0sproject/dig"
+	log "github.com/sirupsen/logrus"
 )
 
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts.
@@ -43,6 +45,11 @@ type GatherFacts struct {
 func (p *GatherFacts) Title() string {
 	return "Gather Facts"
 }
+
+var (
+	errMSR3AlreadyInstalled = errors.New("cannot install MSR v2 when MSR v3 is already installed - please uninstall MSR v3 first, otherwise modify the 'spec.msr.version' field in the cluster configuration to a 3.x version")
+	errMSR2AlreadyInstalled = errors.New("cannot install MSR v3 when MSR v2 is already installed - if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt), otherwise modify the 'spec.msr.version' field in the cluster configuration to a 2.x version")
+)
 
 // Run collect all the facts from hosts in parallel.
 func (p *GatherFacts) Run() error {
@@ -84,13 +91,12 @@ func (p *GatherFacts) Run() error {
 		msr3Installed := p.collectMSR3Facts()
 
 		if msr3Installed && p.Config.Spec.MSR.MajorVersion() == 2 {
-			return fmt.Errorf("cannot install MSR v2 when MSR v3 is already installed - please uninstall MSR v3 first, otherwise modify the 'spec.msr.version' field in the cluster configuration to a 3.x version")
+			return errMSR3AlreadyInstalled
 		}
 
 		if msr2Installed && p.Config.Spec.MSR.MajorVersion() == 3 {
-			return fmt.Errorf("cannot install MSR v3 when MSR v2 is already installed - if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt), otherwise modify the 'spec.msr.version' field in the cluster configuration to a 2.x version")
+			return errMSR2AlreadyInstalled
 		}
-
 	}
 
 	return nil
@@ -102,7 +108,7 @@ func (p *GatherFacts) collectMSR2Facts() bool {
 	var installed bool
 
 	msrHosts := p.Config.Spec.MSRs()
-	msrHosts.ParallelEach(func(h *api.Host) error {
+	err := msrHosts.ParallelEach(func(h *api.Host) error {
 		if h.Metadata != nil && h.Metadata.MCRVersion != "" {
 			msrMeta, err := msr2.CollectFacts(h)
 			if err != nil {
@@ -118,6 +124,9 @@ func (p *GatherFacts) collectMSR2Facts() bool {
 		}
 		return nil
 	})
+	if err != nil {
+		log.Warnf("failed to collect existing MSR details: %s", err.Error())
+	}
 
 	return installed
 }
@@ -125,26 +134,26 @@ func (p *GatherFacts) collectMSR2Facts() bool {
 // collectMSR3Facts collects MSR3 facts from the hosts populating the host
 // metadata struct, returning true if MSR3 is installed.
 func (p *GatherFacts) collectMSR3Facts() bool {
-	kc, hc, err := mke.KubeAndHelmFromConfig(p.Config)
+	kubeClient, helmClient, err := mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
 		if errors.Is(err, mke.ErrMKENotInstalled) {
 			log.Infof("MKE is not yet installed, skipping MSR fact collection")
 			return false
 		}
 
-		logrus.Warnf("failed to collect existing MSR details: cannot create Helm and Kubernetes clients: %s", err.Error())
+		log.Warnf("failed to collect existing MSR details: cannot create Helm and Kubernetes clients: %s", err.Error())
 		return false
 	}
 
-	rc, err := kc.GetMSRResourceClient()
+	resourceClient, err := kubeClient.GetMSRResourceClient()
 	if err != nil {
-		logrus.Warnf("failed to collect existing MSR details: cannot create MSR resource client: %s", err.Error())
+		log.Warnf("failed to collect existing MSR details: cannot create MSR resource client: %s", err.Error())
 		return false
 	}
 
-	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.V3.CRD.GetName(), kc, rc, hc)
+	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.V3.CRD.GetName(), kubeClient, resourceClient, helmClient)
 	if err != nil {
-		logrus.Warnf("failed to collect existing MSR details: %s", err.Error())
+		log.Warnf("failed to collect existing MSR details: %s", err.Error())
 		return false
 	}
 
@@ -157,17 +166,20 @@ func (p *GatherFacts) collectMSR3Facts() bool {
 	// Write the msrMeta to each of the hosts so it can be queried
 	// independently and function like legacy MSR.
 	msrHosts := p.Config.Spec.MSRs()
-	msrHosts.ParallelEach(func(h *api.Host) error {
+	err = msrHosts.ParallelEach(func(h *api.Host) error {
 		h.MSRMetadata = msrMeta
 		return nil
 	})
+	if err != nil {
+		log.Warnf("failed to collect existing MSR details: %s", err.Error())
+	}
 
 	return msrMeta.Installed
 }
 
 var errInvalidIP = errors.New("invalid IP address")
 
-func (p *GatherFacts) investigateHost(h *api.Host, c *api.ClusterConfig) error {
+func (p *GatherFacts) investigateHost(h *api.Host, _ *api.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h)
 	if h.Metadata == nil {
 		h.Metadata = &api.HostMetadata{}

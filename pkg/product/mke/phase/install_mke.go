@@ -6,15 +6,14 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/install"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
 )
 
 const configName string = "com.docker.ucp.config"

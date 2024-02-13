@@ -6,13 +6,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
+	"github.com/Mirantis/mcc/pkg/config"
+	"github.com/Mirantis/mcc/pkg/util/logo"
+	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"
-
-	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/version"
 )
 
 var errInvalidArguments = errors.New("invalid arguments")
@@ -59,7 +60,7 @@ func NewApplyCommand() *cli.Command {
 			var logFile *os.File
 
 			start := time.Now()
-			event.TrackEvent("Cluster Apply Started", nil)
+			analytics.TrackEvent("Cluster Apply Started", nil)
 
 			product, err := config.ProductFromFile(ctx.String("config"))
 			if err != nil {
@@ -79,13 +80,13 @@ func NewApplyCommand() *cli.Command {
 			}
 
 			if isatty.IsTerminal(os.Stdout.Fd()) {
-				os.Stdout.WriteString(util.Logo)
+				os.Stdout.WriteString(logo.Logo)
 				fmt.Fprintf(os.Stdout, "   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version)
 			}
 
 			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"), ctx.Bool("force-upgrade"))
 			if err != nil {
-				event.TrackEvent("Cluster Apply Failed", nil)
+				analytics.TrackEvent("Cluster Apply Failed", nil)
 				return fmt.Errorf("failed to apply cluster: %w", err)
 			}
 
@@ -93,7 +94,7 @@ func NewApplyCommand() *cli.Command {
 			props := event.Properties{
 				"duration": duration.Seconds(),
 			}
-			event.TrackEvent("Cluster Apply Completed", props)
+			analytics.TrackEvent("Cluster Apply Completed", props)
 
 			return nil
 		},

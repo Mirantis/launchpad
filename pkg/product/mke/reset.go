@@ -1,6 +1,8 @@
 package mke
 
 import (
+	"fmt"
+
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"

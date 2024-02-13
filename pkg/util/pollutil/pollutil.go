@@ -1,15 +1,14 @@
 package pollutil
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	timeStep = 5 * time.Second
-)
+var timeStep = 5 * time.Second
 
 // abortError signals that polling should be aborted when returned by the run
 // function.
@@ -49,8 +48,10 @@ func Poll(interval time.Duration, retries int, run func() error) (err error) {
 		err = run()
 		if err != nil {
 			// Only check if the outermost error is an abortError.
-			if abortErr, ok := err.(abortError); ok {
-				return abortErr.Unwrap()
+			if errors.Unwrap(err) != nil {
+				if errors.As(err, &abortError{}) {
+					return err
+				}
 			}
 			time.Sleep(interval)
 		} else {
@@ -58,7 +59,7 @@ func Poll(interval time.Duration, retries int, run func() error) (err error) {
 		}
 	}
 
-	return fmt.Errorf("polling failed with %d attempts %s apart: %s", retries, interval, err)
+	return fmt.Errorf("polling failed with %d attempts %s apart: %w", retries, interval, err)
 }
 
 type PollfConfig struct {
@@ -130,7 +131,7 @@ func waitf(level logrus.Level, format string, args ...interface{}) func() {
 	finishWait := make(chan struct{})
 	done := false
 
-	logAtLevel(level, format, args...)
+	logAtLevelf(level, format, args...)
 	go func() {
 		for {
 			select {
@@ -138,7 +139,7 @@ func waitf(level logrus.Level, format string, args ...interface{}) func() {
 				return
 			case <-ticker.C:
 				elapsed += timeStep
-				logAtLevel(level, fmt.Sprintf("%s; elapsed: %s", format, elapsed), args...)
+				logAtLevelf(level, fmt.Sprintf("%s; elapsed: %s", format, elapsed), args...)
 			}
 		}
 	}()
@@ -151,7 +152,7 @@ func waitf(level logrus.Level, format string, args ...interface{}) func() {
 	}
 }
 
-func logAtLevel(level logrus.Level, format string, args ...interface{}) {
+func logAtLevelf(level logrus.Level, format string, args ...interface{}) {
 	switch level {
 	case logrus.DebugLevel:
 		logrus.Debugf(format, args...)

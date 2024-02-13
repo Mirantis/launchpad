@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // UninstallMSR is the phase implementation for running MSR uninstall.
@@ -32,16 +31,14 @@ func (p *UninstallMSR3) ShouldRun() bool {
 
 func (p *UninstallMSR3) Prepare(config interface{}) error {
 	if _, ok := config.(*api.ClusterConfig); !ok {
-		return fmt.Errorf("expected ClusterConfig, got %T", config)
+		return errInvalidConfig
 	}
-
-	p.Config = config.(*api.ClusterConfig)
 
 	var err error
 
 	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get kube and helm clients: %w", err)
 	}
 
 	return nil
@@ -76,7 +73,7 @@ func (p *UninstallMSR3) Run() error {
 	for _, d := range chartsToUninstall {
 		// Uninstalling the msr-operator chart will remove the CRD which
 		// will cause the MSR CR to be deleted.
-		err := p.Helm.Uninstall(ctx, &helm.Options{ReleaseDetails: *d})
+		err := p.Helm.Uninstall(&helm.Options{ReleaseDetails: *d})
 		if err != nil {
 			errs = errors.Join(errs, fmt.Errorf("%q: %w", d.ReleaseName, err))
 		}

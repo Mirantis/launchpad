@@ -8,11 +8,10 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util/fileutil"
+	log "github.com/sirupsen/logrus"
 )
 
 // DownloadInstaller phase implementation does all the prep work we need for the hosts.

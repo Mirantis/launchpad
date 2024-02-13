@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/helm"
 	"github.com/Mirantis/mcc/pkg/kubeclient"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	log "github.com/sirupsen/logrus"
 )
 
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun.

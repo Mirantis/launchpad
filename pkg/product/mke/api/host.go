@@ -9,16 +9,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/helm"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/mcc/pkg/util/byteutil"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/dig"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/os/registry"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/Mirantis/mcc/pkg/helm"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util/byteutil"
 )
 
 // HostMetadata resolved metadata for host.

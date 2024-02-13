@@ -1,32 +1,38 @@
 package helm
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
-
-	"github.com/Mirantis/mcc/pkg/constant"
 )
 
-type ErrReleaseNotFound struct {
+type ReleaseNotFoundError struct {
 	ReleaseName string
 }
 
-func (e ErrReleaseNotFound) Error() string {
+func (e ReleaseNotFoundError) Error() string {
 	return fmt.Sprintf("release %q not found", e.ReleaseName)
 }
 
 type Helm struct {
 	config   action.Configuration
 	settings cli.EnvSettings
+}
+
+type MulipleReleasesFoundError struct {
+	ReleaseName string
+}
+
+func (e MulipleReleasesFoundError) Error() string {
+	return fmt.Sprintf("more than one release matches the provided name: %q", e.ReleaseName)
 }
 
 // New returns a configured Helm.  An MKE bundleDir which contains a kubeconfig
@@ -49,7 +55,7 @@ func New(bundleDir, namespace string) (*Helm, error) {
 		os.Getenv("HELM_DRIVER"),
 		log.Debugf,
 	); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize Helm configuration: %w", err)
 	}
 
 	return &Helm{
@@ -61,10 +67,10 @@ func New(bundleDir, namespace string) (*Helm, error) {
 // ChartNeedsUpgrade returns true if the chart version of the release is
 // different from the one provided.  Helm Upgrade can be used to downgrade
 // chart versions as well.
-func (h *Helm) ChartNeedsUpgrade(ctx context.Context, releaseName string, newVersion *version.Version) (bool, error) {
-	existingVersion, err := h.getChartVersion(ctx, releaseName)
+func (h *Helm) ChartNeedsUpgrade(releaseName string, newVersion *version.Version) (bool, error) {
+	existingVersion, err := h.getChartVersion(releaseName)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get chart version for release %q: %w", releaseName, err)
 	}
 
 	if existingVersion.Equal(newVersion) {
@@ -79,18 +85,18 @@ func (h *Helm) ChartNeedsUpgrade(ctx context.Context, releaseName string, newVer
 
 // getChartVersion returns the version of the requested chart release if it
 // is Deployed.
-func (h *Helm) getChartVersion(ctx context.Context, releaseName string) (*version.Version, error) {
-	releases, err := h.List(ctx, fmt.Sprintf("^%s$", releaseName))
+func (h *Helm) getChartVersion(releaseName string) (*version.Version, error) {
+	releases, err := h.List(fmt.Sprintf("^%s$", releaseName))
 	if err != nil {
 		return nil, err
 	}
 
 	if len(releases) == 0 {
-		return nil, ErrReleaseNotFound{ReleaseName: releaseName}
+		return nil, ReleaseNotFoundError{ReleaseName: releaseName}
 	}
 
 	if len(releases) > 1 {
-		return nil, fmt.Errorf("more than one release matches the provided name: %q", releaseName)
+		return nil, MulipleReleasesFoundError{ReleaseName: releaseName}
 	}
 
 	chartVersion := releases[0].Chart.Metadata.Version
@@ -104,7 +110,7 @@ func (h *Helm) getChartVersion(ctx context.Context, releaseName string) (*versio
 }
 
 // List returns a list of Helm releases filtered by the provided filter.
-func (h *Helm) List(ctx context.Context, filter string) ([]*release.Release, error) {
+func (h *Helm) List(filter string) ([]*release.Release, error) {
 	l := action.NewList(&h.config)
 
 	if filter != "" {

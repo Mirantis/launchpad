@@ -9,7 +9,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/util/byteutil"
-
 	"github.com/alessio/shellescape"
 	log "github.com/sirupsen/logrus"
 )

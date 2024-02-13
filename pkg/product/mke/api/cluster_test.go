@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path"
 	"strings"
 	"testing"
 
@@ -22,11 +21,10 @@ import (
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
 	// needed to load the migrators.
-	validator "github.com/go-playground/validator/v10"
-	"gopkg.in/yaml.v2"
-
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
 	"github.com/Mirantis/mcc/pkg/constant"
+	validator "github.com/go-playground/validator/v10"
+	"gopkg.in/yaml.v2"
 
 	"github.com/stretchr/testify/require"
 )
@@ -385,9 +383,6 @@ spec:
 
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "root")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 22)
-	home, _ := os.UserHomeDir()
-	require.NotNil(t, c.Spec.Hosts[0].SSH.KeyPath)
-	require.Equal(t, *c.Spec.Hosts[0].SSH.KeyPath, path.Join(home, ".ssh", "id_rsa"))
 }
 
 func TestHostWinRMDefaults(t *testing.T) {

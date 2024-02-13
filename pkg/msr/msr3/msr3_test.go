@@ -5,14 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/Mirantis/mcc/pkg/helm"
-	"github.com/Mirantis/mcc/pkg/kubeclient"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
 )
 
 // prepareTestClient is a helper for returning a KubeClient, ResourceClient and

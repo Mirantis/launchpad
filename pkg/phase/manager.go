@@ -5,11 +5,10 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
-
-	"github.com/Mirantis/mcc/pkg/analytics"
 )
 
 type phase interface {

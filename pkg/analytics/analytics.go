@@ -6,12 +6,11 @@ import (
 	logger "log"
 	"runtime"
 
+	"github.com/Mirantis/mcc/pkg/config/user"
+	"github.com/Mirantis/mcc/version"
 	"github.com/denisbrodbeck/machineid"
 	log "github.com/sirupsen/logrus"
 	analytics "gopkg.in/segmentio/analytics-go.v3"
-
-	"github.com/Mirantis/mcc/pkg/config/user"
-	"github.com/Mirantis/mcc/version"
 )
 
 const (

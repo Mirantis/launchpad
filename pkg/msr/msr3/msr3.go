@@ -5,52 +5,56 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/helm"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
+	"github.com/Mirantis/mcc/pkg/mke"
+	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	msrv1 "github.com/Mirantis/msr-operator/api/v1"
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/release"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/dynamic"
+)
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/helm"
-	"github.com/Mirantis/mcc/pkg/kubeclient"
-	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+var (
+	errSpecImageTagNotPopulated  = errors.New("spec.image.tag not populated")
+	errFailedToFindInstalledDeps = errors.New("failed to find any installed helm dependencies")
 )
 
 // CollectFacts gathers the current status of the installed MSR3 setup.
-func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, rc dynamic.ResourceInterface, h *helm.Helm, options ...kubeclient.WaitOption) (*api.MSRMetadata, error) {
+func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient, rc dynamic.ResourceInterface, helmClient *helm.Helm, options ...kubeclient.WaitOption) (*api.MSRMetadata, error) {
 	obj, err := kc.GetMSRCR(ctx, msrName, rc)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Infof("MSR CR: %s not found", msrName)
 			return &api.MSRMetadata{Installed: false}, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get MSR CR: %w", err)
 	}
 
 	if err := kc.WaitForMSRCRReady(ctx, obj, rc, options...); err != nil {
 		// If we've failed to validate the MSR CR is ready then we cannot
 		// reliably determine whether it is installed or not.
-		return nil, err
+		return nil, fmt.Errorf("failed to wait for MSR CR to be ready: %w", err)
 	}
 
 	version, found, err := unstructured.NestedString(obj.Object, "spec", "image", "tag")
 	if !found || version == "" {
-		err = errors.New("spec.image.tag not populated")
+		err = errSpecImageTagNotPopulated
 	}
 	if err != nil {
 		return nil, fmt.Errorf("unable to determine version from found MSR: %w", err)
 	}
 
-	releases, err := h.List(ctx, constant.InstalledDependenciesFilter)
+	releases, err := helmClient.List(constant.InstalledDependenciesFilter)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list helm releases: %w", err)
 	}
 
 	if len(releases) == 0 {
-		return nil, fmt.Errorf("failed to find any installed helm dependencies")
+		return nil, errFailedToFindInstalledDeps
 	}
 
 	installedDeps := make(map[string]helm.ReleaseDetails)
@@ -76,22 +80,26 @@ func CollectFacts(ctx context.Context, msrName string, kc *kubeclient.KubeClient
 }
 
 // ApplyCRD applies the MSR CRD to the cluster then waits for it to be ready.
-func ApplyCRD(ctx context.Context, msr *msrv1.MSR, kc *kubeclient.KubeClient) error {
+func ApplyCRD(ctx context.Context, msr *msrv1.MSR, client *kubeclient.KubeClient) error {
 	obj, err := kubeclient.DecodeIntoUnstructured(msr)
 	if err != nil {
 		return fmt.Errorf("failed to decode MSR CR: %w", err)
 	}
 
-	rc, err := kc.GetMSRResourceClient()
+	rc, err := client.GetMSRResourceClient()
 	if err != nil {
 		return fmt.Errorf("failed to get resource client for MSR CR: %w", err)
 	}
 
-	if err := kc.ApplyMSRCR(ctx, obj, rc); err != nil {
-		return err
+	if err := client.ApplyMSRCR(ctx, obj, rc); err != nil {
+		return fmt.Errorf("failed to apply MSR CR: %w", err)
 	}
 
-	return kc.WaitForMSRCRReady(ctx, obj, rc)
+	if err := client.WaitForMSRCRReady(ctx, obj, rc); err != nil {
+		return fmt.Errorf("failed to wait for MSR CR to be ready: %w", err)
+	}
+
+	return nil
 }
 
 // GetMSRURL returns the URL for the MSR admin UI.
@@ -114,9 +122,9 @@ func GetMSRURL(config *api.ClusterConfig) (string, error) {
 		url, err := kc.MSRURL(context.Background(), config.Spec.MSR.V3.CRD.GetName(), rc)
 		if err != nil {
 			return "", fmt.Errorf("failed to build MSR URL from Kubernetes services: %w", err)
-		} else {
-			msrURL = url.String()
 		}
+
+		msrURL = url.String()
 	}
 
 	return msrURL, nil

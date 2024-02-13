@@ -3,11 +3,10 @@ package phase
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-
 	msr "github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	log "github.com/sirupsen/logrus"
 )
 
 // UninstallMSR is the phase implementation for running MSR uninstall.

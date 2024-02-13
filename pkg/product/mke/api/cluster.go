@@ -3,12 +3,11 @@ package api
 import (
 	"fmt"
 
-	validator "github.com/go-playground/validator/v10"
-	"github.com/k0sproject/rig"
-
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/docker/hub"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	validator "github.com/go-playground/validator/v10"
+	"github.com/k0sproject/rig"
 )
 
 // ClusterMeta defines cluster metadata.

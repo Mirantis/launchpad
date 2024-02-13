@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
+	log "github.com/sirupsen/logrus"
 )
 
 // InstallOrUpgradeMSR3 deploys an MSR Custom Resource using the CRD provided
@@ -33,17 +32,16 @@ func (p *InstallOrUpgradeMSR3) Title() string {
 // Kubernetes client so that they can be used as NodeSelector in the MSR CR.
 func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 	if _, ok := config.(*api.ClusterConfig); !ok {
-		return fmt.Errorf("expected ClusterConfig, got %T", config)
+		return errInvalidConfig
 	}
 
-	p.Config = config.(*api.ClusterConfig)
 	p.leader = p.Config.Spec.MSRLeader()
 
 	var err error
 
 	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get kube and helm clients: %w", err)
 	}
 
 	return nil
@@ -108,7 +106,6 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		if err != nil {
 			return fmt.Errorf("%s: failed to prepare node for MSR: %w", msrH, err)
 		}
-
 	}
 
 	if err := p.Config.Spec.CheckMKEHealthRemote(h); err != nil {
@@ -147,7 +144,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 	// TODO: Differentiate an upgrade from an install and set analytics
 	// around that.
 	if err := msr3.ApplyCRD(ctx, &p.Config.Spec.MSR.V3.CRD, p.Kube); err != nil {
-		return err
+		return fmt.Errorf("failed to apply MSR CRD: %w", err)
 	}
 
 	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {

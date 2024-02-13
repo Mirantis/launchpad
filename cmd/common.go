@@ -6,16 +6,15 @@ import (
 	"os"
 	"path"
 
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/constant"
 	mcclog "github.com/Mirantis/mcc/pkg/log"
 	"github.com/Mirantis/mcc/pkg/product/mke/phase"
 	"github.com/Mirantis/mcc/version"
+	"github.com/k0sproject/rig"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 )
 
 var (

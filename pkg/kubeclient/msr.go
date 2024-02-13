@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/util/pollutil"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -15,18 +17,24 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/util/pollutil"
 )
 
 func (kc *KubeClient) GetMSRCR(ctx context.Context, name string, rc dynamic.ResourceInterface) (*unstructured.Unstructured, error) {
-	return rc.Get(ctx, name, metav1.GetOptions{})
+	unstructured, err := rc.Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MSR CR: %w", err)
+	}
+
+	return unstructured, nil
 }
 
 // DeleteMSRCR is a wrapper around resourceClient.Delete for the MSR resource.
 func (kc *KubeClient) DeleteMSRCR(ctx context.Context, name string, rc dynamic.ResourceInterface) error {
-	return rc.Delete(ctx, name, metav1.DeleteOptions{})
+	if err := rc.Delete(ctx, name, metav1.DeleteOptions{}); err != nil {
+		return fmt.Errorf("failed to delete MSR CR: %w", err)
+	}
+
+	return nil
 }
 
 func (kc *KubeClient) ValidateMSROperatorReady(ctx context.Context) error {
@@ -68,6 +76,8 @@ func WithCustomWait(numRetries int, interval time.Duration) WaitOption {
 	}
 }
 
+var errMSRCRNotReady = errors.New("MSR CR is not ready")
+
 // WaitForMSRCRReady waits for CR object provided to be ready by polling the
 // status obtained from the given object.
 func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.Unstructured, rc dynamic.ResourceInterface, options ...WaitOption) error {
@@ -83,7 +93,7 @@ func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.U
 			return fmt.Errorf("failed to process MSR CR: %w", e)
 		}
 		if !ready {
-			return errors.New("MSR CR is not ready")
+			return errMSRCRNotReady
 		}
 
 		return nil
@@ -97,10 +107,10 @@ func (kc *KubeClient) WaitForMSRCRReady(ctx context.Context, obj *unstructured.U
 
 // ApplyMSRCR applies the given MSR CR object to the cluster, reattempting
 // the operation several times if it does not succeed.
-func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstructured, rc dynamic.ResourceInterface) error {
+func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstructured, resourceClient dynamic.ResourceInterface) error {
 	name := obj.GetName()
 
-	existingObj, err := kc.GetMSRCR(ctx, name, rc)
+	existingObj, err := kc.GetMSRCR(ctx, name, resourceClient)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Infof("MSR CR %q not found, creating", name)
@@ -117,9 +127,9 @@ func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstruct
 		if existingObj == nil {
 			log.Debugf("MSR resource: %q does not yet exist, creating", name)
 
-			_, err = rc.Create(ctx, obj, metav1.CreateOptions{})
+			_, err = resourceClient.Create(ctx, obj, metav1.CreateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to create MSR resource: %q: %w", name, err)
 			}
 		} else {
 			// Set the resource version to the existing object's resource version
@@ -128,15 +138,14 @@ func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstruct
 
 			log.Debugf("MSR resource: %q exists, updating", name)
 
-			_, err = rc.Update(ctx, obj, metav1.UpdateOptions{})
+			_, err = resourceClient.Update(ctx, obj, metav1.UpdateOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to update MSR resource: %q: %w", name, err)
 			}
 		}
 
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("failed to apply resource YAML after: %s: %w", pollCfg.Interval*time.Duration(pollCfg.NumRetries), err)
 	}
@@ -159,7 +168,7 @@ func (kc *KubeClient) PrepareNodeForMSR(ctx context.Context, name string) error 
 	node.Labels[constant.MSRNodeSelector] = "true"
 
 	// Rebuild the taints list without the NoExecute taint if found.
-	var taints []corev1.Taint
+	taints := []corev1.Taint{}
 	for _, t := range node.Spec.Taints {
 		if t.Key == constant.KubernetesOrchestratorTaint && t.Value == "NoExecute" {
 			continue
@@ -178,6 +187,8 @@ func (kc *KubeClient) PrepareNodeForMSR(ctx context.Context, name string) error 
 }
 
 // GetMSRResourceClient returns a dynamic client for the MSR custom resource.
+//
+//nolint:ireturn
 func (kc *KubeClient) GetMSRResourceClient() (dynamic.ResourceInterface, error) {
 	client, err := dynamic.NewForConfig(kc.config)
 	if err != nil {
@@ -190,6 +201,27 @@ func (kc *KubeClient) GetMSRResourceClient() (dynamic.ResourceInterface, error) 
 		Resource: "msrs",
 	}).Namespace(kc.Namespace), nil
 }
+
+type SpecItemNotFoundError struct {
+	NestedPath string
+}
+
+func (e *SpecItemNotFoundError) Error() string {
+	return fmt.Sprintf("MSR spec.%s not found", e.NestedPath)
+}
+
+type UnknownServiceTypeError struct {
+	ServiceType string
+}
+
+func (e *UnknownServiceTypeError) Error() string {
+	return fmt.Sprintf("unknown MSR spec.service.serviceType: %q", e.ServiceType)
+}
+
+var (
+	errNoExternalIPOrDNS = errors.New("no external IP or DNS found for MSR node")
+	errNoLoadBalancerIP  = errors.New("no LoadBalancer IP found for MSR service")
+)
 
 // MSRURL constructs an MSRURL from an obtained MSR CR and other details from
 // the Kubernetes cluster.
@@ -205,7 +237,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 	}
 
 	if !found {
-		return nil, fmt.Errorf("MSR spec.service.externalHTTPSPort not found")
+		return nil, &SpecItemNotFoundError{NestedPath: "service.externalHTTPSPort"}
 	}
 
 	serviceType, found, err := unstructured.NestedString(msrCR.Object, "spec", "service", "serviceType")
@@ -214,7 +246,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 	}
 
 	if !found {
-		return nil, fmt.Errorf("MSR spec.service.serviceType not found")
+		return nil, &SpecItemNotFoundError{NestedPath: "service.serviceType"}
 	}
 
 	var (
@@ -237,7 +269,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 		}
 
 		if len(nodes.Items) == 0 {
-			return nil, fmt.Errorf("no MSR nodes found")
+			return nil, &NotFoundError{Kind: "Node", Name: name}
 		}
 
 		for _, p := range svc.Spec.Ports {
@@ -263,14 +295,14 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 		}
 
 		if !found {
-			return nil, fmt.Errorf("no external IP or DNS found for MSR node: %q", nodes.Items[0].Name)
+			return nil, fmt.Errorf("%w: %q", errNoExternalIPOrDNS, nodes.Items[0].Name)
 		}
 
 	case string(corev1.ServiceTypeLoadBalancer):
 		if len(svc.Status.LoadBalancer.Ingress) > 0 {
 			msrAddr = svc.Status.LoadBalancer.Ingress[0].IP
 		} else {
-			return nil, fmt.Errorf("no LoadBalancer IP found for MSR service: %q", name)
+			return nil, fmt.Errorf("%w: %q", errNoLoadBalancerIP, name)
 		}
 
 	case string(corev1.ServiceTypeClusterIP):
@@ -285,7 +317,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 			}
 
 			if len(pods.Items) == 0 {
-				return nil, fmt.Errorf("no nginx pods found")
+				return nil, &NotFoundError{Kind: "Pod", Name: "nginx"}
 			}
 
 			msrAddr = pods.Items[0].Name + "." + kc.Namespace + ".svc.cluster.local"
@@ -294,7 +326,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 		}
 
 	default:
-		return nil, fmt.Errorf("unknown MSR spec.service.serviceType: %q", serviceType)
+		return nil, &UnknownServiceTypeError{ServiceType: serviceType}
 	}
 
 	if port == "" {

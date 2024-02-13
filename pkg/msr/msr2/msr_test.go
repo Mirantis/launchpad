@@ -5,10 +5,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPluckSharedInstallFlags(t *testing.T) {

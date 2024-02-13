@@ -185,8 +185,12 @@ func TestMSRURL(t *testing.T) {
 		_, err := rc.Create(context.Background(), msr, metav1.CreateOptions{})
 		require.NoError(t, err)
 
+		createTestService(t, kc, "NodePort", 4443, false)
+
 		_, err = kc.MSRURL(context.Background(), "msr-test", rc)
-		assert.ErrorContains(t, err, "no MSR nodes found")
+
+		notFoundErr := &NotFoundError{}
+		assert.ErrorAs(t, err, &notFoundErr)
 	})
 
 	t.Run("unsupported spec.serviceType", func(t *testing.T) {
@@ -205,8 +209,12 @@ func TestMSRURL(t *testing.T) {
 		_, err := rc.Create(context.Background(), msr, metav1.CreateOptions{})
 		require.NoError(t, err)
 
+		createTestService(t, kc, "SomeServiceType", 4443, false)
+
 		_, err = kc.MSRURL(context.Background(), "msr-test", rc)
-		assert.ErrorContains(t, err, "unknown MSR spec.serviceType", "SomeServiceType")
+
+		unknownErr := &UnknownServiceTypeError{ServiceType: "SomeServiceType"}
+		assert.ErrorAs(t, err, &unknownErr)
 	})
 
 	testCases := []struct {
@@ -281,26 +289,39 @@ func TestMSRURL(t *testing.T) {
 			_, err := rc.Create(context.Background(), msrCR, metav1.CreateOptions{})
 			require.NoError(t, err)
 
-			_, err = kc.client.CoreV1().Services(kc.Namespace).Create(context.Background(), &corev1.Service{
+			createTestService(t, kc, tc.serviceType, int(tc.externalPort), tc.headless)
+
+			url, err := kc.MSRURL(context.Background(), "msr-test", rc)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tc.expected, url.String())
+		})
+	}
+}
+
+func createTestService(t *testing.T, kc *KubeClient, serviceType string, externalPort int, headless bool) {
+	t.Helper()
+
+	_, err := kc.client.CoreV1().Services(kc.Namespace).Create(context.Background(), &corev1.Service{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "msr-test",
 				},
 				Spec: func() corev1.ServiceSpec {
 					spec := corev1.ServiceSpec{
-						Type: corev1.ServiceType(tc.serviceType),
+						Type: corev1.ServiceType(serviceType),
 						Ports: []corev1.ServicePort{
 							{
-								Port: int32(tc.externalPort),
+								Port: int32(externalPort),
 							},
 						},
 					}
 
-					if tc.serviceType == "NodePort" {
+					if serviceType == "NodePort" {
 						spec.Ports[0].NodePort = 30001
 					}
 
-					if tc.serviceType == "ClusterIP" {
-						if tc.headless {
+					if serviceType == "ClusterIP" {
+						if headless {
 							spec.ClusterIP = "None"
 						} else {
 							spec.ClusterIP = "10.11.12.13"
@@ -310,7 +331,7 @@ func TestMSRURL(t *testing.T) {
 					return spec
 				}(),
 				Status: func() corev1.ServiceStatus {
-					if tc.serviceType == "LoadBalancer" {
+					if serviceType == "LoadBalancer" {
 						return corev1.ServiceStatus{
 							LoadBalancer: corev1.LoadBalancerStatus{
 								Ingress: []corev1.LoadBalancerIngress{
@@ -327,11 +348,4 @@ func TestMSRURL(t *testing.T) {
 				}(),
 			}, metav1.CreateOptions{})
 			require.NoError(t, err)
-
-			url, err := kc.MSRURL(context.Background(), "msr-test", rc)
-			assert.NoError(t, err)
-
-			assert.Equal(t, tc.expected, url.String())
-		})
-	}
 }

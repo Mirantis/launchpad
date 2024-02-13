@@ -7,7 +7,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-
+	versionutil "github.com/Mirantis/mcc/pkg/util/version"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 )
@@ -89,7 +89,7 @@ func (p *ValidateFacts) validateMKEVersionJump() error {
 			return fmt.Errorf("can't parse target MKE version: %w", err)
 		}
 
-		if mke.VersionGreaterThan(installedMKE, targetMKE) {
+		if versionutil.GreaterThan(installedMKE, targetMKE) {
 			return fmt.Errorf("%w: can't downgrade MKE %s to %s", errInvalidUpgradePath, installedMKE, targetMKE)
 		}
 
@@ -118,7 +118,7 @@ func (p *ValidateFacts) validateMSRVersionJump() error {
 			return fmt.Errorf("can't parse target MSR version: %w", err)
 		}
 
-		if mke.VersionGreaterThan(installedMSR, targetMSR) {
+		if versionutil.GreaterThan(installedMSR, targetMSR) {
 			return fmt.Errorf("%w: can't downgrade MSR %s to %s", errInvalidUpgradePath, installedMSR, targetMSR)
 		}
 

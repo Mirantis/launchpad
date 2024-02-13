@@ -4,12 +4,11 @@ import (
 	"crypto/sha1" //nolint:gosec // sha1 is used for simple analytics id generation
 	"fmt"
 
-	event "gopkg.in/segmentio/analytics-go.v3"
-
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/phase"
 	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
+	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are

@@ -3,14 +3,13 @@ package phase
 import (
 	"fmt"
 
-	"github.com/alessio/shellescape"
-	"github.com/k0sproject/rig/exec"
-	log "github.com/sirupsen/logrus"
-
 	msr "github.com/Mirantis/mcc/pkg/msr/msr2"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/alessio/shellescape"
+	"github.com/k0sproject/rig/exec"
+	log "github.com/sirupsen/logrus"
 )
 
 // InstallMSR is the phase implementation for running the actual MSR installer
