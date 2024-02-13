@@ -25,7 +25,7 @@ GO = docker run --rm -v "$(CURDIR)":/go/src/github.com/Mirantis/mcc \
 gosrc = $(wildcard *.go */*.go */*/*.go */*/*/*.go)
 
 VOLUME_MOUNTS=-v "$(CURDIR):/v"
-SIGN?=docker run --rm -i $(VOLUME_MOUNTS) -e $(SM_API_KEY) -e $(SM_CLIENT_CERT_PASSWORD) -e $(SM_CLIENT_CERT_FILE) -v "$(SM_CLIENT_CERT_FILE):$(SM_CLIENT_CERT_FILE)" -w "/v" registry.mirantis.com/prodeng/digicert-keytools-jsign:latest sign
+SIGN?=docker run --rm -i $(VOLUME_MOUNTS) -e SM_API_KEY -e SM_CLIENT_CERT_PASSWORD -e SM_CLIENT_CERT_FILE -v "$(SM_CLIENT_CERT_FILE):$(SM_CLIENT_CERT_FILE)" -w "/v" registry.mirantis.com/prodeng/digicert-keytools-jsign:latest sign
 
 sign-win:
 	echo "Signing Windows binary"
