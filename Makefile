@@ -23,6 +23,12 @@ sign-release: $(RELEASE_FOLDER)
 # and then building
 .PHONY: build-release
 build-release: clean $(RELEASE_FOLDER)
+
+unit-test: builder
+	$(GO) go test -v --tags 'testing' ./...
+>>>>>>> 4302518 (Introduce KubeClient, Helm, refactor DownloadBundle)
+
+>>>>>>> d3a8717 (Introduce KubeClient, Helm, refactor DownloadBundle)
 # build all the binaries for release, using goreleaser, but
 # don't use any of the other features of goreleaser - because
 # we need to use digicert to sign the binaries first, and
@@ -86,4 +92,3 @@ smoke-full:
 .PHONY: clean-launchpad-chart
 clean-launchpad-chart:
 	terraform -chdir=./examples/tf-aws/launchpad apply --auto-approve --destroy
-
