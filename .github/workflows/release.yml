@@ -21,5 +21,8 @@ jobs:
                 SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
                 SM_CLIENT_CERT_FILE: ${{ env.SM_CLIENT_CERT_FILE_PATH }}
               run: |
+                ls /home/runner/work/mcc/
+                ls /home/runner/work/mcc/mcc/
+                pwd
                 ls -la
                 make release
