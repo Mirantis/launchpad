@@ -10,12 +10,15 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
+            - name: Set up ENVs
+              run: |
+                echo "${{ secrets.SM_CLIENT_PKC12_CERT }}" > secret.txt
+                echo "SM_CLIENT_CERT_FILE_PATH=$(pwd)/secret.txt" >> $GITHUB_ENV
             - name: Run release script
               env:
                 TAG_NAME: ${{ github.ref_name }}
                 SM_API_KEY: ${{ secrets.SM_API_KEY }}
                 SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+                SM_CLIENT_CERT_FILE: ${{ env.SM_CLIENT_CERT_FILE_PATH }}
               run: |
-                echo "${{ secrets.SM_CLIENT_PKC12_CERT }}" > secret.txt
-                echo "SM_CLIENT_CERT_FILE=$(pwd)/secret.txt" >> $GITHUB_ENV
                 make release
