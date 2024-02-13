@@ -13,9 +13,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/hashicorp/go-version"
@@ -199,4 +203,119 @@ func VersionGreaterThan(a, b *version.Version) bool {
 	ca, _ := version.NewVersion(tp2qp(a.String()))
 	cb, _ := version.NewVersion(tp2qp(b.String()))
 	return ca.GreaterThan(cb)
+}
+
+var (
+	errNoManagersInConfig = errors.New("no managers found in config")
+	errInvalidConfig      = errors.New("invalid config")
+)
+
+// DownloadBundle downloads the client bundle from MKE to local storage.
+func DownloadBundle(config *api.ClusterConfig) error {
+	if len(config.Spec.Managers()) == 0 {
+		return errNoManagersInConfig
+	}
+
+	m := config.Spec.Managers()[0]
+
+	tlsConfig, err := GetTLSConfigFrom(m, config.Spec.MKE.ImageRepo, config.Spec.MKE.Version)
+	if err != nil {
+		return fmt.Errorf("error getting TLS config: %w", err)
+	}
+
+	url, err := config.Spec.MKEURL()
+	if err != nil {
+		return fmt.Errorf("get mke url: %w", err)
+	}
+
+	log.Debugf("downloading admin bundle from MKE: %s", url)
+
+	user := config.Spec.MKE.AdminUsername
+	if user == "" {
+		return fmt.Errorf("%w: config Spec.MKE.AdminUsername not set", errInvalidConfig)
+	}
+
+	pass := config.Spec.MKE.AdminPassword
+	if pass == "" {
+		return fmt.Errorf("%w: config Spec.MKE.AdminPassword not set", errInvalidConfig)
+	}
+
+	bundle, err := GetClientBundle(url, tlsConfig, user, pass)
+	if err != nil {
+		return fmt.Errorf("failed to download admin bundle: %w", err)
+	}
+
+	bundleDir, err := getBundleDir(config)
+	if err != nil {
+		return err
+	}
+	err = writeBundle(bundleDir, bundle)
+	if err != nil {
+		return fmt.Errorf("failed to write admin bundle: %w", err)
+	}
+
+	return nil
+}
+
+func getBundleDir(config *api.ClusterConfig) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return path.Join(home, constant.StateBaseDir, "cluster", config.Metadata.Name, "bundle", config.Spec.MKE.AdminUsername), nil
+}
+
+var errInvalidBundle = fmt.Errorf("invalid bundle")
+
+func safePath(base, rel string) (string, error) {
+	abs, err := filepath.Abs(filepath.Join(base, rel))
+	if err != nil {
+		return "", fmt.Errorf("%w: error while getting absolute path: %w", errInvalidBundle, err)
+	}
+	if !strings.HasPrefix(abs, base) {
+		return "", fmt.Errorf("%w: zip slip detected", errInvalidBundle)
+	}
+	return abs, nil
+}
+
+func writeBundle(bundleDir string, bundle *zip.Reader) error {
+	if err := os.MkdirAll(bundleDir, os.ModePerm); err != nil {
+		return fmt.Errorf("error while creating directory: %w", err)
+	}
+	log.Debugf("Writing out bundle to %s", bundleDir)
+	for _, zipFile := range bundle.File {
+		src, err := zipFile.Open()
+		if err != nil {
+			return fmt.Errorf("error while opening file %s: %w", zipFile.Name, err)
+		}
+		defer src.Close()
+		var data []byte
+		data, err = io.ReadAll(src)
+		if err != nil {
+			return fmt.Errorf("error while reading file %s: %w", zipFile.Name, err)
+		}
+		mode := int64(0o644)
+		if strings.Contains(zipFile.Name, "key.pem") {
+			mode = 0o600
+		}
+
+		// mke bundle will contain folders as well as files, if folder exists fd will not be empty
+		if dir := filepath.Dir(zipFile.Name); dir != "" && dir != "." {
+			if err := os.MkdirAll(filepath.Join(bundleDir, dir), 0o700); err != nil {
+				return fmt.Errorf("error while creating directory: %w", err)
+			}
+		}
+
+		outFile, err := safePath(bundleDir, zipFile.Name)
+		if err != nil {
+			return err
+		}
+
+		err = os.WriteFile(outFile, data, os.FileMode(mode))
+		if err != nil {
+			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
+		}
+	}
+	log.Infof("Successfully wrote client bundle to %s", bundleDir)
+	return nil
 }

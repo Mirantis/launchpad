@@ -31,4 +31,42 @@ const (
 	LinuxDefaultRootlessDockerDaemonPath = "~/.config/docker/daemon.json"
 	// WindowsDefaultDockerRoot defines the default windows docker root.
 	WindowsDefaultDockerRoot = "C:\\ProgramData\\Docker"
+	// KubernetesOrchestratorLabelCmd marks the node as using the kubernetes orchestrator.
+	KubernetesOrchestratorLabelCmd = "node update --label-add 'com.docker.ucp.orchestrator.kubernetes=true'"
+	// SwarmOrchestratorRemoveLabelCmd removes the label that marks the node as using the swarm orchestrator.
+	SwarmOrchestratorRemoveLabelCmd = "node update --label-rm 'com.docker.ucp.orchestrator.swarm'"
+	// SwarmOrchestratorCheckLabelCmd checks if the label that marks that node as using the swarm orchestrator is present.
+	SwarmOrchestratorCheckLabelCmd = "node inspect --format '{{ index .Spec.Labels \"com.docker.ucp.orchestrator.swarm\" }}'"
+	// KubernetesOrchestratorTaint taints the node as NoExecute when using swarm.
+	KubernetesOrchestratorTaint = "com.docker.ucp.orchestrator.kubernetes"
+	// MSROperatorDeploymentLabels are the labels the msr-operator deployment uses.
+	MSROperatorDeploymentLabels = "app.kubernetes.io/name=msr-operator"
+	// KubeConfigFile is the name of the kubeconfig file.
+	KubeConfigFile = "kube.yml"
+	// MSRNodeSelector is the node selector for MSR nodes.
+	MSRNodeSelector = "node-role.kubernetes.io/msr"
+	// ExposedLBServiceName is the service name for the LoadBalancer service.
+	ExposedLBServiceName = "msr-public-lb"
+	// DefaultStorageClassAnnotation is the annotation to set a StorageClass to the default.
+	DefaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
+	// DefaultPostgresVolumeSize is the default size for the postgres volume.
+	DefaultPostgresVolumeSize = "20Gi"
 )
+
+const (
+	// MSROperator is the name of the MSR operator.
+	MSROperator = "msr-operator"
+	// PostgresOperator is the name of the postgres operator.
+	PostgresOperator = "postgres-operator"
+	// CertManager is the name of the cert manager.
+	CertManager = "cert-manager"
+	// RethinkDBOperator is the name of the rethinkdb operator.
+	RethinkDBOperator = "rethinkdb-operator"
+)
+
+// InstalledDependenciesFilter is the filter used by Helm list for gathering
+// facts about installed MSR3 dependencies.
+const InstalledDependenciesFilter = MSROperator + "|" +
+	PostgresOperator + "|" +
+	RethinkDBOperator + "|" +
+	CertManager
