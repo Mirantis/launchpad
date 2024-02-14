@@ -5,11 +5,10 @@ package kubeclient
 import (
 	"testing"
 
-	msrv1 "github.com/Mirantis/msr-operator/api/v1"
-	"github.com/stretchr/testify/require"
 	fakeapiextensions "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
@@ -39,11 +38,13 @@ func NewTestClient(t *testing.T) *KubeClient {
 func NewTestResourceClient(t *testing.T, namespace string) dynamic.ResourceInterface {
 	t.Helper()
 
-	scheme, err := msrv1.SchemeBuilder.Build()
-	require.NoError(t, err)
+	cl := fakedynamic.NewSimpleDynamicClient(runtime.NewScheme())
 
-	cl := fakedynamic.NewSimpleDynamicClient(scheme, &msrv1.MSR{})
-	return cl.Resource(msrv1.GroupVersion.WithResource("msrs")).Namespace(namespace)
+	return cl.Resource(schema.GroupVersionResource{
+		Group:    "msr.mirantis.com",
+		Version:  "v1",
+		Resource: "msrs",
+	}).Namespace(namespace)
 }
 
 // CreateUnstructuredTestMSR returns an unstructured object representing an MSR
@@ -57,16 +58,16 @@ func NewTestResourceClient(t *testing.T, namespace string) dynamic.ResourceInter
 func CreateUnstructuredTestMSR(t *testing.T, version string, withReadyStatus bool) *unstructured.Unstructured {
 	t.Helper()
 
-	msr, err := DecodeIntoUnstructured(&msrv1.MSR{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "msr-test",
+	msr := map[string]interface{}{
+		"apiVersion": "msr.mirantis.com/v1",
+		"kind":       "MSR",
+		"metadata": map[string]interface{}{
+				"name": "msr-test",
 		},
-	})
-	require.NoError(t, err)
-
-	msr.Object["spec"] = map[string]interface{}{
-		"image": map[string]interface{}{
+		"spec": map[string]interface{}{
+			"image": map[string]interface{}{
 			"tag": version,
+			},
 		},
 		"nginx": map[string]interface{}{
 			"webtls": map[string]interface{}{
@@ -75,8 +76,9 @@ func CreateUnstructuredTestMSR(t *testing.T, version string, withReadyStatus boo
 		},
 	}
 
+
 	if withReadyStatus {
-		msr.Object["status"] = map[string]interface{}{
+		msr["status"] = map[string]interface{}{
 			"conditions": []interface{}{
 				map[string]interface{}{
 					"type":   "Ready",
@@ -86,5 +88,5 @@ func CreateUnstructuredTestMSR(t *testing.T, version string, withReadyStatus boo
 		}
 	}
 
-	return msr
+	return &unstructured.Unstructured{Object: msr}
 }

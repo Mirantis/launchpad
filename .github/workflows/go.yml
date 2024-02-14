@@ -1,6 +1,6 @@
 name: Go unit tests
 
-on:
+on: 
   pull_request:
     paths:
       - '**.go'
@@ -24,6 +24,7 @@ jobs:
         go-version-file: go.mod
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     - name: Unit Tests
       run: make unit-test
 =======
@@ -35,6 +36,8 @@ jobs:
         repo-mappings: |
             github.com/Mirantis/msr-operator
 
+=======
+>>>>>>> 45f8a1b (Move all msrv1 types to unstructured.Unstructured)
     - name: Test
       run: go test -v --tags 'testing' ./...
 >>>>>>> 4302518 (Introduce KubeClient, Helm, refactor DownloadBundle)
