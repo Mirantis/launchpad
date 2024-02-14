@@ -3,10 +3,7 @@ package kubeclient
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	msrv1 "github.com/Mirantis/msr-operator/api/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,6 +11,8 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/Mirantis/mcc/pkg/constant"
 )
 
 func TestCRDReady(t *testing.T) {
@@ -72,48 +71,6 @@ func TestDeploymentReady(t *testing.T) {
 	err = kc.deploymentReady(context.Background(), "app=test")
 	multipleFoundErr := &MultipleDeploymentsFoundError{Labels: "app=test"}
 	assert.ErrorAs(t, err, &multipleFoundErr)
-}
-
-func TestDecodeIntoUnstructured(t *testing.T) {
-	msr := &msrv1.MSR{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "msr.mirantis.com/v1",
-			Kind:       "MSR",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "msr-test",
-		},
-		Spec: msrv1.MSRSpec{
-			License: "veryrealisticlicense",
-		},
-		Status: msrv1.MSRStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Ready",
-					Status: metav1.ConditionTrue,
-				},
-			},
-		},
-	}
-
-	obj, err := DecodeIntoUnstructured(msr)
-	require.NoError(t, err)
-
-	assert.Equal(t, "msr-test", obj.GetName())
-	assert.Equal(t, "msr.mirantis.com/v1", obj.GetAPIVersion())
-	assert.Equal(t, "MSR", obj.GetKind())
-	assert.Equal(t, "veryrealisticlicense", obj.Object["spec"].(map[string]interface{})["license"])
-
-	t.Run("Given object's creation timestamp is not stripped if present", func(t *testing.T) {
-		// Set the object to have been created 10 seconds ago.
-		msr.ObjectMeta.CreationTimestamp = metav1.NewTime(time.Now().Add(-10 * time.Second))
-		obj, err = DecodeIntoUnstructured(msr)
-		require.NoError(t, err)
-		if assert.NotZero(t, obj.GetCreationTimestamp()) {
-			// obj.GetCreationTimestamp() returns local time in RFC3339 format.
-			assert.Equal(t, metav1.Time{Time: msr.ObjectMeta.CreationTimestamp.Rfc3339Copy().Local()}, obj.GetCreationTimestamp())
-		}
-	})
 }
 
 func TestCRIsReady(t *testing.T) {

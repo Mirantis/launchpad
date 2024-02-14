@@ -21,14 +21,6 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Configure Git SSH keys
-        uses: shaunco/ssh-agent@git-repo-mapping
-        with:
-          ssh-private-key: |
-            ${{ secrets.MSR_OPERATOR_SSH_PRIVATE_KEY }}
-          repo-mappings: |
-            github.com/Mirantis/msr-operator
-
       - name: Check go.mod/go.sum to be consistent
         run: go mod tidy -v && git diff --exit-code
 

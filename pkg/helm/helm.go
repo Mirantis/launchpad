@@ -35,10 +35,10 @@ func (e MulipleReleasesFoundError) Error() string {
 	return fmt.Sprintf("more than one release matches the provided name: %q", e.ReleaseName)
 }
 
-// New returns a configured Helm.  An MKE bundleDir which contains a kubeconfig
-// file and a kubernetes namespace are required to scope the configured Helm
-// client.
-func New(bundleDir, namespace string) (*Helm, error) {
+// NewFromBundle returns a configured Helm.  An MKE bundleDir which contains a
+// kubeconfig file and a kubernetes namespace are required to scope the
+// configured Helm client.
+func NewFromBundle(bundleDir, namespace string) (*Helm, error) {
 	settings := cli.New()
 	settings.SetNamespace(namespace)
 
