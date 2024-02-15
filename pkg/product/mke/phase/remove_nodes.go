@@ -16,7 +16,7 @@ import (
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	"github.com/Mirantis/mcc/pkg/swarm"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/stringutil"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
@@ -91,7 +91,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 	}
 	for _, nodeID := range swarmIDs {
 		managed := p.isManagedByUs(swarmLeader, nodeID)
-		if !util.StringSliceContains(nodeIDs, nodeID) && managed.node {
+		if !stringutil.StringSliceContains(nodeIDs, nodeID) && managed.node {
 			// If the node is a managed msr node in addition to a managed
 			// launchpad node, first remove MSR
 			if managed.msr {

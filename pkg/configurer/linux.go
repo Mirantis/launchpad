@@ -10,7 +10,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/iputil"
 	escape "github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
@@ -98,7 +98,7 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 
 		if addr != publicIP {
 			log.Infof("%s: using %s as private IP", h, addr)
-			if util.IsValidAddress(addr) {
+			if iputil.IsValidAddress(addr) {
 				return addr, nil
 			}
 		}

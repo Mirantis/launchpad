@@ -8,7 +8,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/analytics"
 	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/logo"
 	"github.com/Mirantis/mcc/version"
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
@@ -80,7 +80,7 @@ func NewApplyCommand() *cli.Command {
 			}
 
 			if isatty.IsTerminal(os.Stdout.Fd()) {
-				os.Stdout.WriteString(util.Logo)
+				os.Stdout.WriteString(logo.Logo)
 				fmt.Fprintf(os.Stdout, "   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version)
 			}
 

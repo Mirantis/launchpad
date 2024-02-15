@@ -1,7 +1,7 @@
 //go:build !windows
 // +build !windows
 
-package util
+package logo
 
 // Logo is the logo displayed on startup.
 var Logo = `

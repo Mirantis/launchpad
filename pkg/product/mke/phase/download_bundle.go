@@ -12,7 +12,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/util"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 )
@@ -91,7 +90,7 @@ func safePath(base, rel string) (string, error) {
 }
 
 func (p *DownloadBundle) writeBundle(bundleDir string, bundle *zip.Reader) error {
-	if err := util.EnsureDir(bundleDir); err != nil {
+	if err := os.MkdirAll(bundleDir, os.ModePerm); err != nil {
 		return fmt.Errorf("error while creating directory: %w", err)
 	}
 	log.Debugf("Writing out bundle to %s", bundleDir)

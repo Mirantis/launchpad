@@ -9,12 +9,6 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/config/migration"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
-	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
-	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
-	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
@@ -22,11 +16,16 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
 	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
-	"gopkg.in/yaml.v2"
-
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestHostRequireManagerValidationPass(t *testing.T) {

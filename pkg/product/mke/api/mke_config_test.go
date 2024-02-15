@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/fileutil"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -65,7 +65,7 @@ func TestMKEConfig_YAML_ConfigData(t *testing.T) {
 
 func TestMKEConfig_YAML_ConfigFile(t *testing.T) {
 	cfg := MKEConfig{Version: "3.4.0"}
-	util.LoadExternalFile = func(path string) ([]byte, error) {
+	fileutil.LoadExternalFile = func(path string) ([]byte, error) {
 		return []byte("abcd"), nil
 	}
 	err := yaml.Unmarshal([]byte("configFile: test_path.toml"), &cfg)
