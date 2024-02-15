@@ -10,7 +10,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/iputil"
 	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
@@ -144,7 +144,7 @@ func (c WindowsConfigurer) ResolveInternalIP(h os.Host, privateInterface, public
 	}
 	addr := strings.TrimSpace(output)
 	if addr != publicIP {
-		if util.IsValidAddress(addr) {
+		if iputil.IsValidAddress(addr) {
 			log.Infof("%s: using %s as private IP", h, addr)
 			return addr, nil
 		}

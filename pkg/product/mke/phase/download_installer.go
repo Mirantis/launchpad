@@ -10,7 +10,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/fileutil"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -137,7 +137,7 @@ func (p *DownloadInstaller) downloadFile(url string) (string, error) {
 func (p *DownloadInstaller) readFile(path string) (string, error) {
 	log.Infof("reading container runtime install script from %s", path)
 
-	data, err := util.LoadExternalFile(path)
+	data, err := fileutil.LoadExternalFile(path)
 	return string(data), err
 }
 

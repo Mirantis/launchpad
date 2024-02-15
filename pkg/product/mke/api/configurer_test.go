@@ -3,14 +3,13 @@ package api
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/Mirantis/mcc/pkg/configurer/centos"
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
 	"github.com/Mirantis/mcc/pkg/configurer/oracle"
 	"github.com/Mirantis/mcc/pkg/configurer/sles"
 	"github.com/Mirantis/mcc/pkg/configurer/ubuntu"
 	"github.com/Mirantis/mcc/pkg/configurer/windows"
+	"github.com/stretchr/testify/require"
 )
 
 func castConfigurer(cfg interface{}) bool {

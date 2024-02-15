@@ -6,7 +6,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util"
+	"github.com/Mirantis/mcc/pkg/util/fileutil"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
 )
@@ -45,7 +45,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if c.CACertPath != "" {
-		caCertData, err := util.LoadExternalFile(c.CACertPath)
+		caCertData, err := fileutil.LoadExternalFile(c.CACertPath)
 		if err != nil {
 			return fmt.Errorf("failed to load msr ca cert file: %w", err)
 		}
@@ -53,7 +53,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if c.CertPath != "" {
-		certData, err := util.LoadExternalFile(c.CertPath)
+		certData, err := fileutil.LoadExternalFile(c.CertPath)
 		if err != nil {
 			return fmt.Errorf("failed to load msr cert file: %w", err)
 		}
@@ -61,7 +61,7 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if c.KeyPath != "" {
-		keyData, err := util.LoadExternalFile(c.KeyPath)
+		keyData, err := fileutil.LoadExternalFile(c.KeyPath)
 		if err != nil {
 			return fmt.Errorf("failed to load msr key file: %w", err)
 		}
