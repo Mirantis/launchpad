@@ -1,0 +1,15 @@
+# values that make sense if you intend to turn this into a
+# Git repository, or add it to an existing repo.
+
+# our module puts a private ssh key into this folder.
+*.key
+
+# Terraform stuff
+terraform.tfstate*
+
+# SSH-KEYS
+./ssh-keys/
+
+.terraform/
+
+launchpad.yaml

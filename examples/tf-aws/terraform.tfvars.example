@@ -1,5 +1,0 @@
-cluster_name = "my-ucp-cluster"
-master_count = 1
-worker_count = 3
-windows_worker_count = 0
-admin_password = "orcaorcaorca"
