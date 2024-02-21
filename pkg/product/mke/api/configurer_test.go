@@ -5,6 +5,7 @@ import (
 
 	"github.com/Mirantis/mcc/pkg/configurer/centos"
 	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	"github.com/Mirantis/mcc/pkg/configurer/mkex"
 	"github.com/Mirantis/mcc/pkg/configurer/oracle"
 	"github.com/Mirantis/mcc/pkg/configurer/sles"
 	"github.com/Mirantis/mcc/pkg/configurer/ubuntu"
@@ -21,6 +22,7 @@ func TestHostConfigurerInterface(t *testing.T) {
 	require.True(t, castConfigurer(centos.Configurer{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(enterpriselinux.Configurer{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(enterpriselinux.Rhel{}), "configurer does not implement HostConfigurer")
+	require.True(t, castConfigurer(mkex.RockyLinux{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(oracle.Configurer{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(sles.Configurer{}), "configurer does not implement HostConfigurer")
 	require.True(t, castConfigurer(windows.Windows2019Configurer{}), "configurer does not implement HostConfigurer")
