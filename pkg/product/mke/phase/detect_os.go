@@ -8,6 +8,8 @@ import (
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
 	// anonymous import is needed to load the os configurers.
+	_ "github.com/Mirantis/mcc/pkg/configurer/mkex"
+	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
