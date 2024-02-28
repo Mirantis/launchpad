@@ -95,7 +95,6 @@ spec:
 }
 
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -104,7 +103,8 @@ spec:
 	  version: 3.3.7
   hosts:
   - ssh:
-      address: "512.1.2.3"
+      address: "512.1.2.3.@"
+    role: manager
 `
 	c := loadYaml(t, data)
 
@@ -123,6 +123,7 @@ spec:
   hosts:
   - ssh:
       address: "10.10.10.10"
+    role: manager
 `
 	c := loadYaml(t, data)
 
@@ -131,7 +132,6 @@ spec:
 }
 
 func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -140,7 +140,8 @@ spec:
 	  version: 3.3.7
   hosts:
     - ssh:
-        address: "1-2-foo"
+        address: "1-2-foo.@"
+      role: manager
 `
 	c := loadYaml(t, data)
 
@@ -168,7 +169,6 @@ spec:
 }
 
 func TestHostSshPortValidation(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -188,7 +188,6 @@ spec:
 }
 
 func TestHostRoleValidation(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -305,7 +304,6 @@ spec:
 }
 
 func TestHostWinRMCACertPathValidation(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -326,7 +324,6 @@ spec:
 }
 
 func TestHostWinRMCertPathValidation(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -347,7 +344,6 @@ spec:
 }
 
 func TestHostWinRMKeyPathValidation(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -409,7 +405,6 @@ spec:
 }
 
 func TestValidationWithMSRRole(t *testing.T) {
-	t.Skip("TODO: Validation is currently broken")
 	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	t.Run("the role is not ucp, worker or msr", func(t *testing.T) {
