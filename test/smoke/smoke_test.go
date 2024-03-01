@@ -1,3 +1,5 @@
+//go:build smoke && !unit
+
 package smoke_test
 
 import (
