@@ -24,5 +24,5 @@ jobs:
         go-version-file: go.mod
         check-latest: true
 
-    - name: Test
-      run: go test -v ./...
+    - name: Unit Tests
+      run: go test -v ./... -tags=unit
