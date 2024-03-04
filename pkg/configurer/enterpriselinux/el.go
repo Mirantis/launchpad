@@ -55,9 +55,9 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 
 // InstallMCR install Docker EE engine on Linux.
 func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	if isEC2, err := c.isAWSInstance(h); err != nil {
-		return fmt.Errorf("couldn't determine if running on AWS EC2 instance: %w", err)
-	} else if isEC2 && c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
+	if isEC2 := c.isAWSInstance(h); !isEC2 {
+		log.Debugf("%s: confirmed that this is not an AWS instance", h)
+	} else if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
 		log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
 	}
 
@@ -72,7 +72,11 @@ func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common
 }
 
 // function to check if the host is an AWS instance - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
-func (c Configurer) isAWSInstance(h os.Host) (bool, error) {
-	found, err := h.ExecOutput("curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep region")
-	return strings.Contains(found, "region"), err
+func (c Configurer) isAWSInstance(h os.Host) bool {
+	found, err := h.ExecOutput("curl -s -m 5 http://169.254.169.254/latest/dynamic/instance-identity/document | grep region")
+	if err != nil {
+		log.Debugf("%s: curl on local-linked AWS id document failed: %v", h, err)
+		return false
+	}
+	return strings.Contains(found, "region")
 }
