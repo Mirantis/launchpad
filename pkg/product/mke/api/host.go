@@ -98,6 +98,7 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := defaults.Set(yh); err != nil {
 		return fmt.Errorf("failed to set host defaults: %w", err)
 	}
+
 	return nil
 }
 

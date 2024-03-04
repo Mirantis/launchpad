@@ -3,14 +3,12 @@
 
 # our module puts a private ssh key into this folder.
 *.key
+*.pem
 
 # Terraform stuff
 terraform.tfstate*
-
-# SSH-KEYS
-./ssh-keys/
-
-.terraform/
+*.tfvars
+.terraform
 
 launchpad.yaml
 

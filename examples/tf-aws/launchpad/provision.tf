@@ -6,7 +6,7 @@ locals {
 
 # PROVISION MACHINES/NETWORK
 module "provision" {
-  source = "../provision"
+  source = "terraform-mirantis-modules/provision-aws/mirantis"
 
   name = var.name
   tags = local.tags

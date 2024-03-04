@@ -56,5 +56,5 @@ variable "windows_password" {
 variable "ssh_pk_location" {
   description = "Location of the ssh private key"
   type        = string
-  default     = ""
+  default     = "."
 }
