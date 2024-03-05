@@ -1,0 +1,25 @@
+name: Smoke Full Test
+
+on: 
+  push:
+    branches:
+      - master
+
+jobs:
+    smoke-full:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+            - name: Run full Smoke Tests
+              env: 
+                AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+                AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              run: |
+                pwd
+                ls
+                make smoke-full
+                clean-launchpad-chart
+

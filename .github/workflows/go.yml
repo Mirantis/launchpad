@@ -24,4 +24,4 @@ jobs:
         go-version-file: go.mod
 
     - name: Unit Tests
-      run: go test -v ./... -tags=unit
+      run: make unit-test
