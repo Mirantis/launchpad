@@ -10,7 +10,7 @@ ARTIFACTS_FOLDER=dist/artifacts
 CHECKSUM=$(shell which sha256sum)
 CHECKSUM_FILE?=checksums.txt
 
-GOLANGCI_LINT?=docker run -t --rm -v "$(CURDIR):/data" -w "/data" golangci/golangci-lint:latest golangci-lint
+GOLANGCI_LINT?=docker run -t --rm -v "$(CURDIR):/data" -w "/data" docker.io/golangci/golangci-lint:latest golangci-lint
 
 # "Signing Windows binaries"
 sign-win:
