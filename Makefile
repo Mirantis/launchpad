@@ -19,9 +19,6 @@ sign-win:
 clean:
 	rm -f dist
 
-unit-test:
-	$(GO) test -v ./...
-
 # build all the binaries for release, using goreleaser, but
 # don't use any of the other features of goreleaser - because
 # we need to use digicert to sign the binaries first, and
@@ -29,6 +26,22 @@ unit-test:
 # allow it in a round about way.)
 build-release:
 	goreleaser build --clean --config=.goreleaser.build.yml
+
+.PHONY: unit-test
+unit-test:
+	$(GO) test -v ./pkg/...
+
+.PHONY: smoke-small
+smoke-small:
+	go test -v ./test/smoke/... -run TestSmallCluster -timeout 20m
+
+.PHONY: smoke-full
+smoke-full:
+	go test -v ./test/smoke/... -run TestSupportedMatrixCluster -timeout 30m
+
+.PHONY: clean-launchpad-chart
+clean-launchpad-chart:
+	terraform -chdir=./examples/tf-aws/launchpad apply --auto-approve --destroy
 
 checksum-release: build-release
 	cd $(ARTIFACTS_FOLDER) && rm -rf $(CHECKSUM_FILE) && $(CHECKSUM) * > $(CHECKSUM_FILE)
@@ -44,5 +57,6 @@ local:
 release: build-release sign-win checksum-release
 	./release.sh
 
+.PHONY: lint
 lint:
 	$(GOLANGCI_LINT) run
