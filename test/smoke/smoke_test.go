@@ -1,8 +1,8 @@
-//go:build smoke && !unit
-
 package smoke_test
 
 import (
+	"fmt"
+	"log"
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/config"
@@ -17,7 +17,7 @@ var AWS = map[string]interface{}{
 
 var MKE_CONNECT = map[string]interface{}{
 	"username": "admin",
-	"password": "m!rantis2024",
+	"password": "",
 	"insecure": false,
 }
 
@@ -38,13 +38,25 @@ var NETWORK = map[string]interface{}{
 
 // TestSmallCluster deploys a small test cluster
 func TestSmallCluster(t *testing.T) {
+	log.Println("TestSmallCluster")
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
 		"WrkWindows19": test.Platforms["Windows2019"].GetWorker(),
 	}
 
-	name := "smoke-small"
+	uTestId, err := test.GenerateRandomString(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := fmt.Sprintf("smoke-%s", uTestId)
+
+	rndPassword, err := test.GenerateRandomString(12)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	MKE_CONNECT["password"] = rndPassword
 
 	// Create a temporary directory to store Terraform files
 	tempSSHKeyPathDir := t.TempDir()
@@ -59,7 +71,7 @@ func TestSmallCluster(t *testing.T) {
 			"network":          NETWORK,
 			"ssh_pk_location":  tempSSHKeyPathDir,
 			"nodegroups":       nodegroups,
-			"windows_password": "w!ndozePassw0rd",
+			"windows_password": rndPassword,
 		},
 	}
 
@@ -87,6 +99,7 @@ func TestSmallCluster(t *testing.T) {
 
 // TestSupportedMatrixCluster deploys a cluster with all supported platforms
 func TestSupportedMatrixCluster(t *testing.T) {
+	log.Println("TestSupportedMatrixCluster")
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"MngrRocky9":   test.Platforms["Rocky9"].GetManager(),
@@ -103,7 +116,18 @@ func TestSupportedMatrixCluster(t *testing.T) {
 		"WrkWindows22": test.Platforms["Windows2022"].GetWorker(),
 	}
 
-	name := "smoke-full"
+	uTestId, err := test.GenerateRandomString(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := fmt.Sprintf("smoke-%s", uTestId)
+
+	rndPassword, err := test.GenerateRandomString(12)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	MKE_CONNECT["password"] = rndPassword
 
 	// Create a temporary directory to store Terraform files
 	tempSSHKeyPathDir := t.TempDir()
@@ -118,7 +142,7 @@ func TestSupportedMatrixCluster(t *testing.T) {
 			"network":          NETWORK,
 			"ssh_pk_location":  tempSSHKeyPathDir,
 			"nodegroups":       nodegroups,
-			"windows_password": "w!ndozePassw0rd",
+			"windows_password": rndPassword,
 		},
 	}
 

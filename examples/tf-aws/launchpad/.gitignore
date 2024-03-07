@@ -6,11 +6,10 @@
 
 # Terraform stuff
 terraform.tfstate*
-
+*.tfvars
 # SSH-KEYS
 ./ssh-keys/
 
-.terraform/
+.terraform
 
 launchpad.yaml
-

@@ -9,7 +9,7 @@ locals {
 
 module "platform" {
   count  = length(local.unique_used_platforms)
-  source = "../provision/modules/platform"
+  source = "terraform-mirantis-modules/provision-aws/mirantis//modules/platform"
 
   platform_key     = local.unique_used_platforms[count.index]
   windows_password = var.windows_password
