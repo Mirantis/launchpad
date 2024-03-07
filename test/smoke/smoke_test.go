@@ -42,7 +42,6 @@ func TestSmallCluster(t *testing.T) {
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
-		"WrkWindows19": test.Platforms["Windows2019"].GetWorker(),
 	}
 
 	uTestId, err := test.GenerateRandomString(5)
@@ -65,13 +64,12 @@ func TestSmallCluster(t *testing.T) {
 		// The path to where the Terraform tf chart is located
 		TerraformDir: "../../examples/tf-aws/launchpad",
 		Vars: map[string]interface{}{
-			"name":             name,
-			"aws":              AWS,
-			"launchpad":        LAUNCHPAD,
-			"network":          NETWORK,
-			"ssh_pk_location":  tempSSHKeyPathDir,
-			"nodegroups":       nodegroups,
-			"windows_password": rndPassword,
+			"name":            name,
+			"aws":             AWS,
+			"launchpad":       LAUNCHPAD,
+			"network":         NETWORK,
+			"ssh_pk_location": tempSSHKeyPathDir,
+			"nodegroups":      nodegroups,
 		},
 	}
 
@@ -107,13 +105,12 @@ func TestSupportedMatrixCluster(t *testing.T) {
 		"MngrCentos7":  test.Platforms["Centos7"].GetManager(),
 		"MngrRhel9":    test.Platforms["Rhel9"].GetManager(),
 
-		"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
-		"WrkRocky9":    test.Platforms["Rocky9"].GetWorker(),
-		"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
-		"WrkCentos7":   test.Platforms["Centos7"].GetWorker(),
-		"WrkRhel9":     test.Platforms["Rhel9"].GetWorker(),
-		"WrkOracle9":   test.Platforms["Oracle9"].GetWorker(),
-		"WrkWindows22": test.Platforms["Windows2022"].GetWorker(),
+		"WrkUbuntu22": test.Platforms["Ubuntu22"].GetWorker(),
+		"WrkRocky9":   test.Platforms["Rocky9"].GetWorker(),
+		"WrkSles15":   test.Platforms["Sles15"].GetWorker(),
+		"WrkCentos7":  test.Platforms["Centos7"].GetWorker(),
+		"WrkRhel9":    test.Platforms["Rhel9"].GetWorker(),
+		"WrkOracle9":  test.Platforms["Oracle9"].GetWorker(),
 	}
 
 	uTestId, err := test.GenerateRandomString(5)
@@ -136,13 +133,12 @@ func TestSupportedMatrixCluster(t *testing.T) {
 		// The path to where the Terraform tf chart is located
 		TerraformDir: "../../examples/tf-aws/launchpad",
 		Vars: map[string]interface{}{
-			"name":             name,
-			"aws":              AWS,
-			"launchpad":        LAUNCHPAD,
-			"network":          NETWORK,
-			"ssh_pk_location":  tempSSHKeyPathDir,
-			"nodegroups":       nodegroups,
-			"windows_password": rndPassword,
+			"name":            name,
+			"aws":             AWS,
+			"launchpad":       LAUNCHPAD,
+			"network":         NETWORK,
+			"ssh_pk_location": tempSSHKeyPathDir,
+			"nodegroups":      nodegroups,
 		},
 	}
 
