@@ -20,7 +20,7 @@ var (
 	// GitCommit is set during the build.
 	GitCommit = "HEAD"
 	// Environment of the product, is set during the build.
-	Environment = "development"
+	Environment = "production"
 
 	// GitHubRepo for the upgrade check.
 	GitHubRepo = "Mirantis/launchpad"

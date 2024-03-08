@@ -6,7 +6,7 @@ if [ -z "${TAG_NAME}" ]; then
   exit 1
 fi
 
-artifact_path="dist/artifacts"
+artifact_path="dist/release"
 artifacts=$(find ${artifact_path}/* -exec basename {} \;)
 echo "Releasing with:"
 for artifact in ${artifacts}; do echo "- ${artifact}"; done
@@ -44,7 +44,7 @@ do
     --file "${artifact_path}/${artifact}"
 done
 
-if [ -z "$releaseopt"]; then
+if [ -z "$releaseopt" ]; then
   echo "Creating release named ${TAG_NAME} in Launchpad repo"
 
   # Release to the public repo

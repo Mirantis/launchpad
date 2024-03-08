@@ -1,42 +1,94 @@
-launchpad_creds = [
-  usernamePassword(
-    usernameVariable: 'GITHUB_USERNAME',
-    passwordVariable: 'GITHUB_TOKEN',
-    credentialsId   : 'tools-github-up',
-  ),
-  usernamePassword(
-    usernameVariable: 'REGISTRY_USERNAME',
-    passwordVariable: 'REGISTRY_PASSWORD',
-    credentialsId   : 'tools-dockerhub-up',
-  ),
-  string(credentialsId: 'common-digicert--api-key--secret-text', variable: 'SM_API_KEY'),
-  file(credentialsId: 'common-digicert--auth-pkcs12--file', variable: 'SM_CLIENT_CERT_FILE'),
-  string(credentialsId: 'common-digicert--auth-pkcs12-passphrase--secret-text', variable: 'SM_CLIENT_CERT_PASSWORD'),
-]
-
 pipeline {
-  agent none
   parameters {
     string(
-        defaultValue: 'v1.5.3', 
-        name: 'TAG_NAME', 
+        name: 'TAG_NAME',
         trim: true
     )
+  }
+  agent {
+    kubernetes {
+      yaml """\
+apiVersion: v1
+kind: Pod
+spec:
+  imagePullSecrets:
+  - name: regcred-registry-mirantis-com
+  containers:
+  - name: jnlp
+    image: registry.mirantis.com/prodeng/ci-workspace:stable
+    imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: "0.5"
+        memory: 128Mi
+  - name: goreleaser
+    image: goreleaser/goreleaser:latest
+    imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: "4"
+      requests:
+        cpu: "4"
+    command:
+    - sleep
+    args:
+    - 99d
+  - name: digicert
+    image: registry.mirantis.com/prodeng/digicert-keytools-jsign:latest
+    imagePullPolicy: Always
+    resources:
+      requests:
+        cpu: "1"
+        memory: 4Gi
+    command:
+    - sleep
+    args:
+    - 99d
+""".stripIndent()
+    }
   }
 
   stages {
     stage('Release') {
-      agent {
-        label "linux && pod"
-      }
       steps {
-        withCredentials(launchpad_creds) {
+        container("goreleaser") {
           sh (
-            label: "Executing 'make release'",
+            label: "build clean release",
             script: """
-              make release
+              make build-release
             """
           )
+        }
+        container("digicert") {
+          withCredentials([
+            string(credentialsId: 'common-digicert--api-key--secret-text', variable: 'SM_API_KEY'),
+            file(credentialsId: 'common-digicert--auth-pkcs12--file', variable: 'SM_CLIENT_CERT_FILE'),
+            string(credentialsId: 'common-digicert--auth-pkcs12-passphrase--secret-text', variable: 'SM_CLIENT_CERT_PASSWORD'),
+          ]) {
+            sh (
+              label: "signing release binaries (in digicert container)",
+              script: """
+                make SIGN=./sign sign-release
+              """
+            )
+          }
+        }
+        container("jnlp") {
+          withCredentials([
+            usernamePassword(
+              usernameVariable: 'GITHUB_USERNAME',
+              passwordVariable: 'GITHUB_TOKEN',
+              credentialsId   : 'tools-github-up',
+            ),
+          ]) {
+            sh (
+              label: "creating release",
+              script: """
+                make checksum-release
+                ./release.sh
+              """
+            )
+          }
         }
       }
     }

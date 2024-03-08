@@ -1,0 +1,15 @@
+#
+# GoRelease instructions for local builds
+#
+project_name: launchpad
+builds:
+- env:
+    - CGO_ENABLED=0
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  flags:
+    - -trimpath
+  ldflags:
+    - -X github.com/Mirantis/mcc/version.Environment=development
+    - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
+    - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
+  binary: '{{ .ProjectName }}'
