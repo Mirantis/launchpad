@@ -15,16 +15,15 @@ builds:
   flags:
     - -trimpath
   ldflags:
-    - -X github.com/Mirantis/mcc/version.Environment=Production
     - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
-    - -X github.com/Mirantis/mcc/version.Version={{ .Tag }}
+    - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
   goos:
-    - freebsd
-    - windows
     - linux
     - darwin
+    - windows
+    - freebsd
   goarch:
     - amd64
     - arm64
   no_unique_dist_dir: true  
-  binary: 'artifacts/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}_{{ .Version }}'
+  binary: 'release/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}_{{ .Version }}'

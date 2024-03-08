@@ -1,7 +1,16 @@
+# goreleaser build path
 dist/
+
+# Mac & VSCode files
 .idea/
 .DS_Store
 
+# any terraform state files that you may have created running tests
+# or terraform directly to test.
 .tfstate
 
+# the gh releaser, downloaded in release.sh
 github-release
+
+# go mod vendor folder
+vendor
