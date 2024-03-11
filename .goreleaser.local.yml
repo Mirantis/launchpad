@@ -13,3 +13,11 @@ builds:
     - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
     - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
   binary: '{{ .ProjectName }}'
+  goos:
+    - linux
+    - darwin
+    - windows
+    - freebsd
+  goarch:
+    - amd64
+    - arm64
