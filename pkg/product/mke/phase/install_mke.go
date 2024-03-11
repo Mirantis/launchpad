@@ -104,11 +104,11 @@ func (p *InstallMKE) Run() error {
 	}
 
 	if p.Config.Spec.MKE.AdminUsername != "" {
-		installFlags.AddUnlessExist("--admin-username " + p.Config.Spec.MKE.AdminUsername)
+		installFlags.AddUnlessExist(fmt.Sprintf("--admin-username='%s'", p.Config.Spec.MKE.AdminUsername))
 	}
 
 	if p.Config.Spec.MKE.AdminPassword != "" {
-		installFlags.AddUnlessExist("--admin-password " + p.Config.Spec.MKE.AdminPassword)
+		installFlags.AddUnlessExist(fmt.Sprintf("--admin-password='%s'", p.Config.Spec.MKE.AdminPassword))
 	}
 
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
