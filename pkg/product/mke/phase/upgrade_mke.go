@@ -51,7 +51,9 @@ func (p *UpgradeMKE) Run() error {
 	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade %s %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), upgradeFlags.Join())
+
+	log.Debugf("%s: upgrade flags: %s", swarmLeader, upgradeFlags.Join())
+	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), upgradeFlags.Join())
 	err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE upgrader: %w", swarmLeader, err)
