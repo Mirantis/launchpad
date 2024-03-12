@@ -1,16 +1,15 @@
 package test
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"math/rand"
 )
 
-// GenerateRandomString generates a random string of a given length
-func GenerateRandomString(length int) (string, error) {
-	bytes := make([]byte, length)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
+// GenerateRandomAlphaNumericString generates a random string of a given length with only alphanumeric values
+func GenerateRandomAlphaNumericString(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := make([]byte, length)
+	for i := 0; i < length; i++ {
+		result[i] = charset[rand.Intn(len(charset))]
 	}
-	return base64.URLEncoding.EncodeToString(bytes)[:length], nil
+	return string(result)
 }
