@@ -44,16 +44,11 @@ func TestSmallCluster(t *testing.T) {
 		"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
 	}
 
-	uTestId, err := test.GenerateRandomString(5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	uTestId := test.GenerateRandomAlphaNumericString(5)
+
 	name := fmt.Sprintf("smoke-%s", uTestId)
 
-	rndPassword, err := test.GenerateRandomString(12)
-	if err != nil {
-		t.Fatal(err)
-	}
+	rndPassword := test.GenerateRandomAlphaNumericString(12)
 
 	MKE_CONNECT["password"] = rndPassword
 
@@ -113,16 +108,11 @@ func TestSupportedMatrixCluster(t *testing.T) {
 		"WrkOracle9":  test.Platforms["Oracle9"].GetWorker(),
 	}
 
-	uTestId, err := test.GenerateRandomString(5)
-	if err != nil {
-		t.Fatal(err)
-	}
+	uTestId := test.GenerateRandomAlphaNumericString(5)
+
 	name := fmt.Sprintf("smoke-%s", uTestId)
 
-	rndPassword, err := test.GenerateRandomString(12)
-	if err != nil {
-		t.Fatal(err)
-	}
+	rndPassword := test.GenerateRandomAlphaNumericString(12)
 
 	MKE_CONNECT["password"] = rndPassword
 
