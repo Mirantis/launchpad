@@ -62,6 +62,10 @@ lint:
 unit-test:
 	$(GO) test -v ./pkg/...
 
+.PHONY: integration-test
+integration-test:
+	go test -v ./test/integration/... -timeout 20m
+
 .PHONY: smoke-small
 smoke-small:
 	go test -v ./test/smoke/... -run TestSmallCluster -timeout 20m
