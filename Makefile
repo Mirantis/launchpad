@@ -72,7 +72,7 @@ smoke-small:
 
 .PHONY: smoke-full
 smoke-full:
-	go test -v ./test/smoke/... -run TestSupportedMatrixCluster -timeout 30m
+	go test -v ./test/smoke/... -run TestSupportedMatrixCluster -timeout 40m
 
 .PHONY: clean-launchpad-chart
 clean-launchpad-chart:

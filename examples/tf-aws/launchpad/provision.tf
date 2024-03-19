@@ -8,14 +8,10 @@ locals {
 module "provision" {
   source = "terraform-mirantis-modules/provision-aws/mirantis"
 
-  name = var.name
-  tags = local.tags
+  name        = var.name
+  common_tags = local.tags
+  network     = var.network
 
-  cidr                 = var.network.cidr
-  public_subnet_count  = 1
-  private_subnet_count = 0
-  enable_vpn_gateway   = false
-  enable_nat_gateway   = false
 
   // pass in a mix of nodegroups with the platform information
   nodegroups = { for k, ngd in local.nodegroups_wplatform : k => {

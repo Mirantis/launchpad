@@ -174,6 +174,9 @@ spec:
   msr:
     version: ${var.launchpad.msr_version}
     imageRepo: docker.io/mirantis
+    "replicaIDs": "sequential"
+    installFlags:
+    - "--ucp-insecure-tls"
 %{endif}
 EOT
 
