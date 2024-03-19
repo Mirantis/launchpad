@@ -1,5 +1,8 @@
 // used to name infrastructure (CHANGE THIS)
 name = "smoke-test"
+aws = {
+  region = "us-east-1"
+}
 
 launchpad = {
   drain = false
@@ -20,6 +23,8 @@ network = {
   cidr                 = "172.31.0.0/16"
   public_subnet_count  = 3
   private_subnet_count = 0 // if 0 then no private nodegroups allowed
+  enable_vpn_gateway   = false
+  enable_nat_gateway   = false
 }
 
 // one definition for each group of machines to include in the stack

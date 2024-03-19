@@ -18,7 +18,7 @@ import (
 )
 
 var AWS = map[string]interface{}{
-	"region": "eu-central-1",
+	"region": "us-east-1",
 }
 
 var MKE_CONNECT = map[string]interface{}{

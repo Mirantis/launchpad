@@ -20,11 +20,15 @@ variable "network" {
     cidr                 = string
     public_subnet_count  = number
     private_subnet_count = number
+    enable_vpn_gateway   = bool
+    enable_nat_gateway   = bool
   })
   default = {
     cidr                 = "172.31.0.0/16"
     public_subnet_count  = 3
     private_subnet_count = 3
+    enable_vpn_gateway   = false
+    enable_nat_gateway   = false
   }
 }
 

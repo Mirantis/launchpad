@@ -3,6 +3,7 @@ package smoke_test
 import (
 	"fmt"
 	"log"
+	"strings"
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/config"
@@ -18,27 +19,30 @@ var AWS = map[string]interface{}{
 var MKE_CONNECT = map[string]interface{}{
 	"username": "admin",
 	"password": "",
-	"insecure": false,
+	"insecure": true,
 }
 
 var LAUNCHPAD = map[string]interface{}{
 	"drain":       false,
-	"mcr_version": "23.0.8",
+	"mcr_version": "23.0.7",
 	"mke_version": "3.7.3",
-	"msr_version": "",
+	"msr_version": "2.9.16",
 	"mke_connect": MKE_CONNECT,
 }
 
 // configure the network stack
 var NETWORK = map[string]interface{}{
 	"cidr":                 "172.31.0.0/16",
-	"public_subnet_count":  3,
+	"public_subnet_count":  1,
 	"private_subnet_count": 0, // if 0 then no private nodegroups allowed
+	"enable_vpn_gateway":   false,
+	"enable_nat_gateway":   false,
 }
 
 // TestSmallCluster deploys a small test cluster
 func TestSmallCluster(t *testing.T) {
 	log.Println("TestSmallCluster")
+
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
@@ -93,6 +97,7 @@ func TestSmallCluster(t *testing.T) {
 // TestSupportedMatrixCluster deploys a cluster with all supported platforms
 func TestSupportedMatrixCluster(t *testing.T) {
 	log.Println("TestSupportedMatrixCluster")
+
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"MngrRocky9":   test.Platforms["Rocky9"].GetManager(),
@@ -105,7 +110,6 @@ func TestSupportedMatrixCluster(t *testing.T) {
 		"WrkSles15":   test.Platforms["Sles15"].GetWorker(),
 		"WrkCentos7":  test.Platforms["Centos7"].GetWorker(),
 		"WrkRhel9":    test.Platforms["Rhel9"].GetWorker(),
-		"WrkOracle9":  test.Platforms["Oracle9"].GetWorker(),
 	}
 
 	uTestId := test.GenerateRandomAlphaNumericString(5)
@@ -148,6 +152,16 @@ func TestSupportedMatrixCluster(t *testing.T) {
 
 	// Do Launchpad Apply as pre-requisite to the tests
 	err = product.Apply(true, true, 3, true)
+	assert.NoError(t, err)
+
+	// Replace the version values for MCR,MKE,MSR in the mkeClusterConfig
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mcr_version"].(string), "23.0.9")
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mke_version"].(string), "3.7.5")
+
+	productUpgrade, err := config.ProductFromYAML([]byte(mkeClusterConfig))
+	assert.NoError(t, err)
+
+	err = productUpgrade.Apply(true, true, 3, true)
 	assert.NoError(t, err)
 
 	err = product.Reset()
