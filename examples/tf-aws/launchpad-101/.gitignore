@@ -1,0 +1,9 @@
+# our module puts a private ssh key into this folder.
+*.key
+
+# Terraform stuff
+terraform.tfstate*
+*.tfvars
+.terraform
+
+launchpad.yaml
