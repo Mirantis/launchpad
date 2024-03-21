@@ -165,9 +165,9 @@ func (c WindowsConfigurer) interfaceIP(h os.Host, iface string) (string, error) 
 
 // DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host.
-func (c WindowsConfigurer) DockerCommandf(template string, args ...interface{}) string {
-	return fmt.Sprintf("docker.exe %s", fmt.Sprintf(template, args...))
-}
+// func (c WindowsConfigurer) DockerCommandf(template string, args ...interface{}) string {
+// 	return fmt.Sprintf("docker.exe %s", fmt.Sprintf(template, args...))
+// }
 
 // ValidateLocalhost returns an error if "localhost" is not local on the host.
 func (c WindowsConfigurer) ValidateLocalhost(h os.Host) error {
@@ -256,7 +256,7 @@ func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 }
 
 // AuthorizeDocker does nothing on windows.
-func (c WindowsConfigurer) AuthorizeDocker(_ os.Host) error {
+func (c WindowsConfigurer) AuthorizeDocker(_ os.Host, _ common.MCRConfig) error {
 	return nil
 }
 

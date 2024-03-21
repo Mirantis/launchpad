@@ -96,8 +96,8 @@ func (p *PrepareHost) fixContainerized(h *api.Host, _ *api.ClusterConfig) error 
 	return nil
 }
 
-func (p *PrepareHost) authorizeDocker(h *api.Host, _ *api.ClusterConfig) error {
-	if err := h.Configurer.AuthorizeDocker(h); err != nil {
+func (p *PrepareHost) authorizeDocker(h *api.Host, config *api.ClusterConfig) error {
+	if err := h.Configurer.AuthorizeDocker(h, config.Spec.MCR); err != nil {
 		return fmt.Errorf("failed to authorize docker: %w", err)
 	}
 	return nil

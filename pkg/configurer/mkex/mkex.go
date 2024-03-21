@@ -44,7 +44,7 @@ func (c RockyLinux) InstallMCR(h os.Host, _ string, _ common.MCRConfig) error {
 }
 
 // AuthorizeDocker adds the current user to the docker group.
-func (c RockyLinux) AuthorizeDocker(h os.Host) error {
+func (c RockyLinux) AuthorizeDocker(h os.Host, _ common.MCRConfig) error {
 	log.Debugf("%s: AuthorizeDocker on MKEx takes no action. The base OS is expected to have docker user/groups setup.", h)
 	return nil
 }

@@ -10,11 +10,13 @@ import (
 	"github.com/k0sproject/rig/os"
 )
 
-type DockerConfigurer struct{}
+type DockerConfigurer struct {
+	DockerSudo bool
+}
 
 // GetDockerInfo gets docker info from the host.
 func (c DockerConfigurer) GetDockerInfo(h os.Host) (common.DockerInfo, error) {
-	command := "docker info --format \"{{json . }}\""
+	command := c.DockerCommandf("info --format \"{{json . }}\"")
 	log.Debugf("%s attempting to gather info with `%s`", h, command)
 	info, err := h.ExecOutput(command)
 	if err != nil {
@@ -46,4 +48,13 @@ func (c DockerConfigurer) GetDockerDaemonConfig(dockerDaemon string) (common.Doc
 	}
 
 	return config, nil
+}
+
+// DockerCommandf accepts a printf-like template string and arguments
+// and builds a command string for running the docker cli on the host.
+func (c DockerConfigurer) DockerCommandf(format string, a ...interface{}) string {
+	if c.DockerSudo {
+		return fmt.Sprintf("sudo docker "+format, a...)
+	}
+	return fmt.Sprintf("docker "+format, a...)
 }

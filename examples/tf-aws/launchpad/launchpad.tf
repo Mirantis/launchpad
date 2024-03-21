@@ -170,6 +170,7 @@ spec:
     installURLWindows: https://get.mirantis.com/install.ps1
     channel: stable
     prune: true
+    sudoDocker: true
 %{if local.has_msr}
   msr:
     version: ${var.launchpad.msr_version}

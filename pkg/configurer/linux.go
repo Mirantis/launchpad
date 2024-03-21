@@ -109,12 +109,6 @@ func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP
 	return publicIP, nil
 }
 
-// DockerCommandf accepts a printf-like template string and arguments
-// and builds a command string for running the docker cli on the host.
-func (c LinuxConfigurer) DockerCommandf(template string, args ...interface{}) string {
-	return fmt.Sprintf("docker %s", fmt.Sprintf(template, args...))
-}
-
 // ValidateLocalhost returns an error if "localhost" is not a local address.
 func (c LinuxConfigurer) ValidateLocalhost(h os.Host) error {
 	if err := h.Exec("ping -c 1 -w 1 localhost"); err != nil {
@@ -143,10 +137,19 @@ type reconnectable interface {
 	Reconnect() error
 }
 
+// engineConfig common.MCRConfig
+
 // AuthorizeDocker adds the current user to the docker group.
-func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
+func (c LinuxConfigurer) AuthorizeDocker(h os.Host, mcrConfig common.MCRConfig) error {
+	c.DockerSudo = mcrConfig.SudoDocker
+
 	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
 		log.Debugf("%s: current user is uid 0 - no need to authorize", h)
+		return nil
+	}
+	// We'll run all commands with sudo
+	if c.DockerSudo {
+		log.Debugf("%s: using sudo for docker commands - no need to authorize", h)
 		return nil
 	}
 
