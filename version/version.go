@@ -135,12 +135,12 @@ func latestTag(timeout time.Duration) string {
 
 	if strings.Contains(Version, "-") {
 		// Current is pre, assume pre is accepted as latest
-		return versions[len(versions)-1].String()
+		return versions[len(versions)-1].Original()
 	}
 
 	for i := len(versions) - 1; i >= 0; i-- {
-		if !strings.Contains(versions[i].String(), "-") {
-			return versions[i].String()
+		if !strings.Contains(versions[i].Original(), "-") {
+			return versions[i].Original()
 		}
 	}
 
