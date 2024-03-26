@@ -23,21 +23,5 @@ jobs:
       with:
         go-version-file: go.mod
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     - name: Unit Tests
       run: make unit-test
-=======
-    - name: Configure Git SSH keys
-      uses: shaunco/ssh-agent@git-repo-mapping
-      with:
-        ssh-private-key: |
-          ${{ secrets.MSR_OPERATOR_SSH_PRIVATE_KEY }}
-        repo-mappings: |
-            github.com/Mirantis/msr-operator
-
-=======
->>>>>>> 45f8a1b (Move all msrv1 types to unstructured.Unstructured)
-    - name: Test
-      run: go test -v --tags 'testing' ./...
->>>>>>> 4302518 (Introduce KubeClient, Helm, refactor DownloadBundle)

@@ -14,3 +14,6 @@ github-release
 
 # go mod vendor folder
 vendor
+
+# binaries
+bin/
