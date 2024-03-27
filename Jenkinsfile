@@ -84,8 +84,10 @@ spec:
             sh (
               label: "creating release",
               script: """
-                make checksum-release
+                make create-checksum
+                make verify-checksum
                 ./release.sh
+                ./upload_s3.sh
               """
             )
           }

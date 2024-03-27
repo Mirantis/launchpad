@@ -3,21 +3,21 @@
 #
 project_name: launchpad
 builds:
-- env:
-    - CGO_ENABLED=0
-  mod_timestamp: '{{ .CommitTimestamp }}'
-  flags:
-    - -trimpath
-  ldflags:
-    - -X github.com/Mirantis/mcc/version.Environment=development
-    - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
-    - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
-  binary: '{{ .ProjectName }}'
-  goos:
-    - linux
-    - darwin
-    - windows
-    - freebsd
-  goarch:
-    - amd64
-    - arm64
+  - env:
+      - CGO_ENABLED=0
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -X github.com/Mirantis/mcc/version.Environment=development
+      - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
+      - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
+    binary: "{{ .ProjectName }}"
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
