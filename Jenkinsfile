@@ -1,3 +1,17 @@
+mcc_creds = [
+  [
+    $class: 'AmazonWebServicesCredentialsBinding',
+    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+    credentialsId: 'tools-aws-de-production-access-keys',
+  ],
+  usernamePassword(
+    usernameVariable: 'GITHUB_USERNAME',
+    passwordVariable: 'GITHUB_TOKEN',
+    credentialsId   : 'tools-github-up',
+  ),
+]
+
 pipeline {
   parameters {
     string(
@@ -74,13 +88,7 @@ spec:
           }
         }
         container("jnlp") {
-          withCredentials([
-            usernamePassword(
-              usernameVariable: 'GITHUB_USERNAME',
-              passwordVariable: 'GITHUB_TOKEN',
-              credentialsId   : 'tools-github-up',
-            ),
-          ]) {
+          withCredentials(mcc_creds) {
             sh (
               label: "creating release",
               script: """
