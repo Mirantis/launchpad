@@ -8,22 +8,22 @@
 #
 project_name: launchpad
 builds:
-- env:
-    # goreleaser does not work with CGO, it could also complicate CI/CD
-    - CGO_ENABLED=0
-  mod_timestamp: '{{ .CommitTimestamp }}'
-  flags:
-    - -trimpath
-  ldflags:
-    - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
-    - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
-  goos:
-    - linux
-    - darwin
-    - windows
-    - freebsd
-  goarch:
-    - amd64
-    - arm64
-  no_unique_dist_dir: true  
-  binary: 'release/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}_{{ .Version }}'
+  - env:
+      # goreleaser does not work with CGO, it could also complicate CI/CD
+      - CGO_ENABLED=0
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+    ldflags:
+      - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
+      - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
+    goos:
+      - linux
+      - darwin
+      - windows
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+    no_unique_dist_dir: true
+    binary: "release/{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}_{{ .Version }}"

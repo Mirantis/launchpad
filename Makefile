@@ -3,7 +3,6 @@ GO=$(shell which go)
 RELEASE_FOLDER=dist/release
 
 CHECKSUM=$(shell which sha256sum)
-CHECKSUM_FILE?=checksums.txt
 
 VOLUME_MOUNTS=-v "$(CURDIR):/v"
 SIGN?=docker run --rm -i $(VOLUME_MOUNTS) -e SM_API_KEY -e SM_CLIENT_CERT_PASSWORD -e SM_CLIENT_CERT_FILE -v "$(SM_CLIENT_CERT_FILE):$(SM_CLIENT_CERT_FILE)" -w "/v" registry.mirantis.com/prodeng/digicert-keytools-jsign:latest sign
@@ -24,7 +23,6 @@ sign-release: $(RELEASE_FOLDER)
 # and then building
 .PHONY: build-release
 build-release: clean $(RELEASE_FOLDER)
-
 # build all the binaries for release, using goreleaser, but
 # don't use any of the other features of goreleaser - because
 # we need to use digicert to sign the binaries first, and
@@ -33,16 +31,23 @@ build-release: clean $(RELEASE_FOLDER)
 $(RELEASE_FOLDER):
 	goreleaser build --clean --config=.goreleaser.release.yml
 
+.PHONY: create-checksum
+create-checksum:
+	for f in $(RELEASE_FOLDER)/*; do \
+		$(CHECKSUM) $$f > $$f.sha256; \
+	done
+
+.PHONY: verify-checksum
+verify-checksum:
+	for f in $(RELEASE_FOLDER)/*.sha256; do \
+		$(CHECKSUM) -c $$f; \
+		echo "Verified checksum for $$f"; \
+	done
+
 # clean out any existing release build
 .PHONY: clean-release
 clean-release:
 	rm -fr $(RELEASE_FOLDER)
-
-# write checksum files for the release artifacts
-# (build may need to be run in a separate make run)
-.PHONY: checksumm-release
-checksum-release: $(RELEASE_FOLDER)
-	cd $(RELEASE_FOLDER) && rm -rf $(CHECKSUM_FILE) && $(CHECKSUM) * > $(CHECKSUM_FILE)
 
 # Local build of the plugin. This saves time building platforms that you
 # won't test locally. To use it, find the path to your build binary path
