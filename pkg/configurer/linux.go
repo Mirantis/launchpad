@@ -7,11 +7,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/iputil"
 	escape "github.com/alessio/shellescape"
+	"github.com/avast/retry-go"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	log "github.com/sirupsen/logrus"
@@ -70,6 +72,29 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 func (c LinuxConfigurer) RestartMCR(h os.Host) error {
 	if err := c.riglinux.RestartService(h, "docker"); err != nil {
 		return fmt.Errorf("restart docker service: %w", err)
+	}
+	return nil
+}
+
+// RestartContainerd restarts containerd.
+func (c LinuxConfigurer) RestartContainerd(h os.Host) error {
+	if err := c.riglinux.RestartService(h, "containerd"); err != nil {
+		return fmt.Errorf("restart containerd service: %w", err)
+	}
+	err := retry.Do(
+		func() error {
+			if err := h.Exec(c.DockerCommandf("ps")); err != nil {
+				return fmt.Errorf("failed to run `docker ps` after containerd restart: %w", err)
+			}
+			return nil
+		},
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(10),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to restart containerd service: %w", err)
 	}
 	return nil
 }

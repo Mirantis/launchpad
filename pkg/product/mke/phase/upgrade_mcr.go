@@ -176,6 +176,10 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 		return fmt.Errorf("retry count exceeded: %w", err)
 	}
 
+	if err := h.Configurer.RestartContainerd(h); err != nil {
+		return fmt.Errorf("%s: failed to restart containerd: %w", h, err)
+	}
+
 	// TODO: This exercise is duplicated in InstallMCR, maybe
 	// combine into some kind of "EnsureVersion"
 	currentVersion, err := h.MCRVersion()
