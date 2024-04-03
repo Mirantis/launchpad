@@ -1,15 +1,19 @@
 run:
   timeout: 8m
 
-  skip-dirs-use-default: false
-  skip-files:
+  tests: false
+  allow-parallel-runners: true
+
+issues:
+  exclude-dirs-use-default: false
+  exclude-files:
     - ".*\\.gen\\.go"
     - examples/*
     - test/*
     - logo.go
     - logo_windows.go
-  tests: false
-  allow-parallel-runners: true
+  max-issues-per-linter: 0
+  max-same-issues: 0
 
 linters:
   enable:
@@ -83,6 +87,3 @@ linters-settings:
       - ok bool
       - s string
 
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 0

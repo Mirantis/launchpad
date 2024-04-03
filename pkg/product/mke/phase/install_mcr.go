@@ -69,7 +69,7 @@ func (p *InstallMCR) installMCR(h *api.Host) error {
 		return fmt.Errorf("retry count exceeded: %w", err)
 	}
 
-	if err := h.Configurer.AuthorizeDocker(h); err != nil {
+	if err := h.AuthorizeDocker(); err != nil {
 		return fmt.Errorf("%s: failed to authorize docker: %w", h, err)
 	}
 
