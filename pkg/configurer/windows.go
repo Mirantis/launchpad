@@ -130,6 +130,28 @@ func (c WindowsConfigurer) RestartMCR(h os.Host) error {
 	return nil
 }
 
+// RestartContainerd restarts containerd service.
+func (c WindowsConfigurer) RestartContainerd(h os.Host) error {
+	_ = h.Exec("net stop containerd")
+	_ = h.Exec("net start containerd")
+	err := retry.Do(
+		func() error {
+			if err := h.Exec(c.DockerCommandf("ps")); err != nil {
+				return fmt.Errorf("failed to run docker ps after restart: %w", err)
+			}
+			return nil
+		},
+		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
+		retry.MaxJitter(time.Second*2),
+		retry.Delay(time.Second*3),
+		retry.Attempts(10),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to restart containerd service: %w", err)
+	}
+	return nil
+}
+
 // ResolveInternalIP resolves internal ip from private interface.
 func (c WindowsConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP string) (string, error) {
 	output, err := c.interfaceIP(h, privateInterface)

@@ -24,6 +24,7 @@ type HostConfigurer interface {
 	UninstallMCR(os.Host, string, common.MCRConfig) error
 	DockerCommandf(template string, args ...interface{}) string
 	RestartMCR(os.Host) error
+	RestartContainerd(os.Host) error
 	AuthenticateDocker(h os.Host, user, pass, repo string) error
 	LocalAddresses(os.Host) ([]string, error)
 	ValidateLocalhost(os.Host) error
