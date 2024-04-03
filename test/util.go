@@ -4,7 +4,7 @@ import (
 	"math/rand"
 )
 
-// GenerateRandomAlphaNumericString generates a random string of a given length with only alphanumeric values
+// GenerateRandomAlphaNumericString generates a random string of a given length with only alphanumeric values.
 func GenerateRandomAlphaNumericString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	result := make([]byte, length)

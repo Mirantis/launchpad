@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"reflect"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/dig"
 	"github.com/k0sproject/rig"
+	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os/registry"
 	log "github.com/sirupsen/logrus"
 )
@@ -75,6 +77,7 @@ type Host struct {
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            common.Hooks      `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
 	ImageDir         string            `yaml:"imageDir,omitempty"`
+	SudoCommands     []string          `yaml:"sudocmds,omitempty"`
 
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
@@ -106,6 +109,34 @@ func (h *Host) IsLocal() bool {
 	return h.Protocol() == "Local"
 }
 
+// IsSudoCommand is a particluar string command supposed to use Sudo.
+func (h *Host) IsSudoCommand(cmd string) bool {
+	for _, sudocmd := range h.SudoCommands {
+		if strings.HasPrefix(cmd, sudocmd) {
+			return true
+		}
+	}
+	return false
+}
+
+// AuthorizeDocker if needed.
+func (h *Host) AuthorizeDocker() error {
+	if h.IsSudoCommand("docker") {
+		log.Debugf("%s: not authorizing docker, as docker is meant to be run with sudo", h)
+		return nil
+	}
+
+	return h.Configurer.AuthorizeDocker(h) //nolint:wrapcheck
+}
+
+func (h *Host) sudoCommandOptions(cmd string, opts []exec.Option) []exec.Option {
+	if h.IsSudoCommand(cmd) {
+		log.Debugf("%s: Exec is getting SUDOed as the command is in the host sudo list: %s", h, cmd)
+		opts = append(opts, exec.Sudo(h))
+	}
+	return opts
+}
+
 // ExecAll execs a slice of commands on the host.
 func (h *Host) ExecAll(cmds []string) error {
 	for _, cmd := range cmds {
@@ -120,6 +151,22 @@ func (h *Host) ExecAll(cmds []string) error {
 		}
 	}
 	return nil
+}
+
+// ExecStreams executes a command on the remote host and uses the passed in streams for stdin, stdout and stderr. It returns a Waiter with a .Wait() function that
+// blocks until the command finishes and returns an error if the exit code is not zero.
+func (h *Host) ExecStreams(cmd string, stdin io.ReadCloser, stdout, stderr io.Writer, opts ...exec.Option) (exec.Waiter, error) { //nolint:ireturn
+	return h.Connection.ExecStreams(cmd, stdin, stdout, stderr, h.sudoCommandOptions(cmd, opts)...) //nolint:wrapcheck
+}
+
+// Exec runs a command on the host.
+func (h *Host) Exec(cmd string, opts ...exec.Option) error {
+	return h.Connection.Exec(cmd, h.sudoCommandOptions(cmd, opts)...) //nolint:wrapcheck
+}
+
+// ExecOutput runs a command on the host and returns the output as a String.
+func (h *Host) ExecOutput(cmd string, opts ...exec.Option) (string, error) {
+	return h.Connection.ExecOutput(cmd, h.sudoCommandOptions(cmd, opts)...) //nolint:wrapcheck
 }
 
 var errAuthFailed = errors.New("authentication failed")

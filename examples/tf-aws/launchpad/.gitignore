@@ -8,7 +8,7 @@
 terraform.tfstate*
 *.tfvars
 # SSH-KEYS
-./ssh-keys/
+ssh-keys/
 
 .terraform
 
