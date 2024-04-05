@@ -4,9 +4,10 @@ on:
   pull_request:
     paths:
       - '**.go'
+      - '**.tf'
+      - '.terraform.lock.hcl'
       - go.mod
       - go.sum
-      - Makefile
 
 jobs:
     smoke-small:

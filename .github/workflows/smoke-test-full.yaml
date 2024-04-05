@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - master
+    paths:
+      - '**.go'
+      - '**.tf'
+      - '.terraform.lock.hcl'
+      - go.mod
+      - go.sum
 
 jobs:
     smoke-full:
