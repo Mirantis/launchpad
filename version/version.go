@@ -43,18 +43,8 @@ func (a *Asset) IsForHost() bool {
 		return false
 	}
 
-	goos := runtime.GOOS
-	if goos == "windows" {
-		goos = "win"
-	}
-
-	arch := runtime.GOARCH
-	if arch == "amd64" {
-		arch = "x64"
-	}
-
-	parts := strings.Split(strings.TrimSuffix(a.Name, ".exe"), "-")
-	return parts[1] == goos && parts[2] == arch
+	parts := strings.Split(strings.TrimSuffix(a.Name, ".exe"), "_")
+	return parts[1] == runtime.GOOS && parts[2] == runtime.GOARCH
 }
 
 // LaunchpadRelease describes a launchpad release.
