@@ -67,6 +67,10 @@ lint:
 unit-test:
 	$(GO) test -v ./pkg/...
 
+.PHONY: functional-test
+functional-test:
+	go test -v ./test/functional/... -timeout 20m
+
 .PHONY: integration-test
 integration-test:
 	go test -v ./test/integration/... -timeout 20m

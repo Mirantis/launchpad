@@ -8,7 +8,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/config"
 	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/test"
@@ -29,8 +28,8 @@ var MKE_CONNECT = map[string]interface{}{
 
 var LAUNCHPAD = map[string]interface{}{
 	"drain":       false,
-	"mcr_version": "23.0.8",
-	"mke_version": "3.7.3",
+	"mcr_version": "23.0.9",
+	"mke_version": "3.7.5",
 	"msr_version": "",
 	"mke_connect": MKE_CONNECT,
 }
@@ -38,11 +37,18 @@ var LAUNCHPAD = map[string]interface{}{
 // configure the network stack
 var NETWORK = map[string]interface{}{
 	"cidr":                 "172.31.0.0/16",
-	"public_subnet_count":  3,
+	"public_subnet_count":  1,
 	"private_subnet_count": 0, // if 0 then no private nodegroups allowed
+	"enable_vpn_gateway":   false,
+	"enable_nat_gateway":   false,
 }
 
-func TestMKEClientConfig(t *testing.T) {
+// TestMain function to control the test execution
+func TestMain(m *testing.M) {
+	t := &testing.T{}
+	// Create a temporary directory to store Terraform files
+	tempSSHKeyPathDir := t.TempDir()
+
 	log.Println("TestMKEClientConfig")
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
@@ -57,9 +63,6 @@ func TestMKEClientConfig(t *testing.T) {
 
 	MKE_CONNECT["password"] = rndPassword
 
-	// Create a temporary directory to store Terraform files
-	tempSSHKeyPathDir := t.TempDir()
-
 	options := terraform.Options{
 		// The path to where the Terraform tf chart is located
 		TerraformDir: "../../examples/tf-aws/launchpad",
@@ -73,30 +76,35 @@ func TestMKEClientConfig(t *testing.T) {
 		},
 	}
 
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
-	// Run `terraform init` and `terraform apply`. Fail the test if there are any errors.
-	if _, err := terraform.InitAndApplyE(t, terraformOptions); err != nil {
-		t.Fatal(err)
-	}
-
-	// Destroy the Terraform resources at the end of the test
-	defer terraform.Destroy(t, terraformOptions)
-	mkeClusterConfig := terraform.Output(t, terraformOptions, "launchpad_yaml")
-
-	product, err := config.ProductFromYAML([]byte(mkeClusterConfig))
-	assert.NoError(t, err)
+	sp := test.GetInstance()
+	sp.Setup(t, options)
 
 	// Do Launchpad Apply as pre-requisite to the tests
-	err = product.Apply(true, true, 3, true)
+	err := sp.Product.Apply(true, true, 3, true)
 	assert.NoError(t, err)
 
-	err = product.ClientConfig()
+	// Run tests in order
+	code := m.Run()
+
+	// Teardown
+	test.Destroy()
+
+	// Exit with the status code of the test run
+	os.Exit(code)
+}
+
+func TestMKEClientConfig(t *testing.T) {
+	sp := test.GetInstance()
+	product := sp.Product
+
+	err := product.ClientConfig()
 	assert.NoError(t, err)
 
 	home, err := homedir.Dir()
 	assert.NoError(t, err)
 
-	mkeConnectOut := terraform.OutputJson(t, terraformOptions, "mke_connect")
+	t.Logf("Terraform Options: %v", sp.TerraformOptions)
+	mkeConnectOut := terraform.OutputJson(t, sp.TerraformOptions, "mke_connect")
 
 	product.ClientConfig()
 	var m struct {
