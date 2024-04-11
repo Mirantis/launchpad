@@ -346,6 +346,9 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	dockerCriPath := path.Join(dockerRootDir, "cri-dockerd")
 	c.attemptPathSudoDelete(h, dockerCriPath)
 
+	containerdPath := path.Join(dockerRootDir, "containerd")
+	c.attemptPathSudoDelete(h, containerdPath)
+
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
 	if err := h.Exec(fmt.Sprintf("umount %s", execRootNetnsUnmount), exec.Sudo(h)); err != nil {
@@ -361,6 +364,8 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 
 	dockerSock := path.Join(dockerExecRootDir, "docker.sock")
 	c.attemptPathSudoDelete(h, dockerSock)
+
+	c.attemptPathSudoDelete(h, constant.LinuxDefaultDockerExecRoot)
 
 	// /lib/systemd/system/ folder
 	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.service")
