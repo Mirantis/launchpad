@@ -343,11 +343,9 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	if idx := strings.LastIndex(dockerRootDir, "/"); idx != -1 {
 		dockerRootDir = dockerRootDir[:idx]
 	}
-	dockerCriPath := path.Join(dockerRootDir, "cri-dockerd")
-	c.attemptPathSudoDelete(h, dockerCriPath)
-
-	containerdPath := path.Join(dockerRootDir, "containerd")
-	c.attemptPathSudoDelete(h, containerdPath)
+	c.attemptPathSudoDelete(h, path.Join(dockerRootDir, "cri-dockerd"))
+	c.attemptPathSudoDelete(h, path.Join(dockerRootDir, "containerd"))
+	c.attemptPathSudoDelete(h, path.Join(dockerRootDir, "kubelet"))
 
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
@@ -359,12 +357,8 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Docker
 	if idx := strings.LastIndex(dockerExecRootDir, "/"); idx != -1 {
 		dockerExecRootDir = dockerExecRootDir[:idx]
 	}
-	criDockerdMkeSock := path.Join(dockerExecRootDir, "cri-dockerd-mke.sock")
-	c.attemptPathSudoDelete(h, criDockerdMkeSock)
-
-	dockerSock := path.Join(dockerExecRootDir, "docker.sock")
-	c.attemptPathSudoDelete(h, dockerSock)
-
+	c.attemptPathSudoDelete(h, path.Join(dockerExecRootDir, "cri-dockerd-mke.sock"))
+	c.attemptPathSudoDelete(h, path.Join(dockerExecRootDir, "docker.sock"))
 	c.attemptPathSudoDelete(h, constant.LinuxDefaultDockerExecRoot)
 
 	// /lib/systemd/system/ folder
@@ -391,6 +385,7 @@ func (c LinuxConfigurer) attemptPathSudoDelete(h os.Host, path string) {
 
 	if err := h.Exec(command, exec.Sudo(h)); err != nil {
 		log.Infof("%s: failed to remove %s: %s", h, path, err)
+		return
 	}
 	log.Infof("%s: removed %s successfully", h, path)
 }
