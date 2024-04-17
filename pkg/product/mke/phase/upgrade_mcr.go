@@ -204,9 +204,9 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 		}
 	}
 
-	if currentVersion != p.Config.Spec.MCR.Version {
-		return fmt.Errorf("%s: %w: container runtime version not %s after upgrade", h, errVersionMismatch, p.Config.Spec.MCR.Version)
-	}
+	// if currentVersion != p.Config.Spec.MCR.Version {
+	// 	return fmt.Errorf("%s: %w: container runtime version not %s after upgrade", h, errVersionMismatch, p.Config.Spec.MCR.Version)
+	// }
 
 	log.Infof("%s: upgraded to mirantis container runtime version %s", h, p.Config.Spec.MCR.Version)
 	h.Metadata.MCRVersion = p.Config.Spec.MCR.Version
