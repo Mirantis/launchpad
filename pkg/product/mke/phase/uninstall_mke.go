@@ -32,7 +32,7 @@ func (p *UninstallMKE) Run() error {
 	}
 
 	image := fmt.Sprintf("%s/ucp:%s", p.Config.Spec.MKE.ImageRepo, p.Config.Spec.MKE.Version)
-	uninstallFlags := common.Flags{"--id", swarm.ClusterID(swarmLeader)}
+	uninstallFlags := common.Flags{"--id", swarm.ClusterID(swarmLeader), "--purge-config"}
 
 	if mcclog.Debug {
 		uninstallFlags.AddUnlessExist("--debug")
@@ -48,16 +48,27 @@ func (p *UninstallMKE) Run() error {
 		return fmt.Errorf("%s: failed to run MKE uninstaller: %w", swarmLeader, err)
 	}
 
-	if p.Config.Spec.MKE.CertData != "" {
-		managers := p.Config.Spec.Managers()
-		_ = managers.ParallelEach(func(h *api.Host) error {
-			log.Infof("%s: removing ucp-controller-server-certs volume", h)
-			err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
-			if err != nil {
-				log.Errorf("%s: failed to remove the volume", h)
-			}
-			return nil
-		})
-	}
+	managers := p.Config.Spec.Managers()
+	_ = managers.ParallelEach(func(h *api.Host) error {
+		log.Infof("%s: removing ucp-controller-server-certs volume", h)
+		err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
+		if err != nil {
+			log.Errorf("%s: failed to remove the volume", h)
+		}
+
+		if err := h.Reboot(); err != nil {
+			log.Errorf("%s: failed to reboot the host: %v", h, err)
+		}
+		return nil
+	})
+
+	workers := p.Config.Spec.Workers()
+	_ = workers.ParallelEach(func(h *api.Host) error {
+		if err := h.Reboot(); err != nil {
+			log.Errorf("%s: failed to reboot the host: %v", h, err)
+		}
+		return nil
+	})
+
 	return nil
 }
