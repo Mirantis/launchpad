@@ -131,7 +131,7 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 func (p *RemoveNodes) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 	if len(p.cleanupMSRs) > 0 {
-		err := msr.Cleanup(p.cleanupMSRs, swarmLeader)
+		err := msr.Cleanup(p.cleanupMSRs, swarmLeader, p.Config)
 		if err != nil {
 			return fmt.Errorf("failed to cleanup MSR nodes: %w", err)
 		}

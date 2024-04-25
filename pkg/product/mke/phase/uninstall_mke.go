@@ -62,7 +62,7 @@ func (p *UninstallMKE) Run() error {
 		return nil
 	})
 
-	workers := p.Config.Spec.Workers()
+	workers := p.Config.Spec.WorkersAndMSRs()
 	_ = workers.ParallelEach(func(h *api.Host) error {
 		if err := h.Reboot(); err != nil {
 			log.Errorf("%s: failed to reboot the host: %v", h, err)
