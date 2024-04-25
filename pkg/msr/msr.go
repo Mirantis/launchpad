@@ -149,7 +149,12 @@ func mkeURLHost(config *api.ClusterConfig) string {
 // Destroy is functionally equivalent to a MSR destroy and is intended to
 // remove any MSR containers and volumes that may have been started via the
 // installer if it fails.
-func Destroy(h *api.Host) error {
+func Destroy(h *api.Host, config *api.ClusterConfig) error {
+	mkeFlags := BuildMKEFlags(config)
+	cmd := fmt.Sprintf("run -it --rm mirantis/dtr:%s destroy --ucp-insecure-tls --ucp-url %s --ucp-username %s --ucp-password %s --replica-id %s", h.MSRMetadata.InstalledVersion, mkeFlags.GetValue("--ucp-url"), mkeFlags.GetValue("--ucp-username"), mkeFlags.GetValue("--ucp-password"), h.MSRMetadata.ReplicaID)
+	if err := h.Exec(h.Configurer.DockerCommandf(cmd)); err != nil {
+		return fmt.Errorf("failed to run MSR destroy: %w", err)
+	}
 	// Remove containers
 	log.Debugf("%s: Removing MSR containers", h)
 	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=dtr-"))
@@ -240,10 +245,10 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 // Cleanup accepts a list of msrHosts to remove all containers, volumes
 // and networks on, it is intended to be used to uninstall MSR or cleanup
 // a failed install.
-func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host) error {
+func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host, config *api.ClusterConfig) error {
 	for _, h := range msrHosts {
 		log.Debugf("%s: Destroying MSR host", h)
-		err := Destroy(h)
+		err := Destroy(h, config)
 		if err != nil {
 			return fmt.Errorf("failed to run MSR destroy: %w", err)
 		}

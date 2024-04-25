@@ -36,7 +36,7 @@ func (p *UninstallMSR) Run() error {
 			msrHosts = append(msrHosts, h)
 		}
 	}
-	if err := msr.Cleanup(msrHosts, swarmLeader); err != nil {
+	if err := msr.Cleanup(msrHosts, swarmLeader, p.Config); err != nil {
 		return fmt.Errorf("failed to clean up MSR: %w", err)
 	}
 	return nil
