@@ -3,6 +3,7 @@ package mke
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -90,8 +92,11 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 
 	mkeURL.Path = "/api/clientbundle"
 
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
 	// Now download the bundle
-	req, err := http.NewRequest(http.MethodGet, mkeURL.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, mkeURL.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
