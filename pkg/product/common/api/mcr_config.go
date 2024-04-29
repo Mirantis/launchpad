@@ -19,18 +19,28 @@ type DockerDaemonConfig struct {
 
 // MCRConfig holds the Mirantis Container Runtime installation specific options.
 type MCRConfig struct {
-	Version           string `yaml:"version"`
-	RepoURL           string `yaml:"repoURL,omitempty"`
-	InstallURLLinux   string `yaml:"installURLLinux,omitempty"`
-	InstallURLWindows string `yaml:"installURLWindows,omitempty"`
-	Channel           string `yaml:"channel,omitempty"`
-	Prune             bool   `yaml:"prune,omitempty"`
-	ForceUpgrade      bool   `yaml:"forceUpgrade,omitempty"`
+	Version             string   `yaml:"version"`
+	RepoURL             string   `yaml:"repoURL,omitempty"`
+	InstallURLLinux     string   `yaml:"installURLLinux,omitempty"`
+	InstallURLWindows   string   `yaml:"installURLWindows,omitempty"`
+	Channel             string   `yaml:"channel,omitempty"`
+	Prune               bool     `yaml:"prune,omitempty"`
+	ForceUpgrade        bool     `yaml:"forceUpgrade,omitempty"`
+	SwarmInstallFlags   Flags    `yaml:"swarmInstallFlags,omitempty,flow"`
+	SwarmUpdateCommands []string `yaml:"swarmUpdateCommands,omitempty,flow"`
+
+	Metadata *MCRMetadata `yaml:"-"`
+}
+
+type MCRMetadata struct {
+	ManagerJoinToken string
+	WorkerJoinToken  string
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml.
 func (c *MCRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type mcrConfig MCRConfig
+	c.Metadata = &MCRMetadata{}
 	yc := (*mcrConfig)(c)
 
 	if err := unmarshal(yc); err != nil {
