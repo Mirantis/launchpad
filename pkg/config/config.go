@@ -19,6 +19,8 @@ import (
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
 	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v14"
+	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
