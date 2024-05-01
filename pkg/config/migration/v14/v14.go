@@ -16,11 +16,11 @@ func Migrate(plain map[string]interface{}) error {
 				}
 				delete(mke, "swarmInstallFlags")
 			}
-			if SwarmUpdateCommands, ok := mke["SwarmUpdateCommands"]; ok {
+			if SwarmUpdateCommands, ok := mke["swarmUpdateCommands"]; ok {
 				if mcr, ok := spec["mcr"].(map[interface{}]interface{}); ok {
-					mcr["SwarmUpdateCommands"] = SwarmUpdateCommands
+					mcr["swarmUpdateCommands"] = SwarmUpdateCommands
 				}
-				delete(mke, "SwarmUpdateCommands")
+				delete(mke, "swarmUpdateCommands")
 			}
 		}
 	}
