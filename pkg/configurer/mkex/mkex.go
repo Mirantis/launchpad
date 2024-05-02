@@ -19,7 +19,7 @@ func init() {
 	registry.RegisterOSModule(
 		isMKExOSVersion,
 		func() interface{} {
-			log.Warn("Building an MKEX configurer for a host. This configurer will behave differently, skipping some expected installation steps.")
+			log.Debug("Building an MKEX configurer for a host. This configurer will behave differently, skipping some expected installation steps.")
 			return RockyLinux{}
 		},
 	)
