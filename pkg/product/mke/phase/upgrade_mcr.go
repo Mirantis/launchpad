@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/mcr"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
@@ -175,33 +176,9 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 		log.Errorf("%s: failed to update container runtime -> %s", h, err.Error())
 		return fmt.Errorf("retry count exceeded: %w", err)
 	}
-
-	// TODO: This exercise is duplicated in InstallMCR, maybe
-	// combine into some kind of "EnsureVersion"
-	currentVersion, err := h.MCRVersion()
+	err = mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version)
 	if err != nil {
-		if err := h.Reboot(); err != nil {
-			return fmt.Errorf("%s: failed to reboot after container runtime installation: %w", h, err)
-		}
-		currentVersion, err = h.MCRVersion()
-		if err != nil {
-			return fmt.Errorf("%s: failed to query container runtime version after installation: %w", h, err)
-		}
-	}
-
-	if currentVersion != p.Config.Spec.MCR.Version {
-		err = h.Configurer.RestartMCR(h)
-		if err != nil {
-			return fmt.Errorf("%s: failed to restart container runtime: %w", h, err)
-		}
-		currentVersion, err = h.MCRVersion()
-		if err != nil {
-			return fmt.Errorf("%s: failed to query container runtime version after restart: %w", h, err)
-		}
-	}
-
-	if currentVersion != p.Config.Spec.MCR.Version {
-		return fmt.Errorf("%s: %w: container runtime version not %s after upgrade", h, errVersionMismatch, p.Config.Spec.MCR.Version)
+		return fmt.Errorf("failed while attempting to ensure the installed version: %w", err)
 	}
 
 	log.Infof("%s: upgraded to mirantis container runtime version %s", h, p.Config.Spec.MCR.Version)

@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/msr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -77,7 +78,7 @@ func (p *UpgradeMSR) Run() error {
 	if msrMeta.InstalledVersion != p.Config.Spec.MSR.Version {
 		// If our newly collected facts do not match the version we upgraded to
 		// then the upgrade has failed
-		return fmt.Errorf("%s: %w: upgraded msr version: %s does not match intended upgrade version: %s", h, errVersionMismatch, msrMeta.InstalledVersion, p.Config.Spec.MSR.Version)
+		return fmt.Errorf("%s: %w: upgraded msr version: %s does not match intended upgrade version: %s", h, constant.ErrVersionMismatch, msrMeta.InstalledVersion, p.Config.Spec.MSR.Version)
 	}
 
 	p.EventProperties["msr_upgraded"] = true
