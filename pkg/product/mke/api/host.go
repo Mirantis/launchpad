@@ -77,7 +77,7 @@ type Host struct {
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
 	Hooks            common.Hooks      `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
 	ImageDir         string            `yaml:"imageDir,omitempty"`
-	SudoCommands     []string          `yaml:"sudocmds,omitempty"`
+	SudoDocker       bool              `yaml:"sudodocker"`
 
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
@@ -111,17 +111,15 @@ func (h *Host) IsLocal() bool {
 
 // IsSudoCommand is a particluar string command supposed to use Sudo.
 func (h *Host) IsSudoCommand(cmd string) bool {
-	for _, sudocmd := range h.SudoCommands {
-		if strings.HasPrefix(cmd, sudocmd) {
-			return true
-		}
+	if h.SudoDocker && strings.HasPrefix(cmd, "docker") {
+		return true
 	}
 	return false
 }
 
 // AuthorizeDocker if needed.
 func (h *Host) AuthorizeDocker() error {
-	if h.IsSudoCommand("docker") {
+	if h.SudoDocker {
 		log.Debugf("%s: not authorizing docker, as docker is meant to be run with sudo", h)
 		return nil
 	}
