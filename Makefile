@@ -65,7 +65,6 @@ lint:
 
 .PHONY: unit-test
 unit-test:
-	$(GO) test -v ./pkg/...
 	$(GO) test -v --tags 'testing' ./pkg/...
 
 .PHONY: functional-test
