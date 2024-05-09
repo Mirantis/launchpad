@@ -45,6 +45,11 @@ func NewApplyCommand() *cli.Command {
 				Hidden: true,
 			},
 			&cli.BoolFlag{
+				Name:  "disable-logo",
+				Usage: "Disable printing of the Mirantis logo",
+				Value: false,
+			},
+			&cli.BoolFlag{
 				Name:  "force-upgrade",
 				Usage: "force upgrade to run on compatible components, even if it doesn't look necessary",
 				Value: false,
@@ -80,7 +85,9 @@ func NewApplyCommand() *cli.Command {
 			}
 
 			if isatty.IsTerminal(os.Stdout.Fd()) {
-				os.Stdout.WriteString(logo.Logo)
+				if !ctx.Bool("disable-logo") {
+					os.Stdout.WriteString(logo.Logo)
+				}
 				fmt.Fprintf(os.Stdout, "   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version)
 			}
 
