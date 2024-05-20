@@ -43,6 +43,12 @@ func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 		return nil, fmt.Errorf("failed to parse kubeconfig: %w", err)
 	}
 
+	return New(config, namespace)
+}
+
+// New creates a new instance of KubeClient from a given namespace and
+// *rest.Config.
+func New(config *rest.Config, namespace string) (*KubeClient, error) {
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize kubernetes client: %w", err)
@@ -53,14 +59,12 @@ func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 		return nil, fmt.Errorf("failed to initialize apiextensions clientset: %w", err)
 	}
 
-	kc := &KubeClient{
+	return &KubeClient{
 		Namespace:      namespace,
 		client:         clientSet,
 		extendedClient: extendedClientSet,
 		config:         config,
-	}
-
-	return kc, nil
+	}, nil
 }
 
 type NotFoundError struct {
