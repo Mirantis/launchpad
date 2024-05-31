@@ -35,6 +35,8 @@ func NewTestClient(t *testing.T) *KubeClient {
 
 // NewTestResourceClient returns a new fake msr.mirantis.com/v1 MSR resource
 // client for testing purposes.
+//
+//nolint:ireturn
 func NewTestResourceClient(t *testing.T, namespace string) dynamic.ResourceInterface {
 	t.Helper()
 

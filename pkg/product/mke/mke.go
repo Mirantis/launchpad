@@ -21,7 +21,7 @@ func (p *MKE) ClusterName() string {
 func NewMKE(data []byte) (*MKE, error) {
 	c := api.ClusterConfig{}
 	if err := yaml.UnmarshalWithOptions(data, &c, yaml.Strict()); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal cluster config: %w", err)
 	}
 
 	if err := c.Validate(); err != nil {
