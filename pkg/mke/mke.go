@@ -230,7 +230,7 @@ func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *
 		if os.IsNotExist(err) {
 			log.Debugf("%s not found in bundle directory %q, will download", constant.KubeConfigFile, bundleDir)
 			if err := DownloadBundle(config); err != nil {
-				return nil, nil, err
+				return nil, nil, fmt.Errorf("failed to download bundle: %w", err)
 			}
 		} else {
 			return nil, nil, fmt.Errorf("failed to check for kube config: %w", err)
@@ -239,12 +239,12 @@ func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *
 
 	kube, err := kubeclient.NewFromBundle(bundleDir, config.Spec.Namespace)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to create kube client from bundle directory: %q: %w", bundleDir, err)
 	}
 
 	helm, err := helm.NewFromBundle(bundleDir, config.Spec.Namespace)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to create helm client from bundle directory: %q: %w", bundleDir, err)
 	}
 
 	return kube, helm, nil

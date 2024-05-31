@@ -22,6 +22,8 @@ var (
 )
 
 // GetInstance returns the singleton instance.
+//
+//nolint:revive
 func GetInstance() *singletonProduct {
 	once.Do(func() {
 		instance = &singletonProduct{}
@@ -35,7 +37,7 @@ func Destroy() {
 	instance = nil
 }
 
-// setup function to run before tests
+// Setup function to run before tests.
 func (sp *singletonProduct) Setup(t *testing.T, options terraform.Options) {
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
 	// Run `terraform init` and `terraform apply`. Fail the test if there are any errors.
@@ -50,12 +52,15 @@ func (sp *singletonProduct) Setup(t *testing.T, options terraform.Options) {
 	sp.TerraformOptions = terraformOptions
 	sp.T = t
 	if err != nil {
+		t.Cleanup(func() {
+			sp.Teardown()
+		})
+
 		t.Fatalf("Error parsing launchpad yaml: %v\n", err)
-		sp.Teardown()
 	}
 }
 
-// Teardown function to run after tests
+// Teardown function to run after tests.
 func (sp *singletonProduct) Teardown() {
 	fmt.Println("Teardown function executed")
 	if sp == nil {

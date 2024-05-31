@@ -8,13 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/rig"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
 )
 
 // Cluster is for universal cluster settings not applicable to single hosts, mke, msr or engine.
@@ -165,10 +164,15 @@ func (c *ClusterSpec) MSR2URL() (*url.URL, error) {
 		Path:   "/",
 		Host:   msrAddr,
 	}, nil
-
 }
 
-var errInvalidConfig = errors.New("invalid configuration")
+type invalidConfigError struct {
+	reason string
+}
+
+func (e *invalidConfigError) Error() string {
+	return fmt.Sprintf("invalid configuration: %s", e.reason)
+}
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -178,24 +182,19 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	c.MKE = NewMKEConfig()
 
 	if err := unmarshal(specAlias); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal cluster spec: %w", err)
 	}
 
 	if c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
 		if specAlias.MSR == nil {
-			return fmt.Errorf("configuration error: hosts with 'msr' role present, but no spec.msr defined")
+			return &invalidConfigError{"hosts with 'msr' role present, but no spec.msr defined"}
 		}
 		if err := defaults.Set(specAlias.MSR); err != nil {
-			return err
+			return fmt.Errorf("failed to set defaults for spec.msr: %w", err)
 		}
-	} else if specAlias.MSR != nil {
-		specAlias.MSR = nil
-		log.Debugf("ignoring spec.msr configuration as there are no hosts having the msr role")
 	} else {
-		if specAlias.MSR != nil {
-			specAlias.MSR = nil
-			log.Debugf("ignoring spec.msr configuration as there are no hosts having the 'msr' role")
-		}
+		specAlias.MSR = nil
+		log.Debugf("ignoring spec.msr configuration as there are no hosts having the 'msr' role")
 	}
 
 	bastionHosts := c.Hosts.Filter(func(h *Host) bool {
@@ -225,8 +224,9 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if err := defaults.Set(c); err != nil {
-		return fmt.Errorf("set defaults: %w", err)
+		return fmt.Errorf("failed to set defaults: %w", err)
 	}
+
 	return nil
 }
 

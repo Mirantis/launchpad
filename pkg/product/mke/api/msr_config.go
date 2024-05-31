@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -54,9 +55,11 @@ type MSR3Config struct {
 	CRD *unstructured.Unstructured `yaml:"crd,omitempty"`
 }
 
+var errStorageURLRequired = fmt.Errorf("spec.msr.storageURL is required when spec.msr.storageClassType is populated")
+
 func (c *MSR3Config) Validate() error {
 	if c.StorageClassType != "" && c.StorageURL == "" {
-		return fmt.Errorf("spec.msr.storageURL is required when spec.msr.storageClassType is populated")
+		return errStorageURLRequired
 	}
 
 	return nil
@@ -180,11 +183,13 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	if err := defaults.Set(c); err != nil {
-		return err
+		return fmt.Errorf("failed to set defaults for MSR configuration: %w", err)
 	}
 
 	return c.setConfigForVersion()
 }
+
+var errUnsupportedMSRVersion = errors.New("unsupported MSR major version: must be either 2 or 3")
 
 func (c *MSRConfig) setConfigForVersion() error {
 	switch c.MajorVersion() {
@@ -192,7 +197,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		if c.V2.CACertPath != "" {
 			caCertData, err := fileutil.LoadExternalFile(c.V2.CACertPath)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load CA cert data: %w", err)
 			}
 			c.V2.CACertData = string(caCertData)
 		}
@@ -200,7 +205,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		if c.V2.CertPath != "" {
 			certData, err := fileutil.LoadExternalFile(c.V2.CertPath)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load cert data: %w", err)
 			}
 			c.V2.CertData = string(certData)
 		}
@@ -208,7 +213,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		if c.V2.KeyPath != "" {
 			keyData, err := fileutil.LoadExternalFile(c.V2.KeyPath)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to load key data: %w", err)
 			}
 			c.V2.KeyData = string(keyData)
 		}
@@ -221,7 +226,7 @@ func (c *MSRConfig) setConfigForVersion() error {
 		c.V3.Dependencies.SetDefaults()
 
 	default:
-		return fmt.Errorf("unsupported MSR major version: must be either 2 or 3")
+		return errUnsupportedMSRVersion
 	}
 
 	return nil

@@ -13,7 +13,7 @@ import (
 func SetupLicenseFile(licenseFilePath string) (string, error) {
 	license, err := os.ReadFile(licenseFilePath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read license file: %w", err)
 	}
 	licenseFlag := fmt.Sprintf("--license '%s'", string(license))
 	return licenseFlag, nil
