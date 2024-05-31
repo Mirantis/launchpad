@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/goccy/go-yaml"
+	"gopkg.in/yaml.v2"
 )
 
 // MKE is the product.
@@ -20,7 +20,7 @@ func (p *MKE) ClusterName() string {
 // NewMKE returns a new instance of the Docker Enterprise product.
 func NewMKE(data []byte) (*MKE, error) {
 	c := api.ClusterConfig{}
-	if err := yaml.UnmarshalWithOptions(data, &c, yaml.Strict()); err != nil {
+	if err := yaml.Unmarshal(data, &c); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal cluster config: %w", err)
 	}
 
