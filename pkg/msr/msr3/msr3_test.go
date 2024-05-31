@@ -63,8 +63,10 @@ func TestCollectFacts(t *testing.T) {
 		_, err := rc.Create(context.Background(), msr, metav1.CreateOptions{})
 		require.NoError(t, err)
 
-		_, err = CollectFacts(context.Background(), "msr-test", kc, rc, nil, kubeclient.WithCustomWait(1, time.Millisecond*1))
-		assert.ErrorContains(t, err, "MSR CR is not ready")
+		actual, err := CollectFacts(context.Background(), "msr-test", kc, rc, nil, kubeclient.WithCustomWait(1, time.Millisecond*1))
+		require.NoError(t, err)
+
+		assert.False(t, actual.Installed)
 	})
 
 	t.Run("MSR CR has no version", func(t *testing.T) {

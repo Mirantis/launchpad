@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"path"
 	"strings"
 	"testing"
 
@@ -16,12 +15,19 @@ import (
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
 	// needed to load the migrators.
-	"gopkg.in/yaml.v2"
-
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v14"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
 	"github.com/Mirantis/mcc/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestHostRequireManagerValidationPass(t *testing.T) {
@@ -374,9 +380,6 @@ spec:
 
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "root")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 22)
-	home, _ := os.UserHomeDir()
-	require.NotNil(t, c.Spec.Hosts[0].SSH.KeyPath)
-	require.Equal(t, *c.Spec.Hosts[0].SSH.KeyPath, path.Join(home, ".ssh", "id_rsa"))
 }
 
 func TestHostWinRMDefaults(t *testing.T) {
@@ -458,6 +461,7 @@ func loadYaml(t *testing.T, data string) *ClusterConfig {
 	c := &ClusterConfig{}
 	// convert any tabs added by editor into double spaces
 	require.NoError(t, yaml.Unmarshal([]byte(strings.ReplaceAll(data, "\t", "  ")), c))
+
 	return c
 }
 

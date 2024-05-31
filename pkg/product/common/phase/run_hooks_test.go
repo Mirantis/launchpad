@@ -91,5 +91,5 @@ func TestRunError(t *testing.T) {
 
 func TestTitle(t *testing.T) {
 	p := RunHooks{Action: "apply", Stage: "before"}
-	require.Equal(t, "Run before apply Hooks", p.Title())
+	require.Equal(t, "Run Before Apply Hooks", p.Title())
 }
