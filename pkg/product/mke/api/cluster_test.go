@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/Mirantis/mcc/pkg/config/migration"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
 	// needed to load the migrators.
@@ -454,6 +456,101 @@ spec:
 		require.NoError(t, c.Validate())
 	})
 
+}
+
+func TestValidationWithMSR3(t *testing.T) {
+	t.Run("crd is a valid unstructured object", func(t *testing.T) {
+		// There is an extra tab in the yaml data
+		// under crd.apiVersion, for whatever
+		// reason the loadYaml helper is not
+		// handling the tabs correctly for that
+		// section.  The resulting data is valid
+		// yaml.
+		data := `
+apiVersion: launchpad.mirantis.com/mke/v1.5
+kind: mke+msr
+spec:
+	mke:
+	  version: 3.3.7
+	msr:
+	  version: 3.1.4
+	  storageURL: "https://example.com"
+	  storageClassType: "nfs"
+	  crd:
+	    apiVersion: "msr.mirantis.com/v1"
+		  kind: "MSR"
+		  spec:
+		    logLevel: "debug"
+  hosts:
+    - ssh:
+        address: "10.0.0.1"
+      role: msr
+    - ssh:
+        address: "10.0.0.2"
+      role: manager
+`
+		c := loadYaml(t, data)
+
+		require.Equal(t, c.Spec.MSR.V3.StorageURL, "https://example.com")
+		require.Equal(t, c.Spec.MSR.V3.StorageClassType, "nfs")
+		require.Equal(t, c.Spec.MSR.V3.CRD.GetAPIVersion(), "msr.mirantis.com/v1")
+		require.Equal(t, c.Spec.MSR.V3.CRD.GetKind(), "MSR")
+
+		actual, found, err := unstructured.NestedString(c.Spec.MSR.V3.CRD.Object, "spec", "logLevel")
+		require.True(t, found)
+		require.NoError(t, err)
+		require.Equal(t, actual, "debug")
+
+		require.NoError(t, c.Validate())
+	})
+
+	t.Run("storageURL is required when storageClassType is set", func(t *testing.T) {
+		data := `
+apiVersion: launchpad.mirantis.com/mke/v1.5
+kind: mke+msr
+spec:
+	mke:
+	  version: 3.3.7
+	msr:
+	  version: 3.1.4
+	  storageClassType: "nfs"
+  hosts:
+    - ssh:
+        address: "10.0.0.1"
+      role: msr
+    - ssh:
+        address: "10.0.0.2"
+      role: manager
+`
+
+		c := &ClusterConfig{}
+		err := yaml.Unmarshal([]byte(strings.ReplaceAll(data, "\t", "  ")), c)
+		require.ErrorContains(t, err, "spec.msr.storageURL", "required")
+	})
+
+	t.Run("storageClassType must be one of the supported types", func(t *testing.T) {
+		data := `
+apiVersion: launchpad.mirantis.com/mke/v1.5
+kind: mke+msr
+spec:
+	mke:
+	  version: 3.3.7
+	msr:
+	  version: 3.1.4
+	  storageURL: "https://example.com"
+	  storageClassType: "not-supported"
+  hosts:
+    - ssh:
+        address: "10.0.0.1"
+      role: msr
+    - ssh:
+        address: "10.0.0.2"
+      role: manager
+`
+
+		c := loadYaml(t, data)
+		require.ErrorContains(t, c.Validate(), "StorageClassType", "oneof")
+	})
 }
 
 // Just a small helper to load the config struct from yaml to get defaults etc. in place.

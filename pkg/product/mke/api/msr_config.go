@@ -9,6 +9,7 @@ import (
 	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/fileutil"
+	"github.com/Mirantis/mcc/pkg/util/maputil"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -174,12 +175,38 @@ func (d *Dependencies) SetDefaults() {
 	}
 }
 
+var errUnexpectedTypeForCRD = errors.New("unexpected type for CRD: expected map")
+
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type msr MSRConfig
 	yc := (*msr)(c)
 	if err := unmarshal(yc); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal MSR configuration: %w", err)
+	}
+
+	// Decode the MSR configuration into a map, check to see if the CRD field
+	// is present and if so use the decoded map to form the unstructured object.
+	var obj map[interface{}]interface{}
+	if err := unmarshal(&obj); err != nil {
+		return fmt.Errorf("failed to unmarshal MSR configuration into map: %w", err)
+	}
+
+	if _, ok := obj["crd"]; ok {
+		// Due to yaml.v2's unmarshalling behavior, we first need to unmarshal
+		// into map[interface{}]interface{} and then into map[string]interface{}.
+		// If we move to yaml.v3 in the future, we can Decode directly into
+		// map[string]interface{} and gain some performance improvements around
+		// this conversion.
+		mapObj, ok := obj["crd"].(map[interface{}]interface{})
+		if !ok {
+			return errUnexpectedTypeForCRD
+		}
+
+		// Convert the map[interface{}]interface{} to map[string]interface{}.
+		c.V3.CRD = &unstructured.Unstructured{Object: maputil.ConvertInterfaceMap(mapObj)}
+
+		fmt.Println(c.V3.CRD)
 	}
 
 	if err := defaults.Set(c); err != nil {
