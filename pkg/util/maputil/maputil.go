@@ -3,7 +3,7 @@ package maputil
 import "fmt"
 
 // ConvertInterfaceMap converts map[interface{}]interface{} to
-// map[string]interface{} with use with an Unmarshaler.  This is required
+// map[string]interface{} for use with an Unmarshaler.  This is required
 // because yaml.v2 unmarshals maps to map[interface{}]interface{}.
 func ConvertInterfaceMap(in map[interface{}]interface{}) map[string]interface{} {
 	res := make(map[string]interface{})
