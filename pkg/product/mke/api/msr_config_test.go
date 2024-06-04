@@ -1,9 +1,12 @@
 package api
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/go-version"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
@@ -64,4 +67,45 @@ func TestMSRConfig_CustomRepo(t *testing.T) {
 	err = yaml.Unmarshal([]byte("version: 2.8.1\nimageRepo: foo.foo/foo"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "foo.foo/foo", cfg.V2.ImageRepo)
+}
+
+// TestMSRConfig_YAMLKeysDoNotOverlap tests that the yaml keys in MSR2Config and
+// MSR3Config do not overlap.  This is important as the MSR2 and MSR3 configs
+// are inlined under the 'msr' parent key.  During unmarshaling, the yaml
+// keys should be unique to ensure that the correct version structs are
+// appropriately populated.
+func TestMSRConfig_YAMLKeysDoNotOverlap(t *testing.T) {
+	a := extractYAMLTags(t, MSR2Config{})
+	b := extractYAMLTags(t, MSR3Config{})
+
+	for _, key := range a {
+		assert.NotContainsf(t, b, key, "yaml tag: %q should not exist in both MSR2Config and MSR3Config types", key)
+	}
+}
+
+// extractYAML tags iterates v's struct fields and returns a sorted slice of
+// string containing yaml tags.
+func extractYAMLTags(t *testing.T, v interface{}) []string {
+	t.Helper()
+
+	typ := reflect.TypeOf(v)
+	if typ.Kind() != reflect.Struct {
+		t.Fatalf("expected struct, got %v", typ.Kind())
+	}
+
+	// Iterate the struct fields and create a map of field names to yaml keys.
+	var final []string
+	for i := 0; i < typ.NumField(); i++ {
+		fld := typ.Field(i)
+		if keyName := fld.Tag.Get("yaml"); keyName != "" {
+			if strings.Contains(keyName, ",") {
+				k := strings.Split(keyName, ",")
+				final = append(final, k[0])
+			} else {
+				final = append(final, keyName)
+			}
+		}
+	}
+
+	return final
 }
