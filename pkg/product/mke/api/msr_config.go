@@ -210,8 +210,6 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 		// Convert the map[interface{}]interface{} to map[string]interface{}.
 		c.V3.CRD = &unstructured.Unstructured{Object: maputil.ConvertInterfaceMap(mapObj)}
-
-		fmt.Println(c.V3.CRD)
 	}
 
 	if err := defaults.Set(c); err != nil {
