@@ -15,6 +15,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// MSRConfig defines the configuration for MSR, each product version has it's
+// own set of configuration options, but the options are inlined into the parent
+// 'msr' key for ease of use when crafting the yaml configuration.  Due to this
+// constraint, ensure that different version configurations do not have
+// overlapping struct tags.
 type MSRConfig struct {
 	Version string `yaml:"version" validate:"required"`
 
