@@ -112,7 +112,7 @@ func (d *Dependencies) SetDefaults() {
 			d.CertManager.RepoURL = "https://charts.jetstack.io"
 		}
 		if d.CertManager.Version == "" {
-			d.CertManager.Version = "1.12.4"
+			d.CertManager.Version = "1.14.7"
 		}
 		if d.CertManager.Values == nil {
 			d.CertManager.Values = map[string]interface{}{"installCRDs": true}
@@ -132,7 +132,7 @@ func (d *Dependencies) SetDefaults() {
 			d.PostgresOperator.RepoURL = "https://opensource.zalando.com/postgres-operator/charts/postgres-operator"
 		}
 		if d.PostgresOperator.Version == "" {
-			d.PostgresOperator.Version = "1.10.0"
+			d.PostgresOperator.Version = "1.12.2"
 		}
 		if d.PostgresOperator.Values == nil {
 			d.PostgresOperator.Values = map[string]interface{}{
