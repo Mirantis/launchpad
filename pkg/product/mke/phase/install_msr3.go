@@ -154,7 +154,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 
 	// Configure Nginx.DNSNames if a LoadBalancerURL is specified.
 	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
-		if err := unstructured.SetNestedField(msr.Object, []string{"nginx", "localhost", p.Config.Spec.MSR.V3.LoadBalancerURL}, "spec", "nginx", "dnsNames"); err != nil {
+		if err := unstructured.SetNestedStringSlice(msr.Object, []string{"nginx", "localhost", p.Config.Spec.MSR.V3.LoadBalancerURL}, "spec", "nginx", "dnsNames"); err != nil {
 			return fmt.Errorf("failed to set MSR spec.nginx.dnsNames to include LoadBalancerURL: %q: %w", p.Config.Spec.MSR.V3.LoadBalancerURL, err)
 		}
 	}
