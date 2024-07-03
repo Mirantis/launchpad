@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -255,18 +256,13 @@ func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
-// CheckMKEHealthRemote will check mke cluster health from a host and return an error if it failed.
-func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
-	u, err := c.MKEURL()
-	if err != nil {
-		return err
-	}
-	u.Path = "/_ping"
+func pingHost(h *Host, address string, waitgroup *sync.WaitGroup, errCh chan<- error) {
+	url := fmt.Sprintf("https://%s/_ping", address)
 
-	err = retry.Do(
+	err := retry.Do(
 		func() error {
-			log.Infof("%s: waiting for MKE at %s to become healthy", h, u.Host)
-			if err := h.CheckHTTPStatus(u.String(), http.StatusOK); err != nil {
+			log.Infof("%s: waiting for MKE at %s to become healthy", h, url)
+			if err := h.CheckHTTPStatus(url, http.StatusOK); err != nil {
 				return fmt.Errorf("check http status: %w", err)
 			}
 			return nil
@@ -274,31 +270,57 @@ func (c *ClusterSpec) CheckMKEHealthRemote(h *Host) error {
 		retry.Attempts(12), // last attempt should wait ~7min
 	)
 	if err != nil {
-		return fmt.Errorf("MKE health check failed: %w", err)
+		errCh <- fmt.Errorf("MKE health check failed: %w", err)
 	}
+	errCh <- nil
+	waitgroup.Done()
+}
+
+// CheckMKEHealthRemote will check mke cluster health from a list of hosts and return an error if it failed.
+func (c *ClusterSpec) CheckMKEHealthRemote(hosts []*Host) error {
+	errCh := make(chan error, len(hosts))
+	var wg sync.WaitGroup
+
+	for _, h := range hosts {
+		wg.Add(1)
+		go pingHost(h, h.Address(), &wg, errCh)
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			return fmt.Errorf("MKE health check failed: %w", err)
+		}
+	}
+
 	return nil
 }
 
 // CheckMKEHealthLocal will check the local mke health on a host and return an error if it failed.
-func (c *ClusterSpec) CheckMKEHealthLocal(h *Host) error {
-	host := h.Metadata.InternalAddress
-	if port := c.MKE.InstallFlags.GetValue("--controller-port"); port != "" {
-		host = host + ":" + port
+func (c *ClusterSpec) CheckMKEHealthLocal(hosts []*Host) error {
+	errCh := make(chan error, len(hosts))
+	var wg sync.WaitGroup
+
+	for _, h := range hosts {
+		wg.Add(1)
+		address := h.Metadata.InternalAddress
+		if port := c.MKE.InstallFlags.GetValue("--controller-port"); port != "" {
+			address = address + ":" + port
+		}
+		go pingHost(h, address, &wg, errCh)
 	}
 
-	err := retry.Do(
-		func() error {
-			log.Infof("%s: waiting for MKE to become healthy", h)
-			if err := h.CheckHTTPStatus(fmt.Sprintf("https://%s/_ping", host), http.StatusOK); err != nil {
-				return fmt.Errorf("check http status: %w", err)
-			}
-			return nil
-		},
-		retry.Attempts(12), // last attempt should wait ~7min
-	)
-	if err != nil {
-		return fmt.Errorf("MKE health check failed: %w", err)
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			return fmt.Errorf("MKE health check failed: %w", err)
+		}
 	}
+
 	return nil
 }
 

@@ -33,7 +33,9 @@ func (p *UpgradeMSR) ShouldRun() bool {
 func (p *UpgradeMSR) Run() error {
 	h := p.Config.Spec.MSRLeader()
 
-	err := p.Config.Spec.CheckMKEHealthRemote(h)
+	managers := p.Config.Spec.Managers()
+
+	err := p.Config.Spec.CheckMKEHealthRemote(managers)
 	if err != nil {
 		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity: %w", h, err)
 	}

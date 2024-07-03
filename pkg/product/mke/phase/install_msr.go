@@ -41,7 +41,9 @@ func (p *InstallMSR) Run() error {
 		h.MSRMetadata = &api.MSRMetadata{}
 	}
 
-	err := p.Config.Spec.CheckMKEHealthRemote(h)
+	managers := p.Config.Spec.Managers()
+
+	err := p.Config.Spec.CheckMKEHealthRemote(managers)
 	if err != nil {
 		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity: %w", h, err)
 	}
