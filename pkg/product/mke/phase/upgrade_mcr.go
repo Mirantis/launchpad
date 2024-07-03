@@ -91,13 +91,13 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 	for _, h := range managers {
 		err := p.upgradeMCR(h)
 		if err != nil {
-			return err
+			return fmt.Errorf("upgrade MCR failed. %w", err)
 		}
-		if p.Config.Spec.MKE.Metadata.Installed {
-			err := p.Config.Spec.CheckMKEHealthLocal(h)
-			if err != nil {
-				return fmt.Errorf("%s: %w", h, err)
-			}
+	}
+	if p.Config.Spec.MKE.Metadata.Installed {
+		err := p.Config.Spec.CheckMKEHealthLocal(managers)
+		if err != nil {
+			return fmt.Errorf("checkMKEHealthLocal failed. %w", err)
 		}
 	}
 

@@ -32,10 +32,10 @@ func (p *ValidateMKEHealth) Title() string {
 // launchpad phases, should be used when installing products that depend
 // on MKE, such as MSR.
 func (p *ValidateMKEHealth) Run() error {
-	// Issue a health check to the MKE san host until we receive an 'ok' status
-	swarmLeader := p.Config.Spec.SwarmLeader()
+	// Issue a health check to the MKE local address managers until we receive an 'ok' status
+	managers := p.Config.Spec.Managers()
 
-	if err := p.Config.Spec.CheckMKEHealthLocal(swarmLeader); err != nil {
+	if err := p.Config.Spec.CheckMKEHealthLocal(managers); err != nil {
 		return fmt.Errorf("%w: failed to validate MKE health: %w", errValidationFailed, err)
 	}
 
