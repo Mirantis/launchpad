@@ -69,7 +69,8 @@ spec:
           sh (
             label: "build clean release",
             script: """
-              make build-release
+              git checkout \$(git rev-parse --verify ${params.TAG_NAME})
+              GORELEASER_CURRENT_TAG=${params.TAG_NAME} make build-release
             """
           )
         }

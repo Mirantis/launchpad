@@ -28,6 +28,10 @@ build-release: clean $(RELEASE_FOLDER)
 # we need to use digicert to sign the binaries first, and
 # goreleaser doesn't allow for that (some pro features may
 # allow it in a round about way.)
+#
+# If you are using more than one tag for a commit, then use
+# the GORELEASER_CURRENT_TAG env var to clarify the version to
+# avoid having the wrong tag version applied
 $(RELEASE_FOLDER):
 	goreleaser build --clean --config=.goreleaser.release.yml
 
@@ -54,7 +58,7 @@ clean-release:
 # and alias it.
 .PHONY: local
 local:
-	GORELEASER_CURRENT_TAG="$(LOCAL_TAG)" goreleaser build --clean --single-target --skip=validate --snapshot --config .goreleaser.local.yml
+	goreleaser build --clean --single-target --skip=validate --snapshot --config .goreleaser.local.yml
 
 # run linting
 .PHONY: lint
