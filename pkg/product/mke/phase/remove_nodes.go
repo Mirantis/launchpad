@@ -95,14 +95,14 @@ func (p *RemoveNodes) Prepare(config interface{}) error {
 			// If the node is a managed msr node in addition to a managed
 			// launchpad node, first remove MSR
 			if managed.msr {
-				// Check to see if the config contains any left over MSR nodes,
+				// Check to see if the config contains any left over MSR2 nodes,
 				// if it doesn't just call msr2.Cleanup to remove
-				msrs := p.Config.Spec.MSRs()
-				if len(msrs) == 0 {
-					// All of the MSRs were removed from config, just remove
+				msr2s := p.Config.Spec.MSR2s()
+				if len(msr2s) == 0 {
+					// All of the MSR2s were removed from config, just remove
 					// them forcefully since we don't care about sustaining
-					// quorum
-					p.cleanupMSRs = msrs
+					// quorum.
+					p.cleanupMSRs = msr2s
 				}
 				// Get the hostname from the nodeID inspect
 				hostname, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`node inspect %s --format {{.Description.Hostname}}`, nodeID))
@@ -139,7 +139,7 @@ func (p *RemoveNodes) Run() error {
 
 	if len(p.msrReplicaIDs) > 0 {
 		for _, replicaID := range p.msrReplicaIDs {
-			err := p.removemsrNode(p.Config, replicaID)
+			err := p.removeMSR2Node(p.Config, replicaID)
 			if err != nil {
 				return err
 			}
@@ -213,8 +213,8 @@ func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 	return nil
 }
 
-func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string) error {
-	msrLeader := config.Spec.MSRLeader()
+func (p *RemoveNodes) removeMSR2Node(config *api.ClusterConfig, replicaID string) error {
+	msr2Leader := config.Spec.MSR2Leader()
 	mkeFlags := msr2.BuildMKEFlags(config)
 
 	runFlags := common.Flags{"-i"}
@@ -223,24 +223,24 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 		runFlags.Add("--rm")
 	}
 
-	if msrLeader.Configurer.SELinuxEnabled(msrLeader) {
+	if msr2Leader.Configurer.SELinuxEnabled(msr2Leader) {
 		runFlags.Add("--security-opt label=disable")
 	}
 
 	removeFlags := common.Flags{
 		fmt.Sprintf("--replica-ids %s", replicaID),
-		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.MSR2.ReplicaID),
+		fmt.Sprintf("--existing-replica-id %s", msr2Leader.MSR2Metadata.ReplicaID),
 	}
 	removeFlags.MergeOverwrite(mkeFlags)
-	for _, f := range msr2.PluckSharedInstallFlags(config.Spec.MSR.V2.InstallFlags, msr2.SharedInstallRemoveFlags) {
+	for _, f := range msr2.PluckSharedInstallFlags(config.Spec.MSR2.InstallFlags, msr2.SharedInstallRemoveFlags) {
 		removeFlags.AddOrReplace(f)
 	}
 
-	removeCmd := msrLeader.Configurer.DockerCommandf("run %s %s remove %s", runFlags.Join(), msrLeader.MSRMetadata.MSR2.InstalledBootstrapImage, removeFlags.Join())
-	log.Debugf("%s: Removing MSR replica %s from cluster", msrLeader, replicaID)
-	err := msrLeader.Exec(removeCmd, exec.StreamOutput())
+	removeCmd := msr2Leader.Configurer.DockerCommandf("run %s %s remove %s", runFlags.Join(), msr2Leader.MSR2Metadata.InstalledBootstrapImage, removeFlags.Join())
+	log.Debugf("%s: Removing MSR replica %s from cluster", msr2Leader, replicaID)
+	err := msr2Leader.Exec(removeCmd, exec.StreamOutput())
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MSR remove: %w", msrLeader, err)
+		return fmt.Errorf("%s: failed to run MSR remove: %w", msr2Leader, err)
 	}
 	return nil
 }
@@ -288,7 +288,7 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api
 	mkeURL.Path = "/containers/json"
 
 	q := mkeURL.Query()
-	q.Add("filters", fmt.Sprintf(`{"ancestor": ["dtr-nginx:%s"]}`, config.Spec.MSR.Version))
+	q.Add("filters", fmt.Sprintf(`{"ancestor": ["dtr-nginx:%s"]}`, config.Spec.MSR2.Version))
 	q.Add("size", "false")
 	mkeURL.RawQuery = q.Encode()
 

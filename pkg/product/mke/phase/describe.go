@@ -62,31 +62,42 @@ func (p *Describe) mkeReport() {
 }
 
 func (p *Describe) msrReport() {
-	msrLeader := p.Config.Spec.MSRLeader()
-	if msrLeader == nil || msrLeader.MSRMetadata == nil || !msrLeader.MSRMetadata.Installed {
-		fmt.Println("Not installed")
-		return
-	}
-
+	// Configure the columns to start.
 	tabWriter := new(tabwriter.Writer)
-
 	// minwidth, tabwidth, padding, padchar, flags
 	tabWriter.Init(os.Stdout, 8, 8, 1, '\t', 0)
-
 	fmt.Fprintf(tabWriter, "%s\t%s\t\n", "VERSION", "ADMIN_UI")
-	installedVersion := msrLeader.MSRMetadata.InstalledVersion
+
+	// Populate potential MSR2 entries.
+	msr2Leader := p.Config.Spec.MSR2Leader()
+	installedVersion := msr2Leader.MSR2Metadata.InstalledVersion
+
 	msrURL := "n/a"
 
-	var err error
-
-	switch p.Config.Spec.MSR.MajorVersion() {
-	case 2:
+	if msr2Leader == nil || msr2Leader.MSR2Metadata == nil || !msr2Leader.MSR2Metadata.Installed {
+		// If no MSR2 is installed just don't add anything to the writer.
+		log.Debugf("No MSR2 products found")
+	} else {
 		if url, err := p.Config.Spec.MSR2URL(); err != nil {
 			log.Infof("failed to get MSR URL: %s", err)
 		} else {
 			msrURL = url.String()
 		}
-	case 3:
+
+		fmt.Fprintf(tabWriter, "%s\t%s\t\n", installedVersion, msrURL)
+	}
+
+	var err error
+
+	msr3s := p.Config.Spec.MSR3s()
+	msr3Leader := msr3s.First()
+	installedVersion = msr3Leader.MSR3Metadata.InstalledVersion
+
+	if msr3Leader == nil || msr3Leader.MSR3Metadata == nil || !msr3Leader.MSR3Metadata.Installed {
+		// If no MSR3 is installed just don't add anything to the writer.
+		log.Debugf("No MSR3 products found")
+	} else {
+		// Populate potential MSR3 entries.
 		msrURL, err = msr3.GetMSRURL(p.Config)
 		if err != nil {
 			log.Infof("failed to get MSR URL: %s", err)
@@ -94,6 +105,8 @@ func (p *Describe) msrReport() {
 	}
 
 	fmt.Fprintf(tabWriter, "%s\t%s\t\n", installedVersion, msrURL)
+
+	// Flush the added entries to the writer.
 	tabWriter.Flush()
 }
 

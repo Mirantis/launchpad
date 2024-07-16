@@ -39,7 +39,8 @@ func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
 		return err
 	}
 
-	p.leader = p.Config.Spec.MSRLeader()
+	msr3s := p.Config.Spec.MSR3s()
+	p.leader = msr3s.First()
 
 	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
@@ -61,19 +62,19 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 
 	h := p.leader
 
-	if h.MSRMetadata == nil {
-		h.MSRMetadata = &api.MSRMetadata{}
+	if h.MSR3Metadata == nil {
+		h.MSR3Metadata = &api.MSR3Metadata{}
 	}
 
-	var msrHosts []*api.Host
+	var msr3Hosts []*api.Host
 
 	for _, h := range p.Config.Spec.Hosts {
-		if h.Role == "msr" {
-			msrHosts = append(msrHosts, h)
+		if h.Role == api.RoleMSR3 {
+			msr3Hosts = append(msr3Hosts, h)
 		}
 	}
 
-	for _, msrH := range msrHosts {
+	for _, msrH := range msr3Hosts {
 		hostname := msrH.Metadata.Hostname
 
 		// If MKE is the target Kubernetes cluster, set the orchestrator
@@ -118,7 +119,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		return fmt.Errorf("failed to validate msr-operator is ready: %w", err)
 	}
 
-	msr := p.Config.Spec.MSR.V3.CRD
+	msr := p.Config.Spec.MSR3.CRD
 
 	// Append the NodeSelector for the MSR hosts if not already present.
 	nodeSelector, found, err := unstructured.NestedMap(msr.Object, "spec", "nodeSelector")
@@ -148,14 +149,14 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 	}
 
 	// Set the version tag to the desired MSR version specified in config.
-	if err := unstructured.SetNestedField(msr.Object, p.Config.Spec.MSR.Version, "spec", "image", "tag"); err != nil {
+	if err := unstructured.SetNestedField(msr.Object, p.Config.Spec.MSR3.Version, "spec", "image", "tag"); err != nil {
 		return fmt.Errorf("failed to set MSR spec.image.tag: %w", err)
 	}
 
 	// Configure Nginx.DNSNames if a LoadBalancerURL is specified.
-	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
-		if err := unstructured.SetNestedStringSlice(msr.Object, []string{"nginx", "localhost", p.Config.Spec.MSR.V3.LoadBalancerURL}, "spec", "nginx", "dnsNames"); err != nil {
-			return fmt.Errorf("failed to set MSR spec.nginx.dnsNames to include LoadBalancerURL: %q: %w", p.Config.Spec.MSR.V3.LoadBalancerURL, err)
+	if p.Config.Spec.MSR3.ShouldConfigureLB() {
+		if err := unstructured.SetNestedStringSlice(msr.Object, []string{"nginx", "localhost", p.Config.Spec.MSR3.LoadBalancerURL}, "spec", "nginx", "dnsNames"); err != nil {
+			return fmt.Errorf("failed to set MSR spec.nginx.dnsNames to include LoadBalancerURL: %q: %w", p.Config.Spec.MSR3.LoadBalancerURL, err)
 		}
 	}
 
@@ -165,8 +166,8 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		return fmt.Errorf("failed to apply MSR CRD: %w", err)
 	}
 
-	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
-		if err := p.Kube.ExposeLoadBalancer(ctx, p.Config.Spec.MSR.V3.LoadBalancerURL); err != nil {
+	if p.Config.Spec.MSR3.ShouldConfigureLB() {
+		if err := p.Kube.ExposeLoadBalancer(ctx, p.Config.Spec.MSR3.LoadBalancerURL); err != nil {
 			log.Warnf("failed to expose MSR via LoadBalancer: %s", err)
 		}
 	}
@@ -176,12 +177,12 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		return fmt.Errorf("failed to get MSR resource client: %w", err)
 	}
 
-	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR.V3.CRD.GetName(), p.Kube, rc, p.Helm)
+	msrMeta, err := msr3.CollectFacts(ctx, p.Config.Spec.MSR3.CRD.GetName(), p.Kube, rc, p.Helm)
 	if err != nil {
 		return fmt.Errorf("failed to collect MSR details: %w", err)
 	}
 
-	h.MSRMetadata = msrMeta
+	h.MSR3Metadata = msrMeta
 
 	return nil
 }

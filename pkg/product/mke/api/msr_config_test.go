@@ -13,8 +13,8 @@ import (
 	"github.com/Mirantis/mcc/pkg/constant"
 )
 
-func TestMSRConfig_UseLegacyImageRepo(t *testing.T) {
-	cfg := MSRConfig{}
+func TestMSR2Config_UseLegacyImageRepo(t *testing.T) {
+	cfg := MSR2Config{}
 	// >=3.1.15 || >=3.2.8 || >=3.3.2 is "mirantis"
 	legacyVersions := []string{
 		"2.8.1",
@@ -44,37 +44,37 @@ func TestMSRConfig_UseLegacyImageRepo(t *testing.T) {
 	}
 }
 
-func TestMSRConfig_LegacyDefaultVersionRepo(t *testing.T) {
-	cfg := MSRConfig{}
+func TestMSR2Config_LegacyDefaultVersionRepo(t *testing.T) {
+	cfg := MSR2Config{}
 	err := yaml.Unmarshal([]byte("version: 2.8.1"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, constant.ImageRepoLegacy, cfg.V2.ImageRepo)
+	require.Equal(t, constant.ImageRepoLegacy, cfg.ImageRepo)
 }
 
-func TestMSRConfig_ModernDefaultVersionRepo(t *testing.T) {
-	cfg := MSRConfig{}
+func TestMSR2Config_ModernDefaultVersionRepo(t *testing.T) {
+	cfg := MSR2Config{}
 	err := yaml.Unmarshal([]byte("version: 2.8.2"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, constant.ImageRepo, cfg.V2.ImageRepo)
+	require.Equal(t, constant.ImageRepo, cfg.ImageRepo)
 }
 
-func TestMSRConfig_CustomRepo(t *testing.T) {
-	cfg := MSRConfig{}
+func TestMSR2Config_CustomRepo(t *testing.T) {
+	cfg := MSR2Config{}
 	err := yaml.Unmarshal([]byte("version: 2.8.2\nimageRepo: foo.foo/foo"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, "foo.foo/foo", cfg.V2.ImageRepo)
-	cfg = MSRConfig{}
+	require.Equal(t, "foo.foo/foo", cfg.ImageRepo)
+	cfg = MSR2Config{}
 	err = yaml.Unmarshal([]byte("version: 2.8.1\nimageRepo: foo.foo/foo"), &cfg)
 	require.NoError(t, err)
-	require.Equal(t, "foo.foo/foo", cfg.V2.ImageRepo)
+	require.Equal(t, "foo.foo/foo", cfg.ImageRepo)
 }
 
-// TestMSRConfig_YAMLKeysDoNotOverlap tests that the yaml keys in MSR2Config and
+// TestMSR2Config_YAMLKeysDoNotOverlap tests that the yaml keys in MSR2Config and
 // MSR3Config do not overlap.  This is important as the MSR2 and MSR3 configs
 // are inlined under the 'msr' parent key.  During unmarshaling, the yaml
 // keys should be unique to ensure that the correct version structs are
 // appropriately populated.
-func TestMSRConfig_YAMLKeysDoNotOverlap(t *testing.T) {
+func TestMSR2Config_YAMLKeysDoNotOverlap(t *testing.T) {
 	a := extractYAMLTags(t, MSR2Config{})
 	b := extractYAMLTags(t, MSR3Config{})
 

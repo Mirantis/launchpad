@@ -14,7 +14,7 @@ import (
 
 // InstallMSR is the phase implementation for running the actual MSR installer
 // bootstrap.
-type InstallMSR struct {
+type InstallMSR2 struct {
 	phase.Analytics
 	phase.CleanupDisabling
 	phase.BasicPhase
@@ -23,23 +23,23 @@ type InstallMSR struct {
 }
 
 // Title prints the phase title.
-func (p *InstallMSR) Title() string {
+func (p *InstallMSR2) Title() string {
 	return "Install MSR components"
 }
 
 // ShouldRun should return true only when there is an installation to be
 // performed.
-func (p *InstallMSR) ShouldRun() bool {
-	p.leader = p.Config.Spec.MSRLeader()
-	return p.Config.Spec.ContainsMSR() && (p.leader.MSRMetadata == nil || !p.leader.MSRMetadata.Installed)
+func (p *InstallMSR2) ShouldRun() bool {
+	p.leader = p.Config.Spec.MSR2Leader()
+	return p.Config.Spec.ContainsMSR2() && (p.leader.MSR2Metadata == nil || !p.leader.MSR2Metadata.Installed)
 }
 
 // Run the installer container.
-func (p *InstallMSR) Run() error {
+func (p *InstallMSR2) Run() error {
 	h := p.leader
 
-	if h.MSRMetadata == nil {
-		h.MSRMetadata = &api.MSRMetadata{}
+	if h.MSR2Metadata == nil {
+		h.MSR2Metadata = &api.MSR2Metadata{}
 	}
 
 	managers := p.Config.Spec.Managers()
@@ -50,10 +50,10 @@ func (p *InstallMSR) Run() error {
 	}
 
 	p.EventProperties = map[string]interface{}{
-		"msr_version": p.Config.Spec.MSR.Version,
+		"msr2_version": p.Config.Spec.MSR2.Version,
 	}
 
-	image := p.Config.Spec.MSR.GetBootstrapperImage()
+	image := p.Config.Spec.MSR2.GetBootstrapperImage()
 
 	runFlags := common.Flags{"-i"}
 	if !p.CleanupDisabled() {
@@ -63,7 +63,7 @@ func (p *InstallMSR) Run() error {
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	installFlags := p.Config.Spec.MSR.V2.InstallFlags
+	installFlags := p.Config.Spec.MSR2.InstallFlags
 	redacts := []string{installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")}
 
 	// Configure the mkeFlags from existing MKEConfig
@@ -74,20 +74,20 @@ func (p *InstallMSR) Run() error {
 
 	installFlags.Merge(mkeFlags)
 
-	if p.Config.Spec.MSR.V2.CACertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.CACertData)
+	if p.Config.Spec.MSR2.CACertData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR2.CACertData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", escaped))
 		redacts = append(redacts, escaped)
 	}
 
-	if p.Config.Spec.MSR.V2.CertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.CertData)
+	if p.Config.Spec.MSR2.CertData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR2.CertData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", escaped))
 		redacts = append(redacts, escaped)
 	}
 
-	if p.Config.Spec.MSR.V2.KeyData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.V2.KeyData)
+	if p.Config.Spec.MSR2.KeyData != "" {
+		escaped := shellescape.Quote(p.Config.Spec.MSR2.KeyData)
 		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", escaped))
 		redacts = append(redacts, escaped)
 	}
@@ -98,11 +98,11 @@ func (p *InstallMSR) Run() error {
 		redacts = append(redacts, escaped)
 	}
 
-	if h.MSRMetadata.MSR2.ReplicaID != "" {
-		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.MSR2.ReplicaID)
-		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.MSR2.ReplicaID))
+	if h.MSR2Metadata.ReplicaID != "" {
+		log.Infof("%s: installing MSR2 with replica id %s", h, h.MSR2Metadata.ReplicaID)
+		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSR2Metadata.ReplicaID))
 	} else {
-		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
+		log.Infof("%s: installing MSR2 version %s", h, p.Config.Spec.MSR2.Version)
 	}
 
 	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
@@ -115,12 +115,12 @@ func (p *InstallMSR) Run() error {
 	if err != nil {
 		return fmt.Errorf("%s: failed to collect existing MSR details: %w", h, err)
 	}
-	h.MSRMetadata = msrMeta
+	h.MSR2Metadata = msrMeta
 	return nil
 }
 
-// CleanUp removes remnants of MSR after a failed installation.
-func (p *InstallMSR) CleanUp() {
+// CleanUp removes remnants of MSR2 after a failed installation.
+func (p *InstallMSR2) CleanUp() {
 	log.Infof("Cleaning up for '%s'", p.Title())
 	if err := msr.Destroy(p.leader, p.Config); err != nil {
 		log.Warnf("Error while cleaning-up resources for '%s': %s", p.Title(), err.Error())

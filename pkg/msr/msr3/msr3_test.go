@@ -95,13 +95,11 @@ func TestCollectFacts(t *testing.T) {
 		// shouldn't expect the InstalledDependencies map to contain this.
 		rd.RepoURL = ""
 
-		assert.Equal(t, &api.MSRMetadata{
+		assert.Equal(t, &api.MSR3Metadata{
 			Installed:        true,
 			InstalledVersion: "3.1.1",
-			MSR3: api.MSR3Metadata{
-				InstalledDependencies: map[string]helm.ReleaseDetails{
-					"rethinkdb-operator": rd,
-				},
+			InstalledDependencies: map[string]helm.ReleaseDetails{
+				"rethinkdb-operator": rd,
 			}}, actual)
 	})
 }

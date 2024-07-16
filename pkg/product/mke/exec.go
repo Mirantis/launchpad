@@ -18,7 +18,7 @@ import (
 var errInvalidTarget = errors.New("invalid target")
 
 // Exec runs commands or shell sessions on a configuration host.
-func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, role, hostos, cmd string) error { //nolint:maintidx
+func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, role api.RoleType, hostos, cmd string) error { //nolint:maintidx
 	var hosts api.Hosts
 
 	for _, target := range targets {

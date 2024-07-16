@@ -35,22 +35,16 @@ type HostMetadata struct {
 	MCRInstalled       bool
 }
 
-// MSRMetadata is metadata needed by MSR for configuration and is gathered at
-// the GatherFacts phase and at the end of each configuration phase.
-type MSRMetadata struct {
-	Installed        bool
-	InstalledVersion string
-
-	MSR2 MSR2Metadata
-	MSR3 MSR3Metadata
-}
-
 type MSR2Metadata struct {
+	Installed               bool
+	InstalledVersion        string
 	InstalledBootstrapImage string
 	ReplicaID               string
 }
 
 type MSR3Metadata struct {
+	Installed        bool
+	InstalledVersion string
 	// InstalledDependencies is a map of dependencies needed for MSR3 and their
 	// versions.
 	InstalledDependencies map[string]helm.ReleaseDetails
@@ -80,11 +74,42 @@ func (e *errs) String() string {
 	return "- " + strings.Join(e.errors, "\n- ")
 }
 
+// RoleType represents the types of host roles we accept.
+type RoleType string
+
+const (
+	RoleManager RoleType = "manager"
+	RoleWorker  RoleType = "worker"
+	RoleMSR2    RoleType = "msr2"
+	RoleMSR3    RoleType = "msr3"
+)
+
+// ParseRoleType takes a string and returns the RoleType associated with the
+// given string if one exists.
+func ParseRoleType(v string) (RoleType, error) {
+	acceptedRoleTypes := []string{
+		string(RoleManager),
+		string(RoleWorker),
+		string(RoleMSR2),
+		string(RoleMSR3),
+	}
+
+	for _, rt := range acceptedRoleTypes {
+		if v == rt {
+			return RoleType(rt), nil
+		}
+	}
+
+	// We should never get here because we do validation on the incoming
+	// yaml, but just in case.
+	return "", fmt.Errorf("unknown role type: %s, must be one of: ", v, strings.Join(acceptedRoleTypes, ", "))
+}
+
 // Host contains all the needed details to work with hosts.
 type Host struct {
 	rig.Connection `yaml:",inline"`
 
-	Role             string            `yaml:"role" validate:"oneof=manager worker msr"`
+	Role             RoleType          `yaml:"role" validate:"oneof=manager worker msr2 msr3"`
 	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
 	DaemonConfig     dig.Mapping       `yaml:"mcrConfig,flow,omitempty" default:"{}"`
 	Environment      map[string]string `yaml:"environment,flow,omitempty" default:"{}"`
@@ -92,10 +117,11 @@ type Host struct {
 	ImageDir         string            `yaml:"imageDir,omitempty"`
 	SudoDocker       bool              `yaml:"sudodocker"`
 
-	Metadata    *HostMetadata  `yaml:"-"`
-	MSRMetadata *MSRMetadata   `yaml:"-"`
-	Configurer  HostConfigurer `yaml:"-"`
-	Errors      errs           `yaml:"-"`
+	Metadata     *HostMetadata  `yaml:"-"`
+	MSR2Metadata *MSR2Metadata  `yaml:"-"`
+	MSR3Metadata *MSR3Metadata  `yaml:"-"`
+	Configurer   HostConfigurer `yaml:"-"`
+	Errors       errs           `yaml:"-"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.

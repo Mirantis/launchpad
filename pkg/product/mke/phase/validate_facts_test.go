@@ -63,12 +63,15 @@ func TestValidateFactsMSRVersionJumpFail(t *testing.T) {
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
-					Installed:        true,
-					InstalledVersion: "2.6.4",
-				}},
+				{
+					Role: api.RoleMSR2,
+					MSR2Metadata: &api.MSR2Metadata{
+						Installed:        true,
+						InstalledVersion: "2.6.4",
+					},
+				},
 			},
-			MSR: &api.MSRConfig{
+			MSR2: &api.MSR2Config{
 				Version: "2.8.4",
 			},
 		},
@@ -80,12 +83,15 @@ func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
-					Installed:        true,
-					InstalledVersion: "2.8.4",
-				}},
+				{
+					Role: api.RoleMSR2,
+					MSR2Metadata: &api.MSR2Metadata{
+						Installed:        true,
+						InstalledVersion: "2.8.4",
+					},
+				},
 			},
-			MSR: &api.MSRConfig{
+			MSR2: &api.MSR2Config{
 				Version: "2.7.6",
 			},
 		},
@@ -98,12 +104,15 @@ func TestValidateFactsMSRVersionJumpSuccess(t *testing.T) {
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
-					Installed:        true,
-					InstalledVersion: "2.6.8",
-				}},
+				{
+					Role: api.RoleMSR2,
+					MSR2Metadata: &api.MSR2Metadata{
+						Installed:        true,
+						InstalledVersion: "2.6.8",
+					},
+				},
 			},
-			MSR: &api.MSRConfig{
+			MSR2: &api.MSR2Config{
 				Version: "2.7.1",
 			},
 		},

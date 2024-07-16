@@ -57,7 +57,7 @@ func (p *UpgradeCheck) Run() (err error) {
 		return nil
 	}
 
-	msrv, err := hub.LatestTag("mirantis", "dtr", strings.Contains(p.Config.Spec.MSR.Version, "-"))
+	msrv, err := hub.LatestTag("mirantis", "dtr", strings.Contains(p.Config.Spec.MSR2.Version, "-"))
 	if err != nil {
 		log.Errorf("failed to check for MSR upgrade: %s", err.Error())
 		return nil
@@ -69,7 +69,7 @@ func (p *UpgradeCheck) Run() (err error) {
 		return nil
 	}
 
-	msrTargetV, err := version.NewVersion(p.Config.Spec.MSR.Version)
+	msrTargetV, err := version.NewVersion(p.Config.Spec.MSR2.Version)
 	if err != nil {
 		log.Errorf("invalid MSR version in configuration: %s", err.Error())
 		return fmt.Errorf("invalid MSR version in configuration: %w", err)

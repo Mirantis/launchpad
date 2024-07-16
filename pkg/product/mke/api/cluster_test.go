@@ -491,12 +491,12 @@ spec:
 `
 		c := loadYaml(t, data)
 
-		require.Equal(t, c.Spec.MSR.V3.StorageURL, "https://example.com")
-		require.Equal(t, c.Spec.MSR.V3.StorageClassType, "nfs")
-		require.Equal(t, c.Spec.MSR.V3.CRD.GetAPIVersion(), "msr.mirantis.com/v1")
-		require.Equal(t, c.Spec.MSR.V3.CRD.GetKind(), "MSR")
+		require.Equal(t, c.Spec.MSR3.StorageURL, "https://example.com")
+		require.Equal(t, c.Spec.MSR3.StorageClassType, "nfs")
+		require.Equal(t, c.Spec.MSR3.CRD.GetAPIVersion(), "msr.mirantis.com/v1")
+		require.Equal(t, c.Spec.MSR3.CRD.GetKind(), "MSR")
 
-		actual, found, err := unstructured.NestedString(c.Spec.MSR.V3.CRD.Object, "spec", "logLevel")
+		actual, found, err := unstructured.NestedString(c.Spec.MSR3.CRD.Object, "spec", "logLevel")
 		require.True(t, found)
 		require.NoError(t, err)
 		require.Equal(t, actual, "debug")

@@ -12,7 +12,7 @@ import (
 )
 
 // UpgradeMSR is the phase implementation for running the actual msr upgrade container.
-type UpgradeMSR struct {
+type UpgradeMSR2 struct {
 	phase.Analytics
 	phase.CleanupDisabling
 	phase.BasicPhase
@@ -25,23 +25,23 @@ type msrUpgradeVersionNotExpectedError struct {
 }
 
 func (e *msrUpgradeVersionNotExpectedError) Error() string {
-	return fmt.Sprintf("%s: MSR upgrade version %s does not match expected version %s", e.host, e.installedVersion, e.expectedVersion)
+	return fmt.Sprintf("%s: MSR2 upgrade version %s does not match expected version %s", e.host, e.installedVersion, e.expectedVersion)
 }
 
 // Title prints the phase title.
-func (p *UpgradeMSR) Title() string {
-	return "Upgrade MSR components"
+func (p *UpgradeMSR2) Title() string {
+	return "Upgrade MSR2 components"
 }
 
 // ShouldRun should return true only when there is an upgrade to be performed.
-func (p *UpgradeMSR) ShouldRun() bool {
-	h := p.Config.Spec.MSRLeader()
-	return p.Config.Spec.ContainsMSR() && h.MSRMetadata != nil && h.MSRMetadata.InstalledVersion != p.Config.Spec.MSR.Version
+func (p *UpgradeMSR2) ShouldRun() bool {
+	h := p.Config.Spec.MSR2Leader()
+	return p.Config.Spec.ContainsMSR() && h.MSR2Metadata != nil && h.MSR2Metadata.InstalledVersion != p.Config.Spec.MSR2.Version
 }
 
 // Run the upgrade container.
-func (p *UpgradeMSR) Run() error {
-	h := p.Config.Spec.MSRLeader()
+func (p *UpgradeMSR2) Run() error {
+	h := p.Config.Spec.MSR2Leader()
 
 	managers := p.Config.Spec.Managers()
 
@@ -54,8 +54,8 @@ func (p *UpgradeMSR) Run() error {
 		"msr_upgraded": false,
 	}
 
-	if p.Config.Spec.MSR.Version == h.MSRMetadata.InstalledVersion {
-		log.Infof("%s: MSR cluster already at version %s, not running upgrade", h, p.Config.Spec.MSR.Version)
+	if p.Config.Spec.MSR2.Version == h.MSR2Metadata.InstalledVersion {
+		log.Infof("%s: MSR cluster already at version %s, not running upgrade", h, p.Config.Spec.MSR2.Version)
 		return nil
 	}
 
@@ -67,15 +67,15 @@ func (p *UpgradeMSR) Run() error {
 	if h.Configurer.SELinuxEnabled(h) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.MSR2.ReplicaID)}
+	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSR2Metadata.ReplicaID)}
 
 	upgradeFlags.MergeOverwrite(msr2.BuildMKEFlags(p.Config))
-	for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.V2.InstallFlags, msr2.SharedInstallUpgradeFlags) {
+	for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR2.InstallFlags, msr2.SharedInstallUpgradeFlags) {
 		upgradeFlags.AddOrReplace(f)
 	}
-	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.V2.UpgradeFlags)
+	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR2.UpgradeFlags)
 
-	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
+	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR2.GetBootstrapperImage(), upgradeFlags.Join())
 	log.Debugf("%s: Running MSR upgrade via bootstrapper", h)
 	if err := h.Exec(upgradeCmd, exec.StreamOutput()); err != nil {
 		return fmt.Errorf("%s: failed to run MSR upgrade: %w", h, err)
@@ -87,16 +87,16 @@ func (p *UpgradeMSR) Run() error {
 	}
 
 	// Check to make sure installedversion matches bootstrapperVersion
-	if msrMeta.InstalledVersion != p.Config.Spec.MSR.Version {
+	if msrMeta.InstalledVersion != p.Config.Spec.MSR2.Version {
 		// If our newly collected facts do not match the version we upgraded to
 		// then the upgrade has failed
-		return &msrUpgradeVersionNotExpectedError{host: h, installedVersion: msrMeta.InstalledVersion, expectedVersion: p.Config.Spec.MSR.Version}
+		return &msrUpgradeVersionNotExpectedError{host: h, installedVersion: msrMeta.InstalledVersion, expectedVersion: p.Config.Spec.MSR2.Version}
 	}
 
 	p.EventProperties["msr_upgraded"] = true
-	p.EventProperties["msr_installed_version"] = h.MSRMetadata.InstalledVersion
-	p.EventProperties["msr_upgraded_version"] = p.Config.Spec.MSR.Version
-	h.MSRMetadata = msrMeta
+	p.EventProperties["msr_installed_version"] = h.MSR2Metadata.InstalledVersion
+	p.EventProperties["msr_upgraded_version"] = p.Config.Spec.MSR2.Version
+	h.MSR2Metadata = msrMeta
 
 	return nil
 }

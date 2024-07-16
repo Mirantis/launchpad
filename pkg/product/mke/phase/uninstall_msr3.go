@@ -24,8 +24,9 @@ func (p *UninstallMSR3) Title() string {
 }
 
 func (p *UninstallMSR3) ShouldRun() bool {
-	leader := p.Config.Spec.MSRLeader()
-	return p.Config.Spec.ContainsMSR3() && leader.MSRMetadata.Installed
+	msr3Hosts := p.Config.Spec.MSR3s()
+	leader := msr3Hosts.First()
+	return p.Config.Spec.ContainsMSR3() && leader.MSR3Metadata.Installed
 }
 
 func (p *UninstallMSR3) Prepare(config interface{}) error {
@@ -49,18 +50,18 @@ func (p *UninstallMSR3) Run() error {
 	ctx := context.Background()
 
 	// Remove the LB service if it's being used, ignoring if it's not found.
-	if p.Config.Spec.MSR.V3.ShouldConfigureLB() {
+	if p.Config.Spec.MSR3.ShouldConfigureLB() {
 		err := p.Kube.DeleteService(ctx, constant.ExposedLBServiceName)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("failed to delete LoadBalancer service: %w", err)
 		}
 	}
 
-	chartsToUninstall := p.Config.Spec.MSR.V3.Dependencies.List()
+	chartsToUninstall := p.Config.Spec.MSR3.Dependencies.List()
 
 	// Add the storage provisioner chart to the list of charts to uninstall
 	// if it's configured.
-	if p.Config.Spec.MSR.V3.ShouldConfigureStorageClass() {
+	if p.Config.Spec.MSR3.ShouldConfigureStorageClass() {
 		sp := storageProvisionerChart(p.Config)
 
 		if sp != nil {

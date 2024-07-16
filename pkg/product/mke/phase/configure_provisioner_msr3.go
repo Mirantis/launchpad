@@ -35,7 +35,7 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 		return err
 	}
 
-	p.leader = p.Config.Spec.MSRLeader()
+	p.leader = p.Config.Spec.MSR2Leader()
 
 	p.Kube, p.Helm, err = mke.KubeAndHelmFromConfig(p.Config)
 	if err != nil {
@@ -75,7 +75,7 @@ func (p *ConfigureStorageProvisioner) Prepare(config interface{}) error {
 
 func (p *ConfigureStorageProvisioner) ShouldRun() bool {
 	return p.Config.Spec.ContainsMSR3() &&
-		p.Config.Spec.MSR.V3.ShouldConfigureStorageClass() &&
+		p.Config.Spec.MSR3.ShouldConfigureStorageClass() &&
 		p.storageProvisioner != nil
 }
 
@@ -110,7 +110,7 @@ type storageProvisioner struct {
 func storageProvisionerChart(config *api.ClusterConfig) *storageProvisioner {
 	// TODO: Currently we only support "nfs" as a configured StorageClassType,
 	// we should add some more.
-	scType := config.Spec.MSR.V3.StorageClassType
+	scType := config.Spec.MSR3.StorageClassType
 
 	if scType == "" {
 		log.Debugf("no storage class type configured, not configuring default storage class")
@@ -129,7 +129,7 @@ func storageProvisionerChart(config *api.ClusterConfig) *storageProvisioner {
 				RepoURL:     "https://kubernetes-sigs.github.io/nfs-subdir-external-provisioner/",
 				Values: map[string]interface{}{
 					"nfs": map[string]string{
-						"server":     config.Spec.MSR.V3.StorageURL,
+						"server":     config.Spec.MSR3.StorageURL,
 						"path":       "/",
 						"volumeName": "nfs-subdir-external-provisioner-root",
 					},

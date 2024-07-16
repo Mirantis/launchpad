@@ -72,48 +72,37 @@ func (p *GatherFacts) Run() error {
 
 	if p.Config.Spec.ContainsMSR() {
 		// If we intend to configure MSR as well, gather facts for MSR
-		if p.Config.Spec.MSR == nil {
-			p.Config.Spec.MSR = &api.MSRConfig{}
+		if p.Config.Spec.MSR2 == nil {
+			p.Config.Spec.MSR2 = &api.MSR2Config{}
+		}
+
+		if p.Config.Spec.MSR3 == nil {
+			p.Config.Spec.MSR3 = &api.MSR3Config{}
 		}
 
 		// Collect both sets of facts to understand versions of MSR on the
-		// target hosts, this is to ensure that if the user has MSR2 already
-		// installed but is trying to install MSR3 we can tell them that they
-		// need to use 'mmt' to migrate the versions.  The same goes for MSR3
-		// to MSR2, if they have MSR3 installed and are trying to install MSR2
-		// we can tell them they need to manually uninstall MSR3 first.
-		// TODO: Perhaps we can call mmt for them in the future.
-		msr2Installed := p.collectMSR2Facts()
-		msr3Installed := p.collectMSR3Facts()
-
-		if msr3Installed && p.Config.Spec.MSR.MajorVersion() == 2 {
-			return errCannotInstallMSR2WithMSR3
-		}
-
-		if msr2Installed && p.Config.Spec.MSR.MajorVersion() == 3 {
-			return errCannotInstallMSR3WithMSR2
-		}
+		// target hosts.  Users can potentially install both MSR2 and MSR3
+		// on the same cluster.
+		p.collectMSR2Facts()
+		p.collectMSR3Facts()
 	}
 
 	return nil
 }
 
 // collectMSR2Facts collects MSR2 facts from the hosts populating the host
-// metadata struct, returning true if MSR2 is installed.
-func (p *GatherFacts) collectMSR2Facts() bool {
-	var installed bool
-
-	msrHosts := p.Config.Spec.MSRs()
+// metadata struct.
+func (p *GatherFacts) collectMSR2Facts() {
+	msrHosts := p.Config.Spec.MSR2s()
 	err := msrHosts.ParallelEach(func(h *api.Host) error {
 		if h.Metadata != nil && h.Metadata.MCRVersion != "" {
-			msrMeta, err := msr2.CollectFacts(h)
+			msr2Meta, err := msr2.CollectFacts(h)
 			if err != nil {
 				log.Debugf("%s: failed to collect existing MSR details: %s", h, err.Error())
 			}
-			h.MSRMetadata = msrMeta
-			if msrMeta.Installed {
-				log.Infof("%s: MSR has version %s", h, msrMeta.InstalledVersion)
-				installed = true
+			h.MSR2Metadata = msr2Meta
+			if msr2Meta.Installed {
+				log.Infof("%s: MSR has version %s", h, msr2Meta.InstalledVersion)
 			} else {
 				log.Infof("%s: MSR is not installed", h)
 			}
@@ -123,8 +112,6 @@ func (p *GatherFacts) collectMSR2Facts() bool {
 	if err != nil {
 		log.Debugf("failed to collect existing MSR details across MSR hosts: %s", err.Error())
 	}
-
-	return installed
 }
 
 // collectMSR3Facts collects MSR3 facts from the hosts populating the host
@@ -147,23 +134,23 @@ func (p *GatherFacts) collectMSR3Facts() bool {
 		return false
 	}
 
-	msrMeta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR.V3.CRD.GetName(), kubeClient, rc, helmClient, kubeclient.WithCustomWait(1, time.Second*30))
+	msr3Meta, err := msr3.CollectFacts(context.Background(), p.Config.Spec.MSR3.CRD.GetName(), kubeClient, rc, helmClient, kubeclient.WithCustomWait(1, time.Second*30))
 	if err != nil {
 		log.Debugf("failed to collect existing MSR details: %s", err.Error())
 		return false
 	}
 
-	if msrMeta.Installed {
-		log.Infof("MSR has version %s", msrMeta.InstalledVersion)
+	if msr3Meta.Installed {
+		log.Infof("MSR has version %s", msr3Meta.InstalledVersion)
 	} else {
 		log.Info("MSR is not installed")
 	}
 
 	// Write the msrMeta to each of the hosts so it can be queried
 	// independently and function like legacy MSR.
-	msrHosts := p.Config.Spec.MSRs()
+	msrHosts := p.Config.Spec.MSR3s()
 	err = msrHosts.ParallelEach(func(h *api.Host) error {
-		h.MSRMetadata = msrMeta
+		h.MSR3Metadata = msr3Meta
 		return nil
 	})
 	if err != nil {
@@ -171,7 +158,7 @@ func (p *GatherFacts) collectMSR3Facts() bool {
 		return false
 	}
 
-	return msrMeta.Installed
+	return msr3Meta.Installed
 }
 
 var errInvalidIP = errors.New("invalid IP address")

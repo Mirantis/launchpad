@@ -17,14 +17,14 @@ type UninstallMSR struct {
 
 // Title prints the phase title.
 func (p *UninstallMSR) Title() string {
-	return "Uninstall MSR components"
+	return "Uninstall MSR2 components"
 }
 
 // Run an uninstall via msr.Cleanup.
 func (p *UninstallMSR) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
-	msrLeader := p.Config.Spec.MSRLeader()
-	if msrLeader == nil || !msrLeader.MSRMetadata.Installed {
+	msrLeader := p.Config.Spec.MSR2Leader()
+	if msrLeader == nil || !msrLeader.MSR2Metadata.Installed {
 		log.Infof("%s: MSR is not installed", swarmLeader)
 		return nil
 	}

@@ -102,8 +102,8 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 	}
 
 	port := 443
-	if p.Config.Spec.MSR != nil {
-		if flagport := p.Config.Spec.MSR.V2.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
+	if p.Config.Spec.MSR2 != nil {
+		if flagport := p.Config.Spec.MSR2.InstallFlags.GetValue("--replica-https-port"); flagport != "" {
 			if fp, err := strconv.Atoi(flagport); err == nil {
 				port = fp
 			}
@@ -112,23 +112,24 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 
 	// Upgrade MSR hosts individually
 	for _, h := range msrs {
-		if h.MSRMetadata.Installed {
-			if err := validateMSRReady(p.Config, h, port); err != nil {
-				return err
-			}
+		if err := validateMSRReady(p.Config, h, port); err != nil {
+			return err
 		}
+
 		if err := p.upgradeMCR(h); err != nil {
 			return err
 		}
-		if h.MSRMetadata.Installed {
+
+		if h.MSR2Metadata.Installed {
 			if err := validateMSRReady(p.Config, h, port); err != nil {
 				return err
 			}
 			err := retry.Do(
 				func() error {
 					if _, err := msr2.CollectFacts(h); err != nil {
-						return fmt.Errorf("%s: failed to collect MSR facts: %w", h, err)
+						return fmt.Errorf("%s: failed to collect MSR2 facts: %w", h, err)
 					}
+
 					return nil
 				},
 				retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
@@ -192,12 +193,13 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 func validateMSRReady(config *api.ClusterConfig, h *api.Host, port int) error {
 	ctx := context.Background()
 
-	switch config.Spec.MSR.MajorVersion() {
-	case 2:
+	if config.Spec.MSR2 != nil {
 		if err := msr2.WaitMSRNodeReady(h, port); err != nil {
 			return fmt.Errorf("%s: failed to wait for MSR node to be ready: %w", h, err)
 		}
-	case 3:
+	}
+
+	if config.Spec.MSR3 != nil {
 		kubeClient, _, err := mke.KubeAndHelmFromConfig(config)
 		if err != nil {
 			return fmt.Errorf("failed to create Kubernetes and Helm clients from config: %w", err)
@@ -208,7 +210,7 @@ func validateMSRReady(config *api.ClusterConfig, h *api.Host, port int) error {
 			return fmt.Errorf("failed to get resource client for MSR CR: %w", err)
 		}
 
-		obj, err := kubeClient.GetMSRCR(ctx, config.Spec.MSR.V3.CRD.GetName(), rc)
+		obj, err := kubeClient.GetMSRCR(ctx, config.Spec.MSR3.CRD.GetName(), rc)
 		if err != nil {
 			return fmt.Errorf("failed to get MSR CR: %w", err)
 		}

@@ -12,25 +12,13 @@ import (
 	"github.com/Mirantis/mcc/pkg/util/maputil"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
+	log "github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// MSRConfig defines the configuration for MSR, each product version has it's
-// own set of configuration options, but the options are inlined into the parent
-// 'msr' key for ease of use when crafting the yaml configuration.  Due to this
-// constraint, ensure that different version configurations do not have
-// overlapping struct tags.
-type MSRConfig struct {
-	Version string `yaml:"version" validate:"required"`
-
-	// V2 defines the configuration for MSR V2.
-	V2 MSR2Config `yaml:",inline"`
-	// V3 defines the configuration for MSR V3.
-	V3 MSR3Config `yaml:",inline"`
-}
-
-// MSRConfig has all the bits needed to configure MSR (V2) during installation.
+// MSR2Config has all the bits needed to configure MSR (V2) during installation.
 type MSR2Config struct {
+	Version      string       `yaml:"version,omitempty"`
 	ImageRepo    string       `yaml:"imageRepo,omitempty"`
 	InstallFlags common.Flags `yaml:"installFlags,flow,omitempty"`
 	UpgradeFlags common.Flags `yaml:"upgradeFlags,flow,omitempty"`
@@ -46,6 +34,8 @@ type MSR2Config struct {
 // MSR3Config defines the configuration for both the MSR3 CR and the
 // dependencies needed to run it.
 type MSR3Config struct {
+	// Version is the MSR3 version to install.
+	Version string `yaml:"version,omitempty"`
 	// Dependencies define strict dependencies that MSR3 needs to function.
 	Dependencies `yaml:"dependencies,omitempty"`
 	// StorageClassType allows users to have launchpad configure a StorageClass
@@ -183,9 +173,9 @@ func (d *Dependencies) SetDefaults() {
 var errUnexpectedTypeForCRD = errors.New("unexpected type for CRD: expected map")
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
-func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	type msr MSRConfig
-	yc := (*msr)(c)
+func (c *MSR3Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type msr3 MSR3Config
+	yc := (*msr3)(c)
 	if err := unmarshal(yc); err != nil {
 		return fmt.Errorf("failed to unmarshal MSR configuration: %w", err)
 	}
@@ -209,96 +199,74 @@ func (c *MSRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		}
 
 		// Convert the map[interface{}]interface{} to map[string]interface{}.
-		c.V3.CRD = &unstructured.Unstructured{Object: maputil.ConvertInterfaceMap(mapObj)}
+		c.CRD = &unstructured.Unstructured{Object: maputil.ConvertInterfaceMap(mapObj)}
 	}
 
 	if err := defaults.Set(c); err != nil {
 		return fmt.Errorf("failed to set defaults for MSR configuration: %w", err)
 	}
 
-	return c.setConfigForVersion()
+	if err := c.Validate(); err != nil {
+		return fmt.Errorf("failed to validate MSR configuration: %w", err)
+	}
+
+	c.Dependencies.SetDefaults()
+
+	return nil
 }
 
-var errUnsupportedMSRVersion = errors.New("unsupported MSR major version: must be either 2 or 3")
-
-func (c *MSRConfig) setConfigForVersion() error {
-	switch c.MajorVersion() {
-	case 2:
-		if c.V2.CACertPath != "" {
-			caCertData, err := fileutil.LoadExternalFile(c.V2.CACertPath)
-			if err != nil {
-				return fmt.Errorf("failed to load CA cert data: %w", err)
-			}
-			c.V2.CACertData = string(caCertData)
+// SetDefaults sets default values.
+func (c *MSR2Config) SetDefaults() error {
+	if c.CACertPath != "" {
+		caCertData, err := fileutil.LoadExternalFile(c.CACertPath)
+		if err != nil {
+			return fmt.Errorf("failed to load CA cert data: %w", err)
 		}
+		c.CACertData = string(caCertData)
+	}
 
-		if c.V2.CertPath != "" {
-			certData, err := fileutil.LoadExternalFile(c.V2.CertPath)
-			if err != nil {
-				return fmt.Errorf("failed to load cert data: %w", err)
-			}
-			c.V2.CertData = string(certData)
+	if c.CertPath != "" {
+		certData, err := fileutil.LoadExternalFile(c.CertPath)
+		if err != nil {
+			return fmt.Errorf("failed to load cert data: %w", err)
 		}
+		c.CertData = string(certData)
+	}
 
-		if c.V2.KeyPath != "" {
-			keyData, err := fileutil.LoadExternalFile(c.V2.KeyPath)
-			if err != nil {
-				return fmt.Errorf("failed to load key data: %w", err)
-			}
-			c.V2.KeyData = string(keyData)
+	if c.KeyPath != "" {
+		keyData, err := fileutil.LoadExternalFile(c.KeyPath)
+		if err != nil {
+			return fmt.Errorf("failed to load key data: %w", err)
 		}
+		c.KeyData = string(keyData)
+	}
 
-	case 3:
-		if err := c.V3.Validate(); err != nil {
-			return fmt.Errorf("failed to validate MSR configuration: %w", err)
-		}
+	if c.ImageRepo == "" {
+		c.ImageRepo = constant.ImageRepo
+	}
 
-		c.V3.Dependencies.SetDefaults()
+	v, err := version.NewVersion(c.Version)
+	if err != nil {
+		log.Debugf("Failed to parse version: %s, will fallback to using imageRepo: %s", c.Version, constant.ImageRepo)
+		// If we encounter an error here just default to using
+		// constant.ImageRepo.
+		return nil
+	}
 
-	default:
-		return errUnsupportedMSRVersion
+	if c.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
+		c.ImageRepo = constant.ImageRepoLegacy
 	}
 
 	return nil
 }
 
-// MajorVersion returns the major version of MSR, or 0 if the version is invalid.
-func (c *MSRConfig) MajorVersion() int {
-	if c == nil {
-		return 0
-	}
-
-	v, err := version.NewVersion(c.Version)
-	if err != nil {
-		return 0
-	}
-
-	return v.Segments()[0]
-}
-
-// SetDefaults sets default values.
-func (c *MSRConfig) SetDefaults() {
-	if c.V2.ImageRepo == "" {
-		c.V2.ImageRepo = constant.ImageRepo
-	}
-
-	v, err := version.NewVersion(c.Version)
-	if err != nil {
-		return
-	}
-
-	if c.V2.ImageRepo == constant.ImageRepo && c.UseLegacyImageRepo(v) {
-		c.V2.ImageRepo = constant.ImageRepoLegacy
-	}
-}
-
 // GetBootstrapperImage combines the bootstrapper image name based on user given config.
-func (c *MSRConfig) GetBootstrapperImage() string {
-	return fmt.Sprintf("%s/dtr:%s", c.V2.ImageRepo, c.Version)
+func (c *MSR2Config) GetBootstrapperImage() string {
+	return fmt.Sprintf("%s/dtr:%s", c.ImageRepo, c.Version)
 }
 
 // UseLegacyImageRepo returns true if the version number does not satisfy >= 2.8.2 || >= 2.7.8 || >= 2.6.15.
-func (c *MSRConfig) UseLegacyImageRepo(v *version.Version) bool {
+func (c *MSR2Config) UseLegacyImageRepo(v *version.Version) bool {
 	// Strip out anything after -, seems like go-version thinks
 	vs := v.String()
 	var v2 *version.Version
