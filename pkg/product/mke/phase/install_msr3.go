@@ -110,7 +110,7 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 		}
 	}
 
-	if err := p.Config.Spec.CheckMKEHealthRemote(h); err != nil {
+	if err := p.Config.Spec.CheckMKEHealthRemote([]*api.Host{h}); err != nil {
 		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installation flag and check connectivity: %w", h, err)
 	}
 
