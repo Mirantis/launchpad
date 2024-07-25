@@ -84,25 +84,33 @@ const (
 	RoleMSR3    RoleType = "msr3"
 )
 
+var AcceptedRoleTypes = []string{
+	string(RoleManager),
+	string(RoleWorker),
+	string(RoleMSR2),
+	string(RoleMSR3),
+}
+
+type UnknownRoleTypeError struct {
+	RoleType string
+}
+
+func (e UnknownRoleTypeError) Error() string {
+	return fmt.Sprintf("unknown role type: %s, must be one of: %s", e.RoleType, strings.Join(AcceptedRoleTypes, ", "))
+}
+
 // ParseRoleType takes a string and returns the RoleType associated with the
 // given string if one exists.
-func ParseRoleType(v string) (RoleType, error) {
-	acceptedRoleTypes := []string{
-		string(RoleManager),
-		string(RoleWorker),
-		string(RoleMSR2),
-		string(RoleMSR3),
-	}
-
-	for _, rt := range acceptedRoleTypes {
-		if v == rt {
+func ParseRoleType(value string) (RoleType, error) {
+	for _, rt := range AcceptedRoleTypes {
+		if value == rt {
 			return RoleType(rt), nil
 		}
 	}
 
 	// We should never get here because we do validation on the incoming
 	// yaml, but just in case.
-	return "", fmt.Errorf("unknown role type: %s, must be one of: ", v, strings.Join(acceptedRoleTypes, ", "))
+	return "", UnknownRoleTypeError{RoleType: value}
 }
 
 // Host contains all the needed details to work with hosts.

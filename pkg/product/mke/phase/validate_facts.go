@@ -47,6 +47,14 @@ func (p *ValidateFacts) Run() error {
 		}
 	}
 
+	if err := p.validateMSRVersionJump(); err != nil {
+		if p.Force {
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
+		} else {
+			return err
+		}
+	}
+
 	if err := p.validateMSRCannotDowngrade(); err != nil {
 		if p.Force {
 			log.Warnf("%s: continuing anyway because --force given", err.Error())

@@ -184,11 +184,11 @@ func (e *invalidConfigError) Error() string {
 
 func (c *ClusterSpec) validateMSRHosts() error {
 	if c.Hosts.Count(func(h *Host) bool { return h.Role == RoleMSR2 }) > 0 && c.MSR2 == nil {
-		return &invalidConfigError{fmt.Sprintf("hosts with %q role present, but no spec.%s defined", RoleMSR2)}
+		return &invalidConfigError{fmt.Sprintf("hosts with %q role present, but no spec.%s defined", RoleMSR2, RoleMSR2)}
 	}
 
 	if c.Hosts.Count(func(h *Host) bool { return h.Role == RoleMSR3 }) > 0 && c.MSR3 == nil {
-		return &invalidConfigError{fmt.Sprintf("hosts with %q role present, but no spec.%s defined", RoleMSR3)}
+		return &invalidConfigError{fmt.Sprintf("hosts with %q role present, but no spec.%s defined", RoleMSR3, RoleMSR3)}
 	}
 
 	return nil

@@ -31,11 +31,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	errCannotInstallMSR3WithMSR2 = errors.New("cannot install MSR v2 when MSR v3 is already installed, please uninstall MSR v3 first or modify the 'spec.msr.version' field in the cluster configuration to a 3.x version")
-	errCannotInstallMSR2WithMSR3 = errors.New("cannot install MSR v3 when MSR v2 is already installed, if you wish to migrate to MSR v3 please use the Mirantis Migration Tool (mmt) or modify the 'spec.msr.version' field in the cluster configuration to a 2.x version")
-)
-
 // GatherFacts phase implementation to collect facts (OS, version etc.) from hosts.
 type GatherFacts struct {
 	phase.Analytics
