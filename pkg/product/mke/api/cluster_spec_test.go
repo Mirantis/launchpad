@@ -16,13 +16,13 @@ var manager = &Host{
 	Role: "manager",
 }
 
-var msr = &Host{
+var msr2 = &Host{
 	Connection: rig.Connection{
 		SSH: &rig.SSH{
 			Address: "192.168.1.3",
 		},
 	},
-	Role: "msr",
+	Role: "msr2",
 }
 
 func TestMKEClusterSpecMKEURLWithoutSan(t *testing.T) {
@@ -66,7 +66,7 @@ func TestMKEClusterSpecMKEURLWithNoMSRMetadata(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
-			msr,
+			msr2,
 		},
 		MKE:  MKEConfig{},
 		MSR2: &MSR2Config{},
@@ -81,7 +81,7 @@ func TestMKEClusterSpecMSR2URLWithNoMSRMetadata(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
-			msr,
+			msr2,
 		},
 		MKE:  MKEConfig{},
 		MSR2: &MSR2Config{},
@@ -128,7 +128,7 @@ func TestMKEClusterSpecMSR2URLWithExternalURL(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
-			msr,
+			msr2,
 		},
 		MKE: MKEConfig{},
 		MSR2: &MSR2Config{
@@ -144,7 +144,7 @@ func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
-			msr,
+			msr2,
 		},
 		MKE: MKEConfig{},
 		MSR2: &MSR2Config{
@@ -172,7 +172,7 @@ func TestMKEClusterSpecMKEURLFromMSRMKEUrl(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{
 			manager,
-			msr,
+			msr2,
 		},
 		MKE: MKEConfig{},
 		MSR2: &MSR2Config{

@@ -243,6 +243,8 @@ func (c *MSR2Config) SetDefaults() error {
 
 	if c.ImageRepo == "" {
 		c.ImageRepo = constant.ImageRepo
+
+		fmt.Println("ImageRepo is empty")
 	}
 
 	v, err := version.NewVersion(c.Version)
@@ -280,4 +282,29 @@ func (c *MSR2Config) UseLegacyImageRepo(v *version.Version) bool {
 	c2, _ := version.NewConstraint("< 2.8, >= 2.7.8")
 	c3, _ := version.NewConstraint("< 2.7, >= 2.6.15")
 	return !(c1.Check(v2) || c2.Check(v2) || c3.Check(v2))
+}
+
+var errInvalidMSR2Config = fmt.Errorf("invalid MSR2 config")
+
+// UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
+func (c *MSR2Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type msr2 MSR2Config
+	yc := (*msr2)(c)
+	if err := unmarshal(yc); err != nil {
+		return err
+	}
+
+	if c.Version == "" {
+		return fmt.Errorf("%w: missing spec.msr.version", errInvalidMSR2Config)
+	}
+
+	if _, err := version.NewVersion(c.Version); err != nil {
+		return fmt.Errorf("%w: error in field spec.msr.version: %w", errInvalidMSR2Config, err)
+	}
+
+	if err := defaults.Set(c); err != nil {
+		return fmt.Errorf("set MSR2 defaults: %w", err)
+	}
+
+	return c.SetDefaults()
 }

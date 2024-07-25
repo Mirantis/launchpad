@@ -408,10 +408,10 @@ spec:
 	require.Equal(t, c.Spec.Hosts[0].WinRM.Insecure, false)
 }
 
-func TestValidationWithMSRRole(t *testing.T) {
+func TestValidationWithMSR2Role(t *testing.T) {
 	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
-	t.Run("the role is not ucp, worker or msr", func(t *testing.T) {
+	t.Run("the role is not ucp, worker or msr2", func(t *testing.T) {
 		data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -433,20 +433,20 @@ spec:
 		require.Error(t, c.Validate())
 	})
 
-	t.Run("the role is msr", func(t *testing.T) {
+	t.Run("the role is msr2", func(t *testing.T) {
 		data := `
 apiVersion: launchpad.mirantis.com/mke/v1.5
 kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr2:
 	  version: 2.8.5
   hosts:
     - ssh:
         address: "10.0.0.1"
 				keyPath: ` + kf.Name() + `
-      role: msr
+      role: msr2
     - ssh:
         address: "10.0.0.2"
 				keyPath: ` + kf.Name() + `
@@ -472,7 +472,7 @@ kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr3:
 	  version: 3.1.4
 	  storageURL: "https://example.com"
 	  storageClassType: "nfs"
@@ -484,7 +484,7 @@ spec:
   hosts:
     - ssh:
         address: "10.0.0.1"
-      role: msr
+      role: msr3
     - ssh:
         address: "10.0.0.2"
       role: manager
@@ -511,13 +511,13 @@ kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr3:
 	  version: 3.1.4
 	  storageClassType: "nfs"
   hosts:
     - ssh:
         address: "10.0.0.1"
-      role: msr
+      role: msr3
     - ssh:
         address: "10.0.0.2"
       role: manager
@@ -535,14 +535,14 @@ kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr3:
 	  version: 3.1.4
 	  storageURL: "https://example.com"
 	  storageClassType: "not-supported"
   hosts:
     - ssh:
         address: "10.0.0.1"
-      role: msr
+      role: msr3
     - ssh:
         address: "10.0.0.2"
       role: manager

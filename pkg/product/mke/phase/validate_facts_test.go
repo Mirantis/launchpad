@@ -76,7 +76,7 @@ func TestValidateFactsMSRVersionJumpFail(t *testing.T) {
 			},
 		},
 	}
-	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't upgrade MSR directly from 2.6.4 to 2.8.4 - need to upgrade to 2.7 first")
+	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't upgrade MSR2 directly from 2.6.4 to 2.8.4 - need to upgrade to 2.7 first")
 }
 func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 	phase := ValidateFacts{}
@@ -96,7 +96,7 @@ func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 			},
 		},
 	}
-	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't downgrade MSR 2.8.4 to 2.7.6")
+	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't downgrade MSR2 2.8.4 to 2.7.6")
 }
 
 func TestValidateFactsMSRVersionJumpSuccess(t *testing.T) {

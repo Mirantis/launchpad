@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-version"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 
@@ -15,7 +14,6 @@ import (
 
 func TestMSR2Config_UseLegacyImageRepo(t *testing.T) {
 	cfg := MSR2Config{}
-	// >=3.1.15 || >=3.2.8 || >=3.3.2 is "mirantis"
 	legacyVersions := []string{
 		"2.8.1",
 		"2.7.7",
@@ -67,20 +65,6 @@ func TestMSR2Config_CustomRepo(t *testing.T) {
 	err = yaml.Unmarshal([]byte("version: 2.8.1\nimageRepo: foo.foo/foo"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "foo.foo/foo", cfg.ImageRepo)
-}
-
-// TestMSR2Config_YAMLKeysDoNotOverlap tests that the yaml keys in MSR2Config and
-// MSR3Config do not overlap.  This is important as the MSR2 and MSR3 configs
-// are inlined under the 'msr' parent key.  During unmarshaling, the yaml
-// keys should be unique to ensure that the correct version structs are
-// appropriately populated.
-func TestMSR2Config_YAMLKeysDoNotOverlap(t *testing.T) {
-	a := extractYAMLTags(t, MSR2Config{})
-	b := extractYAMLTags(t, MSR3Config{})
-
-	for _, key := range a {
-		assert.NotContainsf(t, b, key, "yaml tag: %q should not exist in both MSR2Config and MSR3Config types", key)
-	}
 }
 
 // extractYAML tags iterates v's struct fields and returns a sorted slice of

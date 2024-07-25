@@ -151,7 +151,7 @@ func validateVersionJump(product, installedVersion, targetVersion string) error 
 
 	// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
 	if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-		return fmt.Errorf("%w: can't upgrade directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installed, target, installedSegments[0], installedSegments[1]+1)
+		return fmt.Errorf("%w: can't upgrade %s directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, product, installed, target, installedSegments[0], installedSegments[1]+1)
 	}
 
 	return nil
@@ -177,7 +177,7 @@ func validateVersionDowngrade(product, installedVersion, targetVersion string) e
 
 	// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
 	if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-		return fmt.Errorf("%w: can't upgrade MSR directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installed, target, installedSegments[0], installedSegments[1]+1)
+		return fmt.Errorf("%w: can't upgrade %s directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, product, installed, target, installedSegments[0], installedSegments[1]+1)
 	}
 
 	return nil
