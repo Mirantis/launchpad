@@ -21,6 +21,12 @@ func (p *PullMKEImages) Title() string {
 	return "Pull MKE images"
 }
 
+// ShouldRun should return true only when there is an installation to be
+// performed.
+func (p *PullMKEImages) ShouldRun() bool {
+	return p.Config.Spec.MKE != nil
+}
+
 func (p *PullMKEImages) isMKESwarmOnly() bool {
 	for _, flag := range p.Config.Spec.MKE.InstallFlags {
 		if flag == "--swarm-only" {

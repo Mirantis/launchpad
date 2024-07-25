@@ -2,6 +2,7 @@
 # GoRelease instructions for local builds
 #
 project_name: launchpad
+version: 2
 builds:
   - env:
       - CGO_ENABLED=0

@@ -13,15 +13,14 @@ type Info struct {
 
 // Title for the phase.
 func (p *Info) Title() string {
-	return "MKE cluster info"
+	return "Cluster info"
 }
 
 // Run ...
 func (p *Info) Run() error {
 	log.Info("Cluster is now configured.")
 
-	mkeurl, err := p.Config.Spec.MKEURL()
-	if err == nil {
+	if mkeurl, err := p.Config.Spec.MKEURL(); err == nil {
 		log.Infof("MKE cluster admin UI: %s", mkeurl)
 	}
 

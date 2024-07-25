@@ -28,7 +28,7 @@ var msr2 = &Host{
 func TestMKEClusterSpecMKEURLWithoutSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{manager},
-		MKE:   MKEConfig{},
+		MKE:   &MKEConfig{},
 		MSR2:  &MSR2Config{},
 	}
 	url, err := spec.MKEURL()
@@ -39,7 +39,7 @@ func TestMKEClusterSpecMKEURLWithoutSan(t *testing.T) {
 func TestMKEClusterSpecMKEURLWithSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{manager},
-		MKE: MKEConfig{
+		MKE: &MKEConfig{
 			InstallFlags: []string{"--san=mke.acme.com"},
 		},
 		MSR2: &MSR2Config{},
@@ -53,7 +53,7 @@ func TestMKEClusterSpecMKEURLWithSan(t *testing.T) {
 func TestMKEClusterSpecMKEURLWithMultiSan(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{manager},
-		MKE: MKEConfig{
+		MKE: &MKEConfig{
 			InstallFlags: []string{"--san=mke.acme.com", "--san=admin.acme.com"},
 		},
 	}
@@ -68,7 +68,7 @@ func TestMKEClusterSpecMKEURLWithNoMSRMetadata(t *testing.T) {
 			manager,
 			msr2,
 		},
-		MKE:  MKEConfig{},
+		MKE: &MKEConfig{},
 		MSR2: &MSR2Config{},
 	}
 
@@ -83,7 +83,7 @@ func TestMKEClusterSpecMSR2URLWithNoMSRMetadata(t *testing.T) {
 			manager,
 			msr2,
 		},
-		MKE:  MKEConfig{},
+		MKE: &MKEConfig{},
 		MSR2: &MSR2Config{},
 	}
 
@@ -95,7 +95,7 @@ func TestMKEClusterSpecMSR2URLWithNoMSRMetadata(t *testing.T) {
 func TestMKEClusterSpecMSR2URLWithNoMSRHostRoleButConfig(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{manager},
-		MKE:   MKEConfig{},
+		MKE:   &MKEConfig{},
 		MSR2:  &MSR2Config{},
 	}
 	_, err := spec.MSR2URL()
@@ -116,7 +116,7 @@ func TestMKEClusterSpecMSR2URLWithoutExternalURL(t *testing.T) {
 				MSR2Metadata: &MSR2Metadata{Installed: true},
 			},
 		},
-		MKE:  MKEConfig{},
+		MKE: &MKEConfig{},
 		MSR2: &MSR2Config{},
 	}
 	url, err := spec.MSR2URL()
@@ -130,7 +130,7 @@ func TestMKEClusterSpecMSR2URLWithExternalURL(t *testing.T) {
 			manager,
 			msr2,
 		},
-		MKE: MKEConfig{},
+		MKE: &MKEConfig{},
 		MSR2: &MSR2Config{
 			InstallFlags: []string{"--dtr-external-url msr.acme.com"},
 		},
@@ -146,7 +146,7 @@ func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 			manager,
 			msr2,
 		},
-		MKE: MKEConfig{},
+		MKE: &MKEConfig{},
 		MSR2: &MSR2Config{
 			InstallFlags: []string{"--replica-https-port 999"},
 		},
@@ -159,7 +159,7 @@ func TestMKEClusterSpecMSRURLWithPort(t *testing.T) {
 func TestMKEClusterSpecMKEURLWithPort(t *testing.T) {
 	spec := ClusterSpec{
 		Hosts: []*Host{manager},
-		MKE: MKEConfig{
+		MKE: &MKEConfig{
 			InstallFlags: []string{"--controller-port 999"},
 		},
 	}
@@ -174,7 +174,7 @@ func TestMKEClusterSpecMKEURLFromMSRMKEUrl(t *testing.T) {
 			manager,
 			msr2,
 		},
-		MKE: MKEConfig{},
+		MKE: &MKEConfig{},
 		MSR2: &MSR2Config{
 			InstallFlags: []string{"--ucp-url mke.acme.com:5555"},
 		},

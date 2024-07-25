@@ -24,6 +24,12 @@ func (p *UpgradeMKE) Title() string {
 	return "Upgrade MKE components"
 }
 
+// ShouldRun should return true only when there is an installation to be
+// performed.
+func (p *UpgradeMKE) ShouldRun() bool {
+	return p.Config.Spec.MKE != nil
+}
+
 // Run the upgrade container.
 func (p *UpgradeMKE) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()

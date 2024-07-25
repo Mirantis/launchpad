@@ -33,6 +33,7 @@ type MCRConfig struct {
 }
 
 type MCRMetadata struct {
+	ClusterID        string
 	ManagerJoinToken string
 	WorkerJoinToken  string
 }

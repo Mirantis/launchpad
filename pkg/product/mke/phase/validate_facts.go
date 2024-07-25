@@ -26,8 +26,16 @@ func (p *ValidateFacts) Title() string {
 
 // Run validate configuration facts.
 func (p *ValidateFacts) Run() error {
-	if !p.Config.Spec.MKE.InstallFlags.Include("--san") {
+	if p.Config.Spec.MKE != nil && !p.Config.Spec.MKE.InstallFlags.Include("--san") {
 		p.populateSan()
+
+		if err := p.validateDataPlane(); err != nil {
+			if p.Force {
+				log.Warnf("%s: continuing anyway because --force given", err.Error())
+			} else {
+				return err
+			}
+		}
 	}
 
 	_ = p.Config.Spec.Hosts.Each(func(h *api.Host) error {
@@ -99,7 +107,7 @@ func (e cannotDowngradeProductError) Error() string {
 
 // validateMKEVersionJump validates MKE upgrade path.
 func (p *ValidateFacts) validateMKEVersionJump() error {
-	if p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
+	if p.Config.Spec.MKE != nil && p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
 		return validateVersionJump("MKE", p.Config.Spec.MKE.Metadata.InstalledVersion, p.Config.Spec.MKE.Version)
 	}
 

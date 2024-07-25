@@ -34,16 +34,15 @@ linters:
     - contextcheck
     - dupword
     - durationcheck
+    - err113
     - errchkjson
     - errname
     - errorlint
-    - execinquery
     - exportloopref
     - forcetypeassert
     - gci
     - gocritic
     - godot
-    - goerr113
     - gofmt
     - gofumpt
     - goimports

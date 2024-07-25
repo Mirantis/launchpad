@@ -39,7 +39,6 @@ type MKEMetadata struct {
 	Installed               bool
 	InstalledVersion        string
 	InstalledBootstrapImage string
-	ClusterID               string
 	VXLAN                   bool
 }
 
@@ -56,7 +55,7 @@ var errMKEConfigInvalid = errors.New("invalid MKE config")
 func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type mke MKEConfig
 	config := NewMKEConfig()
-	raw := mke(config)
+	raw := mke(*config)
 	raw.Metadata = &MKEMetadata{}
 
 	if err := unmarshal(&raw); err != nil {
@@ -162,8 +161,8 @@ func (c *MKEConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 }
 
 // NewMKEConfig creates new config with sane defaults.
-func NewMKEConfig() MKEConfig {
-	return MKEConfig{
+func NewMKEConfig() *MKEConfig {
+	return &MKEConfig{
 		ImageRepo: constant.ImageRepo,
 		Metadata:  &MKEMetadata{},
 	}

@@ -21,6 +21,9 @@ func (p *InstallMKECerts) Title() string {
 
 // Run the installer container.
 func (p *InstallMKECerts) ShouldRun() bool {
+	if p.Config.Spec.MKE == nil {
+		return false
+	}
 	if p.Config.Spec.MKE.CACertData == "" || p.Config.Spec.MKE.CertData == "" || p.Config.Spec.MKE.KeyData == "" {
 		log.Debug("no MKE cert data to install")
 		return false

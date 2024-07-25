@@ -31,52 +31,52 @@ func (p *UpgradeCheck) ShouldRun() bool {
 
 // Run the installer container.
 func (p *UpgradeCheck) Run() (err error) {
-	mkeTag, err := hub.LatestTag("mirantis", "ucp", strings.Contains(p.Config.Spec.MKE.Version, "-"))
-	if err != nil {
-		log.Errorf("failed to check for MKE upgrade: %v", err)
-		return nil
+	if p.Config.Spec.ContainsMKE() {
+		mkeTag, err := hub.LatestTag("mirantis", "ucp", strings.Contains(p.Config.Spec.MKE.Version, "-"))
+		if err != nil {
+			log.Errorf("failed to check for MKE upgrade: %v", err)
+			return nil
+		}
+
+		mkeV, err := version.NewVersion(mkeTag)
+		if err != nil {
+			log.Errorf("invalid MKE version response: %s", err.Error())
+			return nil
+		}
+
+		mkeTargetV, err := version.NewVersion(p.Config.Spec.MKE.Version)
+		if err != nil {
+			log.Errorf("invalid MKE version in configuration: %s", err.Error())
+			return fmt.Errorf("invalid MKE version in configuration: %w", err)
+		}
+
+		if mkeV.GreaterThan(mkeTargetV) {
+			log.Warnf("a newer version of MKE is available: %s (installing %s)", mkeTag, mkeTargetV.String())
+		}
 	}
 
-	mkeV, err := version.NewVersion(mkeTag)
-	if err != nil {
-		log.Errorf("invalid MKE version response: %s", err.Error())
-		return nil
-	}
+	if p.Config.Spec.ContainsMSR() {
+		msrv, err := hub.LatestTag("mirantis", "dtr", strings.Contains(p.Config.Spec.MSR2.Version, "-"))
+		if err != nil {
+			log.Errorf("failed to check for MSR upgrade: %s", err.Error())
+			return nil
+		}
 
-	mkeTargetV, err := version.NewVersion(p.Config.Spec.MKE.Version)
-	if err != nil {
-		log.Errorf("invalid MKE version in configuration: %s", err.Error())
-		return fmt.Errorf("invalid MKE version in configuration: %w", err)
-	}
+		msrV, err := version.NewVersion(msrv)
+		if err != nil {
+			log.Errorf("invalid MSR version response: %s", err.Error())
+			return nil
+		}
 
-	if mkeV.GreaterThan(mkeTargetV) {
-		log.Warnf("a newer version of MKE is available: %s (installing %s)", mkeTag, mkeTargetV.String())
-	}
+		msrTargetV, err := version.NewVersion(p.Config.Spec.MSR2.Version)
+		if err != nil {
+			log.Errorf("invalid MSR version in configuration: %s", err.Error())
+			return fmt.Errorf("invalid MSR version in configuration: %w", err)
+		}
 
-	if !p.Config.Spec.ContainsMSR() {
-		return nil
-	}
-
-	msrv, err := hub.LatestTag("mirantis", "dtr", strings.Contains(p.Config.Spec.MSR2.Version, "-"))
-	if err != nil {
-		log.Errorf("failed to check for MSR upgrade: %s", err.Error())
-		return nil
-	}
-
-	msrV, err := version.NewVersion(msrv)
-	if err != nil {
-		log.Errorf("invalid MSR version response: %s", err.Error())
-		return nil
-	}
-
-	msrTargetV, err := version.NewVersion(p.Config.Spec.MSR2.Version)
-	if err != nil {
-		log.Errorf("invalid MSR version in configuration: %s", err.Error())
-		return fmt.Errorf("invalid MSR version in configuration: %w", err)
-	}
-
-	if msrV.GreaterThan(msrTargetV) {
-		log.Warnf("a newer version of MSR is available: %s (installing %s)", msrv, msrTargetV.String())
+		if msrV.GreaterThan(msrTargetV) {
+			log.Warnf("a newer version of MSR is available: %s (installing %s)", msrv, msrTargetV.String())
+		}
 	}
 
 	return nil
