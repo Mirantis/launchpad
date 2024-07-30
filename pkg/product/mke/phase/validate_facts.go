@@ -119,10 +119,8 @@ func (p *ValidateFacts) validateMSRVersionJump() error {
 	}
 
 	if p.Config.Spec.MSR3 != nil {
-		msr3Leader := p.Config.Spec.MSR3Leader()
-
-		if msr3Leader.MSR3Metadata != nil && msr3Leader.MSR3Metadata.Installed && msr3Leader.MSR3Metadata.InstalledVersion != "" {
-			if err := validateVersionJump("MSR3", msr3Leader.MSR3Metadata.InstalledVersion, p.Config.Spec.MSR3.Version); err != nil {
+		if p.Config.Spec.MSR3.Metadata.Installed && p.Config.Spec.MSR3.Metadata.InstalledVersion != "" {
+			if err := validateVersionJump("MSR3", p.Config.Spec.MSR3.Metadata.InstalledVersion, p.Config.Spec.MSR3.Version); err != nil {
 				return fmt.Errorf("MSR3 version validation failed: %w", err)
 			}
 		}
@@ -196,10 +194,8 @@ func (p *ValidateFacts) validateMSRCannotDowngrade() error {
 	}
 
 	if p.Config.Spec.MSR3 != nil {
-		msr3Leader := p.Config.Spec.MSR3Leader()
-
-		if msr3Leader.MSR3Metadata != nil && msr3Leader.MSR3Metadata.Installed && msr3Leader.MSR3Metadata.InstalledVersion != "" {
-			if err := validateVersionDowngrade("MSR3", msr3Leader.MSR3Metadata.InstalledVersion, p.Config.Spec.MSR3.Version); err != nil {
+		if p.Config.Spec.MSR3.Metadata.Installed && p.Config.Spec.MSR3.Metadata.InstalledVersion != "" {
+			if err := validateVersionDowngrade("MSR3", p.Config.Spec.MSR3.Metadata.InstalledVersion, p.Config.Spec.MSR3.Version); err != nil {
 				return fmt.Errorf("MSR3 version validation failed: %w", err)
 			}
 		}

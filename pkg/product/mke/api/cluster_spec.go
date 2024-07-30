@@ -51,11 +51,6 @@ func (c *ClusterSpec) MSR2s() Hosts {
 	return c.Hosts.Filter(func(h *Host) bool { return h.Role == RoleMSR2 })
 }
 
-// MSR3s filters only the MSR3 nodes from the cluster config.
-func (c *ClusterSpec) MSR3s() Hosts {
-	return c.Hosts.Filter(func(h *Host) bool { return h.Role == RoleMSR3 })
-}
-
 // WorkersAndMSRs filters both worker and MSR roles from the cluster config;
 // so anything that is not a manager.
 func (c *ClusterSpec) WorkersAndMSRs() Hosts {
@@ -187,10 +182,6 @@ func (c *ClusterSpec) validateMSRHosts() error {
 		return &invalidConfigError{fmt.Sprintf("hosts with %q role present, but no spec.%s defined", RoleMSR2, RoleMSR2)}
 	}
 
-	if c.Hosts.Count(func(h *Host) bool { return h.Role == RoleMSR3 }) > 0 && c.MSR3 == nil {
-		return &invalidConfigError{fmt.Sprintf("hosts with %q role present, but no spec.%s defined", RoleMSR3, RoleMSR3)}
-	}
-
 	return nil
 }
 
@@ -207,8 +198,8 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	if err := c.validateMSRHosts(); err != nil {
 		return err
-	} else if c.MSR2 == nil && c.MSR3 == nil {
-		log.Debugf("ignoring spec.msr* configurations as there are no hosts having either the %q or %q role", RoleMSR2, RoleMSR3)
+	} else if c.MSR2 == nil {
+		log.Debugf("ignoring spec.msr2 configurations as there are no hosts having %q role", RoleMSR2)
 	}
 
 	bastionHosts := c.Hosts.Filter(func(h *Host) bool {
@@ -273,20 +264,6 @@ func (c *ClusterSpec) MSR2Leader() *Host {
 
 	log.Debugf("did not find a MSR2 installation, falling back to the first MSR2 host")
 	return msrs.First()
-}
-
-// MSR3Leader returns a host from the MSR3 nodes that can be considered a
-// leader.  Even though MSR3 does not require a true leader to run bootstrap
-// operations from, we still need to look at one of the MSR3 hosts' metadata
-// to determine specifics about the MSR3 installation.
-func (c *ClusterSpec) MSR3Leader() *Host {
-	msrs := c.MSR3s()
-	return msrs.First()
-}
-
-// MSRLeaders returns the MSR2 and MSR3 leaders.
-func (c *ClusterSpec) MSRLeaders() (*Host, *Host) {
-	return c.MSR2Leader(), c.MSR3Leader()
 }
 
 // IsCustomImageRepo checks if the config is using a custom image repo.
@@ -378,5 +355,5 @@ func (c *ClusterSpec) ContainsMSR2() bool {
 
 // ContainsMSR3 checks if the cluster spec contains MSR3.
 func (c *ClusterSpec) ContainsMSR3() bool {
-	return c.containsRole(RoleMSR3) && c.MSR3 != nil
+	return c.MSR3 != nil
 }

@@ -49,6 +49,16 @@ type MSR3Config struct {
 	LoadBalancerURL string `yaml:"loadBalancerURL,omitempty"`
 	// CRD is the MSR custom resource definition which configures the MSR CR.
 	CRD *unstructured.Unstructured `yaml:"crd,omitempty"`
+
+	Metadata MSR3Metadata `yaml:"-"`
+}
+
+type MSR3Metadata struct {
+	Installed        bool
+	InstalledVersion string
+	// InstalledDependencies is a map of dependencies needed for MSR3 and their
+	// versions.
+	InstalledDependencies map[string]helm.ReleaseDetails
 }
 
 var errStorageURLRequired = fmt.Errorf("spec.msr.storageURL is required when spec.msr.storageClassType is populated")

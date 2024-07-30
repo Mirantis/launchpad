@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/byteutil"
 	retry "github.com/avast/retry-go"
@@ -40,14 +39,6 @@ type MSR2Metadata struct {
 	InstalledVersion        string
 	InstalledBootstrapImage string
 	ReplicaID               string
-}
-
-type MSR3Metadata struct {
-	Installed        bool
-	InstalledVersion string
-	// InstalledDependencies is a map of dependencies needed for MSR3 and their
-	// versions.
-	InstalledDependencies map[string]helm.ReleaseDetails
 }
 
 type errs struct {
@@ -81,14 +72,12 @@ const (
 	RoleManager RoleType = "manager"
 	RoleWorker  RoleType = "worker"
 	RoleMSR2    RoleType = "msr2"
-	RoleMSR3    RoleType = "msr3"
 )
 
 var AcceptedRoleTypes = []string{
 	string(RoleManager),
 	string(RoleWorker),
 	string(RoleMSR2),
-	string(RoleMSR3),
 }
 
 type UnknownRoleTypeError struct {
@@ -127,7 +116,6 @@ type Host struct {
 
 	Metadata     *HostMetadata  `yaml:"-"`
 	MSR2Metadata *MSR2Metadata  `yaml:"-"`
-	MSR3Metadata *MSR3Metadata  `yaml:"-"`
 	Configurer   HostConfigurer `yaml:"-"`
 	Errors       errs           `yaml:"-"`
 }

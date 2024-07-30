@@ -87,10 +87,7 @@ func (p *Describe) msrReport() {
 		fmt.Fprintf(tabWriter, "%s\t%s\t\n", msr2InstalledVersion, msr2URL)
 	}
 
-	msr3s := p.Config.Spec.MSR3s()
-	msr3Leader := msr3s.First()
-
-	if msr3Leader == nil || msr3Leader.MSR3Metadata == nil || !msr3Leader.MSR3Metadata.Installed {
+	if p.Config.Spec.MSR3 == nil || !p.Config.Spec.MSR3.Metadata.Installed {
 		// If no MSR3 is installed just don't add anything to the writer.
 		log.Debugf("No MSR3 products found")
 	} else {
@@ -100,7 +97,7 @@ func (p *Describe) msrReport() {
 			log.Infof("failed to get MSR URL: %s", err)
 		}
 
-		msr3InstalledVersion := msr3Leader.MSR3Metadata.InstalledVersion
+		msr3InstalledVersion := p.Config.Spec.MSR3.Metadata.InstalledVersion
 
 		fmt.Fprintf(tabWriter, "%s\t%s\t\n", msr3InstalledVersion, msr3URL)
 	}

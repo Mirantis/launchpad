@@ -24,9 +24,7 @@ func (p *UninstallMSR3) Title() string {
 }
 
 func (p *UninstallMSR3) ShouldRun() bool {
-	msr3Hosts := p.Config.Spec.MSR3s()
-	leader := msr3Hosts.First()
-	return p.Config.Spec.ContainsMSR3() && leader.MSR3Metadata.Installed
+	return p.Config.Spec.ContainsMSR3() && p.Config.Spec.MSR3.Metadata.Installed
 }
 
 func (p *UninstallMSR3) Prepare(config interface{}) error {

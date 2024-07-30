@@ -43,8 +43,6 @@ const (
 	MSROperatorDeploymentLabels = "app.kubernetes.io/name=msr-operator"
 	// KubeConfigFile is the name of the kubeconfig file.
 	KubeConfigFile = "kube.yml"
-	// MSRNodeSelector is the node selector for MSR nodes.
-	MSRNodeSelector = "node-role.kubernetes.io/msr"
 	// DefaultStorageClassAnnotation is the annotation to set a StorageClass to the default.
 	DefaultStorageClassAnnotation = "storageclass.kubernetes.io/is-default-class"
 )

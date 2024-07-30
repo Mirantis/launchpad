@@ -95,7 +95,7 @@ func TestCollectFacts(t *testing.T) {
 		// shouldn't expect the InstalledDependencies map to contain this.
 		rd.RepoURL = ""
 
-		assert.Equal(t, &api.MSR3Metadata{
+		assert.Equal(t, api.MSR3Metadata{
 			Installed:        true,
 			InstalledVersion: "3.1.1",
 			InstalledDependencies: map[string]helm.ReleaseDetails{

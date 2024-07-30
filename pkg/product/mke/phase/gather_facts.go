@@ -65,20 +65,11 @@ func (p *GatherFacts) Run() error {
 		p.Config.Spec.MKE.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
 
-	if p.Config.Spec.ContainsMSR() {
-		// If we intend to configure MSR as well, gather facts for MSR
-		if p.Config.Spec.MSR2 == nil {
-			p.Config.Spec.MSR2 = &api.MSR2Config{}
-		}
-
-		if p.Config.Spec.MSR3 == nil {
-			p.Config.Spec.MSR3 = &api.MSR3Config{}
-		}
-
-		// Collect both sets of facts to understand versions of MSR on the
-		// target hosts.  Users can potentially install both MSR2 and MSR3
-		// on the same cluster.
+	if p.Config.Spec.MSR2 != nil {
 		p.collectMSR2Facts()
+	}
+
+	if p.Config.Spec.MSR3 != nil {
 		p.collectMSR3Facts()
 	}
 
@@ -141,17 +132,7 @@ func (p *GatherFacts) collectMSR3Facts() bool {
 		log.Info("MSR is not installed")
 	}
 
-	// Write the msrMeta to each of the hosts so it can be queried
-	// independently and function like legacy MSR.
-	msrHosts := p.Config.Spec.MSR3s()
-	err = msrHosts.ParallelEach(func(h *api.Host) error {
-		h.MSR3Metadata = msr3Meta
-		return nil
-	})
-	if err != nil {
-		log.Debugf("failed to write MSR metadata to MSR hosts: %s", err.Error())
-		return false
-	}
+	p.Config.Spec.MSR3.Metadata = msr3Meta
 
 	return msr3Meta.Installed
 }

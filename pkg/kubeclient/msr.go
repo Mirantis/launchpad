@@ -19,6 +19,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+// GetMSRCR get the MSR Custom Resource instance
 func (kc *KubeClient) GetMSRCR(ctx context.Context, name string, rc dynamic.ResourceInterface) (*unstructured.Unstructured, error) {
 	unstructured, err := rc.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
@@ -153,39 +154,6 @@ func (kc *KubeClient) ApplyMSRCR(ctx context.Context, obj *unstructured.Unstruct
 	return nil
 }
 
-// PrepareNodeForMSR updates the given node name setting the MSRNodeSelector
-// on the node and removing any found Kubernetes NoExecute taints added by MKE.
-func (kc *KubeClient) PrepareNodeForMSR(ctx context.Context, name string) error {
-	node, err := kc.client.CoreV1().Nodes().Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get node %q: %w", name, err)
-	}
-
-	if node.Labels == nil {
-		node.Labels = make(map[string]string)
-	}
-
-	node.Labels[constant.MSRNodeSelector] = "true"
-
-	// Rebuild the taints list without the NoExecute taint if found.
-	taints := []corev1.Taint{}
-	for _, t := range node.Spec.Taints {
-		if t.Key == constant.KubernetesOrchestratorTaint && t.Value == "NoExecute" {
-			continue
-		}
-		taints = append(taints, t)
-	}
-
-	node.Spec.Taints = taints
-
-	_, err = kc.client.CoreV1().Nodes().Update(ctx, node, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update node %q: %w", name, err)
-	}
-
-	return nil
-}
-
 // GetMSRResourceClient returns a dynamic client for the MSR custom resource.
 //
 //nolint:ireturn
@@ -261,9 +229,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 
 	switch serviceType {
 	case string(corev1.ServiceTypeNodePort):
-		nodes, err := kc.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{
-			LabelSelector: constant.MSRNodeSelector + "=true",
-		})
+		nodes, err := kc.client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("failed to list nodes: %w", err)
 		}
