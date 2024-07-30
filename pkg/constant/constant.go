@@ -39,6 +39,9 @@ const (
 	SwarmOrchestratorCheckLabelCmd = "node inspect --format '{{ index .Spec.Labels \"com.docker.ucp.orchestrator.swarm\" }}'"
 	// KubernetesOrchestratorTaint taints the node as NoExecute when using swarm.
 	KubernetesOrchestratorTaint = "com.docker.ucp.orchestrator.kubernetes"
+	// KubernetesDockerRegistryAuthSecretName is the name of the secret that holds Docker registry authentication credentials.
+	//nolint:gosec
+	KubernetesDockerRegistryAuthSecretName = "launchpad-registry-credentials"
 	// MSROperatorDeploymentLabels are the labels the msr-operator deployment uses.
 	MSROperatorDeploymentLabels = "app.kubernetes.io/name=msr-operator"
 	// KubeConfigFile is the name of the kubeconfig file.

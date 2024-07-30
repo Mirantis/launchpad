@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -142,4 +143,92 @@ func TestSetStorageClassDefault(t *testing.T) {
 		}
 	})
 
+}
+
+func TestCreateImagePullSecret(t *testing.T) {
+	kc := NewTestClient(t)
+
+	auths := []DockerAuth{
+		{
+			URL:      "registry.example.com",
+			Username: "user",
+			Password: "pass",
+		},
+		{
+			URL:      "registry2.example.com",
+			Username: "user2",
+			Password: "pass2",
+		},
+	}
+
+	err := kc.CreateImagePullSecret(context.Background(), auths...)
+	assert.NoError(t, err)
+
+	// Ensure the secrets were created.
+	secret, err := kc.client.CoreV1().Secrets(kc.Namespace).Get(context.Background(), constant.KubernetesDockerRegistryAuthSecretName, metav1.GetOptions{})
+	require.NoError(t, err)
+
+	assert.Contains(t, string(secret.Data[".dockerconfigjson"]), `"registry.example.com": {"username": "user", "password": "pass"}`)
+	assert.Contains(t, string(secret.Data[".dockerconfigjson"]), `"registry2.example.com": {"username": "user2", "password": "pass2"}`)
+
+	t.Run("Secret already exists", func(t *testing.T) {
+		kc := NewTestClient(t)
+
+		auths := []DockerAuth{
+			{
+				URL:      "registry.example.com",
+				Username: "user",
+				Password: "pass",
+			},
+			{
+				URL:      "registry3.example.com",
+				Username: "user3",
+				Password: "pass3",
+			},
+		}
+
+		// Create a secret with some data already populated.
+		_, err = kc.client.CoreV1().Secrets(kc.Namespace).Create(context.Background(), &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: constant.KubernetesDockerRegistryAuthSecretName,
+			},
+			Type: corev1.SecretTypeDockerConfigJson,
+			Data: map[string][]byte{
+				".dockerconfigjson": []byte(`{"auths": {"registry.example.com": {"username": "user", "password": "pass"}}}`),
+			},
+		}, metav1.CreateOptions{})
+		require.NoError(t, err)
+
+		err = kc.CreateImagePullSecret(context.Background(), auths...)
+		assert.NoError(t, err)
+
+		// Ensure the secrets were created and they contain the new data.
+		secret, err := kc.client.CoreV1().Secrets(kc.Namespace).Get(context.Background(), constant.KubernetesDockerRegistryAuthSecretName, metav1.GetOptions{})
+		require.NoError(t, err)
+
+		assert.Contains(t, string(secret.Data[".dockerconfigjson"]), `"registry3.example.com": {"username": "user3", "password": "pass3"}`)
+	})
+}
+
+func TestDeleteSecret(t *testing.T) {
+	kc := NewTestClient(t)
+
+	auths := []DockerAuth{
+		{
+			URL:      "registry.example.com",
+			Username: "user",
+			Password: "pass",
+		},
+	}
+
+	err := kc.CreateImagePullSecret(context.Background(), auths...)
+	require.NoError(t, err)
+
+	err = kc.DeleteSecret(context.Background(), constant.KubernetesDockerRegistryAuthSecretName)
+	assert.NoError(t, err)
+
+	t.Run("The secret does not exist", func(t *testing.T) {
+		err = kc.DeleteSecret(context.Background(), constant.KubernetesDockerRegistryAuthSecretName)
+		assert.NoError(t, err)
+	})
 }

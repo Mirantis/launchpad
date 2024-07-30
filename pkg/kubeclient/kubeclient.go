@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	log "github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -275,4 +277,66 @@ func DecodeIntoUnstructured(obj runtime.Object) (*unstructured.Unstructured, err
 	}
 
 	return &unstructured.Unstructured{Object: result}, nil
+}
+
+type DockerAuth struct {
+	Username string
+	Password string
+	URL      string
+}
+
+// CreateImagePullSecret creates a dockerconfigjson type secret for the
+// provided DockerAuths.
+func (kc *KubeClient) CreateImagePullSecret(ctx context.Context, auths ...DockerAuth) error {
+	var authList string
+
+	for _, auth := range auths {
+		if auth.Username == "" || auth.Password == "" || auth.URL == "" {
+			continue
+		}
+
+		log.Debugf("Adding imagePullSecret for: %q, user: %q", auth.URL, auth.Username)
+
+		authList += fmt.Sprintf(`{"%s": {"username": "%s", "password": "%s"}},`, auth.URL, auth.Username, auth.Password)
+	}
+
+	authSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: constant.KubernetesDockerRegistryAuthSecretName,
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{
+			".dockerconfigjson": []byte(fmt.Sprintf(`{"auths": %s}`, strings.TrimSuffix(authList, ","))),
+		},
+	}
+
+	_, err := kc.client.CoreV1().Secrets(kc.Namespace).Create(ctx, authSecret, metav1.CreateOptions{})
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			log.Debugf("Secret: registry-credentials already exists, will update instead")
+
+			_, err = kc.client.CoreV1().Secrets(kc.Namespace).Update(ctx, authSecret, metav1.UpdateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to update registry secret: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to create registry secret: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// DeleteSecret deletes a Kubernetes secret affiliated with given secretName.
+func (kc *KubeClient) DeleteSecret(ctx context.Context, secretName string) error {
+	err := kc.client.CoreV1().Secrets(kc.Namespace).Delete(ctx, secretName, metav1.DeleteOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+
+		return fmt.Errorf("failed to delete secret: %q: %w", secretName, err)
+	}
+
+	return nil
 }

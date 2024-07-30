@@ -101,82 +101,82 @@ func (d *Dependencies) List() []*helm.ReleaseDetails {
 func (d *Dependencies) SetDefaults() {
 	if d.CertManager == nil {
 		d.CertManager = &helm.ReleaseDetails{}
+	}
 
-		if d.CertManager.ChartName == "" {
-			d.CertManager.ChartName = constant.CertManager
-		}
-		if d.CertManager.ReleaseName == "" {
-			d.CertManager.ReleaseName = constant.CertManager
-		}
-		if d.CertManager.RepoURL == "" {
-			d.CertManager.RepoURL = "https://charts.jetstack.io"
-		}
-		if d.CertManager.Version == "" {
-			d.CertManager.Version = "1.14.7"
-		}
-		if d.CertManager.Values == nil {
-			d.CertManager.Values = map[string]interface{}{"installCRDs": true}
-		}
+	if d.CertManager.ChartName == "" {
+		d.CertManager.ChartName = constant.CertManager
+	}
+	if d.CertManager.ReleaseName == "" {
+		d.CertManager.ReleaseName = constant.CertManager
+	}
+	if d.CertManager.RepoURL == "" {
+		d.CertManager.RepoURL = "https://charts.jetstack.io"
+	}
+	if d.CertManager.Version == "" {
+		d.CertManager.Version = "1.12.4"
+	}
+	if d.CertManager.Values == nil {
+		d.CertManager.Values = map[string]interface{}{"installCRDs": true}
 	}
 
 	if d.PostgresOperator == nil {
 		d.PostgresOperator = &helm.ReleaseDetails{}
+	}
 
-		if d.PostgresOperator.ChartName == "" {
-			d.PostgresOperator.ChartName = constant.PostgresOperator
-		}
-		if d.PostgresOperator.ReleaseName == "" {
-			d.PostgresOperator.ReleaseName = constant.PostgresOperator
-		}
-		if d.PostgresOperator.RepoURL == "" {
-			d.PostgresOperator.RepoURL = "https://opensource.zalando.com/postgres-operator/charts/postgres-operator"
-		}
-		if d.PostgresOperator.Version == "" {
-			d.PostgresOperator.Version = "1.12.2"
-		}
-		if d.PostgresOperator.Values == nil {
-			d.PostgresOperator.Values = map[string]interface{}{
-				"configKubernetes": map[string]int{
-					"spilo_runasuser":  101,
-					"spilo_runasgroup": 103,
-					"spilo_fsgroup":    103,
-				},
-			}
+	if d.PostgresOperator.ChartName == "" {
+		d.PostgresOperator.ChartName = constant.PostgresOperator
+	}
+	if d.PostgresOperator.ReleaseName == "" {
+		d.PostgresOperator.ReleaseName = constant.PostgresOperator
+	}
+	if d.PostgresOperator.RepoURL == "" {
+		d.PostgresOperator.RepoURL = "https://opensource.zalando.com/postgres-operator/charts/postgres-operator"
+	}
+	if d.PostgresOperator.Version == "" {
+		d.PostgresOperator.Version = "1.12.2"
+	}
+	if d.PostgresOperator.Values == nil {
+		d.PostgresOperator.Values = map[string]interface{}{
+			"configKubernetes": map[string]int{
+				"spilo_runasuser":  101,
+				"spilo_runasgroup": 103,
+				"spilo_fsgroup":    103,
+			},
 		}
 	}
 
 	if d.RethinkDBOperator == nil {
 		d.RethinkDBOperator = &helm.ReleaseDetails{}
+	}
 
-		if d.RethinkDBOperator.ChartName == "" {
-			d.RethinkDBOperator.ChartName = constant.RethinkDBOperator
-		}
-		if d.RethinkDBOperator.ReleaseName == "" {
-			d.RethinkDBOperator.ReleaseName = constant.RethinkDBOperator
-		}
-		if d.RethinkDBOperator.RepoURL == "" {
-			d.RethinkDBOperator.RepoURL = "https://registry.mirantis.com/charts/rethinkdb/rethinkdb-operator"
-		}
-		if d.RethinkDBOperator.Version == "" {
-			d.RethinkDBOperator.Version = "1.0.1"
-		}
+	if d.RethinkDBOperator.ChartName == "" {
+		d.RethinkDBOperator.ChartName = constant.RethinkDBOperator
+	}
+	if d.RethinkDBOperator.ReleaseName == "" {
+		d.RethinkDBOperator.ReleaseName = constant.RethinkDBOperator
+	}
+	if d.RethinkDBOperator.RepoURL == "" {
+		d.RethinkDBOperator.RepoURL = "https://registry.mirantis.com/charts/rethinkdb/rethinkdb-operator"
+	}
+	if d.RethinkDBOperator.Version == "" {
+		d.RethinkDBOperator.Version = "1.0.1"
 	}
 
 	if d.MSROperator == nil {
 		d.MSROperator = &helm.ReleaseDetails{}
+	}
 
-		if d.MSROperator.ChartName == "" {
-			d.MSROperator.ChartName = constant.MSROperator
-		}
-		if d.MSROperator.ReleaseName == "" {
-			d.MSROperator.ReleaseName = constant.MSROperator
-		}
-		if d.MSROperator.RepoURL == "" {
-			d.MSROperator.RepoURL = "https://registry.mirantis.com/charts/msr/msr-operator"
-		}
-		if d.MSROperator.Version == "" {
-			d.MSROperator.Version = "1.0.1"
-		}
+	if d.MSROperator.ChartName == "" {
+		d.MSROperator.ChartName = constant.MSROperator
+	}
+	if d.MSROperator.ReleaseName == "" {
+		d.MSROperator.ReleaseName = constant.MSROperator
+	}
+	if d.MSROperator.RepoURL == "" {
+		d.MSROperator.RepoURL = "https://registry.mirantis.com/charts/msr/msr-operator"
+	}
+	if d.MSROperator.Version == "" {
+		d.MSROperator.Version = "1.0.1"
 	}
 }
 

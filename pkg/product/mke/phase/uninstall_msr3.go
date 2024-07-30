@@ -82,5 +82,11 @@ func (p *UninstallMSR3) Run() error {
 		return fmt.Errorf("failed to uninstall Helm dependencies: %w", errs)
 	}
 
+	// Delete any created registry credential secrets.
+	err := p.Kube.DeleteSecret(context.Background(), constant.KubernetesDockerRegistryAuthSecretName)
+	if err != nil {
+		return fmt.Errorf("failed to delete imagePullSecret: %w", err)
+	}
+
 	return nil
 }
