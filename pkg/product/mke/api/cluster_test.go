@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/Mirantis/mcc/pkg/config/migration"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -20,6 +22,8 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v14"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v15"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
 	// needed to load the migrators.
@@ -36,7 +40,7 @@ func TestHostRequireManagerValidationPass(t *testing.T) {
 	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	data := `
-apiVersion: "launchpad.mirantis.com/mke/v1.5"
+apiVersion: "launchpad.mirantis.com/mke/v1.6"
 kind: mke
 spec:
   hosts:
@@ -235,6 +239,8 @@ spec:
 }
 
 func TestMigrateFromV1Beta1(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
+
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta1
 kind: mke
@@ -253,7 +259,7 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
 	require.Equal(t, c.Spec.MCR.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -278,7 +284,7 @@ spec:
 `
 	c := loadAndMigrateYaml(t, data)
 	require.NoError(t, c.Validate())
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
@@ -300,7 +306,7 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
 	require.Equal(t, constant.MCRInstallURLLinux, c.Spec.MCR.InstallURLLinux)
 	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
@@ -386,7 +392,7 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke
 spec:
 	mke:
@@ -435,7 +441,7 @@ spec:
 
 	t.Run("the role is msr2", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke+msr
 spec:
 	mke:
@@ -467,7 +473,7 @@ func TestValidationWithMSR3(t *testing.T) {
 		// section.  The resulting data is valid
 		// yaml.
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke+msr
 spec:
 	mke:
