@@ -26,7 +26,7 @@ func (p *InstallOrUpgradeMSR3) Title() string {
 
 // Prepare collects the hosts and labels them with the MSR role via the
 // Kubernetes client so that they can be used as NodeSelector in the MSR CR.
-func (p *InstallOrUpgradeMSR3) Prepare(config interface{}) error {
+func (p *InstallOrUpgradeMSR3) Prepare(_ interface{}) error {
 	managers := p.Config.Spec.Managers()
 
 	if err := p.Config.Spec.CheckMKEHealthRemote(managers); err != nil {
@@ -47,7 +47,7 @@ func (p *InstallOrUpgradeMSR3) ShouldRun() bool {
 	return p.Config.Spec.ContainsMSR3()
 }
 
-// Run deploys an MSR CR to the cluster
+// Run deploys an MSR CR to the cluster.
 func (p *InstallOrUpgradeMSR3) Run() error {
 	ctx := context.Background()
 

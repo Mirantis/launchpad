@@ -19,7 +19,7 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
-// GetMSRCR get the MSR Custom Resource instance
+// GetMSRCR get the MSR Custom Resource instance.
 func (kc *KubeClient) GetMSRCR(ctx context.Context, name string, rc dynamic.ResourceInterface) (*unstructured.Unstructured, error) {
 	unstructured, err := rc.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
