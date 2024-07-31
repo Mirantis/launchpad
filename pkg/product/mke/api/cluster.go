@@ -79,7 +79,7 @@ func Init(kind string) *ClusterConfig {
 			MCR: common.MCRConfig{
 				Version: constant.MCRVersion,
 			},
-			MKE: MKEConfig{
+			MKE: &MKEConfig{
 				Version: mkeV,
 			},
 			Hosts: []*Host{

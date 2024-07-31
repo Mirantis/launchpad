@@ -85,7 +85,9 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 			linuxWorkersCount++
 		}
 	}
-	clusterID := p.ClusterConfig.Spec.MKE.Metadata.ClusterID
+
+	clusterID := p.ClusterConfig.Spec.MCR.Metadata.ClusterID
+
 	props := event.Properties{
 		"kind":            p.ClusterConfig.Kind,
 		"api_version":     p.ClusterConfig.APIVersion,

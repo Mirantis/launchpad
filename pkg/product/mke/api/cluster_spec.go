@@ -25,10 +25,10 @@ type Cluster struct {
 // ClusterSpec defines cluster spec.
 type ClusterSpec struct {
 	Hosts   Hosts            `yaml:"hosts" validate:"required,min=1,dive"`
-	MKE     MKEConfig        `yaml:"mke,omitempty"`
+	MCR     common.MCRConfig `yaml:"mcr,omitempty"`
+	MKE     *MKEConfig       `yaml:"mke,omitempty"`
 	MSR2    *MSR2Config      `yaml:"msr2,omitempty"`
 	MSR3    *MSR3Config      `yaml:"msr3,omitempty"`
-	MCR     common.MCRConfig `yaml:"mcr,omitempty"`
 	Cluster Cluster          `yaml:"cluster"`
 	// Namespace is the Kubernetes namespace to use for installing products
 	// that are namespace-scoped.  If not set, the default namespace will be
@@ -74,8 +74,14 @@ func (c *ClusterSpec) SwarmLeader() *Host {
 
 var errGenerateURL = errors.New("unable to generate url")
 
+var ErrThereIsNoMKE = errors.New("there is no MKE")
+
 // MKEURL returns a URL for MKE or an error if one can not be generated.
 func (c *ClusterSpec) MKEURL() (*url.URL, error) {
+	if c.MKE == nil {
+		return nil, ErrThereIsNoMKE
+	}
+
 	// Easy route, user has provided one in MSR --ucp-url
 	if c.MSR2 != nil {
 		if f := c.MSR2.InstallFlags.GetValue("--ucp-url"); f != "" {
@@ -190,7 +196,6 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type spec ClusterSpec
 	specAlias := (*spec)(c)
 	c.MCR = common.MCRConfig{}
-	c.MKE = NewMKEConfig()
 
 	if err := unmarshal(specAlias); err != nil {
 		return fmt.Errorf("failed to unmarshal cluster spec: %w", err)
@@ -341,6 +346,11 @@ func (c *ClusterSpec) CheckMKEHealthLocal(hosts []*Host) error {
 
 func (c *ClusterSpec) containsRole(role RoleType) bool {
 	return c.Hosts.Find(func(h *Host) bool { return h.Role == role }) != nil
+}
+
+// ContainsMKE true if there is an MKE config block.
+func (c *ClusterSpec) ContainsMKE() bool {
+	return c.MKE != nil
 }
 
 // ContainsMSR checks if the cluster spec contains any version of MSR.

@@ -14,7 +14,7 @@ func TestValidateFactsMKEVersionJumpFail(t *testing.T) {
 	phase := ValidateFacts{}
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
+			MKE: &api.MKEConfig{
 				Metadata: &api.MKEMetadata{
 					Installed:        true,
 					InstalledVersion: "3.1.1",
@@ -30,7 +30,7 @@ func TestValidateFactsMKEVersionJumpDowngradeFail(t *testing.T) {
 	phase := ValidateFacts{}
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
+			MKE: &api.MKEConfig{
 				Metadata: &api.MKEMetadata{
 					Installed:        true,
 					InstalledVersion: "3.3.3-tp9",
@@ -46,7 +46,7 @@ func TestValidateFactsMKEVersionJumpSuccess(t *testing.T) {
 	phase := ValidateFacts{}
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
+			MKE: &api.MKEConfig{
 				Metadata: &api.MKEMetadata{
 					Installed:        true,
 					InstalledVersion: "3.1.1",
@@ -124,7 +124,7 @@ func TestValidateFactsValidateDataPlane(t *testing.T) {
 	phase := ValidateFacts{}
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
+			MKE: &api.MKEConfig{
 				InstallFlags: []string{
 					"--foo",
 					"--calico-vxlan=true",
@@ -170,7 +170,7 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
-			MKE: api.MKEConfig{
+			MKE: &api.MKEConfig{
 				Metadata: &api.MKEMetadata{},
 				InstallFlags: common.Flags{
 					"--foo",
@@ -203,7 +203,7 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
-			MKE: api.MKEConfig{
+			MKE: &api.MKEConfig{
 				Metadata: &api.MKEMetadata{},
 				InstallFlags: common.Flags{
 					"--foo",

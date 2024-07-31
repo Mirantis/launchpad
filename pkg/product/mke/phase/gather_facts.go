@@ -53,6 +53,11 @@ func (p *GatherFacts) Run() error {
 
 	// If engine is installed, we can collect some MKE & Swarm related info too
 	if swarmLeader.Metadata.MCRVersion != "" {
+		p.Config.Spec.MCR.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
+	}
+
+	// If engine is installed, we can collect some MKE & Swarm related info too
+	if p.Config.Spec.ContainsMKE() && swarmLeader.Metadata.MCRVersion != "" {
 		err := mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata)
 		if err != nil {
 			return fmt.Errorf("%s: failed to collect existing MKE details: %w", swarmLeader, err)
@@ -62,7 +67,6 @@ func (p *GatherFacts) Run() error {
 		} else {
 			log.Infof("%s: MKE is not installed", swarmLeader)
 		}
-		p.Config.Spec.MKE.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
 	}
 
 	if p.Config.Spec.MSR2 != nil {

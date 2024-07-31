@@ -37,9 +37,11 @@ func (p *LabelNodes) Run() error {
 
 func (p *LabelNodes) labelCurrentNodes(config *api.ClusterConfig, swarmLeader *api.Host) error {
 	var sans []string
-	for _, flag := range p.Config.Spec.MKE.InstallFlags {
-		if strings.HasPrefix(flag, "--san") {
-			sans = append(sans, common.FlagValue(flag))
+	if p.Config.Spec.MKE != nil {
+		for _, flag := range p.Config.Spec.MKE.InstallFlags {
+			if strings.HasPrefix(flag, "--san") {
+				sans = append(sans, common.FlagValue(flag))
+			}
 		}
 	}
 	sanList := strings.Join(sans, ",")

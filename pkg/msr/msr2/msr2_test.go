@@ -53,7 +53,7 @@ func TestPluckSharedInstallFlags(t *testing.T) {
 func TestBuildMKEFlags(t *testing.T) {
 	config := &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
+			MKE: &api.MKEConfig{
 				AdminUsername: "admin",
 				AdminPassword: "password1234",
 				InstallFlags: []string{
