@@ -60,7 +60,7 @@ func TestBuildMKEFlags(t *testing.T) {
 					"--san ucp.acme.com",
 				},
 			},
-			MSR: &api.MSRConfig{},
+			MSR2: &api.MSR2Config{},
 		},
 	}
 
@@ -89,19 +89,17 @@ func TestSequentialReplicaIDs(t *testing.T) {
 	config := &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
-				{Role: "msr"},
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{MSR2: api.MSR2Metadata{
+				{Role: "msr2"},
+				{Role: "msr2", MSR2Metadata: &api.MSR2Metadata{
 					ReplicaID: "00000000001f",
-				}}},
-				{Role: "msr"},
+				}},
+				{Role: "msr2"},
 			},
-			MSR: &api.MSRConfig{
-				V2: api.MSR2Config{ReplicaIDs: "sequential"},
-			},
+			MSR2: &api.MSR2Config{ReplicaIDs: "sequential"},
 		},
 	}
 	require.NoError(t, AssignSequentialReplicaIDs(config))
-	require.Equal(t, "000000000020", config.Spec.Hosts[0].MSRMetadata.MSR2.ReplicaID)
-	require.Equal(t, "00000000001f", config.Spec.Hosts[1].MSRMetadata.MSR2.ReplicaID)
-	require.Equal(t, "000000000021", config.Spec.Hosts[2].MSRMetadata.MSR2.ReplicaID)
+	require.Equal(t, "000000000020", config.Spec.Hosts[0].MSR2Metadata.ReplicaID)
+	require.Equal(t, "00000000001f", config.Spec.Hosts[1].MSR2Metadata.ReplicaID)
+	require.Equal(t, "000000000021", config.Spec.Hosts[2].MSR2Metadata.ReplicaID)
 }

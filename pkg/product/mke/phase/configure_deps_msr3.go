@@ -40,7 +40,7 @@ func (p *ConfigureDepsMSR3) Prepare(config interface{}) error {
 		return fmt.Errorf("failed to get kube and helm clients: %w", err)
 	}
 
-	for _, releaseDetails := range p.Config.Spec.MSR.V3.Dependencies.List() {
+	for _, releaseDetails := range p.Config.Spec.MSR3.Dependencies.List() {
 		vers, err := version.NewSemver(releaseDetails.Version)
 		if err != nil {
 			// We should never get here, we should be parsing the version prior

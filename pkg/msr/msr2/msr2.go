@@ -14,13 +14,13 @@ import (
 )
 
 // CollectFacts gathers the current status of the installed MSR setup.
-func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
+func CollectFacts(h *api.Host) (*api.MSR2Metadata, error) {
 	rethinkdbContainerID, err := h.ExecOutput(h.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MSR container ID: %w", err)
 	}
 	if rethinkdbContainerID == "" {
-		return &api.MSRMetadata{Installed: false}, nil
+		return &api.MSR2Metadata{Installed: false}, nil
 	}
 
 	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
@@ -55,13 +55,11 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
 	}
 
-	msrMeta := &api.MSRMetadata{
-		Installed:        true,
-		InstalledVersion: version,
-		MSR2: api.MSR2Metadata{
-			InstalledBootstrapImage: bootstrapimage,
-			ReplicaID:               replicaID,
-		},
+	msrMeta := &api.MSR2Metadata{
+		Installed:               true,
+		InstalledVersion:        version,
+		InstalledBootstrapImage: bootstrapimage,
+		ReplicaID:               replicaID,
 	}
 
 	return msrMeta, nil
@@ -115,8 +113,8 @@ func FormatReplicaID(num uint64) string {
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR.
 func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
-	mkeUser := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-username")
-	mkePass := config.Spec.MSR.V2.InstallFlags.GetValue("--ucp-password")
+	mkeUser := config.Spec.MSR2.InstallFlags.GetValue("--ucp-username")
+	mkePass := config.Spec.MSR2.InstallFlags.GetValue("--ucp-password")
 
 	if mkeUser == "" {
 		mkeUser = config.Spec.MKE.AdminUsername
@@ -149,7 +147,7 @@ func mkeURLHost(config *api.ClusterConfig) string {
 // installer if it fails.
 func Destroy(h *api.Host, config *api.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
-	cmd := fmt.Sprintf("run -it --rm mirantis/dtr:%s destroy --ucp-insecure-tls --ucp-url %s --ucp-username %s --ucp-password %s --replica-id %s", h.MSRMetadata.InstalledVersion, mkeFlags.GetValue("--ucp-url"), mkeFlags.GetValue("--ucp-username"), mkeFlags.GetValue("--ucp-password"), h.MSRMetadata.MSR2.ReplicaID)
+	cmd := fmt.Sprintf("run -it --rm mirantis/dtr:%s destroy --ucp-insecure-tls --ucp-url %s --ucp-username %s --ucp-password %s --replica-id %s", h.MSR2Metadata.InstalledVersion, mkeFlags.GetValue("--ucp-url"), mkeFlags.GetValue("--ucp-username"), mkeFlags.GetValue("--ucp-password"), h.MSR2Metadata.ReplicaID)
 	if err := h.Exec(h.Configurer.DockerCommandf(cmd)); err != nil {
 		return fmt.Errorf("failed to run MSR destroy: %w", err)
 	}
@@ -203,18 +201,18 @@ var errMaxReplicaID = fmt.Errorf("max sequential msr replica id exceeded")
 
 // AssignSequentialReplicaIDs goes through all the MSR hosts, finds the highest replica id and assigns sequential ones starting from that to all the hosts without replica ids.
 func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
-	msrHosts := c.Spec.MSRs()
+	msrHosts := c.Spec.MSR2s()
 
 	// find the largest replica id
 	var maxReplicaID uint64
 	err := msrHosts.Each(func(h *api.Host) error {
-		if h.MSRMetadata == nil {
-			h.MSRMetadata = &api.MSRMetadata{}
+		if h.MSR2Metadata == nil {
+			h.MSR2Metadata = &api.MSR2Metadata{}
 		}
-		if h.MSRMetadata.MSR2.ReplicaID != "" {
-			ri, err := strconv.ParseUint(h.MSRMetadata.MSR2.ReplicaID, 16, 48)
+		if h.MSR2Metadata.ReplicaID != "" {
+			ri, err := strconv.ParseUint(h.MSR2Metadata.ReplicaID, 16, 48)
 			if err != nil {
-				return fmt.Errorf("%s: invalid MSR replicaID '%s': %w", h, h.MSRMetadata.MSR2.ReplicaID, err)
+				return fmt.Errorf("%s: invalid MSR replicaID '%s': %w", h, h.MSR2Metadata.ReplicaID, err)
 			}
 			if maxReplicaID < ri {
 				maxReplicaID = ri
@@ -230,9 +228,9 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 	}
 
 	err = msrHosts.Each(func(h *api.Host) error {
-		if h.MSRMetadata.MSR2.ReplicaID == "" {
+		if h.MSR2Metadata.ReplicaID == "" {
 			maxReplicaID++
-			h.MSRMetadata.MSR2.ReplicaID = FormatReplicaID(maxReplicaID)
+			h.MSR2Metadata.ReplicaID = FormatReplicaID(maxReplicaID)
 		}
 		return nil
 	})

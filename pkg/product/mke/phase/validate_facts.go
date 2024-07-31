@@ -55,6 +55,14 @@ func (p *ValidateFacts) Run() error {
 		}
 	}
 
+	if err := p.validateMSRCannotDowngrade(); err != nil {
+		if p.Force {
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
+		} else {
+			return err
+		}
+	}
+
 	if err := p.validateDataPlane(); err != nil {
 		if p.Force {
 			log.Warnf("%s: continuing anyway because --force given", err.Error())
@@ -89,29 +97,10 @@ func (e cannotDowngradeProductError) Error() string {
 	return fmt.Sprintf("can't downgrade %s %s to %s", e.product, e.installedVersion.String(), e.targetVersion.String())
 }
 
-// validateMSRVersionJump validates MKE upgrade path.
+// validateMKEVersionJump validates MKE upgrade path.
 func (p *ValidateFacts) validateMKEVersionJump() error {
 	if p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
-		installedMKE, err := version.NewVersion(p.Config.Spec.MKE.Metadata.InstalledVersion)
-		if err != nil {
-			return fmt.Errorf("can't parse installed MKE version: %w", err)
-		}
-		targetMKE, err := version.NewVersion(p.Config.Spec.MKE.Version)
-		if err != nil {
-			return fmt.Errorf("can't parse target MKE version: %w", err)
-		}
-
-		if mccversion.GreaterThan(installedMKE, targetMKE) {
-			return cannotDowngradeProductError{product: "MKE", installedVersion: installedMKE, targetVersion: targetMKE}
-		}
-
-		installedSegments := installedMKE.Segments()
-		targetSegments := targetMKE.Segments()
-
-		// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
-		if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-			return fmt.Errorf("%w: can't upgrade MKE directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installedMKE, targetMKE, installedSegments[0], installedSegments[1]+1)
-		}
+		return validateVersionJump("MKE", p.Config.Spec.MKE.Metadata.InstalledVersion, p.Config.Spec.MKE.Version)
 	}
 
 	return nil
@@ -119,27 +108,96 @@ func (p *ValidateFacts) validateMKEVersionJump() error {
 
 // validateMSRVersionJump validates MSR upgrade path.
 func (p *ValidateFacts) validateMSRVersionJump() error {
-	msrLeader := p.Config.Spec.MSRLeader()
-	if p.Config.Spec.MSR != nil && msrLeader.MSRMetadata != nil && msrLeader.MSRMetadata.Installed && msrLeader.MSRMetadata.InstalledVersion != "" {
-		installedMSR, err := version.NewVersion(msrLeader.MSRMetadata.InstalledVersion)
-		if err != nil {
-			return fmt.Errorf("can't parse installed MSR version: %w", err)
-		}
-		targetMSR, err := version.NewVersion(p.Config.Spec.MSR.Version)
-		if err != nil {
-			return fmt.Errorf("can't parse target MSR version: %w", err)
-		}
+	if p.Config.Spec.MSR2 != nil {
+		msr2Leader := p.Config.Spec.MSR2Leader()
 
-		if mccversion.GreaterThan(installedMSR, targetMSR) {
-			return cannotDowngradeProductError{product: "MSR", installedVersion: installedMSR, targetVersion: targetMSR}
+		if msr2Leader.MSR2Metadata != nil && msr2Leader.MSR2Metadata.Installed && msr2Leader.MSR2Metadata.InstalledVersion != "" {
+			if err := validateVersionJump("MSR2", msr2Leader.MSR2Metadata.InstalledVersion, p.Config.Spec.MSR2.Version); err != nil {
+				return fmt.Errorf("MSR2 version validation failed: %w", err)
+			}
 		}
+	}
 
-		installedSegments := installedMSR.Segments()
-		targetSegments := targetMSR.Segments()
+	if p.Config.Spec.MSR3 != nil {
+		if p.Config.Spec.MSR3.Metadata.Installed && p.Config.Spec.MSR3.Metadata.InstalledVersion != "" {
+			if err := validateVersionJump("MSR3", p.Config.Spec.MSR3.Metadata.InstalledVersion, p.Config.Spec.MSR3.Version); err != nil {
+				return fmt.Errorf("MSR3 version validation failed: %w", err)
+			}
+		}
+	}
 
-		// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
-		if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-			return fmt.Errorf("%w: can't upgrade MSR directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installedMSR, targetMSR, installedSegments[0], installedSegments[1]+1)
+	return nil
+}
+
+// validateVersionJump validates a version jump for a given product.
+func validateVersionJump(product, installedVersion, targetVersion string) error {
+	installed, err := version.NewVersion(installedVersion)
+	if err != nil {
+		return fmt.Errorf("can't parse installed version: %w", err)
+	}
+	target, err := version.NewVersion(targetVersion)
+	if err != nil {
+		return fmt.Errorf("can't parse target version: %w", err)
+	}
+
+	if mccversion.GreaterThan(installed, target) {
+		return cannotDowngradeProductError{product: product, installedVersion: installed, targetVersion: target}
+	}
+
+	installedSegments := installed.Segments()
+	targetSegments := target.Segments()
+
+	// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
+	if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
+		return fmt.Errorf("%w: can't upgrade %s directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, product, installed, target, installedSegments[0], installedSegments[1]+1)
+	}
+
+	return nil
+}
+
+// validateVersionDowngrade validates a version downgrade of a given product.
+func validateVersionDowngrade(product, installedVersion, targetVersion string) error {
+	installed, err := version.NewVersion(installedVersion)
+	if err != nil {
+		return fmt.Errorf("can't parse installed MSR version: %w", err)
+	}
+	target, err := version.NewVersion(targetVersion)
+	if err != nil {
+		return fmt.Errorf("can't parse target MSR version: %w", err)
+	}
+
+	if mccversion.GreaterThan(installed, target) {
+		return cannotDowngradeProductError{product: product, installedVersion: installed, targetVersion: target}
+	}
+
+	installedSegments := installed.Segments()
+	targetSegments := target.Segments()
+
+	// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
+	if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
+		return fmt.Errorf("%w: can't upgrade %s directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, product, installed, target, installedSegments[0], installedSegments[1]+1)
+	}
+
+	return nil
+}
+
+// validateMSRCannotDowngrade validates that MSR can't be downgraded.
+func (p *ValidateFacts) validateMSRCannotDowngrade() error {
+	if p.Config.Spec.MSR2 != nil {
+		msr2Leader := p.Config.Spec.MSR2Leader()
+
+		if msr2Leader.MSR2Metadata != nil && msr2Leader.MSR2Metadata.Installed && msr2Leader.MSR2Metadata.InstalledVersion != "" {
+			if err := validateVersionDowngrade("MSR2", msr2Leader.MSR2Metadata.InstalledVersion, p.Config.Spec.MSR2.Version); err != nil {
+				return fmt.Errorf("MSR2 version validation failed: %w", err)
+			}
+		}
+	}
+
+	if p.Config.Spec.MSR3 != nil {
+		if p.Config.Spec.MSR3.Metadata.Installed && p.Config.Spec.MSR3.Metadata.InstalledVersion != "" {
+			if err := validateVersionDowngrade("MSR3", p.Config.Spec.MSR3.Metadata.InstalledVersion, p.Config.Spec.MSR3.Version); err != nil {
+				return fmt.Errorf("MSR3 version validation failed: %w", err)
+			}
 		}
 	}
 

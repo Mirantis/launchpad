@@ -21,10 +21,9 @@ func (p *MKE) Reset() error {
 	)
 
 	// begin MSR phases
-	switch p.ClusterConfig.Spec.MSR.MajorVersion() {
-	case 2:
+	if p.ClusterConfig.Spec.ContainsMSR2() {
 		phaseManager.AddPhase(&mke.UninstallMSR{})
-	case 3:
+	} else if p.ClusterConfig.Spec.ContainsMSR3() {
 		phaseManager.AddPhase(&mke.UninstallMSR3{})
 	}
 

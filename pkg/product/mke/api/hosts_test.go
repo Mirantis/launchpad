@@ -45,11 +45,11 @@ func TestFilter(t *testing.T) {
 	})
 
 	require.Len(t, managers, 2)
-	require.Equal(t, managers[0].Role, "manager")
-	require.Equal(t, managers[1].Role, "manager")
+	require.Equal(t, managers[0].Role, RoleType("manager"))
+	require.Equal(t, managers[1].Role, RoleType("manager"))
 
 	require.Len(t, workers, 1)
-	require.Equal(t, workers[0].Role, "worker")
+	require.Equal(t, workers[0].Role, RoleType("worker"))
 }
 
 func TestFind(t *testing.T) {

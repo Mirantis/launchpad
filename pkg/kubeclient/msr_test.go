@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
@@ -97,33 +96,6 @@ func TestApplyMSRCR(t *testing.T) {
 
 		assert.Equal(t, "areallicense", actualLicense)
 	})
-}
-
-func TestPrepareNodeForMSR(t *testing.T) {
-	kc := NewTestClient(t)
-
-	kc.client.CoreV1().Nodes().Create(context.Background(), &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node1",
-		},
-		Spec: corev1.NodeSpec{
-			Taints: []corev1.Taint{
-				{
-					Key:   constant.KubernetesOrchestratorTaint,
-					Value: "NoExecute",
-				},
-			},
-		},
-	}, metav1.CreateOptions{})
-
-	err := kc.PrepareNodeForMSR(context.Background(), "node1")
-	assert.NoError(t, err)
-
-	actualNode, err := kc.client.CoreV1().Nodes().Get(context.Background(), "node1", metav1.GetOptions{})
-	require.NoError(t, err)
-
-	assert.Equal(t, "true", actualNode.Labels[constant.MSRNodeSelector])
-	assert.Empty(t, actualNode.Spec.Taints)
 }
 
 func TestMSRURL(t *testing.T) {
@@ -258,9 +230,6 @@ func TestMSRURL(t *testing.T) {
 			kc.client.CoreV1().Nodes().Create(context.Background(), &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "msr-node1",
-					Labels: map[string]string{
-						constant.MSRNodeSelector: "true",
-					},
 				},
 				Status: corev1.NodeStatus{
 					Addresses: []corev1.NodeAddress{

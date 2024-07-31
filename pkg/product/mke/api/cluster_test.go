@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/Mirantis/mcc/pkg/config/migration"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -20,6 +22,8 @@ import (
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v14"
+	// needed to load the migrators.
+	_ "github.com/Mirantis/mcc/pkg/config/migration/v15"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
 	// needed to load the migrators.
@@ -36,7 +40,7 @@ func TestHostRequireManagerValidationPass(t *testing.T) {
 	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	data := `
-apiVersion: "launchpad.mirantis.com/mke/v1.5"
+apiVersion: "launchpad.mirantis.com/mke/v1.6"
 kind: mke
 spec:
   hosts:
@@ -235,6 +239,8 @@ spec:
 }
 
 func TestMigrateFromV1Beta1(t *testing.T) {
+	logrus.SetLevel(logrus.DebugLevel)
+
 	data := `
 apiVersion: launchpad.mirantis.com/v1beta1
 kind: mke
@@ -253,7 +259,7 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
 	require.Equal(t, c.Spec.MCR.InstallURLLinux, "http://example.com/")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -278,7 +284,7 @@ spec:
 `
 	c := loadAndMigrateYaml(t, data)
 	require.NoError(t, c.Validate())
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
@@ -300,7 +306,7 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
 	require.Equal(t, constant.MCRInstallURLLinux, c.Spec.MCR.InstallURLLinux)
 	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
@@ -386,7 +392,7 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke
 spec:
 	mke:
@@ -408,10 +414,10 @@ spec:
 	require.Equal(t, c.Spec.Hosts[0].WinRM.Insecure, false)
 }
 
-func TestValidationWithMSRRole(t *testing.T) {
+func TestValidationWithMSR2Role(t *testing.T) {
 	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
-	t.Run("the role is not ucp, worker or msr", func(t *testing.T) {
+	t.Run("the role is not ucp, worker or msr2", func(t *testing.T) {
 		data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
@@ -433,20 +439,20 @@ spec:
 		require.Error(t, c.Validate())
 	})
 
-	t.Run("the role is msr", func(t *testing.T) {
+	t.Run("the role is msr2", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr2:
 	  version: 2.8.5
   hosts:
     - ssh:
         address: "10.0.0.1"
 				keyPath: ` + kf.Name() + `
-      role: msr
+      role: msr2
     - ssh:
         address: "10.0.0.2"
 				keyPath: ` + kf.Name() + `
@@ -467,12 +473,12 @@ func TestValidationWithMSR3(t *testing.T) {
 		// section.  The resulting data is valid
 		// yaml.
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr3:
 	  version: 3.1.4
 	  storageURL: "https://example.com"
 	  storageClassType: "nfs"
@@ -484,19 +490,19 @@ spec:
   hosts:
     - ssh:
         address: "10.0.0.1"
-      role: msr
+      role: msr3
     - ssh:
         address: "10.0.0.2"
       role: manager
 `
 		c := loadYaml(t, data)
 
-		require.Equal(t, c.Spec.MSR.V3.StorageURL, "https://example.com")
-		require.Equal(t, c.Spec.MSR.V3.StorageClassType, "nfs")
-		require.Equal(t, c.Spec.MSR.V3.CRD.GetAPIVersion(), "msr.mirantis.com/v1")
-		require.Equal(t, c.Spec.MSR.V3.CRD.GetKind(), "MSR")
+		require.Equal(t, c.Spec.MSR3.StorageURL, "https://example.com")
+		require.Equal(t, c.Spec.MSR3.StorageClassType, "nfs")
+		require.Equal(t, c.Spec.MSR3.CRD.GetAPIVersion(), "msr.mirantis.com/v1")
+		require.Equal(t, c.Spec.MSR3.CRD.GetKind(), "MSR")
 
-		actual, found, err := unstructured.NestedString(c.Spec.MSR.V3.CRD.Object, "spec", "logLevel")
+		actual, found, err := unstructured.NestedString(c.Spec.MSR3.CRD.Object, "spec", "logLevel")
 		require.True(t, found)
 		require.NoError(t, err)
 		require.Equal(t, actual, "debug")
@@ -511,13 +517,13 @@ kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr3:
 	  version: 3.1.4
 	  storageClassType: "nfs"
   hosts:
     - ssh:
         address: "10.0.0.1"
-      role: msr
+      role: msr3
     - ssh:
         address: "10.0.0.2"
       role: manager
@@ -535,14 +541,14 @@ kind: mke+msr
 spec:
 	mke:
 	  version: 3.3.7
-	msr:
+	msr3:
 	  version: 3.1.4
 	  storageURL: "https://example.com"
 	  storageClassType: "not-supported"
   hosts:
     - ssh:
         address: "10.0.0.1"
-      role: msr
+      role: msr3
     - ssh:
         address: "10.0.0.2"
       role: manager

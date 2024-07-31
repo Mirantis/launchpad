@@ -25,20 +25,19 @@ func (p *Info) Run() error {
 		log.Infof("MKE cluster admin UI: %s", mkeurl)
 	}
 
-	if p.Config.Spec.MSR != nil {
-		switch p.Config.Spec.MSR.MajorVersion() {
-		case 2:
-			msrURL, err := p.Config.Spec.MSR2URL()
-			if err == nil {
-				log.Infof("MSR cluster admin UI: %s", msrURL.String())
-			}
-		case 3:
-			msrURL, err := msr3.GetMSRURL(p.Config)
-			if err != nil {
-				log.Infof("failed to get MSR URL: %s", err)
-			} else {
-				log.Infof("MSR cluster admin UI: %s", msrURL)
-			}
+	if p.Config.Spec.MSR2 != nil {
+		msrURL, err := p.Config.Spec.MSR2URL()
+		if err == nil {
+			log.Infof("MSR cluster admin UI: %s", msrURL.String())
+		}
+	}
+
+	if p.Config.Spec.MSR3 != nil {
+		msrURL, err := msr3.GetMSRURL(p.Config)
+		if err != nil {
+			log.Infof("failed to get MSR URL: %s", err)
+		} else {
+			log.Infof("MSR cluster admin UI: %s", msrURL)
 		}
 	}
 

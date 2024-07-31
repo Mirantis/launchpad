@@ -23,14 +23,14 @@ var (
 )
 
 // CollectFacts gathers the current status of the installed MSR3 setup.
-func CollectFacts(ctx context.Context, msrName string, kubeClient *kubeclient.KubeClient, resourceClient dynamic.ResourceInterface, helmClient *helm.Helm, options ...kubeclient.WaitOption) (*api.MSRMetadata, error) {
+func CollectFacts(ctx context.Context, msrName string, kubeClient *kubeclient.KubeClient, resourceClient dynamic.ResourceInterface, helmClient *helm.Helm, options ...kubeclient.WaitOption) (api.MSR3Metadata, error) {
 	obj, err := kubeClient.GetMSRCR(ctx, msrName, resourceClient)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Infof("MSR CR: %s not found: %s", msrName, err)
-			return &api.MSRMetadata{Installed: false}, nil
+			return api.MSR3Metadata{Installed: false}, nil
 		}
-		return nil, fmt.Errorf("failed to get MSR CR: %w", err)
+		return api.MSR3Metadata{}, fmt.Errorf("failed to get MSR CR: %w", err)
 	}
 
 	// Check to see if the MSR CR exists and is ready for up to 30 seconds
@@ -41,24 +41,24 @@ func CollectFacts(ctx context.Context, msrName string, kubeClient *kubeclient.Ku
 		// reliably determine whether it is installed or not, so mark it as
 		// not installed.
 		log.Infof("Failed to determine if MSR CR: %s is ready: %s", msrName, err)
-		return &api.MSRMetadata{Installed: false}, nil
+		return api.MSR3Metadata{Installed: false}, nil
 	}
 
 	version, found, err := unstructured.NestedString(obj.Object, "spec", "image", "tag")
 	if !found || version == "" {
-		return nil, errSpecImageTagNotPopulated
+		return api.MSR3Metadata{}, errSpecImageTagNotPopulated
 	}
 	if err != nil {
-		return nil, fmt.Errorf("unable to determine version from found MSR: %w", err)
+		return api.MSR3Metadata{}, fmt.Errorf("unable to determine version from found MSR: %w", err)
 	}
 
 	releases, err := helmClient.List(constant.InstalledDependenciesFilter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list helm releases: %w", err)
+		return api.MSR3Metadata{}, fmt.Errorf("failed to list helm releases: %w", err)
 	}
 
 	if len(releases) == 0 {
-		return nil, errNoHelmDependenciesInstalled
+		return api.MSR3Metadata{}, errNoHelmDependenciesInstalled
 	}
 
 	installedDeps := make(map[string]helm.ReleaseDetails)
@@ -74,12 +74,10 @@ func CollectFacts(ctx context.Context, msrName string, kubeClient *kubeclient.Ku
 		}
 	}
 
-	return &api.MSRMetadata{
-		Installed:        true,
-		InstalledVersion: version,
-		MSR3: api.MSR3Metadata{
-			InstalledDependencies: installedDeps,
-		},
+	return api.MSR3Metadata{
+		Installed:             true,
+		InstalledVersion:      version,
+		InstalledDependencies: installedDeps,
 	}, nil
 }
 
@@ -103,8 +101,8 @@ func ApplyCRD(ctx context.Context, msr *unstructured.Unstructured, kc *kubeclien
 
 // GetMSRURL returns the URL for the MSR admin UI.
 func GetMSRURL(config *api.ClusterConfig) (string, error) {
-	if config.Spec.MSR.V3.LoadBalancerURL != "" {
-		return "https://" + config.Spec.MSR.V3.LoadBalancerURL + "/", nil
+	if config.Spec.MSR3.LoadBalancerURL != "" {
+		return "https://" + config.Spec.MSR3.LoadBalancerURL + "/", nil
 	}
 
 	kubeClient, _, err := mke.KubeAndHelmFromConfig(config)
@@ -117,7 +115,7 @@ func GetMSRURL(config *api.ClusterConfig) (string, error) {
 		return "", fmt.Errorf("failed to get resource client for MSR CR: %w", err)
 	}
 
-	msrName := config.Spec.MSR.V3.CRD.GetName()
+	msrName := config.Spec.MSR3.CRD.GetName()
 
 	url, err := kubeClient.MSRURL(context.Background(), msrName, rc)
 	if err != nil {

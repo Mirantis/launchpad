@@ -63,34 +63,40 @@ func TestValidateFactsMSRVersionJumpFail(t *testing.T) {
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
-					Installed:        true,
-					InstalledVersion: "2.6.4",
-				}},
+				{
+					Role: api.RoleMSR2,
+					MSR2Metadata: &api.MSR2Metadata{
+						Installed:        true,
+						InstalledVersion: "2.6.4",
+					},
+				},
 			},
-			MSR: &api.MSRConfig{
+			MSR2: &api.MSR2Config{
 				Version: "2.8.4",
 			},
 		},
 	}
-	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't upgrade MSR directly from 2.6.4 to 2.8.4 - need to upgrade to 2.7 first")
+	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't upgrade MSR2 directly from 2.6.4 to 2.8.4 - need to upgrade to 2.7 first")
 }
 func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 	phase := ValidateFacts{}
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
-					Installed:        true,
-					InstalledVersion: "2.8.4",
-				}},
+				{
+					Role: api.RoleMSR2,
+					MSR2Metadata: &api.MSR2Metadata{
+						Installed:        true,
+						InstalledVersion: "2.8.4",
+					},
+				},
 			},
-			MSR: &api.MSRConfig{
+			MSR2: &api.MSR2Config{
 				Version: "2.7.6",
 			},
 		},
 	}
-	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't downgrade MSR 2.8.4 to 2.7.6")
+	require.ErrorContains(t, phase.validateMSRVersionJump(), "can't downgrade MSR2 2.8.4 to 2.7.6")
 }
 
 func TestValidateFactsMSRVersionJumpSuccess(t *testing.T) {
@@ -98,12 +104,15 @@ func TestValidateFactsMSRVersionJumpSuccess(t *testing.T) {
 	phase.Config = &api.ClusterConfig{
 		Spec: &api.ClusterSpec{
 			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
-					Installed:        true,
-					InstalledVersion: "2.6.8",
-				}},
+				{
+					Role: api.RoleMSR2,
+					MSR2Metadata: &api.MSR2Metadata{
+						Installed:        true,
+						InstalledVersion: "2.6.8",
+					},
+				},
 			},
-			MSR: &api.MSRConfig{
+			MSR2: &api.MSR2Config{
 				Version: "2.7.1",
 			},
 		},

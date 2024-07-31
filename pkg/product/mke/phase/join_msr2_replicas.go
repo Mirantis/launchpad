@@ -13,19 +13,19 @@ import (
 )
 
 // JoinMSRReplicas phase implementation.
-type JoinMSRReplicas struct {
+type JoinMSR2Replicas struct {
 	phase.Analytics
 	phase.HostSelectPhase
 	phase.CleanupDisabling
 }
 
 // HostFilterFunc returns true for hosts that don't have MSR configured.
-func (p *JoinMSRReplicas) HostFilterFunc(h *api.Host) bool {
-	return h.MSRMetadata == nil || !h.MSRMetadata.Installed
+func (p *JoinMSR2Replicas) HostFilterFunc(h *api.Host) bool {
+	return h.MSR2Metadata == nil || !h.MSR2Metadata.Installed
 }
 
 // Prepare collects the hosts.
-func (p *JoinMSRReplicas) Prepare(config interface{}) error {
+func (p *JoinMSR2Replicas) Prepare(config interface{}) error {
 	cfg, ok := config.(*api.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
@@ -35,7 +35,7 @@ func (p *JoinMSRReplicas) Prepare(config interface{}) error {
 		return nil
 	}
 	log.Debugf("collecting hosts for phase %s", p.Title())
-	msrHosts := p.Config.Spec.MSRs()
+	msrHosts := p.Config.Spec.MSR2s()
 	hosts := msrHosts.Filter(p.HostFilterFunc)
 	log.Debugf("found %d hosts for phase %s", len(hosts), p.Title())
 	p.Hosts = hosts
@@ -43,20 +43,20 @@ func (p *JoinMSRReplicas) Prepare(config interface{}) error {
 }
 
 // Title for the phase.
-func (p *JoinMSRReplicas) Title() string {
-	return "Join MSR Replicas"
+func (p *JoinMSR2Replicas) Title() string {
+	return "Join MSR2 Replicas"
 }
 
 // Run joins all the workers nodes to swarm if not already part of it.
-func (p *JoinMSRReplicas) Run() error {
-	msrLeader := p.Config.Spec.MSRLeader()
+func (p *JoinMSR2Replicas) Run() error {
+	msrLeader := p.Config.Spec.MSR2Leader()
 	mkeFlags := msr2.BuildMKEFlags(p.Config)
 
 	for _, h := range p.Hosts {
 		// Iterate through the msrs and determine which have MSR installed
 		// on them, if one is found which is not yet in the cluster, perform
 		// a join against msrLeader
-		if h.MSRMetadata != nil && h.MSRMetadata.Installed {
+		if h.MSR2Metadata != nil && h.MSR2Metadata.Installed {
 			log.Infof("%s: already a MSR node", h)
 			continue
 		}
@@ -73,11 +73,11 @@ func (p *JoinMSRReplicas) Run() error {
 		joinFlags := common.Flags{}
 		redacts := []string{}
 		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
-		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.MSR2.ReplicaID))
+		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSR2Metadata.ReplicaID))
 		joinFlags.MergeOverwrite(mkeFlags)
 		// We can't just append the installFlags to joinFlags because they
 		// differ, so we have to selectively pluck the ones that are shared
-		for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR.V2.InstallFlags, msr2.SharedInstallJoinFlags) {
+		for _, f := range msr2.PluckSharedInstallFlags(p.Config.Spec.MSR2.InstallFlags, msr2.SharedInstallJoinFlags) {
 			joinFlags.AddOrReplace(f)
 		}
 		if p.Config.Spec.MKE.CACertData != "" {
@@ -85,14 +85,14 @@ func (p *JoinMSRReplicas) Run() error {
 			joinFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
 			redacts = append(redacts, escaped)
 		}
-		if h.MSRMetadata != nil && h.MSRMetadata.MSR2.ReplicaID != "" {
-			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSRMetadata.MSR2.ReplicaID)
-			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.MSR2.ReplicaID))
+		if h.MSR2Metadata != nil && h.MSR2Metadata.ReplicaID != "" {
+			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSR2Metadata.ReplicaID)
+			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSR2Metadata.ReplicaID))
 		} else {
 			log.Infof("%s: joining MSR replica to cluster", h)
 		}
 
-		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.MSR2.InstalledBootstrapImage, joinFlags.Join())
+		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSR2Metadata.InstalledBootstrapImage, joinFlags.Join())
 		err := msrLeader.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(redacts...))
 		if err != nil {
 			return fmt.Errorf("%s: failed to run MSR join: %w", h, err)

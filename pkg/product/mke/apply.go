@@ -41,28 +41,29 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		&mke.UpgradeMKE{},
 		&mke.JoinManagers{},
 		&mke.JoinWorkers{},
+		&mke.ValidateMKEHealth{},
 	)
 
-	// Determine which MSR phases to run based on the MSR version.
-	switch p.ClusterConfig.Spec.MSR.MajorVersion() {
-	case 2:
+	// Determine which MSR phases to run based on the MSR spec provided in the
+	// config.
+	if p.ClusterConfig.Spec.ContainsMSR2() {
 		phaseManager.AddPhases(
-			&mke.PullMSRImages{},
-			&mke.ValidateMKEHealth{},
-			&mke.InstallMSR{},
-			&mke.UpgradeMSR{},
-			&mke.JoinMSRReplicas{},
+			&mke.PullMSR2Images{},
+			&mke.InstallMSR2{},
+			&mke.UpgradeMSR2{},
+			&mke.JoinMSR2Replicas{},
 		)
-	case 3:
+	}
+
+	if p.ClusterConfig.Spec.ContainsMSR3() {
 		phaseManager.AddPhases(
-			&mke.ValidateMKEHealth{},
 			&mke.ConfigureDepsMSR3{},
 			&mke.ConfigureStorageProvisioner{},
 			&mke.InstallOrUpgradeMSR3{},
 		)
 	}
 
-	// Add the remaining phases that run regardless of MSR version.
+	// Add the remaining phases that run after the MKE and MSR phases.
 	phaseManager.AddPhases(
 		&mke.LabelNodes{},
 		&mke.RemoveNodes{},
@@ -90,7 +91,7 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		"api_version":     p.ClusterConfig.APIVersion,
 		"hosts":           len(p.ClusterConfig.Spec.Hosts),
 		"managers":        len(p.ClusterConfig.Spec.Managers()),
-		"dtrs":            len(p.ClusterConfig.Spec.MSRs()),
+		"dtrs":            len(p.ClusterConfig.Spec.MSR2s()),
 		"linux_workers":   linuxWorkersCount,
 		"windows_workers": windowsWorkersCount,
 		"engine_version":  p.ClusterConfig.Spec.MCR.Version,
