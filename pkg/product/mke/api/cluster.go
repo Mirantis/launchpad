@@ -44,21 +44,32 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func (c *ClusterConfig) Validate() error {
 	validator := validator.New(validator.WithRequiredStructEnabled())
-	validator.RegisterStructValidation(roleChecks, ClusterSpec{})
+	validator.RegisterStructValidation(validateClusterSpec, ClusterSpec{})
 	if err := validator.Struct(c); err != nil {
 		return fmt.Errorf("cluster config validation failed: %w", err)
 	}
+
 	return nil
 }
 
-func roleChecks(sl validator.StructLevel) {
-	spec, ok := sl.Current().Interface().(ClusterSpec)
+func validateClusterSpec(vsl validator.StructLevel) {
+	spec, ok := vsl.Current().Interface().(ClusterSpec)
+
 	if !ok {
+		vsl.ReportError(nil, "spec", "", "no spec in cluster", "")
 		return
 	}
-	hosts := spec.Hosts
-	if hosts.Count(func(h *Host) bool { return h.Role == "manager" }) == 0 {
-		sl.ReportError(hosts, "hosts", "", "manager required", "")
+
+	if len(spec.Managers()) == 0 {
+		vsl.ReportError(spec.Hosts, "hosts", "", "at least one manager host required", "")
+	}
+
+	if spec.MSR2 != nil && len(spec.MSR2s()) == 0 {
+		vsl.ReportError(spec.Hosts, "hosts", "", "with msr2 configuration, at least one msr2 host is required", "")
+	}
+
+	if spec.MKE == nil && (spec.MSR2 != nil || spec.MSR3 != nil) {
+		vsl.ReportError(spec, "spec", "", "if msr2 or msr3 installation is requested, mke must also be included in the installation instructions", "")
 	}
 }
 
