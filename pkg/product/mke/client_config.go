@@ -11,6 +11,10 @@ import (
 
 // ClientConfig downloads MKE client bundle.
 func (p *MKE) ClientConfig() error {
+	if p.ClusterConfig.Spec.MKE == nil {
+		return fmt.Errorf("%w; Cannot download client bundle as there is no MKE", api.ErrThereIsNoMKE)
+	}
+
 	manager := p.ClusterConfig.Spec.Managers()[0]
 	newHosts := make(api.Hosts, 1)
 	newHosts[0] = manager
