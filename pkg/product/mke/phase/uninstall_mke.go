@@ -24,6 +24,12 @@ func (p *UninstallMKE) Title() string {
 	return "Uninstall MKE components"
 }
 
+// ShouldRun should return true only when there is an installation to be
+// performed.
+func (p *UninstallMKE) ShouldRun() bool {
+	return p.Config.Spec.MKE != nil && p.Config.Spec.MKE.Metadata != nil && p.Config.Spec.MKE.Metadata.Installed
+}
+
 // Run the installer container.
 func (p *UninstallMKE) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()

@@ -68,7 +68,7 @@ func TestMKEClusterSpecMKEURLWithNoMSRMetadata(t *testing.T) {
 			manager,
 			msr2,
 		},
-		MKE: &MKEConfig{},
+		MKE:  &MKEConfig{},
 		MSR2: &MSR2Config{},
 	}
 
@@ -83,7 +83,7 @@ func TestMKEClusterSpecMSR2URLWithNoMSRMetadata(t *testing.T) {
 			manager,
 			msr2,
 		},
-		MKE: &MKEConfig{},
+		MKE:  &MKEConfig{},
 		MSR2: &MSR2Config{},
 	}
 
@@ -116,7 +116,7 @@ func TestMKEClusterSpecMSR2URLWithoutExternalURL(t *testing.T) {
 				MSR2Metadata: &MSR2Metadata{Installed: true},
 			},
 		},
-		MKE: &MKEConfig{},
+		MKE:  &MKEConfig{},
 		MSR2: &MSR2Config{},
 	}
 	url, err := spec.MSR2URL()

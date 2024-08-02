@@ -27,7 +27,7 @@ func (p *MKE) Reset() error {
 		phaseManager.AddPhase(&mke.UninstallMSR3{})
 	}
 
-	if p.ClusterConfig.Spec.MKE != nil && p.ClusterConfig.Spec.MKE.Metadata.Installed {
+	if p.ClusterConfig.Spec.MKE != nil {
 		phaseManager.AddPhases(
 			&mke.UninstallMKE{},
 		)
