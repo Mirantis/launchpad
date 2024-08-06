@@ -12,7 +12,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
 	log "github.com/sirupsen/logrus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -163,8 +162,8 @@ func appendImagePullSecret(msr *unstructured.Unstructured, fields ...string) err
 
 	// pullSecretSlice is an empty slice if error or not found, so we can
 	// append to it either way.
-	pullSecretSlice = append(pullSecretSlice, corev1.LocalObjectReference{Name: constant.KubernetesDockerRegistryAuthSecretName})
-	if err := unstructured.SetNestedSlice(msr.Object, pullSecretSlice, fields...); err != nil {
+	pullSecretSlice = append(pullSecretSlice, map[string]interface{}{"name": constant.KubernetesDockerRegistryAuthSecretName})
+	if err := unstructured.SetNestedField(msr.Object, pullSecretSlice, fields...); err != nil {
 		return fmt.Errorf("failed to set MSR %s: %w", fieldsErrDetail, err)
 	}
 
