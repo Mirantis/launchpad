@@ -1,7 +1,6 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -9,7 +8,6 @@ import (
 	"github.com/Mirantis/mcc/pkg/helm"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/fileutil"
-	"github.com/Mirantis/mcc/pkg/util/maputil"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
@@ -34,8 +32,17 @@ type MSR2Config struct {
 // MSR3Config defines the configuration for both the MSR3 CR and the
 // dependencies needed to run it.
 type MSR3Config struct {
+	// Name represents the name of the MSR3 to deploy, if not lowercase it will
+	// be converted to lowercase.
+	Name string `yaml:"name,omitempty" default:"msr"`
 	// Version is the MSR3 version to install.
 	Version string `yaml:"version,omitempty"`
+	// ImageRepo is the repository to pull MSR3 images from.
+	ImageRepo string `yaml:"imageRepo,omitempty"`
+	// ReplicaCount is the initial replicaCount to configure MSR3 with, if
+	// setting a value other than 1 a podAntiAffinityPreset value of 'hard' will
+	// be used to ensure pods are not scheduled on the same node.
+	ReplicaCount int64 `yaml:"replicaCount,omitempty" default:"1"`
 	// Dependencies define strict dependencies that MSR3 needs to function.
 	Dependencies `yaml:"dependencies,omitempty"`
 	// StorageClassType allows users to have launchpad configure a StorageClass
@@ -47,12 +54,20 @@ type MSR3Config struct {
 	// LoadBalancerURL allows users to have launchpad expose MSR3 with a
 	// default configuration of LoadBalancer type.
 	LoadBalancerURL string `yaml:"loadBalancerURL,omitempty"`
-	// CRD is the MSR custom resource definition which configures the MSR CR.
-	CRD *unstructured.Unstructured `yaml:"crd,omitempty"`
 
+	// CRD is the MSR custom resource definition which configures the MSR CR, an
+	// initial simplified MSR CRD is constructed from the MSR3Config within
+	// SetDefaults and is not a user-configurable field.  Users can modify the
+	// MSR CRD using 'kubectl edit msrs.mirantis.com <name>' following
+	// deployment.
+	CRD *unstructured.Unstructured
+
+	// Metadata is used to store information about the MSR3 installation, it is
+	// populated during the GatherFacts phase.
 	Metadata MSR3Metadata `yaml:"-"`
 }
 
+// MSR3Metadata is used to store information about the MSR3 installation.
 type MSR3Metadata struct {
 	Installed        bool
 	InstalledVersion string
@@ -180,8 +195,6 @@ func (d *Dependencies) SetDefaults() {
 	}
 }
 
-var errUnexpectedTypeForCRD = errors.New("unexpected type for CRD: expected map")
-
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
 func (c *MSR3Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type msr3 MSR3Config
@@ -190,30 +203,12 @@ func (c *MSR3Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("failed to unmarshal MSR configuration: %w", err)
 	}
 
-	// Decode the MSR configuration into a map, check to see if the CRD field
-	// is present and if so use the decoded map to form the unstructured object.
-	var obj map[interface{}]interface{}
-	if err := unmarshal(&obj); err != nil {
-		return fmt.Errorf("failed to unmarshal MSR configuration into map: %w", err)
-	}
-
-	if _, ok := obj["crd"]; ok {
-		// Due to yaml.v2's unmarshalling behavior, we first need to unmarshal
-		// into map[interface{}]interface{} and then into map[string]interface{}.
-		// If we move to yaml.v3 in the future, we can Decode directly into
-		// map[string]interface{} and gain some performance improvements around
-		// this conversion.
-		mapObj, ok := obj["crd"].(map[interface{}]interface{})
-		if !ok {
-			return errUnexpectedTypeForCRD
-		}
-
-		// Convert the map[interface{}]interface{} to map[string]interface{}.
-		c.CRD = &unstructured.Unstructured{Object: maputil.ConvertInterfaceMap(mapObj)}
-	}
-
 	if err := defaults.Set(c); err != nil {
 		return fmt.Errorf("failed to set defaults for MSR configuration: %w", err)
+	}
+
+	if err := c.configureCRD(); err != nil {
+		return fmt.Errorf("failed to configure MSR3 CRD: %w", err)
 	}
 
 	if err := c.Validate(); err != nil {
@@ -221,6 +216,81 @@ func (c *MSR3Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	}
 
 	c.Dependencies.SetDefaults()
+
+	return nil
+}
+
+type invalidMSR3ImageRepoError struct {
+	imageRepo string
+}
+
+func (i *invalidMSR3ImageRepoError) Error() string {
+	return fmt.Sprintf("invalid spec.msr3.imageRepo: %s", i.imageRepo)
+}
+
+// configureCRD configures the MSR3 CRD from the MSR3Config.
+func (c *MSR3Config) configureCRD() error {
+	var (
+		imageRegistry string
+		imageRepo     string
+	)
+
+	if c.ImageRepo != "" {
+		imageRepoSplit := strings.SplitN(c.ImageRepo, "/", 2)
+
+		if len(imageRepoSplit) != 2 {
+			return &invalidMSR3ImageRepoError{imageRepo: c.ImageRepo}
+		}
+
+		imageRegistry = imageRepoSplit[0]
+		imageRepo = imageRepoSplit[1]
+	}
+
+	if c.Name != "" {
+		c.Name = strings.ToLower(c.Name)
+	}
+
+	// Craft an initial MSR CRD from the MSR3Config.
+	c.CRD = &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "msr.mirantis.com/v1",
+			"kind":       "MSR",
+			"metadata": map[string]interface{}{
+				"name": c.Name,
+			},
+			"spec": map[string]interface{}{
+				"image": map[string]interface{}{
+					"registry":   imageRegistry,
+					"repository": imageRepo,
+					"tag":        c.Version,
+				},
+			},
+		},
+	}
+
+	if c.ReplicaCount != 1 {
+		for _, fields := range [][]string{
+			{"spec", "nginx", "replicaCount"},
+			{"spec", "garant", "replicaCount"},
+			{"spec", "api", "replicaCount"},
+			{"spec", "notarySigner", "replicaCount"},
+			{"spec", "notaryServer", "replicaCount"},
+			{"spec", "registry", "replicaCount"},
+			{"spec", "rethinkdb", "cluster", "replicaCount"},
+			{"spec", "rethinkdb", "proxy", "replicaCount"},
+			{"spec", "enzi", "api", "replicaCount"},
+			{"spec", "enzi", "worker", "replicaCount"},
+		} {
+			if err := unstructured.SetNestedField(c.CRD.Object, c.ReplicaCount, fields...); err != nil {
+				return fmt.Errorf("failed to set MSR %s: %w", strings.Join(fields, "."), err)
+			}
+		}
+
+		// Ensure pods are not scheduled on the same node.
+		if err := unstructured.SetNestedField(c.CRD.Object, "hard", "spec", "podAntiAffinityPreset"); err != nil {
+			return fmt.Errorf("failed to set MSR spec.podAntiAffinityPreset to 'hard': %w", err)
+		}
+	}
 
 	return nil
 }

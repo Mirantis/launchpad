@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-version"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 )
@@ -92,4 +94,95 @@ func extractYAMLTags(t *testing.T, v interface{}) []string {
 	}
 
 	return final
+}
+
+func TestMSR3Config_ConfigureCRD(t *testing.T) {
+	cfg := MSR3Config{
+		Name:         "SoMeNAME",
+		Version:      "1.2.3",
+		ImageRepo:    "registry.example.com/super/cool/repo",
+		ReplicaCount: 3,
+	}
+	err := cfg.configureCRD()
+	require.NoError(t, err)
+
+	actualName, found, err := unstructured.NestedString(cfg.CRD.Object, "metadata", "name")
+	require.True(t, found)
+	require.NoError(t, err)
+
+	assert.Equal(t, "somename", actualName)
+
+	imageMap, found, err := unstructured.NestedStringMap(cfg.CRD.Object, "spec", "image")
+	require.True(t, found)
+	require.NoError(t, err)
+
+	for _, expectedKey := range []string{
+		"registry", "repository", "tag",
+	} {
+		_, found := imageMap[expectedKey]
+		require.True(t, found, "expected key %q in image map", expectedKey)
+	}
+
+	assert.Equal(t, "registry.example.com", imageMap["registry"])
+	assert.Equal(t, "super/cool/repo", imageMap["repository"])
+	assert.Equal(t, "1.2.3", imageMap["tag"])
+
+	validateReplicaCountExists(t, cfg.CRD.Object, 3)
+
+	// Since 1 is the default replica count, it should not be set in the CRD.
+	cfg.ReplicaCount = 1
+	err = cfg.configureCRD()
+	require.NoError(t, err)
+
+	validateNoReplicaCountFields(t, cfg.CRD.Object)
+}
+
+func validateReplicaCountExists(t *testing.T, obj map[string]interface{}, expected int64) {
+	t.Helper()
+
+	for _, fields := range [][]string{
+		{"spec", "nginx", "replicaCount"},
+		{"spec", "garant", "replicaCount"},
+		{"spec", "api", "replicaCount"},
+		{"spec", "notarySigner", "replicaCount"},
+		{"spec", "notaryServer", "replicaCount"},
+		{"spec", "registry", "replicaCount"},
+		{"spec", "rethinkdb", "cluster", "replicaCount"},
+		{"spec", "rethinkdb", "proxy", "replicaCount"},
+		{"spec", "enzi", "api", "replicaCount"},
+		{"spec", "enzi", "worker", "replicaCount"},
+	} {
+		actualReplicaCount, found, err := unstructured.NestedInt64(obj, fields...)
+		require.True(t, found)
+		require.NoError(t, err)
+
+		assert.Equal(t, expected, actualReplicaCount, "%s should be %d", strings.Join(fields, "."), expected)
+	}
+
+	actualPreset, found, err := unstructured.NestedString(obj, "spec", "podAntiAffinityPreset")
+	require.True(t, found)
+	require.NoError(t, err)
+
+	assert.Equal(t, "hard", actualPreset)
+}
+
+func validateNoReplicaCountFields(t *testing.T, obj map[string]interface{}) {
+	t.Helper()
+
+	for _, fields := range [][]string{
+		{"spec", "nginx", "replicaCount"},
+		{"spec", "garant", "replicaCount"},
+		{"spec", "api", "replicaCount"},
+		{"spec", "notarySigner", "replicaCount"},
+		{"spec", "notaryServer", "replicaCount"},
+		{"spec", "registry", "replicaCount"},
+		{"spec", "rethinkdb", "cluster", "replicaCount"},
+		{"spec", "rethinkdb", "proxy", "replicaCount"},
+		{"spec", "enzi", "api", "replicaCount"},
+		{"spec", "enzi", "worker", "replicaCount"},
+	} {
+		_, found, err := unstructured.NestedInt64(obj, fields...)
+		assert.False(t, found)
+		assert.NoError(t, err)
+	}
 }
