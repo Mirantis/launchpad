@@ -429,13 +429,10 @@ spec:
     version: 3.7.5
   msr3:
     version: 3.1.6
+    replicaCount: 3
     storageURL: "https://example.com"
     storageClassType: "nfs"
-    crd:
-      apiVersion: "msr.mirantis.com/v1"
-      kind: "MSR"
-      spec:
-        logLevel: "debug"
+    imageRepo: "some.registry.com/msr"
   hosts:
     - ssh:
         address: "10.0.0.1"
@@ -451,10 +448,12 @@ spec:
 		require.Equal(t, c.Spec.MSR3.CRD.GetAPIVersion(), "msr.mirantis.com/v1")
 		require.Equal(t, c.Spec.MSR3.CRD.GetKind(), "MSR")
 
-		actual, found, err := unstructured.NestedString(c.Spec.MSR3.CRD.Object, "spec", "logLevel")
+		imageMap, found, err := unstructured.NestedMap(c.Spec.MSR3.CRD.Object, "spec", "image")
 		require.True(t, found)
 		require.NoError(t, err)
-		require.Equal(t, actual, "debug")
+
+		require.Equal(t, "some.registry.com", imageMap["registry"])
+		require.Equal(t, "msr", imageMap["repository"])
 
 		require.NoError(t, c.Validate())
 	})
