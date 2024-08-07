@@ -216,6 +216,11 @@ var errInvalidDataPlane = errors.New("invalid data plane settings")
 
 // validateDataPlane checks if the calico data plane would get changed (VXLAN <-> VPIP).
 func (p *ValidateFacts) validateDataPlane() error {
+	if p.Config.Spec.MKE == nil {
+		log.Debug("No need to validate data plane settings as MKE isn't included.")
+		return nil
+	}
+
 	log.Debug("validating data plane settings")
 
 	idx := p.Config.Spec.MKE.InstallFlags.Index("--calico-vxlan")

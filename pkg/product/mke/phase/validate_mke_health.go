@@ -28,6 +28,12 @@ func (p *ValidateMKEHealth) Title() string {
 	return "Validating MKE Health"
 }
 
+// ShouldRun should return true only when there is an installation to be
+// performed.
+func (p *ValidateMKEHealth) ShouldRun() bool {
+	return p.Config.Spec.MKE != nil
+}
+
 // Run validates the health of MKE is sane before continuing with other
 // launchpad phases, should be used when installing products that depend
 // on MKE, such as MSR.
