@@ -1,6 +1,6 @@
 module github.com/Mirantis/mcc
 
-go 1.22.5
+go 1.22.0
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
