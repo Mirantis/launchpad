@@ -16,6 +16,11 @@ func (p *Info) Title() string {
 	return "Cluster info"
 }
 
+// ShouldRun is true when MKE is included.
+func (p *Info) ShouldRun() bool {
+	return p.Config.Spec.MKE != nil
+}
+
 // Run ...
 func (p *Info) Run() error {
 	log.Info("Cluster is now configured.")

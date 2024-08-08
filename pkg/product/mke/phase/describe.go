@@ -14,8 +14,8 @@ import (
 type Describe struct {
 	phase.BasicPhase
 
-	MKE bool
-	MSR bool
+	MKE  bool
+	MSR2 bool
 }
 
 // Title for the phase.
@@ -28,8 +28,8 @@ func (p *Describe) Run() error {
 	switch {
 	case p.MKE:
 		p.mkeReport()
-	case p.MSR:
-		p.msrReport()
+	case p.MSR2:
+		p.msr2Reports()
 	default:
 		p.hostReport()
 	}
@@ -38,6 +38,10 @@ func (p *Describe) Run() error {
 }
 
 func (p *Describe) mkeReport() {
+	if p.Config.Spec.MKE == nil {
+		fmt.Println("No MKE installation")
+		return
+	}
 	if !p.Config.Spec.MKE.Metadata.Installed {
 		fmt.Println("Not installed")
 		return
@@ -61,7 +65,11 @@ func (p *Describe) mkeReport() {
 	tabWriter.Flush()
 }
 
-func (p *Describe) msrReport() {
+func (p *Describe) msr2Reports() {
+	if p.Config.Spec.MSR2 == nil {
+		fmt.Println("No MSR2 installation")
+		return
+	}
 	// Configure the columns to start.
 	tabWriter := new(tabwriter.Writer)
 	// minwidth, tabwidth, padding, padchar, flags
