@@ -9,19 +9,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// UninstallMSR is the phase implementation for running MSR uninstall.
-type UninstallMSR struct {
+// UninstallMSR2 is the phase implementation for running MSR uninstall.
+type UninstallMSR2 struct {
 	phase.Analytics
 	phase.BasicPhase
 }
 
 // Title prints the phase title.
-func (p *UninstallMSR) Title() string {
+func (p *UninstallMSR2) Title() string {
 	return "Uninstall MSR2 components"
 }
 
+// ShouldRun should return true only when there is a configured installation.
+func (p *UninstallMSR2) ShouldRun() bool {
+	return p.Config.Spec.ContainsMSR2()
+}
+
 // Run an uninstall via msr.Cleanup.
-func (p *UninstallMSR) Run() error {
+func (p *UninstallMSR2) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()
 	msrLeader := p.Config.Spec.MSR2Leader()
 	if msrLeader == nil || !msrLeader.MSR2Metadata.Installed {

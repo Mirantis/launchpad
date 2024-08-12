@@ -47,6 +47,11 @@ func (p *JoinMSR2Replicas) Title() string {
 	return "Join MSR2 Replicas"
 }
 
+// ShouldRun should return true only when there is a configured installation.
+func (p *JoinMSR2Replicas) ShouldRun() bool {
+	return p.Config.Spec.ContainsMSR2()
+}
+
 // Run joins all the workers nodes to swarm if not already part of it.
 func (p *JoinMSR2Replicas) Run() error {
 	msrLeader := p.Config.Spec.MSR2Leader()

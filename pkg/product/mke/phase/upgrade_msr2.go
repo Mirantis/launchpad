@@ -35,6 +35,9 @@ func (p *UpgradeMSR2) Title() string {
 
 // ShouldRun should return true only when there is an upgrade to be performed.
 func (p *UpgradeMSR2) ShouldRun() bool {
+	if !p.Config.Spec.ContainsMSR2() {
+		return false
+	}
 	h := p.Config.Spec.MSR2Leader()
 	return p.Config.Spec.ContainsMSR() && h.MSR2Metadata != nil && h.MSR2Metadata.InstalledVersion != p.Config.Spec.MSR2.Version
 }

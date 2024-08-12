@@ -30,6 +30,9 @@ func (p *InstallMSR2) Title() string {
 // ShouldRun should return true only when there is an installation to be
 // performed.
 func (p *InstallMSR2) ShouldRun() bool {
+	if !p.Config.Spec.ContainsMSR2() {
+		return false
+	}
 	p.leader = p.Config.Spec.MSR2Leader()
 	return p.Config.Spec.ContainsMSR2() && (p.leader.MSR2Metadata == nil || !p.leader.MSR2Metadata.Installed)
 }

@@ -22,7 +22,7 @@ func (p *MKE) Reset() error {
 
 	// begin MSR phases
 	if p.ClusterConfig.Spec.ContainsMSR2() {
-		phaseManager.AddPhase(&mke.UninstallMSR{})
+		phaseManager.AddPhase(&mke.UninstallMSR2{})
 	} else if p.ClusterConfig.Spec.ContainsMSR3() {
 		phaseManager.AddPhase(&mke.UninstallMSR3{})
 	}

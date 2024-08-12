@@ -14,8 +14,12 @@ type AuthenticateDocker struct {
 	phase.BasicPhase
 }
 
-// ShouldRun is true when registry credentials are set.
+// ShouldRun is true when registry credentials are set and MKE is included.
 func (p *AuthenticateDocker) ShouldRun() bool {
+	if p.Config.Spec.MKE == nil {
+		return false
+	}
+
 	return os.Getenv("REGISTRY_USERNAME") != "" && os.Getenv("REGISTRY_PASSWORD") != ""
 }
 

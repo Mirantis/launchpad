@@ -23,6 +23,11 @@ func (p *LabelNodes) Title() string {
 	return "Label nodes"
 }
 
+// ShouldRun is true when MKE is included.
+func (p *LabelNodes) ShouldRun() bool {
+	return p.Config.Spec.MKE != nil
+}
+
 // Run labels all nodes with launchpad label.
 func (p *LabelNodes) Run() error {
 	swarmLeader := p.Config.Spec.SwarmLeader()

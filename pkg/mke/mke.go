@@ -253,10 +253,15 @@ func KubeAndHelmFromConfig(config *api.ClusterConfig) (*kubeclient.KubeClient, *
 var (
 	errNoManagersInConfig = errors.New("no managers found in config")
 	errInvalidConfig      = errors.New("invalid config")
+	errNoMKE              = errors.New("no MKE installation")
 )
 
 // DownloadBundle downloads the client bundle from MKE to local storage.
 func DownloadBundle(config *api.ClusterConfig) error {
+	if config.Spec.MKE == nil {
+		return errNoMKE
+	}
+
 	if len(config.Spec.Managers()) == 0 {
 		return errNoManagersInConfig
 	}

@@ -39,7 +39,7 @@ func (p *MKE) Describe(reportName string) error {
 		&de.DetectOS{},
 		&de.GatherFacts{},
 		&common.Disconnect{},
-		&de.Describe{MKE: mke, MSR: msr},
+		&de.Describe{MKE: mke, MSR2: msr},
 	)
 
 	if err := phaseManager.Run(); err != nil {
