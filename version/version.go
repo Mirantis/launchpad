@@ -85,7 +85,7 @@ func latestTag(timeout time.Duration) string {
 	}
 
 	baseMsg := "getting launchpad tag list"
-	log.Debugf(baseMsg)
+	log.Debug(baseMsg)
 	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/tags?per_page=20&page=1", GitHubRepo))
 	if err != nil {
 		log.Debugf("%s failed: %s", baseMsg, err.Error())
@@ -149,7 +149,7 @@ func GetLatest(timeout time.Duration) *LaunchpadRelease {
 	}
 
 	baseMsg := fmt.Sprintf("getting launchpad release information for version %s", tag)
-	log.Debugf(baseMsg)
+	log.Debug(baseMsg)
 	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", GitHubRepo, tag))
 	if err != nil {
 		log.Debugf("%s failed: %s", baseMsg, err.Error())

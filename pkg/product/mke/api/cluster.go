@@ -75,7 +75,7 @@ func validateClusterSpec(vsl validator.StructLevel) {
 
 // Init returns an example of configuration file contents.
 func Init(kind string) *ClusterConfig {
-	mkeV, err := hub.LatestTag("mirantis", "ucp", false)
+	mkeV, err := hub.LatestTag(hub.RegistryDockerHub, "mirantis", "ucp", false)
 	if err != nil {
 		mkeV = "required"
 	}
@@ -118,7 +118,7 @@ func Init(kind string) *ClusterConfig {
 		},
 	}
 	if kind == "mke+msr" {
-		msrV, err := hub.LatestTag("mirantis", "dtr", false)
+		msrV, err := hub.LatestTag(hub.RegistryDockerHub, "mirantis", "dtr", false)
 		if err != nil {
 			msrV = "required"
 		}
