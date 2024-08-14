@@ -17,8 +17,7 @@ func Migrate(plain map[string]interface{}) error {
 				}
 			}
 		} else {
-			spec["mke"] = map[string]string{"version": "3.4.0"}
-			log.Debugf("migration defaulted MKE version to %s as an explicit version is required on the v1.4 api", mke["version"])
+			log.Warnf("v1.3 api is missing MKE configuration, which used to get added for you, but now results in an MCR only install")
 		}
 
 		if msr, ok := spec["msr"].(map[interface{}]interface{}); ok {

@@ -94,7 +94,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 			return fmt.Errorf("upgrade MCR failed. %w", err)
 		}
 	}
-	if p.Config.Spec.MKE.Metadata.Installed {
+	if p.Config.Spec.MKE != nil && p.Config.Spec.MKE.Metadata.Installed {
 		err := p.Config.Spec.CheckMKEHealthLocal(managers)
 		if err != nil {
 			return fmt.Errorf("checkMKEHealthLocal failed. %w", err)
