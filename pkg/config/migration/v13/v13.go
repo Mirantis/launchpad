@@ -17,7 +17,7 @@ func Migrate(plain map[string]interface{}) error {
 				}
 			}
 		} else {
-			log.Warnf("v1.3 api is missing MKE configuration, which used to get added for you, but now results in an MCR only install")
+			log.Warn("v1.3 api is missing MKE configuration, which used to get added for you, but now results in an MCR only install")
 		}
 
 		if msr, ok := spec["msr"].(map[interface{}]interface{}); ok {
