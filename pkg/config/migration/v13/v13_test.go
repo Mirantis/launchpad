@@ -39,8 +39,6 @@ spec:
   - role: msr
     ssh:
       address: 10.0.0.3
-  mke:
-    version: 3.4.0
   msr:
     version: 2.9.0
 `)
