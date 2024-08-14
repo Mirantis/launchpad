@@ -55,7 +55,7 @@ func (p *UpgradeCheck) Run() (err error) {
 		}
 	}
 
-	if p.Config.Spec.ContainsMSR() {
+	if p.Config.Spec.ContainsMSR2() {
 		msrv, err := hub.LatestTag("mirantis", "dtr", strings.Contains(p.Config.Spec.MSR2.Version, "-"))
 		if err != nil {
 			log.Errorf("failed to check for MSR upgrade: %s", err.Error())
@@ -78,6 +78,8 @@ func (p *UpgradeCheck) Run() (err error) {
 			log.Warnf("a newer version of MSR is available: %s (installing %s)", msrv, msrTargetV.String())
 		}
 	}
+
+	// @TODO MSR3 version upgrade check
 
 	return nil
 }
