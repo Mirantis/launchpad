@@ -32,13 +32,13 @@ linters:
     - bodyclose
     - containedctx
     - contextcheck
+    - copyloopvar
     - dupword
     - durationcheck
     - err113
     - errchkjson
     - errname
     - errorlint
-    - exportloopref
     - forcetypeassert
     - gci
     - gocritic

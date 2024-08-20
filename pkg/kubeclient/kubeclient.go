@@ -210,8 +210,6 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 	var needsUpdate, found bool
 
 	for _, storageClass := range storageClasses.Items {
-		storageClass := storageClass
-
 		if storageClass.Name == name {
 			found = true
 
