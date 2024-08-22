@@ -273,7 +273,7 @@ func (kc *KubeClient) MSRURL(ctx context.Context, name string, rc dynamic.Resour
 		}
 
 		for _, p := range svc.Spec.Ports {
-			if p.Port == int32(externalPort) {
+			if int64(p.Port) == externalPort {
 				port = strconv.Itoa(int(p.NodePort))
 				break
 			}
