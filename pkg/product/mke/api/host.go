@@ -153,7 +153,7 @@ func (h *Host) ExecAll(cmds []string) error {
 
 // ExecStreams executes a command on the remote host and uses the passed in streams for stdin, stdout and stderr. It returns a Waiter with a .Wait() function that
 // blocks until the command finishes and returns an error if the exit code is not zero.
-func (h *Host) ExecStreams(cmd string, stdin io.ReadCloser, stdout, stderr io.Writer, opts ...exec.Option) (exec.Waiter, error) { 
+func (h *Host) ExecStreams(cmd string, stdin io.ReadCloser, stdout, stderr io.Writer, opts ...exec.Option) (exec.Waiter, error) { //nolint:ireturn
 	return h.Connection.ExecStreams(cmd, stdin, stdout, stderr, h.sudoCommandOptions(cmd, opts)...) //nolint:wrapcheck
 }
 
