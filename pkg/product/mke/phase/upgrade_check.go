@@ -32,7 +32,7 @@ func (p *UpgradeCheck) ShouldRun() bool {
 // Run the installer container.
 func (p *UpgradeCheck) Run() (err error) {
 	if p.Config.Spec.ContainsMKE() {
-		mkeTag, err := hub.LatestTag("mirantis", "ucp", strings.Contains(p.Config.Spec.MKE.Version, "-"))
+		mkeTag, err := hub.LatestTag(hub.RegistryDockerHub, "mirantis", "ucp", strings.Contains(p.Config.Spec.MKE.Version, "-"))
 		if err != nil {
 			log.Errorf("failed to check for MKE upgrade: %v", err)
 			return nil
@@ -56,30 +56,52 @@ func (p *UpgradeCheck) Run() (err error) {
 	}
 
 	if p.Config.Spec.ContainsMSR2() {
-		msrv, err := hub.LatestTag("mirantis", "dtr", strings.Contains(p.Config.Spec.MSR2.Version, "-"))
+		msrv, err := hub.LatestTag(hub.RegistryDockerHub, "mirantis", "dtr", strings.Contains(p.Config.Spec.MSR2.Version, "-"))
 		if err != nil {
-			log.Errorf("failed to check for MSR upgrade: %s", err.Error())
+			log.Errorf("failed to check for MSR2 upgrade: %s", err.Error())
 			return nil
 		}
 
 		msrV, err := version.NewVersion(msrv)
 		if err != nil {
-			log.Errorf("invalid MSR version response: %s", err.Error())
+			log.Errorf("invalid MSR2 version response: %s", err.Error())
 			return nil
 		}
 
 		msrTargetV, err := version.NewVersion(p.Config.Spec.MSR2.Version)
 		if err != nil {
-			log.Errorf("invalid MSR version in configuration: %s", err.Error())
-			return fmt.Errorf("invalid MSR version in configuration: %w", err)
+			log.Errorf("invalid MSR2 version in configuration: %s", err.Error())
+			return fmt.Errorf("invalid MSR2 version in configuration: %w", err)
 		}
 
 		if msrV.GreaterThan(msrTargetV) {
-			log.Warnf("a newer version of MSR is available: %s (installing %s)", msrv, msrTargetV.String())
+			log.Warnf("a newer version of MSR2 is available: %s (installing %s)", msrv, msrTargetV.String())
 		}
 	}
 
-	// @TODO MSR3 version upgrade check
+	if p.Config.Spec.ContainsMSR3() {
+		msrv, err := hub.LatestTag(hub.RegistryMirantis, "msr", "msr-api", strings.Contains(p.Config.Spec.MSR3.Version, "-"))
+		if err != nil {
+			log.Errorf("failed to check for MSR3 upgrade: %s", err.Error())
+			return nil
+		}
+
+		msrV, err := version.NewVersion(msrv)
+		if err != nil {
+			log.Errorf("invalid MSR3 version response: %s", err.Error())
+			return nil
+		}
+
+		msrTargetV, err := version.NewVersion(p.Config.Spec.MSR2.Version)
+		if err != nil {
+			log.Errorf("invalid MSR3 version in configuration: %s", err.Error())
+			return fmt.Errorf("invalid MSR3 version in configuration: %w", err)
+		}
+
+		if msrV.GreaterThan(msrTargetV) {
+			log.Warnf("a newer version of MSR3 is available: %s (installing %s)", msrv, msrTargetV.String())
+		}
+	}
 
 	return nil
 }
