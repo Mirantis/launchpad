@@ -80,16 +80,15 @@ func (p *RunHooks) Run() error {
 	)
 
 	for h, steps := range p.steps {
-		h, steps := h, steps // capture range variables
 		wg.Add(1)
-		go func() {
+		go func(h host, steps []string) {
 			defer wg.Done()
 			if err := h.ExecAll(steps); err != nil {
 				mu.Lock()
 				result = errors.Join(result, fmt.Errorf("%s: %w", h.String(), err))
 				mu.Unlock()
 			}
-		}()
+		}(h, steps)
 	}
 
 	wg.Wait()
