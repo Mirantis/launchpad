@@ -25,14 +25,24 @@ type ReleaseDetails struct {
 	ChartName string `yaml:"chartName,omitempty"`
 	// ReleaseName is the name of the Helm release.
 	ReleaseName string `yaml:"releaseName,omitempty"`
-	// RepoURL is the URL to the Helm repository.
-	RepoURL string `yaml:"repoURL,omitempty"`
 	// Version is the Helm Chart version.
 	Version string `yaml:"version,omitempty"`
 	// Values contains options for the Helm chart values.
 	Values map[string]interface{} `yaml:"values,omitempty"`
 	// Installed is true if the chart is installed.
 	Installed bool `yaml:"installed,omitempty"`
+
+	// We do not fetch these details during the GatherFacts stage but they are
+	// useful for downloading charts.
+
+	// RepoURL is the URL to the Helm repository.
+	RepoURL string `yaml:"repoURL,omitempty"`
+	// Username is the username to use for fetching the Helm chart from the
+	// registry where it is stored.
+	Username string `yaml:"username,omitempty"`
+	// Password is the password to use for fetching the Helm chart from the
+	// reegistry where it is stored.
+	Password string `yaml:"password,omitempty"`
 }
 
 // Options to be used with Helm actions.
@@ -86,17 +96,21 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 
 	log.Infof("release %q found using chart: %q, upgrading to version: %q", opts.ReleaseName, opts.ChartName, opts.Version)
 
-	u := action.NewUpgrade(&cfg)
-	u.Namespace = settings.Namespace()
-	u.ReuseValues = opts.ReuseValues
-	u.Wait = opts.Wait
-	u.Atomic = opts.Atomic
-	u.Version = opts.Version
+	upgradeAction := action.NewUpgrade(&cfg)
+
 	if opts.Timeout != nil {
-		u.Timeout = *opts.Timeout
+		upgradeAction.Timeout = *opts.Timeout
 	}
 
-	release, err := u.RunWithContext(ctx, opts.ReleaseDetails.ReleaseName, chartToUpgrade, opts.Values)
+	upgradeAction.Namespace = settings.Namespace()
+	upgradeAction.ReuseValues = opts.ReuseValues
+	upgradeAction.Wait = opts.Wait
+	upgradeAction.Atomic = opts.Atomic
+	upgradeAction.Version = opts.Version
+	upgradeAction.Username = opts.Username
+	upgradeAction.Password = opts.Password
+
+	release, err := upgradeAction.RunWithContext(ctx, opts.ReleaseDetails.ReleaseName, chartToUpgrade, opts.Values)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upgrade Helm release %q: %w", opts.ReleaseName, err)
 	}
@@ -122,6 +136,8 @@ func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]inter
 	installAction.Version = opts.Version
 	installAction.Atomic = opts.Atomic
 	installAction.Wait = opts.Wait
+	installAction.Username = opts.Username
+	installAction.Password = opts.Password
 
 	release, err := installAction.RunWithContext(ctx, chartToInstall, vals)
 	if err != nil {

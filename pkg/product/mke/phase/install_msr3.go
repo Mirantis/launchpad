@@ -3,7 +3,11 @@ package phase
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
+	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/mcc/pkg/kubeclient"
 	"github.com/Mirantis/mcc/pkg/mke"
 	"github.com/Mirantis/mcc/pkg/msr/msr3"
 	"github.com/Mirantis/mcc/pkg/phase"
@@ -57,6 +61,39 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 
 	msr := p.Config.Spec.MSR3.CRD
 
+	// Configure an imagePullSecret if necessary.
+	registryUsername := os.Getenv("REGISTRY_USERNAME")
+	registryPassword := os.Getenv("REGISTRY_PASSWORD")
+	registryURL, _, err := unstructured.NestedString(p.Config.Spec.MSR3.CRD.Object, "spec", "image", "registry")
+	if err != nil {
+		return fmt.Errorf("failed to get registry URL from MSR CRD: %w", err)
+	}
+
+	if registryUsername != "" && registryPassword != "" {
+		registryAuth := kubeclient.DockerAuth{
+			Username: os.Getenv("REGISTRY_USERNAME"),
+			Password: os.Getenv("REGISTRY_PASSWORD"),
+			URL:      "https://" + registryURL,
+		}
+
+		if err := p.Kube.CreateImagePullSecret(context.Background(), registryAuth); err != nil {
+			return fmt.Errorf("failed to patch service account with image pull secrets: %w", err)
+		}
+
+		// Append our created secret onto the existing pull secrets.  Note: The
+		// yaml tag is "pullSecret" not "pullSecrets", so the field name here
+		// is intentional.
+		if err := appendImagePullSecret(msr, "spec", "image", "pullSecret"); err != nil {
+			return fmt.Errorf("failed to append MSR image pull secret to MSR CRD: %w", err)
+		}
+		if err := appendImagePullSecret(msr, "spec", "enzi", "pullSecret"); err != nil {
+			return fmt.Errorf("failed to append Enzi image pull secret to MSR CRD: %w", err)
+		}
+		if err := appendImagePullSecret(msr, "spec", "rethinkdb", "dockerImage", "pullSecret"); err != nil {
+			return fmt.Errorf("failed to append RethinkDB image pull secret to MSR CRD: %w", err)
+		}
+	}
+
 	// Ensure the postgresql.spec.volume.size field is sane, postgres-operator
 	// doesn't default the Size field and is picky about the format.
 	postgresVolumeSize, found, err := unstructured.NestedString(msr.Object, "spec", "postgresql", "volume", "size")
@@ -105,6 +142,30 @@ func (p *InstallOrUpgradeMSR3) Run() error {
 	}
 
 	p.Config.Spec.MSR3.Metadata = msrMeta
+
+	return nil
+}
+
+// appendImagePullSecret appends the Kubernetes pull secret to the
+// existing pull secrets associated with fields in the MSR unstructured object.
+func appendImagePullSecret(msr *unstructured.Unstructured, fields ...string) error {
+	fieldsErrDetail := strings.Join(fields, ".")
+
+	pullSecretSlice, found, err := unstructured.NestedSlice(msr.Object, fields...)
+	if err != nil {
+		return fmt.Errorf("failed to get MSR %s: %w", fieldsErrDetail, err)
+	}
+
+	if !found {
+		log.Debugf("MSR %s not found, creating it", fieldsErrDetail)
+	}
+
+	// pullSecretSlice is an empty slice if error or not found, so we can
+	// append to it either way.
+	pullSecretSlice = append(pullSecretSlice, map[string]interface{}{"name": constant.KubernetesDockerRegistryAuthSecretName})
+	if err := unstructured.SetNestedField(msr.Object, pullSecretSlice, fields...); err != nil {
+		return fmt.Errorf("failed to set MSR %s: %w", fieldsErrDetail, err)
+	}
 
 	return nil
 }

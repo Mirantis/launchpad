@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
 	"github.com/Mirantis/mcc/pkg/util/byteutil"
 	retry "github.com/avast/retry-go"
@@ -211,6 +212,12 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 		pass := os.Getenv("REGISTRY_PASSWORD")
 		if pass == "" {
 			return fmt.Errorf("%w: REGISTRY_PASSWORD not set", errAuthFailed)
+		}
+
+		if imageRepo == constant.ImageRepo || imageRepo == constant.ImageRepoLegacy {
+			// Do not try to authenticate for the default public registry.
+			log.Debugf("%s: skipping authentication for default registry", h)
+			return nil
 		}
 
 		log.Infof("%s: authenticating docker for image repo %s", h, imageRepo)
