@@ -88,7 +88,7 @@ func NewApplyCommand() *cli.Command {
 				if !ctx.Bool("disable-logo") {
 					os.Stdout.WriteString(logo.Logo)
 				}
-				fmt.Fprintf(os.Stdout, "   Mirantis Launchpad (c) 2022 Mirantis, Inc.                          %s\n\n", version.Version)
+				fmt.Fprintf(os.Stdout, "   Mirantis Launchpad (c) 2024 Mirantis, Inc.                          %s\n\n", version.Version)
 			}
 
 			err = product.Apply(ctx.Bool("disable-cleanup"), ctx.Bool("force"), ctx.Int("concurrency"), ctx.Bool("force-upgrade"))
