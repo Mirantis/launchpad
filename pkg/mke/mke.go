@@ -294,7 +294,7 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 		if err != nil {
 			return fmt.Errorf("error while reading file %s: %w", zipFile.Name, err)
 		}
-		mode := int32(0o644)
+		mode := uint32(0o644)
 		if strings.Contains(zipFile.Name, "key.pem") {
 			mode = 0o600
 		}
