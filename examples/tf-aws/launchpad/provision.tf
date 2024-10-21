@@ -10,8 +10,9 @@ module "provision" {
 
   name        = var.name
   common_tags = local.tags
-  network     = var.network
 
+  network = var.network
+  subnets = var.subnets
 
   // pass in a mix of nodegroups with the platform information
   nodegroups = { for k, ngd in local.nodegroups_wplatform : k => {

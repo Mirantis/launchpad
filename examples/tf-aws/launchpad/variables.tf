@@ -14,34 +14,46 @@ variable "name" {
   type        = string
 }
 
+# ===  Networking ===
 variable "network" {
   description = "Network configuration"
   type = object({
-    cidr                 = string
-    public_subnet_count  = number
-    private_subnet_count = number
-    enable_vpn_gateway   = bool
-    enable_nat_gateway   = bool
+    cidr               = string
+    enable_nat_gateway = optional(bool, false)
+    enable_vpn_gateway = optional(bool, false)
+    tags               = optional(map(string), {})
   })
   default = {
-    cidr                 = "172.31.0.0/16"
-    public_subnet_count  = 3
-    private_subnet_count = 3
-    enable_vpn_gateway   = false
-    enable_nat_gateway   = false
+    enable_nat_gateway = false
+    enable_vpn_gateway = false
+    cidr               = "172.31.0.0/16"
+    tags               = {}
   }
 }
+
+# === subnets ===
+variable "subnets" {
+  description = "The subnets configuration"
+  type = map(object({
+    cidr       = string
+    nodegroups = list(string)
+    private    = bool
+  }))
+  default = {}
+}
+
+# === Machines ===
 
 variable "nodegroups" {
   description = "A map of machine group definitions"
   type = map(object({
+    role        = string
     platform    = string
     type        = string
-    count       = number
-    volume_size = number
-    role        = string
-    public      = bool
-    user_data   = string
+    count       = optional(number, 1)
+    volume_size = optional(number, 100)
+    public      = optional(bool, true)
+    user_data   = optional(string, "")
   }))
 }
 
