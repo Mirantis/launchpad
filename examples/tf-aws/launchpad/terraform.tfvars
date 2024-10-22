@@ -20,11 +20,15 @@ launchpad = {
 
 // configure the network stack
 network = {
-  cidr                 = "172.31.0.0/16"
-  public_subnet_count  = 3
-  private_subnet_count = 0 // if 0 then no private nodegroups allowed
-  enable_vpn_gateway   = false
-  enable_nat_gateway   = false
+  cidr = "172.31.0.0/16"
+}
+
+subnets = {
+  "Main" = {
+    cidr       = "172.31.0.0/17"
+    nodegroups = ["ACon", "AWrk_Ubu22", "AWrk_Windows2022"]
+    private    = false
+  }
 }
 
 // one definition for each group of machines to include in the stack
