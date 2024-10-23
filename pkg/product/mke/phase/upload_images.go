@@ -51,8 +51,7 @@ func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 		h.Metadata.ImagesToUpload = append(h.Metadata.ImagesToUpload, imagePath)
 		info, err := entry.Info()
 		if err == nil {
-			usize := uint64(info.Size()) //nolint: gosec
-			h.Metadata.TotalImageBytes += usize
+			h.Metadata.TotalImageBytes += uint64(info.Size())
 		}
 	}
 

@@ -230,9 +230,8 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 		return fmt.Errorf("failed to stat file: %w", err)
 	}
 	size := stat.Size()
-	usize := uint64(size) //nolint: gosec
 
-	log.Infof("%s: uploading %s to %s", h, byteutil.FormatBytes(usize), dst)
+	log.Infof("%s: uploading %s to %s", h, byteutil.FormatBytes(uint64(stat.Size())), dst)
 
 	if err := h.Connection.Upload(src, dst); err != nil {
 		return fmt.Errorf("upload failed: %w", err)
@@ -240,7 +239,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 
 	duration := time.Since(startTime).Seconds()
 	speed := float64(size) / duration
-	log.Infof("%s: transferred %s in %.1f seconds (%s/s)", h, byteutil.FormatBytes(usize), duration, byteutil.FormatBytes(uint64(speed)))
+	log.Infof("%s: transferred %s in %.1f seconds (%s/s)", h, byteutil.FormatBytes(uint64(size)), duration, byteutil.FormatBytes(uint64(speed)))
 
 	return nil
 }
