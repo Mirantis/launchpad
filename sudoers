@@ -49,6 +49,9 @@ CANLAUNCHPAD    ALL = (root) NOPASSWD: /usr/bin/sh -c 'echo *'
 CANLAUNCHPAD    ALL = (root) NOPASSWD: /usr/bin/sh -c 'yum install *'
 CANLAUNCHPAD    ALL = (root) NOPASSWD: /usr/bin/stat *
 CANLAUNCHPAD    ALL = (root) NOPASSWD: /usr/bin/systemctl * docker *
+CANLAUNCHPAD    ALL = (root) NOPASSWD: /usr/bin/systemctl enable docker
+CANLAUNCHPAD    ALL = (root) NOPASSWD: /usr/bin/docker version
+
 
 User_Alias      CANINSTALLMCR = launchpad
 
@@ -60,3 +63,5 @@ CANINSTALLMCR   ALL = (root) NOPASSWD:SETENV: /usr/bin/tee /etc/yum/vars/dockero
 CANINSTALLMCR   ALL = (root) NOPASSWD:SETENV: /usr/bin/yum-config-manager --add-repo *
 CANINSTALLMCR   ALL = (root) NOPASSWD:SETENV: /usr/bin/yum-config-manager --disable docker-ee-*
 CANINSTALLMCR   ALL = (root) NOPASSWD:SETENV: /usr/bin/yum-config-manager --enable docker-ee-*
+CANINSTALLMCR   ALL = (root) NOPASSWD:SETENV: /usr/bin/yum upgrade *
+CANINSTALLMCR   ALL = (root) NOPASSWD:SETENV: /usr/bin/yum downgrade *

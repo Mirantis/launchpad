@@ -111,7 +111,7 @@ func (h *Host) IsLocal() bool {
 
 // IsSudoCommand is a particluar string command supposed to use Sudo.
 func (h *Host) IsSudoCommand(cmd string) bool {
-	if h.SudoDocker && strings.HasPrefix(cmd, "docker") {
+	if h.SudoDocker && (strings.HasPrefix(cmd, "docker") || strings.HasPrefix(cmd, "/usr/bin/docker")) {
 		return true
 	}
 	return false
