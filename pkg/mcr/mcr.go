@@ -36,7 +36,7 @@ func EnsureMCRVersion(h *api.Host, specMcrVersion string) error {
 	return nil
 }
 
-// Semver extracts the semantic version (e.g., "25.0.7") from a version string
+// Semver extracts the semantic version (e.g., "25.0.7") from a version string.
 func Semver(version string) string {
 	// Define a regular expression to match the first three numeric groups separated by dots
 	re := regexp.MustCompile(`^\d+\.\d+\.\d+`)
