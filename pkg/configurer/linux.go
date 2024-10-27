@@ -33,10 +33,21 @@ func (c LinuxConfigurer) MCRConfigPath() string {
 
 // InstallMCR install MCR on Linux.
 func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	pwd := c.riglinux.Pwd(h)
 	base := path.Base(scriptPath)
-	installer := pwd + "/" + base
-	err := h.Upload(scriptPath, installer)
+
+	installScriptDir := engineConfig.InstallScriptRemoteDirLinux
+	if installScriptDir == "" {
+		installScriptDir = c.riglinux.Pwd(h)
+	}
+
+	_, err := h.ExecOutput(fmt.Sprintf("mkdir -p %s", installScriptDir))
+	if err != nil {
+		return fmt.Errorf("failed to create directory %s: %w", installScriptDir, err)
+	}
+
+	installer := path.Join(installScriptDir, base)
+
+	err = h.Upload(scriptPath, installer)
 	if err != nil {
 		log.Errorf("failed: %s", err.Error())
 		return fmt.Errorf("upload %s to %s: %w", scriptPath, installer, err)
