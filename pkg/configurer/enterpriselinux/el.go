@@ -61,10 +61,6 @@ func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common
 		log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
 	}
 
-	if h.Exec("sh -c 'yum-config-manager --enable rhel-7-server-rhui-extras-rpms && yum makecache fast'", exec.Sudo(h)) == nil {
-		log.Infof("%s: enabled rhel-7-server-rhui-extras-rpms repository", h)
-	}
-
 	if err := c.LinuxConfigurer.InstallMCR(h, scriptPath, engineConfig); err != nil {
 		return fmt.Errorf("failed to install MCR: %w", err)
 	}
