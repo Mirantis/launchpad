@@ -1,5 +1,5 @@
 // used to name infrastructure (CHANGE THIS)
-name = "smoke-test"
+#name = "mcc-smoke-test"
 aws = {
   region = "us-east-1"
 }
@@ -7,8 +7,8 @@ aws = {
 launchpad = {
   drain = false
 
-  mcr_version = "23.0.7"
-  mke_version = "3.7.3"
+  mcr_version = "23.0.15"
+  mke_version = "3.7.15"
   msr_version = ""
 
   mke_connect = {
@@ -22,45 +22,44 @@ launchpad = {
 network = {
   cidr = "172.31.0.0/16"
 }
-
 subnets = {
   "Main" = {
     cidr       = "172.31.0.0/17"
-    nodegroups = ["ACon", "AWrk_Ubu22", "AWrk_Windows2022"]
+    nodegroups = ["ACon", "AWrk_Ubu22", "AWrk_Roc9", "AWrk_Win2022"]
     private    = false
   }
 }
 
-// one definition for each group of machines to include in the stack
+
+// machine node groups by role & platform
 nodegroups = {
   "ACon" = { // managers for A group
-    platform    = "ubuntu_22.04"
-    count       = 1
-    type        = "m6a.2xlarge"
-    volume_size = 100
-    role        = "manager"
-    public      = true
-    user_data   = ""
+    role     = "manager"
+    platform = "ubuntu_22.04"
+    count    = 1
+    type     = "m6a.2xlarge"
   },
   "AWrk_Ubu22" = { // workers for A group
+    role        = "worker"
     platform    = "ubuntu_22.04"
     count       = 1
     type        = "c6a.xlarge"
     volume_size = 100
-    public      = true
+  },
+  "AWrk_Roc9" = { // workers for A group
     role        = "worker"
-    user_data   = ""
+    platform    = "rocky_9"
+    count       = 1
+    type        = "c6a.xlarge"
+    volume_size = 100
   },
-  "AWrk_Windows2022" = {
-    "platform" : "windows_core_2022",
-    "count" : 1,
-    "type" : "c6a.xlarge",
-    "volume_size" : "100",
-    "role" : "worker",
-    "public" : true,
-    "user_data" : "",
-  },
+  //  "AWrk_Win2022" = {
+  //    role        = "worker"
+  //    platform   = "windows_core_2022"
+  //    count       = 1
+  //    type        = "c6a.xlarge"
+  //  },
 }
 
 // set a windows password, if you have windows nodes
-# windows_password = "testp@ss!"
+windows_password = "testp@ss!"

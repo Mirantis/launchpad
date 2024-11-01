@@ -151,6 +151,13 @@ spec:
       useHTTPS: ${h.winrm_useHTTPS}
       insecure: ${h.winrm_insecure}
 %{~endfor}
+  mcr:
+    version: ${var.launchpad.mcr_version}
+    repoURL: https://repos.mirantis.com
+    installURLLinux: https://get.mirantis.com/
+    installURLWindows: https://get.mirantis.com/install.ps1
+    channel: stable
+    prune: true
   mke:
     version: ${var.launchpad.mke_version}
     imageRepo: docker.io/mirantis
@@ -163,13 +170,6 @@ spec:
     upgradeFlags:
     - "--force-recent-backup"
     - "--force-minimums"
-  mcr:
-    version: ${var.launchpad.mcr_version}
-    repoURL: https://repos.mirantis.com
-    installURLLinux: https://get.mirantis.com/
-    installURLWindows: https://get.mirantis.com/install.ps1
-    channel: stable
-    prune: true
 %{if local.has_msr}
   msr:
     version: ${var.launchpad.msr_version}

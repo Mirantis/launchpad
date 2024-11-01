@@ -32,11 +32,14 @@ var LAUNCHPAD = map[string]interface{}{
 
 // configure the network stack
 var NETWORK = map[string]interface{}{
-	"cidr":                 "172.31.0.0/16",
-	"public_subnet_count":  1,
-	"private_subnet_count": 0, // if 0 then no private nodegroups allowed
-	"enable_vpn_gateway":   false,
-	"enable_nat_gateway":   false,
+	"cidr": "172.31.0.0/16",
+}
+var SUBNETS = map[string]interface{}{
+	"main": map[string]interface{}{
+		"cidr":       "172.31.0.0/17",
+		"private":    false,
+		"nodegroups": []string{"MngrUbuntu22", "MngrRocky9", "MngrSles15", "MngrCentos7", "MngrRhel9", "WrkUbuntu22", "WrkRocky9", "WrkSles15", "WrkCentos7", "WrkRhel9"},
+	},
 }
 
 // TestSmallCluster deploys a small test cluster
@@ -67,6 +70,7 @@ func TestSmallCluster(t *testing.T) {
 			"aws":             AWS,
 			"launchpad":       LAUNCHPAD,
 			"network":         NETWORK,
+			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,
 			"nodegroups":      nodegroups,
 		},
@@ -131,6 +135,7 @@ func TestSupportedMatrixCluster(t *testing.T) {
 			"aws":             AWS,
 			"launchpad":       LAUNCHPAD,
 			"network":         NETWORK,
+			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,
 			"nodegroups":      nodegroups,
 		},

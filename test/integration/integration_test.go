@@ -28,19 +28,22 @@ var MKE_CONNECT = map[string]interface{}{
 
 var LAUNCHPAD = map[string]interface{}{
 	"drain":       false,
-	"mcr_version": "23.0.9",
-	"mke_version": "3.7.5",
+	"mcr_version": "23.0.15",
+	"mke_version": "3.7.15",
 	"msr_version": "",
 	"mke_connect": MKE_CONNECT,
 }
 
 // configure the network stack
 var NETWORK = map[string]interface{}{
-	"cidr":                 "172.31.0.0/16",
-	"public_subnet_count":  1,
-	"private_subnet_count": 0, // if 0 then no private nodegroups allowed
-	"enable_vpn_gateway":   false,
-	"enable_nat_gateway":   false,
+	"cidr": "172.31.0.0/16",
+}
+var SUBNETS = map[string]interface{}{
+	"main": map[string]interface{}{
+		"cidr":       "172.31.0.0/17",
+		"private":    false,
+		"nodegroups": []string{"MngrUbuntu22", "WrkRhel9"},
+	},
 }
 
 // TestMain function to control the test execution
@@ -59,9 +62,7 @@ func TestMain(m *testing.M) {
 
 	name := fmt.Sprintf("smoke-%s", uTestId)
 
-	rndPassword := test.GenerateRandomAlphaNumericString(12)
-
-	MKE_CONNECT["password"] = rndPassword
+	MKE_CONNECT["password"] = test.GenerateRandomAlphaNumericString(12)
 
 	options := terraform.Options{
 		// The path to where the Terraform tf chart is located
@@ -71,6 +72,7 @@ func TestMain(m *testing.M) {
 			"aws":             AWS,
 			"launchpad":       LAUNCHPAD,
 			"network":         NETWORK,
+			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,
 			"nodegroups":      nodegroups,
 		},
