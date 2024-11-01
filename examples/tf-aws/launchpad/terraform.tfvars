@@ -62,4 +62,4 @@ nodegroups = {
 }
 
 // set a windows password, if you have windows nodes
-windows_password = "testp@ss!"
+# windows_password = "testp@ss!"
