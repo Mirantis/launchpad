@@ -1,5 +1,5 @@
 // used to name infrastructure (CHANGE THIS)
-#name = "mcc-smoke-test"
+name = "mcc-smoke-test"
 aws = {
   region = "us-east-1"
 }
