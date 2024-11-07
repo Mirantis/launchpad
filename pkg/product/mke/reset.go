@@ -13,6 +13,7 @@ func (p *MKE) Reset() error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 
 	phaseManager.AddPhases(
+		&mke.OverrideHostSudo{},
 		&common.Connect{},
 		&mke.DetectOS{},
 		&mke.GatherFacts{},
