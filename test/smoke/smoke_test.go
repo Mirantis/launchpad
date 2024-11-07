@@ -38,7 +38,7 @@ var SUBNETS = map[string]interface{}{
 	"main": map[string]interface{}{
 		"cidr":       "172.31.0.0/17",
 		"private":    false,
-		"nodegroups": []string{"MngrUbuntu22", "MngrRocky9", "MngrSles15", "MngrCentos7", "MngrRhel9", "WrkUbuntu22", "WrkRocky9", "WrkSles15", "WrkCentos7", "WrkRhel9"},
+		"nodegroups": []string{"MngrUbuntu22", "MngrUbuntu20", "MngrRocky9", "MngrRocky8", "MngrSles15", "MngrRhel9", "MngrRhel8", "WrkUbuntu22", "WrkUbuntu20", "WrkRocky9", "WrkRocky8", "WrkSles15", "WrkRhel9", "WrkRhel8"},
 	},
 }
 
@@ -104,16 +104,20 @@ func TestSupportedMatrixCluster(t *testing.T) {
 
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
+		"MngrUbuntu20": test.Platforms["Ubuntu20"].GetManager(),
 		"MngrRocky9":   test.Platforms["Rocky9"].GetManager(),
-		"MngrSles15":   test.Platforms["Sles15"].GetManager(),
-		"MngrCentos7":  test.Platforms["Centos7"].GetManager(),
+		"MngrRocky8":   test.Platforms["Rocky8"].GetManager(),
 		"MngrRhel9":    test.Platforms["Rhel9"].GetManager(),
+		"MngrRhel8":    test.Platforms["Rhel8"].GetManager(),
+		"MngrSles15":   test.Platforms["Sles15"].GetManager(),
 
 		"WrkUbuntu22": test.Platforms["Ubuntu22"].GetWorker(),
+		"WrkUbuntu20": test.Platforms["Ubuntu20"].GetWorker(),
 		"WrkRocky9":   test.Platforms["Rocky9"].GetWorker(),
-		"WrkSles15":   test.Platforms["Sles15"].GetWorker(),
-		"WrkCentos7":  test.Platforms["Centos7"].GetWorker(),
+		"WrkRocky8":   test.Platforms["Rocky8"].GetWorker(),
 		"WrkRhel9":    test.Platforms["Rhel9"].GetWorker(),
+		"WrkRhel8":    test.Platforms["Rhel8"].GetWorker(),
+		"WrkSles15":   test.Platforms["Sles15"].GetWorker(),
 	}
 
 	uTestId := test.GenerateRandomAlphaNumericString(5)
