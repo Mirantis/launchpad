@@ -18,6 +18,7 @@ func (p *MKE) ClientConfig() error {
 
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.AddPhases(
+		&de.OverrideHostSudo{},
 		&common.Connect{},
 		&de.DetectOS{},
 		&de.GatherFacts{},

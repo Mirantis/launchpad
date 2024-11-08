@@ -78,6 +78,7 @@ type Host struct {
 	Hooks            common.Hooks      `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
 	ImageDir         string            `yaml:"imageDir,omitempty"`
 	SudoDocker       bool              `yaml:"sudodocker"`
+	SudoOverride     bool              `yaml:"sudooverride"` // some customers can't allow the default rig connection sudo detection
 
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
