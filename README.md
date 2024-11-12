@@ -6,7 +6,7 @@ Launchpad can also provide full cluster lifecycle management. Multi-manager, hig
 
 ## Documentation
 
-Launchpad documentation can be browsed on the [Mirantis Documentation site](https://docs.mirantis.com/mke/3.4/launchpad.html).
+Launchpad documentation can be browsed on the [Mirantis Documentation site](https://docs.mirantis.com/mke/3.7/launchpad.html).
 
 ## Example
 
@@ -28,7 +28,7 @@ spec:
         address: 10.0.0.2
         user: ubuntu
   mke:
-    version: 3.3.7
+    version: 3.7.7
 ```
 
 Installing a cluster:
