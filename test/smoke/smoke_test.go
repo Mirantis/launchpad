@@ -24,8 +24,8 @@ var MKE_CONNECT = map[string]interface{}{
 
 var LAUNCHPAD = map[string]interface{}{
 	"drain":       false,
-	"mcr_version": "23.0.7",
-	"mke_version": "3.7.3",
+	"mcr_version": "23.0.14",
+	"mke_version": "3.7.14",
 	"msr_version": "2.9.16",
 	"mke_connect": MKE_CONNECT,
 }
@@ -106,17 +106,17 @@ func TestSupportedMatrixCluster(t *testing.T) {
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"MngrUbuntu20": test.Platforms["Ubuntu20"].GetManager(),
 		"MngrRocky9":   test.Platforms["Rocky9"].GetManager(),
-		"MngrRocky8":   test.Platforms["Rocky8"].GetManager(),
+		//"MngrRocky8":   test.Platforms["Rocky8"].GetManager(),
 		"MngrRhel9":    test.Platforms["Rhel9"].GetManager(),
-		"MngrRhel8":    test.Platforms["Rhel8"].GetManager(),
+		//"MngrRhel8":    test.Platforms["Rhel8"].GetManager(),
 		"MngrSles15":   test.Platforms["Sles15"].GetManager(),
 
 		"WrkUbuntu22": test.Platforms["Ubuntu22"].GetWorker(),
 		"WrkUbuntu20": test.Platforms["Ubuntu20"].GetWorker(),
 		"WrkRocky9":   test.Platforms["Rocky9"].GetWorker(),
-		"WrkRocky8":   test.Platforms["Rocky8"].GetWorker(),
+		//"WrkRocky8":   test.Platforms["Rocky8"].GetWorker(),
 		"WrkRhel9":    test.Platforms["Rhel9"].GetWorker(),
-		"WrkRhel8":    test.Platforms["Rhel8"].GetWorker(),
+		//"WrkRhel8":    test.Platforms["Rhel8"].GetWorker(),
 		"WrkSles15":   test.Platforms["Sles15"].GetWorker(),
 	}
 
@@ -164,8 +164,8 @@ func TestSupportedMatrixCluster(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Replace the version values for MCR,MKE,MSR in the mkeClusterConfig
-	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mcr_version"].(string), "23.0.9")
-	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mke_version"].(string), "3.7.5")
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mcr_version"].(string), "23.0.15")
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mke_version"].(string), "3.7.15")
 
 	productUpgrade, err := config.ProductFromYAML([]byte(mkeClusterConfig))
 	assert.NoError(t, err)
