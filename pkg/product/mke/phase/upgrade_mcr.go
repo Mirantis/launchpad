@@ -163,7 +163,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 }
 
 func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
-	err := retry.Do(
+	if err := retry.Do(
 		func() error {
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
 			if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
@@ -171,18 +171,15 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 			}
 			return nil
 		},
-	)
-	if err != nil {
+	); err != nil {
 		log.Errorf("%s: failed to update container runtime -> %s", h, err.Error())
 		return fmt.Errorf("retry count exceeded: %w", err)
 	}
-	err = mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version)
-	if err != nil {
+
+	// check MCR is running, and updating metadata
+	if err := mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version, false); err != nil {
 		return fmt.Errorf("failed while attempting to ensure the installed version: %w", err)
 	}
 
-	log.Infof("%s: upgraded to mirantis container runtime version %s", h, p.Config.Spec.MCR.Version)
-	h.Metadata.MCRVersion = p.Config.Spec.MCR.Version
-	h.Metadata.MCRRestartRequired = false
 	return nil
 }

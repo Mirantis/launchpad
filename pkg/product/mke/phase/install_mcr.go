@@ -53,7 +53,7 @@ func (p *InstallMCR) Run() error {
 }
 
 func (p *InstallMCR) installMCR(h *api.Host) error {
-	err := retry.Do(
+	if err := retry.Do(
 		func() error {
 			log.Infof("%s: installing container runtime (%s)", h, p.Config.Spec.MCR.Version)
 			if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
@@ -62,22 +62,19 @@ func (p *InstallMCR) installMCR(h *api.Host) error {
 			}
 			return nil
 		},
-	)
-	if err != nil {
+	); err != nil {
 		return fmt.Errorf("retry count exceeded: %w", err)
 	}
 
 	if err := h.AuthorizeDocker(); err != nil {
 		return fmt.Errorf("%s: failed to authorize docker: %w", h, err)
 	}
-	err = mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version)
-	if err != nil {
+
+	// check MCR is running, maybe rebooting and updating metadata (don't bother restarting MCR, as we just installed/started it
+	if err := mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version, false); err != nil {
 		return fmt.Errorf("failed while attempting to ensure the installed version %w", err)
 	}
 
-	log.Infof("%s: mirantis container runtime version %s installed", h, p.Config.Spec.MCR.Version)
-	h.Metadata.MCRVersion = p.Config.Spec.MCR.Version
-	h.Metadata.MCRRestartRequired = false
 	h.Metadata.MCRInstalled = true
 	return nil
 }
