@@ -20,7 +20,7 @@ type Configurer struct {
 
 // InstallMKEBasePackages install all the needed base packages on the host.
 func (c Configurer) InstallMKEBasePackages(h os.Host) error {
-	if err := c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip"); err != nil {
+	if err := c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip", "openssh"); err != nil {
 		return fmt.Errorf("failed to install base packages: %w", err)
 	}
 	return nil
