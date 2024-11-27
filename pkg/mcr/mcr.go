@@ -3,11 +3,14 @@ package mcr
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/constant"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	log "github.com/sirupsen/logrus"
 )
 
-func EnsureMCRVersion(h *api.Host, specMcrVersion string) error {
+// EnsureMCRVersion ensure that MCR is running after install/upgrade, and update the host information
+// @NOTE will reboot the machine if MCR isn't detected, and MCR can be force restarted if desired (I could drop the mcr restart, but I kept it in case we want a run-time flag for it.)
+// @SEE PRODENG-2789 : we no longer perform version checks, as the MCR versions don't always match the spec string.
+func EnsureMCRVersion(h *api.Host, specMcrVersion string, forceMCRRestart bool) error {
 	currentVersion, err := h.MCRVersion()
 	if err != nil {
 		if err := h.Reboot(); err != nil {
@@ -17,8 +20,7 @@ func EnsureMCRVersion(h *api.Host, specMcrVersion string) error {
 		if err != nil {
 			return fmt.Errorf("%s: failed to query container runtime version after installation: %w", h, err)
 		}
-	}
-	if currentVersion != specMcrVersion {
+	} else if !forceMCRRestart {
 		err = h.Configurer.RestartMCR(h)
 		if err != nil {
 			return fmt.Errorf("%s: failed to restart container runtime: %w", h, err)
@@ -28,8 +30,10 @@ func EnsureMCRVersion(h *api.Host, specMcrVersion string) error {
 			return fmt.Errorf("%s: failed to query container runtime version after restart: %w", h, err)
 		}
 	}
-	if currentVersion != specMcrVersion {
-		return fmt.Errorf("%s: %w: container runtime version not %s after upgrade", h, constant.ErrVersionMismatch, specMcrVersion)
-	}
+
+	log.Infof("%s: MCR version %s (requested: %s)", h, currentVersion, specMcrVersion)
+	h.Metadata.MCRVersion = currentVersion
+	h.Metadata.MCRRestartRequired = false
+
 	return nil
 }

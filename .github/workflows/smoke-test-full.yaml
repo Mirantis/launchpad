@@ -3,8 +3,7 @@ name: Smoke Full Test
 on: 
   push:
     branches:
-      - master
-      - v1.5.9-release-branch
+      - main
     paths:
       - '**.go'
       - '**.tf'
