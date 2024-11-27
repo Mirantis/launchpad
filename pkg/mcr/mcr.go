@@ -31,7 +31,7 @@ func EnsureMCRVersion(h *api.Host, specMcrVersion string, forceMCRRestart bool) 
 		}
 	}
 
-	log.Infof("%s: mirantis container runtime version %s (requested:%s)", h, currentVersion, specMcrVersion)
+	log.Infof("%s: MCR version %s (requested: %s)", h, currentVersion, specMcrVersion)
 	h.Metadata.MCRVersion = currentVersion
 	h.Metadata.MCRRestartRequired = false
 
