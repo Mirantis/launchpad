@@ -14,7 +14,7 @@ launchpad = {
 
   mke_connect = {
     username = "admin"
-    password = "m!rantis2024"
+    password = ""      // an MKE passwords must be provided
     insecure = false
   }
 }
@@ -63,4 +63,6 @@ nodegroups = {
 }
 
 // set a windows password, if you have windows nodes
-# windows_password = "testp@ss!"
+// windows passwords must match a pattern, or connections will fail.
+// use something like: `testp@ss!`
+# windows_password = ""
