@@ -66,7 +66,7 @@ func TestMain(m *testing.M) {
 
 	options := terraform.Options{
 		// The path to where the Terraform tf chart is located
-		TerraformDir: "../../examples/tf-aws/launchpad",
+		TerraformDir: "../../examples/terraform/aws-simple",
 		Vars: map[string]interface{}{
 			"name":            name,
 			"aws":             AWS,
