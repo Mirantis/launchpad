@@ -13,12 +13,8 @@ import (
 	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
 
-const (
-	// ProdSegmentToken is the API token we use for Segment in production.
-	ProdSegmentToken = "FlDwKhRvN6ts7GMZEgoCEghffy9HXu8Z" //nolint:gosec // intentionally public
-	// DevSegmentToken is the API token we use for Segment in development.
-	DevSegmentToken = "DLJn53HXEhUHZ4fPO45MMUhvbHRcfkLE" //nolint:gosec // intentionally public
-)
+// SegmentToken is the API token we use for Segment. Set at compile time.
+var SegmentToken = ""
 
 // Analytics is the interface used for our analytics client.
 type Analytics interface {
@@ -36,11 +32,12 @@ type Client struct {
 var defaultClient Client
 
 func init() {
-	segmentToken := DevSegmentToken
-	if version.IsProduction() {
-		segmentToken = ProdSegmentToken
+	if SegmentToken == "" {
+		defaultClient = Client{IsEnabled: false}
+		return
 	}
-	ac, err := NewSegmentClient(segmentToken)
+
+	ac, err := NewSegmentClient(SegmentToken)
 	if err != nil {
 		log.Warnf("failed to initialize analytics: %v", err)
 		return
@@ -68,7 +65,6 @@ func NewSegmentClient(segmentToken string) (Analytics, error) { //nolint:ireturn
 // is enabled.
 func (c *Client) TrackEvent(event string, properties analytics.Properties) error {
 	if !c.IsEnabled {
-		log.Debugf("analytics disabled, not tracking event '%s'", event)
 		return nil
 	}
 
@@ -95,7 +91,6 @@ func (c *Client) TrackEvent(event string, properties analytics.Properties) error
 // is enabled.
 func (c *Client) IdentifyUser(userConfig *user.Config) error {
 	if !c.IsEnabled {
-		log.Debug("analytics disabled, not identifying user")
 		return nil
 	}
 	msg := analytics.Identify{
