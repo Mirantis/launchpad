@@ -8,13 +8,13 @@ aws = {
 launchpad = {
   drain = false
 
-  mcr_version = "23.0"
-  mke_version = "3.7.3"
+  mcr_version = "23.0.15"
+  mke_version = "3.7.15"
   msr_version = ""
 
   mke_connect = {
     username = "admin"
-    password = ""
+    password = ""      // an MKE passwords must be provided
     insecure = false
   }
 
@@ -52,4 +52,6 @@ nodegroups = {
 }
 
 // set a windows password, if you have windows nodes
+// windows passwords must match a pattern, or connections will fail.
+// use something like: `testp@ss!`
 // windows_password = ""
