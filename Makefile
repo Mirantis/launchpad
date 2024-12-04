@@ -37,9 +37,10 @@ $(RELEASE_FOLDER):
 
 .PHONY: create-checksum
 create-checksum:
-	for f in $(RELEASE_FOLDER)/*; do \
-		$(CHECKSUM) $$f > $$f.sha256; \
-	done
+	cd $(RELEASE_FOLDER) && \
+    for f in ./*; do \
+        $(CHECKSUM) $$f > $$f.sha256; \
+    done
 
 .PHONY: verify-checksum
 verify-checksum:
