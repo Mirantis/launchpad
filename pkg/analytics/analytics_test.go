@@ -83,6 +83,9 @@ func TestIdentifyAnalyticsUser(t *testing.T) {
 }
 
 func TestDefaultClient(t *testing.T) {
+	sc, _ := NewSegmentClient("AAAAAAAAA")
+	defaultClient.AnalyticsClient = sc
+
 	userConfig := user.Config{
 		Name:    "John Doe",
 		Email:   "john.doe@example.org",
@@ -102,6 +105,7 @@ func TestDefaultClient(t *testing.T) {
 	t.Run("Analytics enabled", func(t *testing.T) {
 		old := defaultClient.IsEnabled
 		Enabled(true)
+
 		defer Enabled(old)
 
 		TrackEvent("foobar", nil)
