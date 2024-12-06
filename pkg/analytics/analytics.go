@@ -36,7 +36,6 @@ func init() {
 		defaultClient = Client{IsEnabled: false}
 		return
 	}
-
 	ac, err := NewSegmentClient(SegmentToken)
 	if err != nil {
 		log.Warnf("failed to initialize analytics: %v", err)
