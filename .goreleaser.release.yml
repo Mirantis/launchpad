@@ -18,6 +18,8 @@ builds:
     ldflags:
       - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
       - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
+      # if segment analytics is to be active, set an env variable for the token
+      - -X github.com/Mirantis/mcc/pkg/analytics.SegmentToken={{ .Env.SEGMENT_TOKEN }}
     goos:
       - linux
       - darwin
