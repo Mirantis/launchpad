@@ -1,3 +1,4 @@
+
 GO=$(shell which go)
 
 RELEASE_FOLDER=dist/release
@@ -8,6 +9,8 @@ VOLUME_MOUNTS=-v "$(CURDIR):/v"
 SIGN?=docker run --rm -i $(VOLUME_MOUNTS) -e SM_API_KEY -e SM_CLIENT_CERT_PASSWORD -e SM_CLIENT_CERT_FILE -v "$(SM_CLIENT_CERT_FILE):$(SM_CLIENT_CERT_FILE)" -w "/v" registry.mirantis.com/prodeng/digicert-keytools-jsign:latest sign
 
 GOLANGCI_LINT?=docker run -t --rm -v "$(CURDIR):/data" -w "/data" golangci/golangci-lint:latest golangci-lint
+
+SEGMENT_TOKEN?=""
 
 .PHONY: clean
 clean:
@@ -59,7 +62,7 @@ clean-release:
 # and alias it.
 .PHONY: local
 local:
-	goreleaser build --clean --single-target --skip=validate --snapshot --config .goreleaser.local.yml
+	SEGMENT_TOKEN=${SEGMENT_TOKEN} goreleaser build --clean --single-target --skip=validate --snapshot --config .goreleaser.local.yml
 
 # run linting
 .PHONY: lint
