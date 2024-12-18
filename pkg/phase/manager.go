@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
@@ -85,8 +84,7 @@ func (m *Manager) Run() error {
 			}
 		}
 
-		text := aurora.Green("==> Running phase: %s").String()
-		log.Infof(text, title)
+		log.Infof("Running phase: %s", title)
 		start := time.Now()
 
 		result := phase.Run()

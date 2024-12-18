@@ -16,7 +16,6 @@ require (
 	github.com/k0sproject/dig v0.3.1
 	github.com/k0sproject/rig v0.19.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mitchellh/go-homedir v1.1.0
