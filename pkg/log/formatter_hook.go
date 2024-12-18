@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -47,7 +46,7 @@ func (hook *FormatterWriterHook) Levels() []log.Level {
 func NewStdoutHook() *FormatterWriterHook {
 	stdoutHook := &FormatterWriterHook{
 		Writer:    os.Stdout,
-		Formatter: &log.TextFormatter{DisableTimestamp: true, ForceColors: runtime.GOOS != "windows"},
+		Formatter: &log.TextFormatter{DisableTimestamp: false, ForceColors: false, DisableColors: true},
 		LogLevels: []log.Level{
 			log.InfoLevel,
 			log.PanicLevel,
