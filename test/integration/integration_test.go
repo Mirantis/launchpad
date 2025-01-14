@@ -34,47 +34,26 @@ var LAUNCHPAD = map[string]interface{}{
 	"mke_connect": MKE_CONNECT,
 }
 
-// configure the network stack
-var NETWORK = map[string]interface{}{
-	"cidr": "172.31.0.0/16",
-}
-var SUBNETS = map[string]interface{}{
-	"main": map[string]interface{}{
-		"cidr":       "172.31.0.0/17",
-		"private":    false,
-		"nodegroups": []string{"MngrUbuntu22", "WrkRhel9"},
-	},
-}
-
 // TestMain function to control the test execution
 func TestMain(m *testing.M) {
 	t := &testing.T{}
+	log.Println("TestMKEClientConfig")
+
+	name := fmt.Sprintf("integration-%s", test.GenerateRandomAlphaNumericString(5))
+	MKE_CONNECT["password"] = test.GenerateRandomAlphaNumericString(12)
+
 	// Create a temporary directory to store Terraform files
 	tempSSHKeyPathDir := t.TempDir()
-
-	log.Println("TestMKEClientConfig")
-	nodegroups := map[string]interface{}{
-		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
-		"WrkRhel9":     test.Platforms["Ubuntu22"].GetWorker(),
-	}
-
-	uTestId := test.GenerateRandomAlphaNumericString(5)
-
-	name := fmt.Sprintf("smoke-%s", uTestId)
-
-	MKE_CONNECT["password"] = test.GenerateRandomAlphaNumericString(12)
 
 	options := terraform.Options{
 		// The path to where the Terraform tf chart is located
 		TerraformDir: "../../examples/terraform/aws-simple",
+		VarFiles:     []string{"smoke-small.tfvars"},
 		Vars: map[string]interface{}{
 			"name":            name,
 			"aws":             AWS,
 			"launchpad":       LAUNCHPAD,
-			"network":         NETWORK,
-			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,
-			"nodegroups":      nodegroups,
 		},
 	}
 
@@ -94,6 +73,8 @@ func TestMain(m *testing.M) {
 	// Exit with the status code of the test run
 	os.Exit(code)
 }
+
+// Tests below will run in the scope of the above TestMain cluster
 
 func TestMKEClientConfig(t *testing.T) {
 	sp := test.GetInstance()

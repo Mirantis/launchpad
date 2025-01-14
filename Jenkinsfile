@@ -66,13 +66,17 @@ spec:
     stage('Release') {
       steps {
         container("goreleaser") {
-          sh (
-            label: "build clean release",
-            script: """
-              git checkout \$(git rev-parse --verify ${params.TAG_NAME})
-              GORELEASER_CURRENT_TAG=${params.TAG_NAME} make build-release
-            """
-          )
+          withCredentials([
+            string(credentialsId: 'common-segmentio--api-token--secret-text', variable: 'SEGMENT_TOKEN'),
+          ]) {
+            sh (
+              label: "build clean release",
+              script: """
+                git checkout \$(git rev-parse --verify ${params.TAG_NAME})
+                GORELEASER_CURRENT_TAG=${params.TAG_NAME}} make build-release
+              """
+            )
+          }
         }
         container("digicert") {
           withCredentials([
