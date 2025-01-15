@@ -44,31 +44,4 @@ do
     --file "${artifact_path}/${artifact}"
 done
 
-if [ -z "$releaseopt" ]; then
-  echo "Creating release named ${TAG_NAME} in Launchpad repo"
-
-  # Release to the public repo
-  ./github-release release \
-    $releaseopt \
-    --draft \
-    --user Mirantis \
-    --repo launchpad \
-    --tag "${TAG_NAME}" \
-    --name "${TAG_NAME}"
-
-  sleep 10
-
-  echo "Uploading the artifacts to ${TAG_NAME} in Launchpad repo"
-
-  for artifact in ${artifacts}
-  do
-    ./github-release upload \
-      --user Mirantis \
-      --repo launchpad \
-      --tag "${TAG_NAME}" \
-      --name "${artifact}" \
-      --file "${artifact_path}/${artifact}"
-  done
-fi
-
 rm ./github-release
