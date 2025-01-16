@@ -10,6 +10,7 @@ on:
       - '.terraform.lock.hcl'
       - go.mod
       - go.sum
+      - examples/terraform/aws-complete/**
 
 jobs:
     smoke-full:
