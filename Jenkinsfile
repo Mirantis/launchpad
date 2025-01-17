@@ -1,17 +1,3 @@
-release_creds = [
-  [
-    $class: 'AmazonWebServicesCredentialsBinding',
-    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
-    credentialsId: 'tools-aws-de-production-access-keys',
-  ],
-  usernamePassword(
-    usernameVariable: 'GITHUB_USERNAME',
-    passwordVariable: 'GITHUB_TOKEN',
-    credentialsId   : 'tools-github-up',
-  ),
-]
-
 pipeline {
   parameters {
     string(
@@ -66,13 +52,17 @@ spec:
     stage('Release') {
       steps {
         container("goreleaser") {
-          sh (
-            label: "build clean release",
-            script: """
-              git checkout \$(git rev-parse --verify ${params.TAG_NAME})
-              GORELEASER_CURRENT_TAG=${params.TAG_NAME} make build-release
-            """
-          )
+          withCredentials([
+            string(credentialsId: 'tools-segment--launchpad-production-token--secret-text', variable: 'SEGMENT_TOKEN'),
+          ]) {
+            sh (
+              label: "build clean release",
+              script: """
+                git checkout \$(git rev-parse --verify ${params.TAG_NAME})
+                GORELEASER_CURRENT_TAG=${params.TAG_NAME} SEGMENT_TOKEN=${env.SEGMENT_TOKEN} make build-release
+              """
+            )
+          }
         }
         container("digicert") {
           withCredentials([
@@ -89,7 +79,19 @@ spec:
           }
         }
         container("jnlp") {
-          withCredentials(release_creds) {
+          withCredentials([
+            [
+              $class: 'AmazonWebServicesCredentialsBinding',
+              accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+              secretKeyVariable: 'AWS_SECRET_ACCESS_KEY',
+              credentialsId: 'tools-aws-de-production-access-keys',
+            ],
+            usernamePassword(
+              usernameVariable: 'GITHUB_USERNAME',
+              passwordVariable: 'GITHUB_TOKEN',
+              credentialsId   : 'tools-github-up',
+            ),
+          ]) {
             sh (
               label: "creating release",
               script: """
