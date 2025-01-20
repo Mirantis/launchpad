@@ -107,17 +107,17 @@ func TestSupportedMatrixCluster(t *testing.T) {
 		"MngrUbuntu20": test.Platforms["Ubuntu20"].GetManager(),
 		"MngrRocky9":   test.Platforms["Rocky9"].GetManager(),
 		//"MngrRocky8":   test.Platforms["Rocky8"].GetManager(),
-		"MngrRhel9":    test.Platforms["Rhel9"].GetManager(),
+		"MngrRhel9": test.Platforms["Rhel9"].GetManager(),
 		//"MngrRhel8":    test.Platforms["Rhel8"].GetManager(),
-		"MngrSles15":   test.Platforms["Sles15"].GetManager(),
+		"MngrSles15": test.Platforms["Sles15"].GetManager(),
 
 		"WrkUbuntu22": test.Platforms["Ubuntu22"].GetWorker(),
 		"WrkUbuntu20": test.Platforms["Ubuntu20"].GetWorker(),
 		"WrkRocky9":   test.Platforms["Rocky9"].GetWorker(),
 		//"WrkRocky8":   test.Platforms["Rocky8"].GetWorker(),
-		"WrkRhel9":    test.Platforms["Rhel9"].GetWorker(),
+		"WrkRhel9": test.Platforms["Rhel9"].GetWorker(),
 		//"WrkRhel8":    test.Platforms["Rhel8"].GetWorker(),
-		"WrkSles15":   test.Platforms["Sles15"].GetWorker(),
+		"WrkSles15": test.Platforms["Sles15"].GetWorker(),
 	}
 
 	uTestId := test.GenerateRandomAlphaNumericString(5)
