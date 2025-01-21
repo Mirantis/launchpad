@@ -3,6 +3,7 @@ package phase
 import (
 	"fmt"
 
+	"github.com/Mirantis/mcc/pkg/mcr"
 	"github.com/Mirantis/mcc/pkg/phase"
 	"github.com/Mirantis/mcc/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
@@ -27,10 +28,23 @@ func (p *UninstallMCR) Run() error {
 	return nil
 }
 
-func (p *UninstallMCR) uninstallMCR(h *api.Host, c *api.ClusterConfig) error {
+func (p *UninstallMCR) uninstallMCR(h *api.Host, config *api.ClusterConfig) error {
 	log.Infof("%s: uninstalling container runtime", h)
 
-	if err := h.Configurer.UninstallMCR(h, h.Metadata.MCRInstallScript, c.Spec.MCR); err != nil {
+	leader := config.Spec.SwarmLeader()
+
+	if err := mcr.DrainNode(leader, h); err != nil {
+		return fmt.Errorf("%s: drain node: %w", h, err)
+	}
+
+	uVolumeCmd := h.Configurer.DockerCommandf("volume prune -f")
+	log.Infof("%s: unmounted dangling volumes", h)
+
+	if err := h.Exec(uVolumeCmd); err != nil {
+		return fmt.Errorf("%s: failed to unmount dangling volumes: %w", h, err)
+	}
+
+	if err := h.Configurer.UninstallMCR(h, h.Metadata.MCRInstallScript, config.Spec.MCR); err != nil {
 		return fmt.Errorf("%s: uninstall container runtime: %w", h, err)
 	}
 
