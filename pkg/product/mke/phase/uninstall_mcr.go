@@ -22,6 +22,32 @@ func (p *UninstallMCR) Title() string {
 
 // Run installs the engine on each host.
 func (p *UninstallMCR) Run() error {
+	workers := p.Config.Spec.Workers()
+	managers := p.Config.Spec.Managers()
+	swarmLeader := p.Config.Spec.SwarmLeader()
+
+	// Drain all workers
+	for _, h := range workers {
+		if err := mcr.DrainNode(swarmLeader, h); err != nil {
+			return fmt.Errorf("%s: drain worker node: %w", h, err)
+		}
+	}
+
+	// Drain all managers
+	for _, h := range managers {
+		if swarmLeader.Address() == h.Address() {
+			continue
+		}
+		if err := mcr.DrainNode(swarmLeader, h); err != nil {
+			return fmt.Errorf("%s: draining manager node: %w", h, err)
+		}
+	}
+
+	// Drain the leader
+	if err := mcr.DrainNode(swarmLeader, swarmLeader); err != nil {
+		return fmt.Errorf("%s: drain leader node: %w", swarmLeader, err)
+	}
+
 	if err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, p.uninstallMCR); err != nil {
 		return fmt.Errorf("uninstall container runtime: %w", err)
 	}
@@ -30,12 +56,6 @@ func (p *UninstallMCR) Run() error {
 
 func (p *UninstallMCR) uninstallMCR(h *api.Host, config *api.ClusterConfig) error {
 	log.Infof("%s: uninstalling container runtime", h)
-
-	leader := config.Spec.SwarmLeader()
-
-	if err := mcr.DrainNode(leader, h); err != nil {
-		return fmt.Errorf("%s: drain node: %w", h, err)
-	}
 
 	uVolumeCmd := h.Configurer.DockerCommandf("volume prune -f")
 	log.Infof("%s: unmounted dangling volumes", h)

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Mirantis/mcc/pkg/constant"
 	common "github.com/Mirantis/mcc/pkg/product/common/api"
@@ -267,7 +268,10 @@ func pingHost(h *Host, address string, waitgroup *sync.WaitGroup, errCh chan<- e
 			}
 			return nil
 		},
-		retry.Attempts(12), // last attempt should wait ~7min
+		retry.MaxJitter(time.Second*3),
+		retry.Delay(time.Second*30),
+		retry.DelayType(retry.FixedDelay),
+		retry.Attempts(10), // should try for ~5min
 	)
 	if err != nil {
 		errCh <- fmt.Errorf("MKE health check failed: %w", err)
