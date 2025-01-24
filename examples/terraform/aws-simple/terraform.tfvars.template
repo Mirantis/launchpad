@@ -1,8 +1,8 @@
 // used to name infrastructure (CHANGE THIS)
-name = "mcc-smoke-test"
+//name = "test"
 
 aws = {
-  region = "us-east-1"
+  region = "us-east-2"
 }
 
 launchpad = {
@@ -14,55 +14,50 @@ launchpad = {
 
   mke_connect = {
     username = "admin"
-    password = ""      // an MKE passwords must be provided
+    password = "" // an MKE passwords must be provided
     insecure = false
   }
+
+  skip_create  = false
+  skip_destroy = true // don't bother running launchpad reset
 }
 
 // configure the network stack
 network = {
-  cidr = "172.31.0.0/16"
+  cidr                 = "172.31.0.0/16"
+  public_subnet_count  = 1
+  private_subnet_count = 0 // if 0 then no private nodegroups allowed
 }
+
+// configure the subnets in the vpc
 subnets = {
-  "Main" = {
-    cidr       = "172.31.0.0/17"
-    nodegroups = ["ACon", "AWrk_Ubu22", "AWrk_Roc9", "AWrk_Win2022"]
-    private    = false
-  }
+   "main" = {
+        "cidr" = "172.31.0.0/17", "private" = false, "nodegroups" = ["MngrUbuntu22",  "WrkUbuntu22"]
+    }
 }
 
-
-// machine node groups by role & platform
+// one definition for each group of machines to include in the stack
 nodegroups = {
-  "ACon" = { // managers for A group
-    role     = "manager"
-    platform = "ubuntu_22.04"
-    count    = 1
-    type     = "m6a.2xlarge"
-  },
-  "AWrk_Ubu22" = { // workers for A group
-    role        = "worker"
-    platform    = "ubuntu_22.04"
-    count       = 1
-    type        = "c6a.xlarge"
-    volume_size = 100
-  },
-  "AWrk_Roc9" = { // workers for A group
-    role        = "worker"
-    platform    = "rocky_9"
-    count       = 1
-    type        = "c6a.xlarge"
-    volume_size = 100
-  },
-  //  "AWrk_Win2022" = {
-  //    role        = "worker"
-  //    platform   = "windows_core_2022"
-  //    count       = 1
-  //    type        = "c6a.xlarge"
-  //  },
+    "MngrUbuntu22" = {
+        "platform" = "ubuntu_22.04",
+        "count" = 1,
+        "type" = "m6a.2xlarge",
+        "volume_size" = "100",
+        "public" = true,
+        "role" = "manager",
+        "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
+    },
+    "WrkUbuntu22" = {
+        "count" = 1,
+        "type" = "c6a.xlarge",
+        "volume_size" = "100",
+        "public" = true,
+        "role" = "worker",
+        "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp ", "platform" = "ubuntu_22.04"
+    }
 }
 
 // set a windows password, if you have windows nodes
 // windows passwords must match a pattern, or connections will fail.
 // use something like: `testp@ss!`
-# windows_password = ""
+// windows_password = ""
