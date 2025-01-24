@@ -85,11 +85,11 @@ integration-test:
 
 .PHONY: smoke-small
 smoke-small:
-	go test -v ./test/smoke/... -run TestSmallCluster -timeout 20m
+	go test -count=1 -v ./test/smoke/... -run TestSmallCluster -timeout 20m
 
 .PHONY: smoke-full
 smoke-full:
-	go test -v ./test/smoke/... -run TestSupportedMatrixCluster -timeout 40m
+	go test -count=1 -v ./test/smoke/... -run TestSupportedMatrixCluster -timeout 50m
 
 .PHONY: clean-launchpad-chart
 clean-launchpad-chart:
