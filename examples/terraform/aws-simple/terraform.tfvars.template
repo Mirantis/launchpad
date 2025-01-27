@@ -24,37 +24,41 @@ launchpad = {
 
 // configure the network stack
 network = {
-  cidr                 = "172.31.0.0/16"
-  public_subnet_count  = 1
-  private_subnet_count = 0 // if 0 then no private nodegroups allowed
+  "cidr": "172.31.0.0/16",
+  "enable_nat_gateway": false,
+  "enable_vpn_gateway": false,
+  "tags": {}
 }
 
 // configure the subnets in the vpc
 subnets = {
-   "main" = {
-        "cidr" = "172.31.0.0/17", "private" = false, "nodegroups" = ["MngrUbuntu22",  "WrkUbuntu22"]
-    }
+  "main" = {
+    "cidr" = "172.31.0.0/17",
+    "private" = false,
+    "nodegroups" = ["MngrUbuntu22",  "WrkUbuntu22"]
+  }
 }
 
 // one definition for each group of machines to include in the stack
 nodegroups = {
-    "MngrUbuntu22" = {
-        "platform" = "ubuntu_22.04",
-        "count" = 1,
-        "type" = "m6a.2xlarge",
-        "volume_size" = "100",
-        "public" = true,
-        "role" = "manager",
-        "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
-    },
-    "WrkUbuntu22" = {
-        "count" = 1,
-        "type" = "c6a.xlarge",
-        "volume_size" = "100",
-        "public" = true,
-        "role" = "worker",
-        "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp ", "platform" = "ubuntu_22.04"
-    }
+  "MngrUbuntu22" = {
+    "platform" = "ubuntu_22.04",
+    "count" = 1,
+    "type" = "m6a.2xlarge",
+    "volume_size" = "100",
+    "public" = true,
+    "role" = "manager",
+    "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
+  },
+  "WrkUbuntu22" = {
+    "platform" = "ubuntu_22.04",
+    "count" = 1,
+    "type" = "c6a.xlarge",
+    "volume_size" = "100",
+    "public" = true,
+    "role" = "worker",
+    "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
+  }
 }
 
 // set a windows password, if you have windows nodes
