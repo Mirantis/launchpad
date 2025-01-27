@@ -3,8 +3,8 @@ package ubuntu
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/configurer"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	github.com/Mirantis/launchpad/pkg/configurer"
+	common github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/linux"

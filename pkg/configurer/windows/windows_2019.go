@@ -1,7 +1,7 @@
 package windows
 
 import (
-	"github.com/Mirantis/mcc/pkg/configurer"
+	github.com/Mirantis/launchpad/pkg/configurer"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/registry"

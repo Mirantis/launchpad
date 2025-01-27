@@ -7,7 +7,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/constant"
+	github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"

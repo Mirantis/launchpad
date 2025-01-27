@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Mirantis/mcc/pkg/constant"
+	github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 	"helm.sh/helm/v3/pkg/action"

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/config"
+	github.com/Mirantis/launchpad/pkg/analytics"
+	github.com/Mirantis/launchpad/pkg/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"

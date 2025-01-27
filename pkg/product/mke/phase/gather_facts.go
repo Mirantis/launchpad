@@ -7,22 +7,22 @@ import (
 	"net"
 
 	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
+	_ github.com/Mirantis/launchpad/pkg/configurer/centos"
 	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	_ github.com/Mirantis/launchpad/pkg/configurer/enterpriselinux"
 	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
+	_ github.com/Mirantis/launchpad/pkg/configurer/oracle"
 	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
+	_ github.com/Mirantis/launchpad/pkg/configurer/sles"
 	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
+	_ github.com/Mirantis/launchpad/pkg/configurer/ubuntu"
 	// needed to load the build func in package init.
-	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
-	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/pkg/msr"
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/swarm"
+	_ github.com/Mirantis/launchpad/pkg/configurer/windows"
+	github.com/Mirantis/launchpad/pkg/mke"
+	github.com/Mirantis/launchpad/pkg/msr"
+	github.com/Mirantis/launchpad/pkg/phase"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/k0sproject/dig"
 	log "github.com/sirupsen/logrus"
 )

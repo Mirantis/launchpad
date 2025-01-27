@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/config"
+	github.com/Mirantis/launchpad/pkg/analytics"
+	github.com/Mirantis/launchpad/pkg/config"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v2"
 	event "gopkg.in/segmentio/analytics-go.v3"

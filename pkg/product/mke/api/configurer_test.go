@@ -3,13 +3,13 @@ package api
 import (
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/configurer/centos"
-	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
-	"github.com/Mirantis/mcc/pkg/configurer/mkex"
-	"github.com/Mirantis/mcc/pkg/configurer/oracle"
-	"github.com/Mirantis/mcc/pkg/configurer/sles"
-	"github.com/Mirantis/mcc/pkg/configurer/ubuntu"
-	"github.com/Mirantis/mcc/pkg/configurer/windows"
+	github.com/Mirantis/launchpad/pkg/configurer/centos"
+	github.com/Mirantis/launchpad/pkg/configurer/enterpriselinux"
+	github.com/Mirantis/launchpad/pkg/configurer/mkex"
+	github.com/Mirantis/launchpad/pkg/configurer/oracle"
+	github.com/Mirantis/launchpad/pkg/configurer/sles"
+	github.com/Mirantis/launchpad/pkg/configurer/ubuntu"
+	github.com/Mirantis/launchpad/pkg/configurer/windows"
 	"github.com/stretchr/testify/require"
 )
 

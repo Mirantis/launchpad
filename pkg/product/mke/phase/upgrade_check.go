@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/docker/hub"
-	"github.com/Mirantis/mcc/pkg/phase"
+	github.com/Mirantis/launchpad/pkg/docker/hub"
+	github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 )

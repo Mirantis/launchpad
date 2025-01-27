@@ -3,8 +3,8 @@ package mcr
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/swarm"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
 
