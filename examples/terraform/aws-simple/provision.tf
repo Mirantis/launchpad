@@ -26,6 +26,8 @@ module "provision" {
     role : ngd.role
     public : ngd.public
     user_data : ngd.user_data
+    instance_profile_name : aws_iam_instance_profile.common_profile.name
+    tags : local.tags
   } }
 
   // ingress/lb (should likely merge with an input to allow more flexibility
