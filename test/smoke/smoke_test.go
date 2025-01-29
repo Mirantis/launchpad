@@ -32,7 +32,9 @@ var LAUNCHPAD = map[string]interface{}{
 
 // configure the network stack
 var NETWORK = map[string]interface{}{
-	"cidr": "172.31.0.0/16",
+	"cidr":               "172.31.0.0/16",
+	"enable_nat_gateway": false,
+	"enable_vpn_gateway": false,
 }
 var SUBNETS = map[string]interface{}{
 	"main": map[string]interface{}{
