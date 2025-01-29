@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util/stringutil"
+	common github.com/Mirantis/launchpad/pkg/product/common/api"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )

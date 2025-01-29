@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/config"
+	github.com/Mirantis/launchpad/pkg/config"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli/v2"
 )

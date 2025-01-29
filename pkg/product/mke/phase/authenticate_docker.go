@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/phase"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
 )
 
 // AuthenticateDocker phase implementation.

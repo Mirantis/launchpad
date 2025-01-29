@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	common github.com/Mirantis/launchpad/pkg/product/common/api"
 )
 
 type host interface {

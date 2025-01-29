@@ -9,25 +9,25 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/config/migration"
+	github.com/Mirantis/launchpad/pkg/config/migration"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v1"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v11"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v12"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v13"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v14"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v14"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v1beta1"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v1beta2"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
-	"github.com/Mirantis/mcc/pkg/product"
-	"github.com/Mirantis/mcc/pkg/product/mke"
+	_ github.com/Mirantis/launchpad/pkg/config/migration/v1beta3"
+	github.com/Mirantis/launchpad/pkg/product"
+	github.com/Mirantis/launchpad/pkg/product/mke"
 	"github.com/a8m/envsubst"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"

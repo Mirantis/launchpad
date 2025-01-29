@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/phase"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/swarm"
+	github.com/Mirantis/launchpad/pkg/constant"
+	github.com/Mirantis/launchpad/pkg/phase"
+	common github.com/Mirantis/launchpad/pkg/product/common/api"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	mcclog "github.com/Mirantis/mcc/pkg/log"
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util/stringutil"
+	mcclog github.com/Mirantis/launchpad/pkg/log"
+	github.com/Mirantis/launchpad/pkg/phase"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )

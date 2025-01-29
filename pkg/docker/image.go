@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"

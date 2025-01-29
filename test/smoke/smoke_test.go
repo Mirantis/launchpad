@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/test"
+	github.com/Mirantis/launchpad/pkg/config"
+	github.com/Mirantis/launchpad/test"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 )

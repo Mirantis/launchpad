@@ -5,8 +5,8 @@ import (
 	"math"
 	"sync"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/phase"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )

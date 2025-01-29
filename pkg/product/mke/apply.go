@@ -4,10 +4,10 @@ import (
 	"crypto/sha1" //nolint:gosec // sha1 is used for simple analytics id generation
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/phase"
-	common "github.com/Mirantis/mcc/pkg/product/common/phase"
-	mke "github.com/Mirantis/mcc/pkg/product/mke/phase"
+	github.com/Mirantis/launchpad/pkg/analytics"
+	github.com/Mirantis/launchpad/pkg/phase"
+	common github.com/Mirantis/launchpad/pkg/product/common/phase"
+	mke github.com/Mirantis/launchpad/pkg/product/mke/phase"
 	event "gopkg.in/segmentio/analytics-go.v3"
 )
 

@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	github.com/Mirantis/launchpad/pkg/mke"
+	github.com/Mirantis/launchpad/pkg/phase"
+	github.com/Mirantis/launchpad/pkg/product/mke/api"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )

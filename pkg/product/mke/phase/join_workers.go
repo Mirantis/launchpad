@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/swarm"
+	github.com/Mirantis/launchpad/pkg/phase"
+	github.com/Mirantis/launchpad/pkg/swarm"
 	retry "github.com/avast/retry-go"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"

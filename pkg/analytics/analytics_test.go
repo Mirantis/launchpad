@@ -3,7 +3,7 @@ package analytics
 import (
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/config/user"
+	github.com/Mirantis/launchpad/pkg/config/user"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/segmentio/analytics-go.v3"
 )
