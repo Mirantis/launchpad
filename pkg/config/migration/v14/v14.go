@@ -1,7 +1,7 @@
 package v14
 
 import (
-	"github.com/Mirantis/mcc/pkg/config/migration"
+	"github.com/Mirantis/launchpad/pkg/config/migration"
 	log "github.com/sirupsen/logrus"
 )
 

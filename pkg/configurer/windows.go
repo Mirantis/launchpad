@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util/iputil"
+	"github.com/Mirantis/launchpad/pkg/constant"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	"github.com/Mirantis/launchpad/pkg/util/iputil"
 	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"

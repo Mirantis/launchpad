@@ -10,11 +10,11 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -X github.com/Mirantis/mcc/version.Environment=development
-      - -X github.com/Mirantis/mcc/version.GitCommit={{ .FullCommit }}
-      - -X github.com/Mirantis/mcc/version.Version={{ .Version }}
+      - -X github.com/Mirantis/launchpad/version.Environment=development
+      - -X github.com/Mirantis/launchpad/version.GitCommit={{ .FullCommit }}
+      - -X github.com/Mirantis/launchpad/version.Version={{ .Version }}
       # if segment analytics is to be active, set an env variable for the token
-      - -X github.com/Mirantis/mcc/pkg/analytics.SegmentToken={{ .Env.SEGMENT_TOKEN }}
+      - -X github.com/Mirantis/launchpad/pkg/analytics.SegmentToken={{ .Env.SEGMENT_TOKEN }}
     binary: "{{ .ProjectName }}"
     goos:
       - linux

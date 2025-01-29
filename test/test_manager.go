@@ -5,8 +5,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/config"
-	"github.com/Mirantis/mcc/pkg/product"
+	"github.com/Mirantis/launchpad/pkg/config"
+	"github.com/Mirantis/launchpad/pkg/product"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 )
 

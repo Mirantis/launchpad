@@ -7,24 +7,24 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/config/migration"
+	"github.com/Mirantis/launchpad/pkg/config/migration"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v11"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v11"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v12"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v12"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v13"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v13"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v14"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v14"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta1"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta1"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta2"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta2"
 	// needed to load the migrators.
-	_ "github.com/Mirantis/mcc/pkg/config/migration/v1beta3"
-	"github.com/Mirantis/mcc/pkg/constant"
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta3"
+	"github.com/Mirantis/launchpad/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"

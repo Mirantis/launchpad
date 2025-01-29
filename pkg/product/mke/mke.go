@@ -3,7 +3,7 @@ package mke
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	"gopkg.in/yaml.v2"
 )
 

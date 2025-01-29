@@ -1,7 +1,7 @@
 package oracle
 
 import (
-	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	"github.com/Mirantis/launchpad/pkg/configurer/enterpriselinux"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/os/registry"
 )

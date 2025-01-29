@@ -6,8 +6,8 @@ import (
 	"regexp"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/config/user"
+	"github.com/Mirantis/launchpad/pkg/analytics"
+	"github.com/Mirantis/launchpad/pkg/config/user"
 	log "github.com/sirupsen/logrus"
 )
 

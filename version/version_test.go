@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/Mirantis/mcc/version"
+	"github.com/Mirantis/launchpad/version"
 )
 
 func TestIsDevelopment(t *testing.T) {

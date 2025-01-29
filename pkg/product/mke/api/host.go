@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util/byteutil"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	"github.com/Mirantis/launchpad/pkg/util/byteutil"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/dig"

@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/Mirantis/mcc/version"
+	"github.com/Mirantis/launchpad/version"
 	"github.com/schollz/progressbar/v3"
 	"github.com/urfave/cli/v2"
 )
