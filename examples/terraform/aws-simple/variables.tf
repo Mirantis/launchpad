@@ -43,7 +43,6 @@ variable "subnets" {
 }
 
 # === Machines ===
-
 variable "nodegroups" {
   description = "A map of machine group definitions"
   type = map(object({
