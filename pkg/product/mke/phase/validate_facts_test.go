@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	"github.com/k0sproject/rig"
 	"github.com/stretchr/testify/require"
 )

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"github.com/Mirantis/mcc/pkg/constant"
+	"github.com/Mirantis/launchpad/pkg/constant"
 )
 
 type DockerInfo struct {

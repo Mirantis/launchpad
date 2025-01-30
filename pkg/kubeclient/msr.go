@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/util/pollutil"
+	"github.com/Mirantis/launchpad/pkg/constant"
+	"github.com/Mirantis/launchpad/pkg/util/pollutil"
 	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

@@ -3,8 +3,8 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/swarm"
+	"github.com/Mirantis/launchpad/pkg/phase"
+	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )

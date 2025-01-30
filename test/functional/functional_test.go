@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Mirantis/mcc/version"
+	"github.com/Mirantis/launchpad/version"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,4 +1,4 @@
-module github.com/Mirantis/mcc
+module github.com/Mirantis/launchpad
 
 go 1.23.2
 

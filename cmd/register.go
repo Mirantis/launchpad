@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/AlecAivazis/survey/v2/terminal"
-	"github.com/Mirantis/mcc/pkg/analytics"
-	"github.com/Mirantis/mcc/pkg/cmd/register"
-	"github.com/Mirantis/mcc/pkg/config/user"
+	"github.com/Mirantis/launchpad/pkg/analytics"
+	"github.com/Mirantis/launchpad/pkg/cmd/register"
+	"github.com/Mirantis/launchpad/pkg/config/user"
 	"github.com/urfave/cli/v2"
 )
 

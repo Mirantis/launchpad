@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util/fileutil"
+	"github.com/Mirantis/launchpad/pkg/phase"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	log "github.com/sirupsen/logrus"
 )
 

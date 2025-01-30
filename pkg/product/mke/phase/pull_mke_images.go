@@ -3,10 +3,10 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/docker"
-	"github.com/Mirantis/mcc/pkg/phase"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/docker"
+	"github.com/Mirantis/launchpad/pkg/phase"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
 

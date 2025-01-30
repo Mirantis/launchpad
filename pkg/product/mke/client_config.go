@@ -3,10 +3,10 @@ package mke
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	common "github.com/Mirantis/mcc/pkg/product/common/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	de "github.com/Mirantis/mcc/pkg/product/mke/phase"
+	"github.com/Mirantis/launchpad/pkg/phase"
+	common "github.com/Mirantis/launchpad/pkg/product/common/phase"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	de "github.com/Mirantis/launchpad/pkg/product/mke/phase"
 )
 
 // ClientConfig downloads MKE client bundle.

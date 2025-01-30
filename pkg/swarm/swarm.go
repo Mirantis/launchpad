@@ -3,7 +3,7 @@ package swarm
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
 

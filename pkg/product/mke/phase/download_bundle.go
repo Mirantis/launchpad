@@ -3,8 +3,8 @@ package phase
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/pkg/phase"
+	"github.com/Mirantis/launchpad/pkg/mke"
+	"github.com/Mirantis/launchpad/pkg/phase"
 )
 
 // DownloadBundle phase downloads the client bundle to local storage.

@@ -4,21 +4,21 @@ import (
 	"fmt"
 
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/mcc/pkg/configurer/centos"
+	_ "github.com/Mirantis/launchpad/pkg/configurer/centos"
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
+	_ "github.com/Mirantis/launchpad/pkg/configurer/enterpriselinux"
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/mcc/pkg/configurer/mkex"
+	_ "github.com/Mirantis/launchpad/pkg/configurer/mkex"
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/mcc/pkg/configurer/oracle"
+	_ "github.com/Mirantis/launchpad/pkg/configurer/oracle"
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/mcc/pkg/configurer/sles"
+	_ "github.com/Mirantis/launchpad/pkg/configurer/sles"
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/mcc/pkg/configurer/ubuntu"
+	_ "github.com/Mirantis/launchpad/pkg/configurer/ubuntu"
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/mcc/pkg/configurer/windows"
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
+	_ "github.com/Mirantis/launchpad/pkg/configurer/windows"
+	"github.com/Mirantis/launchpad/pkg/phase"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
 )
 

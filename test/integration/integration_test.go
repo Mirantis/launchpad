@@ -8,9 +8,9 @@ import (
 	"path"
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/mke"
-	"github.com/Mirantis/mcc/test"
+	"github.com/Mirantis/launchpad/pkg/constant"
+	"github.com/Mirantis/launchpad/pkg/mke"
+	"github.com/Mirantis/launchpad/test"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"

@@ -3,8 +3,8 @@ package api
 import (
 	"testing"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/util/fileutil"
+	"github.com/Mirantis/launchpad/pkg/constant"
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"

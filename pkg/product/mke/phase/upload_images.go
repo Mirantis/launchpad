@@ -6,9 +6,9 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/Mirantis/mcc/pkg/phase"
-	"github.com/Mirantis/mcc/pkg/product/mke/api"
-	"github.com/Mirantis/mcc/pkg/util/byteutil"
+	"github.com/Mirantis/launchpad/pkg/phase"
+	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/util/byteutil"
 	"github.com/alessio/shellescape"
 	log "github.com/sirupsen/logrus"
 )

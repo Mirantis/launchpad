@@ -1,7 +1,7 @@
 package phase
 
 import (
-	"github.com/Mirantis/mcc/pkg/phase"
+	"github.com/Mirantis/launchpad/pkg/phase"
 )
 
 // MSRPhase only runs when the config includes MSR hosts.

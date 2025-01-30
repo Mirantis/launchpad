@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/k0sproject/rig/log"
 	"github.com/k0sproject/rig/os"
 )
