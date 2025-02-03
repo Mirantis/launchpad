@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
-	"github.com/Mirantis/mcc/pkg/util/fileutil"
+	"github.com/Mirantis/launchpad/pkg/constant"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/creasty/defaults"
 	"github.com/hashicorp/go-version"
 )

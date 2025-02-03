@@ -4,8 +4,8 @@ package mkex
 // so that our registry.RegisterOSModule() call is run second, giving
 // our register priority.
 import (
-	"github.com/Mirantis/mcc/pkg/configurer/enterpriselinux"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/launchpad/pkg/configurer/enterpriselinux"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/registry"
 	log "github.com/sirupsen/logrus"

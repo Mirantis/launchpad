@@ -3,9 +3,9 @@ package api
 import (
 	"fmt"
 
-	"github.com/Mirantis/mcc/pkg/constant"
-	"github.com/Mirantis/mcc/pkg/docker/hub"
-	common "github.com/Mirantis/mcc/pkg/product/common/api"
+	"github.com/Mirantis/launchpad/pkg/constant"
+	"github.com/Mirantis/launchpad/pkg/docker/hub"
+	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/k0sproject/rig"
 )

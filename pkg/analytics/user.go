@@ -3,7 +3,7 @@ package analytics
 import (
 	"errors"
 
-	"github.com/Mirantis/mcc/pkg/config/user"
+	"github.com/Mirantis/launchpad/pkg/config/user"
 )
 
 var errRegistrationRequired = errors.New("registration or license acceptance is required. please use `launchpad register` command to register")

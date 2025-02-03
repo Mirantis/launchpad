@@ -7,9 +7,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/Mirantis/mcc/cmd"
-	"github.com/Mirantis/mcc/pkg/completion"
-	"github.com/Mirantis/mcc/version"
+	"github.com/Mirantis/launchpad/cmd"
+	"github.com/Mirantis/launchpad/pkg/completion"
+	"github.com/Mirantis/launchpad/version"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
