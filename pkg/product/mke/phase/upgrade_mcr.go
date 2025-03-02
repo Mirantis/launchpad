@@ -30,6 +30,10 @@ func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
 	if h.Metadata.MCRVersion != p.Config.Spec.MCR.Version {
 		return true
 	}
+	if h.MCRUpgradeSkip {
+		log.Warnf("%s: MCR Upgrade configuration for host instructs launchpad to skip upgrading this host.", h)
+		return false
+	}
 	if p.ForceUpgrade && !h.Metadata.MCRInstalled {
 		log.Warnf("%s: MCR version is already %s but attempting an upgrade anyway because --force-upgrade was given", h, h.Metadata.MCRVersion)
 		return true

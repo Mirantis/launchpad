@@ -78,7 +78,8 @@ type Host struct {
 	Hooks            common.Hooks      `yaml:"hooks,omitempty" validate:"dive,keys,oneof=apply reset,endkeys,dive,keys,oneof=before after,endkeys,omitempty"`
 	ImageDir         string            `yaml:"imageDir,omitempty"`
 	SudoDocker       bool              `yaml:"sudodocker"`
-	SudoOverride     bool              `yaml:"sudooverride"` // some customers can't allow the default rig connection sudo detection
+	SudoOverride     bool              `yaml:"sudooverride"`   // some customers can't allow the default rig connection sudo detection
+	MCRUpgradeSkip   bool              `yaml:"mcrupgradeskip"` // don't upgrade this host when upgraing MCR (to allow upgrades in batches
 
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
