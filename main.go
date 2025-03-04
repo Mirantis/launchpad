@@ -88,7 +88,6 @@ SUPPORT:
 			cmd.NewClientConfigCommand(),
 			cmd.NewExecCommand(),
 			cmd.NewResetCommand(),
-			cmd.NewInitCommand(),
 			cmd.NewDownloadLaunchpadCommand(),
 			completionCmd,
 			versionCmd,
