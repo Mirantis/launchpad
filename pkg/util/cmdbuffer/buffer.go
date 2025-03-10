@@ -30,7 +30,7 @@ type element struct {
 }
 
 // NewBuffer returns an empty buffer that does not EOF until it is closed.
-func NewBuffer() *buffer {
+func NewBuffer() *buffer { //nolint:revive
 	e := new(element)
 	b := &buffer{
 		Cond: sync.NewCond(new(sync.Mutex)),

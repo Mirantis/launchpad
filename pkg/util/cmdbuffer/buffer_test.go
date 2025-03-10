@@ -40,7 +40,7 @@ func Test_BufferScanner(t *testing.T) {
 
 	sc := bufio.NewScanner(buf)
 
-	for i:=0; i<13; i++ {
+	for i := 0; i < 13; i++ {
 		expected := fmt.Sprintf("message-%d", i)
 
 		if !sc.Scan() {
@@ -53,12 +53,12 @@ func Test_BufferScanner(t *testing.T) {
 		if expected != got {
 			t.Errorf("got wrong message: '%s' != '%s'", expected, got)
 		}
-		
+
 	}
 
 	if sc.Scan() {
 		t.Error("buffer scanned more lines than expected")
-	}	
+	}
 	if err := sc.Err(); err != nil {
 		t.Error(err)
 	}

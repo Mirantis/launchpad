@@ -1,4 +1,4 @@
-package mke
+package msr
 
 import (
 	"bufio"
@@ -22,14 +22,19 @@ type BootstrapOptions struct {
 
 // Bootstrap a leader host using the MKE bootsrapper as docker run, returning output.
 func Bootstrap(operation string, config api.ClusterConfig, bootoptions BootstrapOptions) (output string, err error) {
-	image := config.Spec.MKE.GetBootstrapperImage()
-	leader := config.Spec.SwarmLeader()
+	image := config.Spec.MSR.GetBootstrapperImage()
+	leader := config.Spec.MSRLeader()
+	managers := config.Spec.Managers()
 
-	if mcclog.Debug {
+	if checkErr := config.Spec.CheckMKEHealthRemote(managers); err != nil {
+		return "", fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity: %w", leader, checkErr)
+	}
+
+	if mcclog.Debug && operation != "images" {
 		bootoptions.OperationFlags.AddUnlessExist("--debug")
 	}
 
-	runFlags := common.Flags{"-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
+	runFlags := common.Flags{"-i"}
 
 	if !bootoptions.CleanupDisabled {
 		runFlags.Add("--rm")
@@ -40,14 +45,15 @@ func Bootstrap(operation string, config api.ClusterConfig, bootoptions Bootstrap
 	}
 
 	cmd := leader.Configurer.DockerCommandf("run %s %s %s %s", runFlags.Join(), image, operation, bootoptions.OperationFlags.Join())
-	buf := cmdbuffer.NewBuffer() // an io.Reader which .Read() doesn't eof until .eof() is run. On eof is blocks the .Read
+
+	buf := cmdbuffer.NewBuffer()
 
 	if wait, err := leader.ExecStreams(cmd, nil, buf, buf, bootoptions.ExecOptions...); err != nil {
-		return output, fmt.Errorf("mke bootstrap exec error: %w", err)
+		return output, fmt.Errorf("msr bootstrap exec error: %w", err)
 	} else { //nolint: revive
 		go func() {
-			if waitErr := wait.Wait(); err != nil {
-				logrus.Error(waitErr)
+			if err := wait.Wait(); err != nil {
+				logrus.Error(err)
 			}
 			buf.EOF()
 		}()
@@ -60,11 +66,11 @@ func Bootstrap(operation string, config api.ClusterConfig, bootoptions Bootstrap
 		if le, err := cmdbuffer.LogrusParseText(line); err == nil {
 			// output was logrus, so pipe it to launchpad logrus
 			output += fmt.Sprintf("%s\n", le.Msg)
-			le.Msg = fmt.Sprintf("MKE %s: %s", operation, le.Msg)
+			le.Msg = fmt.Sprintf("MSR %s: %s", operation, le.Msg)
 			cmdbuffer.LogrusLine(le)
 
 			if le.Level == "fatal" {
-				err = errors.Join(err, fmt.Errorf("mke bootstrap %s failure; %s", operation, le.Msg))
+				err = errors.Join(err, fmt.Errorf("msr bootstrap %s failure; %s", operation, le.Msg))
 			}
 		} else {
 			// output line was not logrus, so just output it
@@ -73,8 +79,8 @@ func Bootstrap(operation string, config api.ClusterConfig, bootoptions Bootstrap
 		}
 	}
 	if scanErr := scanner.Err(); scanErr != nil {
-		err = errors.Join(err, fmt.Errorf("mke bootstrap output scan error: %w", scanErr))
+		err = errors.Join(err, fmt.Errorf("msr bootstrap output scan error: %w", scanErr))
 	}
 
-	return output, err
+	return output, nil
 }

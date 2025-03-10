@@ -5,7 +5,6 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	"github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
@@ -36,32 +35,14 @@ func (p *InstallMSR) ShouldRun() bool {
 // Run the installer container.
 func (p *InstallMSR) Run() error {
 	h := p.leader
-
 	if h.MSRMetadata == nil {
 		h.MSRMetadata = &api.MSRMetadata{}
-	}
-
-	managers := p.Config.Spec.Managers()
-
-	err := p.Config.Spec.CheckMKEHealthRemote(managers)
-	if err != nil {
-		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity: %w", h, err)
 	}
 
 	p.EventProperties = map[string]interface{}{
 		"msr_version": p.Config.Spec.MSR.Version,
 	}
 
-	image := p.Config.Spec.MSR.GetBootstrapperImage()
-
-	runFlags := common.Flags{"-i"}
-	if !p.CleanupDisabled() {
-		runFlags.Add("--rm")
-	}
-
-	if h.Configurer.SELinuxEnabled(h) {
-		runFlags.Add("--security-opt label=disable")
-	}
 	installFlags := p.Config.Spec.MSR.InstallFlags
 	redacts := []string{installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")}
 
@@ -104,9 +85,7 @@ func (p *InstallMSR) Run() error {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}
 
-	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
-	err = h.Exec(installCmd, exec.StreamOutput(), exec.RedactString(redacts...))
-	if err != nil {
+	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []exec.Option{exec.RedactString(redacts...)}}); err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %w", h, err)
 	}
 

@@ -3,7 +3,7 @@ package phase
 import (
 	"fmt"
 
-	mcclog "github.com/Mirantis/launchpad/pkg/log"
+	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
@@ -25,27 +25,16 @@ func (p *UninstallMKE) Title() string {
 
 // Run the installer container.
 func (p *UninstallMKE) Run() error {
-	swarmLeader := p.Config.Spec.SwarmLeader()
+	leader := p.Config.Spec.SwarmLeader()
 	if !p.Config.Spec.MKE.Metadata.Installed {
-		log.Infof("%s: MKE is not installed, skipping", swarmLeader)
+		log.Infof("%s: MKE is not installed, skipping", leader)
 		return nil
 	}
 
-	image := fmt.Sprintf("%s/ucp:%s", p.Config.Spec.MKE.ImageRepo, p.Config.Spec.MKE.Version)
-	uninstallFlags := common.Flags{"--id", swarm.ClusterID(swarmLeader), "--purge-config"}
+	uninstallFlags := common.Flags{"--id", swarm.ClusterID(leader), "--purge-config"}
 
-	if mcclog.Debug {
-		uninstallFlags.AddUnlessExist("--debug")
-	}
-
-	runFlags := common.Flags{"--rm", "-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
-		runFlags.Add("--security-opt label=disable")
-	}
-	uninstallCmd := swarmLeader.Configurer.DockerCommandf("run %s %s uninstall-ucp %s", runFlags.Join(), image, uninstallFlags.Join())
-	err := swarmLeader.Exec(uninstallCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.InstallFlags.GetValue("--admin-username"), p.Config.Spec.MKE.InstallFlags.GetValue("--admin-password")))
-	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE uninstaller: %w", swarmLeader, err)
+	if _, err := mke.Bootstrap("uninstall-ucp", *p.Config, mke.BootstrapOptions{OperationFlags: uninstallFlags, ExecOptions: []exec.Option{exec.StreamOutput()}}); err != nil {
+		return fmt.Errorf("%s: failed to run MKE uninstaller: %w", leader, err)
 	}
 
 	managers := p.Config.Spec.Managers()
