@@ -30,7 +30,7 @@ type element struct {
 }
 
 // NewBuffer returns an empty buffer that does not EOF until it is closed.
-func NewBuffer() *buffer {
+func NewBuffer() *buffer { //nolint
 	e := new(element)
 	b := &buffer{
 		Cond: sync.NewCond(new(sync.Mutex)),
@@ -43,29 +43,29 @@ func NewBuffer() *buffer {
 // EOF closes the buffer. Reads from the buffer once all
 // the data has been consumed will receive io.EOF.
 func (b *buffer) EOF() {
-	b.Cond.L.Lock()
+	b.L.Lock()
 	b.closed = true
-	b.Cond.Signal()
-	b.Cond.L.Unlock()
+	b.Signal()
+	b.L.Unlock()
 }
 
 // Write makes buf available for Read to receive.
 // buf must not be modified after the call to write.
 func (b *buffer) Write(buf []byte) (int, error) {
-	b.Cond.L.Lock()
+	b.L.Lock()
 	e := &element{buf: buf}
 	b.tail.next = e
 	b.tail = e
-	b.Cond.Signal()
-	b.Cond.L.Unlock()
+	b.Signal()
+	b.L.Unlock()
 	return len(buf), nil
 }
 
 // Read reads data from the internal buffer in buf.  Reads will block
 // if no data is available, or until the buffer is closed.
 func (b *buffer) Read(buf []byte) (n int, err error) {
-	b.Cond.L.Lock()
-	defer b.Cond.L.Unlock()
+	b.L.Lock()
+	defer b.L.Unlock()
 
 	for len(buf) > 0 {
 		// if there is data in b.head, copy it
@@ -93,7 +93,7 @@ func (b *buffer) Read(buf []byte) (n int, err error) {
 			break
 		}
 		// out of buffers, wait for producer
-		b.Cond.Wait()
+		b.Wait()
 	}
 	return n, err
 }
