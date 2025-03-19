@@ -3,6 +3,7 @@ package configurer
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"path"
 	"regexp"
 	"strconv"
@@ -47,7 +48,7 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 
 	installer := path.Join(installScriptDir, base)
 
-	err = h.Upload(scriptPath, installer)
+	err = h.Upload(scriptPath, installer, fs.FileMode(0o640))
 	if err != nil {
 		log.Errorf("failed: %s", err.Error())
 		return fmt.Errorf("upload %s to %s: %w", scriptPath, installer, err)

@@ -3,6 +3,7 @@ package configurer
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"path"
 	"strconv"
 	"strings"
@@ -43,7 +44,7 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig
 	pwd := c.Pwd(h)
 	base := path.Base(scriptPath)
 	installer := pwd + "\\" + base + ".ps1"
-	if err := h.Upload(scriptPath, installer); err != nil {
+	if err := h.Upload(scriptPath, installer, fs.FileMode(0o640)); err != nil {
 		return fmt.Errorf("failed to upload MCR installer: %w", err)
 	}
 	defer func() {
@@ -90,7 +91,7 @@ func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConf
 		pwd := c.Pwd(h)
 		base := path.Base(scriptPath)
 		uninstaller := pwd + "\\" + base + ".ps1"
-		if err := h.Upload(scriptPath, uninstaller); err != nil {
+		if err := h.Upload(scriptPath, uninstaller, fs.FileMode(0o640)); err != nil {
 			return fmt.Errorf("upload MCR uninstaller: %w", err)
 		}
 		defer func() {

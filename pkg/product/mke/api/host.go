@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"reflect"
 	"strings"
@@ -224,7 +225,7 @@ func (h *Host) CheckHTTPStatus(url string, expected int) error {
 
 // WriteFileLarge copies a larger file to the host.
 // Use instead of configurer.WriteFile when it seems appropriate.
-func (h *Host) WriteFileLarge(src, dst string) error {
+func (h *Host) WriteFileLarge(src, dst string, fmo fs.FileMode) error {
 	startTime := time.Now()
 	stat, err := os.Stat(src)
 	if err != nil {
@@ -235,7 +236,7 @@ func (h *Host) WriteFileLarge(src, dst string) error {
 
 	log.Infof("%s: uploading %s to %s", h, byteutil.FormatBytes(usize), dst)
 
-	if err := h.Connection.Upload(src, dst); err != nil {
+	if err := h.Connection.Upload(src, dst, fmo); err != nil {
 		return fmt.Errorf("upload failed: %w", err)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -80,7 +81,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 				log.Debugf("%s: failed to delete test file: %s", h, err.Error())
 			}
 		}()
-		err := h.WriteFileLarge(testFile.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(h), "launchpad.test"))
+		err := h.WriteFileLarge(testFile.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(h), "launchpad.test"), fs.FileMode(0o640))
 		if err != nil {
 			h.Errors.Add(err.Error())
 		}

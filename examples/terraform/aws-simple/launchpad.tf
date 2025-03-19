@@ -47,6 +47,18 @@ locals {
         }
       }
     }
+    "msr" = {
+      description = "MSR ingress for UI and docker"
+      nodegroups  = [for k, ng in var.nodegroups : k if ng.role == "msr"]
+
+      routes = {
+        "msr" = {
+          port_incoming = 443
+          port_target   = 443
+          protocol      = "TCP"
+        }
+      }
+    }
   }
 
   // standard MCR/MKE/MSR firewall rules [here we just leave it open until we can figure this out]
@@ -91,6 +103,7 @@ locals {
 locals {
   // The SAN URL for the MKE load balancer ingress that is for the MKE load balancer
   MKE_URL = module.provision.ingresses["mke"].lb_dns
+  MSR_URL = module.provision.ingresses["msr"].lb_dns
 
   // flatten nodegroups into a set of objects with the info needed for each node, by combining the group details with the node detains
   launchpad_hosts_ssh = merge([for k, ng in local.nodegroups : { for l, ngn in ng.nodes : ngn.label => {
@@ -124,8 +137,8 @@ locals {
 // ------- Ye old launchpad yaml (just for debugging)
 
 locals {
-  launchpad_yaml_14 = <<-EOT
-apiVersion: launchpad.mirantis.com/mke/v1.4
+  launchpad_yaml_15 = <<-EOT
+apiVersion: launchpad.mirantis.com/mke/v1.5
 kind: mke%{if local.has_msr}+msr%{endif}
 metadata:
   name: ${var.name}
@@ -156,7 +169,7 @@ spec:
     repoURL: https://repos.mirantis.com
     installURLLinux: https://get.mirantis.com/
     installURLWindows: https://get.mirantis.com/install.ps1
-    channel: stable
+    channel: stable-25.0
     prune: true
   mke:
     version: ${var.launchpad.mke_version}
@@ -177,6 +190,7 @@ spec:
     "replicaIDs": "sequential"
     installFlags:
     - "--ucp-insecure-tls"
+    - "--dtr-external-url=${local.MSR_URL}"
 %{endif}
 EOT
 
@@ -185,7 +199,7 @@ EOT
 output "launchpad_yaml" {
   description = "launchpad config file yaml (for debugging)"
   sensitive   = true
-  value       = local.launchpad_yaml_14
+  value       = local.launchpad_yaml_15
 }
 
 output "mke_connect" {
