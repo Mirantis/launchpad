@@ -7,7 +7,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,13 +32,6 @@ func (p *UpgradeMSR) ShouldRun() bool {
 func (p *UpgradeMSR) Run() error {
 	h := p.Config.Spec.MSRLeader()
 
-	managers := p.Config.Spec.Managers()
-
-	err := p.Config.Spec.CheckMKEHealthRemote(managers)
-	if err != nil {
-		return fmt.Errorf("%s: failed to health check mke, try to set `--ucp-url` installFlag and check connectivity: %w", h, err)
-	}
-
 	p.EventProperties = map[string]interface{}{
 		"msr_upgraded": false,
 	}
@@ -49,14 +41,6 @@ func (p *UpgradeMSR) Run() error {
 		return nil
 	}
 
-	runFlags := common.Flags{"-i"}
-	if !p.CleanupDisabled() {
-		runFlags.Add("--rm")
-	}
-
-	if h.Configurer.SELinuxEnabled(h) {
-		runFlags.Add("--security-opt label=disable")
-	}
 	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.ReplicaID)}
 
 	upgradeFlags.MergeOverwrite(msr.BuildMKEFlags(p.Config))
@@ -65,10 +49,8 @@ func (p *UpgradeMSR) Run() error {
 	}
 	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.UpgradeFlags)
 
-	upgradeCmd := h.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MSR.GetBootstrapperImage(), upgradeFlags.Join())
-	log.Debugf("%s: Running msr upgrade via bootstrapper", h)
-	if err := h.Exec(upgradeCmd, exec.StreamOutput()); err != nil {
-		return fmt.Errorf("%s: failed to run msr upgrade: %w", h, err)
+	if _, err := msr.Bootstrap("upgrade", *p.Config, msr.BootstrapOptions{OperationFlags: upgradeFlags, CleanupDisabled: p.CleanupDisabled()}); err != nil {
+		return fmt.Errorf("%s: failed to run MSR upgrader: %w", h, err)
 	}
 
 	msrMeta, err := msr.CollectFacts(h)

@@ -9,7 +9,6 @@ import (
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
 	"github.com/k0sproject/rig/exec"
@@ -35,18 +34,16 @@ func (p *InstallMKE) Title() string {
 // Run the installer container.
 func (p *InstallMKE) Run() error {
 	p.leader = p.Config.Spec.SwarmLeader()
-	h := p.leader
 
 	p.EventProperties = map[string]interface{}{
 		"mke_version": p.Config.Spec.MKE.Version,
 	}
 
 	if p.Config.Spec.MKE.Metadata.Installed {
-		log.Infof("%s: MKE already installed at version %s, not running installer", h, p.Config.Spec.MKE.Metadata.InstalledVersion)
+		log.Infof("%s: MKE already installed at version %s, not running installer", p.leader, p.Config.Spec.MKE.Metadata.InstalledVersion)
 		return nil
 	}
 
-	image := p.Config.Spec.MKE.GetBootstrapperImage()
 	installFlags := p.Config.Spec.MKE.InstallFlags
 
 	if mcclog.Debug {
@@ -55,7 +52,7 @@ func (p *InstallMKE) Run() error {
 
 	if p.Config.Spec.MKE.ConfigData != "" {
 		defer func() {
-			err := h.Exec(h.Configurer.DockerCommandf("config rm %s", configName))
+			err := p.leader.Exec(p.leader.Configurer.DockerCommandf("config rm %s", configName))
 			if err != nil {
 				log.Warnf("Failed to remove the temporary MKE installer configuration %s : %s", configName, err)
 			}
@@ -63,10 +60,10 @@ func (p *InstallMKE) Run() error {
 
 		installFlags.AddUnlessExist("--existing-config")
 		log.Info("Creating MKE configuration")
-		configCmd := h.Configurer.DockerCommandf("config create %s -", configName)
-		err := h.Exec(configCmd, exec.Stdin(p.Config.Spec.MKE.ConfigData))
+		configCmd := p.leader.Configurer.DockerCommandf("config create %s -", configName)
+		err := p.leader.Exec(configCmd, exec.Stdin(p.Config.Spec.MKE.ConfigData))
 		if err != nil {
-			return fmt.Errorf("%s: failed to create MKE configuration: %w", h, err)
+			return fmt.Errorf("%s: failed to create MKE configuration: %w", p.leader, err)
 		}
 	}
 
@@ -94,27 +91,18 @@ func (p *InstallMKE) Run() error {
 		// In case of custom repo, don't let MKE check the images
 		installFlags.AddUnlessExist("--pull never")
 	}
-	runFlags := common.Flags{"-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if !p.CleanupDisabled() {
-		runFlags.Add("--rm")
-	}
-
-	if h.Configurer.SELinuxEnabled(h) {
-		runFlags.Add("--security-opt label=disable")
-	}
 
 	if p.Config.Spec.MKE.AdminUsername != "" {
 		installFlags.AddUnlessExist(fmt.Sprintf("--admin-username='%s'", p.Config.Spec.MKE.AdminUsername))
 	}
-
 	if p.Config.Spec.MKE.AdminPassword != "" {
 		installFlags.AddUnlessExist(fmt.Sprintf("--admin-password='%s'", p.Config.Spec.MKE.AdminPassword))
 	}
 
-	installCmd := h.Configurer.DockerCommandf("run %s %s install %s", runFlags.Join(), image, installFlags.Join())
-	output, err := h.ExecOutput(installCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword))
+	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
+	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []exec.Option{exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword)}})
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", h, output, err)
+		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
 	}
 
 	if installFlags.GetValue("--admin-password") == "" {
@@ -130,9 +118,9 @@ func (p *InstallMKE) Run() error {
 		}
 	}
 
-	err = mke.CollectFacts(h, p.Config.Spec.MKE.Metadata)
+	err = mke.CollectFacts(p.leader, p.Config.Spec.MKE.Metadata)
 	if err != nil {
-		return fmt.Errorf("%s: failed to collect existing MKE details: %w", h, err)
+		return fmt.Errorf("%s: failed to collect existing MKE details: %w", p.leader, err)
 	}
 
 	return nil
