@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -89,7 +90,7 @@ func (p *LoadImages) Run() error {
 
 			base := path.Base(f)
 			df := h.Configurer.JoinPath(h.Configurer.Pwd(h), base)
-			err := h.WriteFileLarge(f, df)
+			err := h.WriteFileLarge(f, df, fs.FileMode(0o640))
 			if err != nil {
 				return fmt.Errorf("failed to write file %s: %w", f, err)
 			}

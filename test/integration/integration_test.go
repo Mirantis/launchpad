@@ -28,9 +28,9 @@ var MKE_CONNECT = map[string]interface{}{
 
 var LAUNCHPAD = map[string]interface{}{
 	"drain":       false,
-	"mcr_version": "23.0.15",
-	"mke_version": "3.7.15",
-	"msr_version": "",
+	"mcr_version": "25.0.8",
+	"mke_version": "3.8.2",
+	"msr_version": "2.9.23",
 	"mke_connect": MKE_CONNECT,
 }
 
