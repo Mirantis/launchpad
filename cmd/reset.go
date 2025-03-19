@@ -29,7 +29,7 @@ func NewResetCommand() *cli.Command {
 				Aliases: []string{"f"},
 			},
 		}...),
-		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec, requireForce),
+		Before: actions(initLogger, initAnalytics, checkLicense, initExec, requireForce, startUpgradeCheck),
 		After:  actions(closeAnalytics, upgradeCheckResult),
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
