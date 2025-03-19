@@ -58,7 +58,14 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 		}
 	}()
 
-	cmd := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s bash %s", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version, escape.Quote(installer))
+	envs := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s ", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
+	if engineConfig.AdditionalRuntimes != "" {
+		envs += fmt.Sprintf("ADDITIONAL_RUNTIMES=%s ", engineConfig.AdditionalRuntimes)
+	}
+	if engineConfig.DefaultRuntime != "" {
+		envs += fmt.Sprintf("DEFAULT_RUNTIME=%s ", engineConfig.DefaultRuntime)
+	}
+	cmd := envs + fmt.Sprintf("bash %s", escape.Quote(installer))
 
 	log.Infof("%s: running installer", h)
 
