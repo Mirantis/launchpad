@@ -10,25 +10,45 @@ pipeline {
       yaml """\
 apiVersion: v1
 kind: Pod
+metadata:
+  annotations:
+    cluster-autoscaler.kubernetes.io/safe-to-evict: false
 spec:
   imagePullSecrets:
   - name: regcred-registry-mirantis-com
   containers:
   - name: jnlp
-    image: registry.mirantis.com/prodeng/ci-workspace:stable
-    imagePullPolicy: Always
+    image: registry.mirantis.com/prodeng/ci-workspace:1.0.6
+    volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run
     resources:
+      limits:
+        cpu: 1
       requests:
-        cpu: "0.5"
-        memory: 128Mi
+        cpu: 0.5
+  - name: docker-daemon
+    image: docker:24.0.9-dind
+    securityContext:
+     privileged: true
+    volumeMounts:
+     - name: docker-socket
+       mountPath: /var/run
+     - name: tmp-dir
+       mountPath: /tmp
+    resources:
+      limits:
+        cpu: 1
+      requests:
+        cpu: 0.5
   - name: goreleaser
     image: goreleaser/goreleaser:latest
     imagePullPolicy: Always
     resources:
       limits:
-        cpu: "4"
+        cpu: 4
       requests:
-        cpu: "4"
+        cpu: 4
     command:
     - sleep
     args:
@@ -44,6 +64,11 @@ spec:
     - sleep
     args:
     - 99d
+  volumes:
+  - name: docker-socket
+    emptyDir: {}
+  - name: tmp-dir # This volume mount is required since SSH_AUTH_SOCK is created in /tmp
+    emptyDir: {}
 """.stripIndent()
     }
   }
