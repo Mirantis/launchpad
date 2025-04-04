@@ -48,7 +48,7 @@ func NewDescribeCommand() *cli.Command {
 				return fmt.Errorf("%w: unknown report %s - must be one of %s", errInvalidReport, report, strings.Join(reports, ","))
 			}
 
-			if !(ctx.Bool("debug") || ctx.Bool("trace")) {
+			if !ctx.Bool("debug") && !ctx.Bool("trace") {
 				log.SetLevel(log.FatalLevel)
 			}
 

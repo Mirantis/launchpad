@@ -60,7 +60,7 @@ func (i *Image) Pull(h *api.Host) error {
 			return nil
 		},
 		retry.RetryIf(func(err error) bool {
-			return !(strings.Contains(err.Error(), "pull access") || strings.Contains(err.Error(), "manifest unknown"))
+			return !strings.Contains(err.Error(), "pull access") && !strings.Contains(err.Error(), "manifest unknown")
 		}),
 		retry.OnRetry(func(_ uint, err error) {
 			if err != nil {

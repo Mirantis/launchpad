@@ -278,7 +278,7 @@ func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Dock
 		var dockerDaemon common.DockerDaemonConfig
 		dockerDaemonString, err := h.ExecOutput(ps.Cmd(fmt.Sprintf("Get-Content -Path %s", ps.SingleQuote(c.MCRConfigPath()))))
 		if err != nil {
-			dockerDaemon, err := c.DockerConfigurer.GetDockerDaemonConfig(dockerDaemonString)
+			dockerDaemon, err := c.GetDockerDaemonConfig(dockerDaemonString)
 			if err != nil {
 				log.Errorf("%s: error constructing dockerDaemon struct %+v: %s", h, dockerDaemon, err)
 			}

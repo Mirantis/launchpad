@@ -177,7 +177,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 			return fmt.Errorf("%w: can't pipe to a remote shell without a command", errInvalidTarget)
 		}
 		log.Tracef("assuming intention to run a shell with --interactive")
-		err := hosts[0].Connection.ExecInteractive("")
+		err := hosts[0].ExecInteractive("")
 		if err != nil {
 			return fmt.Errorf("failed to run interactive shell: %w", err)
 		}
@@ -185,7 +185,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 
 	if interactive {
 		log.Tracef("running interactive with cmd: %q", cmd)
-		if err := hosts[0].Connection.ExecInteractive(cmd); err != nil {
+		if err := hosts[0].ExecInteractive(cmd); err != nil {
 			return fmt.Errorf("failed to run interactive shell: %w", err)
 		}
 		return nil

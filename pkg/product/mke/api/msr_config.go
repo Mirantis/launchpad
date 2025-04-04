@@ -109,5 +109,5 @@ func (c *MSRConfig) UseLegacyImageRepo(v *version.Version) bool {
 	c1, _ := version.NewConstraint(">= 2.8.2")
 	c2, _ := version.NewConstraint("< 2.8, >= 2.7.8")
 	c3, _ := version.NewConstraint("< 2.7, >= 2.6.15")
-	return !(c1.Check(v2) || c2.Check(v2) || c3.Check(v2))
+	return !c1.Check(v2) && !c2.Check(v2) && !c3.Check(v2)
 }
