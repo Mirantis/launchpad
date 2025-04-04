@@ -214,22 +214,22 @@ func (kc *KubeClient) SetStorageClassDefault(ctx context.Context, name string) e
 			found = true
 
 			// Apply the default annotation to the named StorageClass.
-			if _, ok := storageClass.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; !ok {
+			if _, ok := storageClass.Annotations[constant.DefaultStorageClassAnnotation]; !ok {
 				log.Debugf("setting default StorageClass annotation on: %s", name)
 
-				if storageClass.ObjectMeta.Annotations == nil {
-					storageClass.ObjectMeta.Annotations = make(map[string]string)
+				if storageClass.Annotations == nil {
+					storageClass.Annotations = make(map[string]string)
 				}
 
-				storageClass.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation] = "true"
+				storageClass.Annotations[constant.DefaultStorageClassAnnotation] = "true"
 			}
 			needsUpdate = true
 		} else {
 			// Strip the default annotation if found from a different StorageClass.
-			if _, ok := storageClass.ObjectMeta.Annotations[constant.DefaultStorageClassAnnotation]; ok {
+			if _, ok := storageClass.Annotations[constant.DefaultStorageClassAnnotation]; ok {
 				log.Debugf("found existing default StorageClass: %s, removing default annotation", storageClass.Name)
 
-				delete(storageClass.ObjectMeta.Annotations, constant.DefaultStorageClassAnnotation)
+				delete(storageClass.Annotations, constant.DefaultStorageClassAnnotation)
 				needsUpdate = true
 			}
 		}

@@ -237,7 +237,7 @@ func (h *Host) WriteFileLarge(src, dst string, fmo fs.FileMode) error {
 
 	log.Infof("%s: uploading %s to %s", h, byteutil.FormatBytes(usize), dst)
 
-	if err := h.Connection.Upload(src, dst, fmo); err != nil {
+	if err := h.Upload(src, dst, fmo); err != nil {
 		return fmt.Errorf("upload failed: %w", err)
 	}
 

@@ -96,7 +96,7 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 		u.Timeout = *opts.Timeout
 	}
 
-	release, err := u.RunWithContext(ctx, opts.ReleaseDetails.ReleaseName, chartToUpgrade, opts.Values)
+	release, err := u.RunWithContext(ctx, opts.ReleaseName, chartToUpgrade, opts.Values)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upgrade Helm release %q: %w", opts.ReleaseName, err)
 	}
