@@ -12,7 +12,7 @@ func TestUpgrade(t *testing.T) {
 	h := NewHelmTestClient(t)
 
 	t.Run("Upgrade success", func(t *testing.T) {
-		rd, uninstallFunc := InstallRethinkDBOperatorChart(t, h)
+		rd, uninstallFunc := InstallCertManagerChart(t, h)
 		t.Cleanup(uninstallFunc)
 		rd.Values = map[string]interface{}{
 			"controllerManager": map[string]interface{}{
@@ -33,12 +33,12 @@ func TestUpgrade(t *testing.T) {
 	})
 
 	t.Run("Upgrade, reuse values", func(t *testing.T) {
-		rd, uninstallFunc := InstallRethinkDBOperatorChart(t, h)
+		rd, uninstallFunc := InstallCertManagerChart(t, h)
 		t.Cleanup(uninstallFunc)
 
 		rd.Values = map[string]interface{}{
-			"rethinkdb": map[string]interface{}{
-				"name": "cooler-rethinkdb",
+			"image": map[string]interface{}{
+				"tag": "1.2.3",
 			},
 		}
 
@@ -51,7 +51,7 @@ func TestUpgrade(t *testing.T) {
 			assert.Equal(t, rd.ChartName, rel.Chart.Metadata.Name)
 			// ReuseValues should not change the values, but reuse the previous
 			// ones.
-			assert.NotEqual(t, "cooler-rethinkdb", rel.Chart.Values["rethinkdb"].(map[string]interface{})["name"])
+			assert.NotEqual(t, "1.2.3", rel.Chart.Values["image"].(map[string]interface{})["tag"])
 			assert.ObjectsAreEqualValues(rd.Values, rel.Chart.Values)
 		}
 	})

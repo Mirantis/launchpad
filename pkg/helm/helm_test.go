@@ -3,7 +3,6 @@ package helm
 import (
 	"testing"
 
-	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,15 +10,15 @@ import (
 
 func TestChartNeedsUpgrade(t *testing.T) {
 	h := NewHelmTestClient(t)
-	rd, _ := InstallRethinkDBOperatorChart(t, h)
+	rd, _ := InstallCertManagerChart(t, h)
 
-	rdbOperatorVersion := rd.Version
+	rdChartVersion := rd.Version
 
 	testCases := []string{
 		// ChartNeedsUpgrade returns true if the version is DIFFERENT from
-		// the installed one, so anything but rdbOperatorVersion should return
+		// the installed one, so anything but Version should return
 		// true. It's written this way to support downgrades.
-		rdbOperatorVersion,
+		rdChartVersion,
 		"1.0.0",
 		"1.0.1",
 		"1.0.100",
@@ -36,12 +35,12 @@ func TestChartNeedsUpgrade(t *testing.T) {
 		vers, err := version.NewVersion(tc)
 		require.NoError(t, err)
 
-		actual, err := h.ChartNeedsUpgrade(constant.RethinkDBOperator, vers)
+		actual, err := h.ChartNeedsUpgrade(rd.ReleaseName, vers)
 		if assert.NoError(t, err) {
-			if tc == rdbOperatorVersion {
-				assert.False(t, actual, "version: %s does match current version: %s", tc, rdbOperatorVersion)
+			if tc == rdChartVersion {
+				assert.False(t, actual, "version: %s does match current version: %s", tc, rdChartVersion)
 			} else {
-				assert.True(t, actual, "version: %s does not match current version: %s", tc, rdbOperatorVersion)
+				assert.True(t, actual, "version: %s does not match current version: %s", tc, rdChartVersion)
 			}
 		}
 	}

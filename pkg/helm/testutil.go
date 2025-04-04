@@ -77,16 +77,49 @@ func NewHelmTestClient(t *testing.T, options ...HelmTestClientOption) *Helm {
 	}
 }
 
+
+
+// InstallCertManagerChart installs cert-manager
+// to use as a chart to query for testing purposes and returns the
+// ReleaseDetails for the chart as well as a function to uninstall the chart.
+func InstallCertManagerChart(t *testing.T, h *Helm) (ReleaseDetails, func()) {
+	t.Helper()
+
+	rd := ReleaseDetails{
+		ChartName:   "cert-manager",
+		ReleaseName: "cert-manager",
+		RepoURL:     "https://charts.jetstack.io",
+		Version:     "1.10.0",
+	}
+
+	_, err := h.Upgrade(context.Background(), &Options{
+		ReleaseDetails: rd, Timeout: ptr.To(DefaultTimeout),
+	})
+	require.NoError(t, err)
+
+	uninstallFunc := func() {
+		err := h.Uninstall(&Options{
+			ReleaseDetails: rd, Timeout: ptr.To(DefaultTimeout),
+		})
+		require.NoError(t, err)
+	}
+
+	rd.Installed = true
+
+	return rd, uninstallFunc
+}
+
 // InstallRethinkDBOperatorChart installs rethinkdb-operator
 // to use as a chart to query for testing purposes and returns the
 // ReleaseDetails for the chart as well as a function to uninstall the chart.
+// @NOTE not currently tested
 func InstallRethinkDBOperatorChart(t *testing.T, h *Helm) (ReleaseDetails, func()) {
 	t.Helper()
 
 	rd := ReleaseDetails{
-		ChartName:   constant.RethinkDBOperator,
+		ChartName:   "oci://registry.mirantis.com/rethinkdb/helm/rethindb-operator",
 		ReleaseName: constant.RethinkDBOperator,
-		RepoURL:     "https://registry.mirantis.com/charts/rethinkdb/rethinkdb-operator",
+		RepoURL:     "",
 		Version:     "1.0.0",
 	}
 
