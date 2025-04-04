@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/docker"
+	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
@@ -111,19 +112,13 @@ func (p *PullMKEImages) Run() error {
 
 // ListImages obtains a list of images from MKE.
 func (p *PullMKEImages) ListImages(win, swarmOnly bool) ([]*docker.Image, error) {
-	manager := p.Config.Spec.SwarmLeader()
+	leader := p.Config.Spec.SwarmLeader()
 	bootstrap := docker.NewImage(p.Config.Spec.MKE.GetBootstrapperImage())
 
-	if !bootstrap.Exist(manager) {
-		if err := bootstrap.Pull(manager); err != nil {
-			return nil, fmt.Errorf("%s: failed to pull MKE bootstrapper image: %w", manager, err)
+	if !bootstrap.Exist(leader) {
+		if err := bootstrap.Pull(leader); err != nil {
+			return nil, fmt.Errorf("%s: failed to pull MKE bootstrapper image: %w", leader, err)
 		}
-	}
-
-	runFlags := common.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
-
-	if manager.Configurer.SELinuxEnabled(manager) {
-		runFlags.Add("--security-opt label=disable")
 	}
 
 	imageFlags := common.Flags{"--list"}
@@ -136,9 +131,9 @@ func (p *PullMKEImages) ListImages(win, swarmOnly bool) ([]*docker.Image, error)
 		imageFlags.Add("--swarm-only")
 	}
 
-	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf("run %s %s images %s", runFlags.Join(), bootstrap, imageFlags.Join()))
+	output, err := mke.Bootstrap("images", *p.Config, mke.BootstrapOptions{OperationFlags: imageFlags})
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to get MKE image list: %w", manager, err)
+		return nil, fmt.Errorf("%s: failed to get MKE image list: %w", leader, err)
 	}
 
 	return docker.AllFromString(output), nil

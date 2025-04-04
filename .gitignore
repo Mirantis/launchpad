@@ -15,5 +15,5 @@ github-release
 # go mod vendor folder
 vendor
 
-# binaries
-bin/
+# sometimes an example launchpad.yaml is used
+**/launchpad.yaml

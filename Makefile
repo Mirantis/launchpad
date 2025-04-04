@@ -36,7 +36,7 @@ build-release: clean $(RELEASE_FOLDER)
 # the GORELEASER_CURRENT_TAG env var to clarify the version to
 # avoid having the wrong tag version applied
 $(RELEASE_FOLDER):
-	goreleaser build --clean --config=.goreleaser.release.yml
+	SEGMENT_TOKEN=${SEGMENT_TOKEN} goreleaser build --clean --config=.goreleaser.release.yml
 
 .PHONY: create-checksum
 create-checksum:
