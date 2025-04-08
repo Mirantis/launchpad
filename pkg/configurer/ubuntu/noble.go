@@ -5,18 +5,18 @@ import (
 	"github.com/k0sproject/rig/os/registry"
 )
 
-// JammyConfigurer is the Ubuntu Jammy Jellyfish (22.04) specific host configurer implementation.
-type JammyConfigurer struct {
+// NobleConfigurer is the Ubuntu Noble Numbat (24.04) specific host configurer implementation.
+type NobleConfigurer struct {
 	Configurer
 }
 
 func init() {
 	registry.RegisterOSModule(
 		func(os rig.OSVersion) bool {
-			return os.ID == "ubuntu" && os.Version == "22.04"
+			return os.ID == "ubuntu" && os.Version == "24.04"
 		},
 		func() interface{} {
-			return JammyConfigurer{}
+			return NobleConfigurer{}
 		},
 	)
 }
