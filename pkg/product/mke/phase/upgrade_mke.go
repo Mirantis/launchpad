@@ -3,7 +3,6 @@ package phase
 import (
 	"fmt"
 
-	mcclog "github.com/Mirantis/launchpad/pkg/log"
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	common "github.com/Mirantis/launchpad/pkg/product/common/api"
@@ -26,43 +25,30 @@ func (p *UpgradeMKE) Title() string {
 
 // Run the upgrade container.
 func (p *UpgradeMKE) Run() error {
-	swarmLeader := p.Config.Spec.SwarmLeader()
+	leader := p.Config.Spec.SwarmLeader()
 
 	p.EventProperties = map[string]interface{}{
 		"upgraded": false,
 	}
 	if p.Config.Spec.MKE.Version == p.Config.Spec.MKE.Metadata.InstalledVersion {
-		log.Infof("%s: cluster already at version %s, not running upgrade", swarmLeader, p.Config.Spec.MKE.Version)
+		log.Infof("%s: cluster already at version %s, not running upgrade", leader, p.Config.Spec.MKE.Version)
 		return nil
 	}
 
-	swarmClusterID := swarm.ClusterID(swarmLeader)
-	runFlags := common.Flags{"-i", "-v /var/run/docker.sock:/var/run/docker.sock"}
-	if !p.CleanupDisabled() {
-		runFlags.Add("--rm")
-	}
+	swarmClusterID := swarm.ClusterID(leader)
 	upgradeFlags := p.Config.Spec.MKE.UpgradeFlags
 	upgradeFlags.Merge(common.Flags{"--id", swarmClusterID})
 
-	if mcclog.Debug {
-		upgradeFlags.AddUnlessExist("--debug")
-	}
-
-	if swarmLeader.Configurer.SELinuxEnabled(swarmLeader) {
-		runFlags.Add("--security-opt label=disable")
-	}
-
-	log.Debugf("%s: upgrade flags: %s", swarmLeader, upgradeFlags.Join())
-	upgradeCmd := swarmLeader.Configurer.DockerCommandf("run %s %s upgrade %s", runFlags.Join(), p.Config.Spec.MKE.GetBootstrapperImage(), upgradeFlags.Join())
-	err := swarmLeader.Exec(upgradeCmd, exec.StreamOutput())
+	log.Debugf("%s: upgrade flags: %s", leader, upgradeFlags.Join())
+	_, err := mke.Bootstrap("upgrade", *p.Config, mke.BootstrapOptions{OperationFlags: upgradeFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []exec.Option{exec.StreamOutput()}})
 	if err != nil {
-		return fmt.Errorf("%s: failed to run MKE upgrader: %w", swarmLeader, err)
+		return fmt.Errorf("%s: failed to run MKE upgrader: %w", leader, err)
 	}
 
 	originalInstalledVersion := p.Config.Spec.MKE.Metadata.InstalledVersion
 
-	if err := mke.CollectFacts(swarmLeader, p.Config.Spec.MKE.Metadata); err != nil {
-		return fmt.Errorf("%s: failed to collect existing MKE details: %w", swarmLeader, err)
+	if err := mke.CollectFacts(leader, p.Config.Spec.MKE.Metadata); err != nil {
+		return fmt.Errorf("%s: failed to collect existing MKE details: %w", leader, err)
 	}
 
 	p.EventProperties["upgraded"] = true

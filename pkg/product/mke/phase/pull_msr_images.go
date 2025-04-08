@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/docker"
+	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	log "github.com/sirupsen/logrus"
@@ -54,17 +55,18 @@ func (p *PullMSRImages) Run() error {
 
 // ListImages obtains a list of images from MSR.
 func (p *PullMSRImages) ListImages() ([]*docker.Image, error) {
-	msrLeader := p.Config.Spec.MSRLeader()
+	leader := p.Config.Spec.MSRLeader()
 	bootstrap := docker.NewImage(p.Config.Spec.MSR.GetBootstrapperImage())
 
-	if !bootstrap.Exist(msrLeader) {
-		if err := bootstrap.Pull(msrLeader); err != nil {
-			return []*docker.Image{}, fmt.Errorf("%s: failed to pull MSR bootstrapper image: %w", msrLeader, err)
+	if !bootstrap.Exist(leader) {
+		if err := bootstrap.Pull(leader); err != nil {
+			return []*docker.Image{}, fmt.Errorf("%s: failed to pull MSR bootstrapper image: %w", leader, err)
 		}
 	}
-	output, err := msrLeader.ExecOutput(msrLeader.Configurer.DockerCommandf("run --rm %s images", bootstrap))
+
+	output, err := msr.Bootstrap("images", *p.Config, msr.BootstrapOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("%s: failed to get MSR image list: %w", msrLeader, err)
+		return nil, fmt.Errorf("%s: failed to get MSR image list: %w", leader, err)
 	}
 
 	return docker.AllFromString(output), nil
