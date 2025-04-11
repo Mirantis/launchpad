@@ -132,7 +132,6 @@ func (h *Host) AuthorizeDocker() error {
 
 func (h *Host) sudoCommandOptions(cmd string, opts []exec.Option) []exec.Option {
 	if h.IsSudoCommand(cmd) {
-		log.Debugf("%s: Exec is getting SUDOed as the command is in the host sudo list: %s", h, cmd)
 		opts = append(opts, exec.Sudo(h))
 	}
 	return opts
