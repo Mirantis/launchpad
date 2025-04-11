@@ -27,18 +27,21 @@ type UpgradeMCR struct {
 
 // HostFilterFunc returns true for hosts that do not have engine installed.
 func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
-	if h.Metadata.MCRVersion != p.Config.Spec.MCR.Version {
-		return true
+	if h.Metadata.MCRInstalled {
+		// we just did an install, no need to run an upgrade
+		return false
 	}
 	if h.MCRUpgradeSkip {
 		log.Warnf("%s: MCR Upgrade configuration for host instructs launchpad to skip upgrading this host.", h)
 		return false
 	}
-	if p.ForceUpgrade && !h.Metadata.MCRInstalled {
+	if p.ForceUpgrade {
 		log.Warnf("%s: MCR version is already %s but attempting an upgrade anyway because --force-upgrade was given", h, h.Metadata.MCRVersion)
 		return true
 	}
-	return false
+
+	// the following version check prevents upgrades on MCR<25, but MCR25 should always upgrade.
+	return h.Metadata.MCRVersion != p.Config.Spec.MCR.Version
 }
 
 // Prepare collects the hosts.
@@ -180,10 +183,14 @@ func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
 		return fmt.Errorf("retry count exceeded: %w", err)
 	}
 
-	// check MCR is running, and updating metadata
-	if err := mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version, false); err != nil {
+	// ensure that MCR is installed and running
+	if err := mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version); err != nil {
 		return fmt.Errorf("failed while attempting to ensure the installed version: %w", err)
 	}
 
+	log.Infof("%s: mcr upgrade has been run", h)
+	log.Debugf("%s: mcr upgrade means that any planned MCR restarts are cancelled", h)
+	// the upgraded machine "may" have been restarted. We don't really know, but we err on the side of reducing restarts. We likely need a flag to force a restart.
+	h.Metadata.MCRRestartRequired = false
 	return nil
 }
