@@ -77,8 +77,6 @@ func NewHelmTestClient(t *testing.T, options ...HelmTestClientOption) *Helm {
 	}
 }
 
-
-
 // InstallCertManagerChart installs cert-manager
 // to use as a chart to query for testing purposes and returns the
 // ReleaseDetails for the chart as well as a function to uninstall the chart.

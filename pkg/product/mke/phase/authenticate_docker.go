@@ -78,7 +78,7 @@ func (p *AuthenticateDocker) Run() error {
 	// now run logins to each required registry on each of the hosts.
 	if err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *api.Host, _ *api.ClusterConfig) error {
 		errs := []error{}
-		for repo, lc := range p.logins { // running sequentially shouldn't be a problem for perfomance.
+		for repo, lc := range p.logins { // running sequentially shouldn't be a problem for performance.
 			log.Infof("%s: authenticating docker for image repo %s", h, repo)
 			if err := h.Configurer.AuthenticateDocker(h, lc.username, lc.password, repo); err != nil {
 				errs = append(errs, fmt.Errorf("%s: host docker authentication failed: %w", h, err))
