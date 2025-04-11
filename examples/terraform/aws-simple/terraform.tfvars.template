@@ -32,13 +32,13 @@ subnets = {
   "main" = {
     "cidr" = "172.31.0.0/17",
     "private" = false,
-    "nodegroups" = ["MngrUbuntu22",  "WrkUbuntu22", "MsrUbuntu22"]
+    "nodegroups" = ["MngrA",  "WrkA", "MsrA"]
   }
 }
 
 // one definition for each group of machines to include in the stack
 nodegroups = {
-  "MngrUbuntu22" = {
+  "MngrA" = {
     "platform" = "ubuntu_22.04",
     "count" = 1,
     "type" = "m6a.2xlarge",
@@ -46,7 +46,7 @@ nodegroups = {
     "role" = "manager",
     "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
   },
-  "WrkUbuntu22" = {
+  "WrkA" = {
     "platform" = "ubuntu_22.04",
     "count" = 1,
     "type" = "c6a.xlarge",
@@ -54,7 +54,7 @@ nodegroups = {
     "role" = "worker",
     "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
   }
-  "MsrUbuntu22" = {
+  "MsrA" = {
     "platform" = "ubuntu_22.04",
     "count" = 1,
     "type" = "c6a.xlarge",
