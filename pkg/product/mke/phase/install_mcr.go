@@ -70,11 +70,13 @@ func (p *InstallMCR) installMCR(h *api.Host) error {
 		return fmt.Errorf("%s: failed to authorize docker: %w", h, err)
 	}
 
-	// check MCR is running, maybe rebooting and updating metadata (don't bother restarting MCR, as we just installed/started it
-	if err := mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version, false); err != nil {
+	// check MCR is running, maybe rebooting and updating metadata
+	if err := mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version); err != nil {
 		return fmt.Errorf("failed while attempting to ensure the installed version %w", err)
 	}
 
+	log.Infof("%s: mcr installed", h)
 	h.Metadata.MCRInstalled = true
+	h.Metadata.MCRRestartRequired = false // we just installed, so a restart is not required
 	return nil
 }

@@ -32,7 +32,7 @@ type HostMetadata struct {
 	MCRRestartRequired bool
 	ImagesToUpload     []string
 	TotalImageBytes    uint64
-	MCRInstalled       bool
+	MCRInstalled       bool // Indicates that in this run an MCR install has been executed (not that in installation has been discovered)
 }
 
 // MSRMetadata is metadata needed by MSR for configuration and is gathered at
@@ -347,7 +347,7 @@ func (h *Host) ConfigureMCR() error {
 
 	if h.Metadata.MCRVersion != "" {
 		h.Metadata.MCRRestartRequired = true
-		log.Debugf("%s: host marked for mcr restart", h)
+		log.Debugf("%s: host marked for mcr restart as MCR config was changed", h)
 	}
 
 	return nil
