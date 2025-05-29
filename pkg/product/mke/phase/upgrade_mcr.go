@@ -50,6 +50,7 @@ func (p *UpgradeMCR) Prepare(config interface{}) error {
 	if !ok {
 		return errInvalidConfig
 	}
+
 	p.Config = cfg
 	log.Debugf("collecting hosts for phase %s", p.Title())
 	hosts := p.Config.Spec.Hosts.Filter(p.HostFilterFunc)

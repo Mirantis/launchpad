@@ -12,6 +12,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var ErrFactsArentValid = errors.New("validation failed")
+
 // ValidateFacts phase implementation to validate facts from config and collected metadata.
 type ValidateFacts struct {
 	phase.Analytics
@@ -39,11 +41,19 @@ func (p *ValidateFacts) Run() error {
 		return nil
 	})
 
+	if err := p.Config.Spec.MCR.Validate(); err != nil {
+		if p.Force {
+			log.Warnf("%s: continuing anyway because --force given", err.Error())
+		} else {
+			return errors.Join(ErrFactsArentValid, err)
+		}
+	}
+
 	if err := p.validateMKEVersionJump(); err != nil {
 		if p.Force {
 			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
-			return err
+			return errors.Join(ErrFactsArentValid, err)
 		}
 	}
 
@@ -51,7 +61,7 @@ func (p *ValidateFacts) Run() error {
 		if p.Force {
 			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
-			return err
+			return errors.Join(ErrFactsArentValid, err)
 		}
 	}
 
@@ -59,7 +69,7 @@ func (p *ValidateFacts) Run() error {
 		if p.Force {
 			log.Warnf("%s: continuing anyway because --force given", err.Error())
 		} else {
-			return err
+			return errors.Join(ErrFactsArentValid, err)
 		}
 	}
 

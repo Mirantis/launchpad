@@ -69,6 +69,7 @@ func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig c
 	cmd := envs + fmt.Sprintf("bash %s", escape.Quote(installer))
 
 	log.Infof("%s: running installer", h)
+	log.Debugf("%s: installer command: %s", h, cmd)
 
 	if err := h.Exec(cmd); err != nil {
 		return fmt.Errorf("run MCR installer: %w", err)

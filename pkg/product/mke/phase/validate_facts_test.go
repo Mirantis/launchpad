@@ -161,6 +161,10 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
+			MCR: common.MCRConfig{
+				Version: "25.0",
+				Channel: "stable-25.0",
+			},
 			MKE: api.MKEConfig{
 				Metadata: &api.MKEMetadata{},
 				InstallFlags: common.Flags{
@@ -194,6 +198,10 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
 				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
+			MCR: common.MCRConfig{
+				Version: "25.0",
+				Channel: "stable-25.0",
+			},
 			MKE: api.MKEConfig{
 				Metadata: &api.MKEMetadata{},
 				InstallFlags: common.Flags{
@@ -214,4 +222,17 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 
 	require.Len(t, sans, 1)
 	require.Equal(t, "--san foofoo", sans[0])
+}
+
+func TestValidateInvalidMCRConfig(t *testing.T) {
+	phase := ValidateFacts{}
+	phase.Config = &api.ClusterConfig{
+		Spec: &api.ClusterSpec{
+			Hosts: api.Hosts{
+				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+			},
+		},
+	}
+
+	require.Error(t, phase.Run(), "MCR version validated an invalid config")
 }

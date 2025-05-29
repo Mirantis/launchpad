@@ -1,38 +1,41 @@
 package mcr
 
 import (
+	"errors"
 	"fmt"
 
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeapi "github.com/Mirantis/launchpad/pkg/product/mke/api"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
 
+var ErrInvalidMCRConfig = errors.New("MCR configuration is invalid")
+
 // EnsureMCRVersion ensure that MCR is running after install/upgrade, and update the host information
 // @NOTE will reboot the machine if MCR isn't detected
 // @SEE PRODENG-2789 : we no longer perform version checks, as the MCR versions don't always match the spec string.
-func EnsureMCRVersion(h *api.Host, specMcrVersion string) error {
-	currentVersion, err := h.MCRVersion()
+func EnsureMCRVersion(host *mkeapi.Host, specMcrVersion string) error {
+	currentVersion, err := host.MCRVersion()
 	if err != nil {
-		if err := h.Reboot(); err != nil {
-			return fmt.Errorf("%s: failed to reboot after container runtime installation: %w", h, err)
+		if err := host.Reboot(); err != nil {
+			return fmt.Errorf("%s: failed to reboot after container runtime installation: %w", host, err)
 		}
-		currentVersion, err = h.MCRVersion()
+		currentVersion, err = host.MCRVersion()
 		if err != nil {
-			return fmt.Errorf("%s: failed to query container runtime version after installation: %w", h, err)
+			return fmt.Errorf("%s: failed to query container runtime version after installation: %w", host, err)
 		}
 		// as we rebooted the machine, no need to also restart MCR
-		h.Metadata.MCRRestartRequired = false
+		host.Metadata.MCRRestartRequired = false
 	}
 
-	log.Infof("%s: MCR version %s (requested: %s)", h, currentVersion, specMcrVersion)
-	h.Metadata.MCRVersion = currentVersion
+	log.Infof("%s: MCR version %s (requested: %s)", host, currentVersion, specMcrVersion)
+	host.Metadata.MCRVersion = currentVersion
 
 	return nil
 }
 
 // DrainNode drains a node from the workload via docker drain command.
-func DrainNode(lead *api.Host, h *api.Host) error {
+func DrainNode(lead *mkeapi.Host, h *mkeapi.Host) error {
 	nodeID, err := swarm.NodeID(h)
 	if err != nil {
 		return fmt.Errorf("failed to get node ID for %s: %w", h, err)
