@@ -202,7 +202,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 
 // AuthenticateDocker performs a docker login on the host.
 func (c LinuxConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
-	if err := h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", user, imageRepo), exec.Stdin(pass), exec.RedactString(user, pass)); err != nil {
+	if err := h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", escape.Quote(user), imageRepo), exec.Stdin(pass), exec.RedactString(user, pass)); err != nil {
 		return fmt.Errorf("failed to login to the docker registry: %w", err)
 	}
 	return nil
