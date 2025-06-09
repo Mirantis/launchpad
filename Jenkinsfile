@@ -18,17 +18,23 @@ spec:
   - name: regcred-registry-mirantis-com
   containers:
   - name: jnlp
-    image: registry.mirantis.com/prodeng/ci-workspace:1.0.6
+    image: "registry.mirantis.com/prodeng/ci-workspace:1.0.8"
+    securityContext:
+     runAsUser: 0
+     runAsGroup: 0
+    imagePullPolicy: Always
     volumeMounts:
     - name: docker-socket
       mountPath: /var/run
+    - name: tmp-dir
+      mountPath: /tmp
     resources:
       limits:
-        cpu: 1
+        cpu: "1"
       requests:
-        cpu: 0.5
+        cpu: "0.5"
   - name: docker-daemon
-    image: docker:24.0.9-dind
+    image: "docker:24.0.9-dind"
     securityContext:
      privileged: true
     volumeMounts:
