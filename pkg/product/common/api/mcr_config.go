@@ -113,7 +113,8 @@ func processVersionChannelMatch(config *MCRConfig) error {
 		return nil
 	}
 
-	chanParts := strings.Split(config.Channel, "-")
+	channel := strings.Split(config.Channel, "/")[0] // remove "/fips" or anything after "/"
+	chanParts := strings.Split(channel, "-")
 	if len(chanParts) == 1 {
 		return fmt.Errorf("%w; channel has no version (%s)", ErrChannelDoesntMatchVersion, config.Channel)
 	}
@@ -122,8 +123,10 @@ func processVersionChannelMatch(config *MCRConfig) error {
 		return fmt.Errorf("%w; channel parts could not be interpreted", ErrChannelDoesntMatchVersion)
 	}
 
-	if !strings.HasPrefix(chanParts[1], config.Version) {
-		return fmt.Errorf("%w; MCR version does not match channel-version '%s' vs '%s'", ErrChannelDoesntMatchVersion, chanParts[1], config.Version)
+	configVersionParts := strings.Split(config.Version, ".")
+	configChannel := configVersionParts[0] + "." + configVersionParts[1] // take only the major and minor version
+	if !strings.HasPrefix(chanParts[1], configChannel) {
+		return fmt.Errorf("%w; MCR version does not match channel-version '%s' vs '%s'", ErrChannelDoesntMatchVersion, chanParts[1], configChannel)
 	}
 
 	return nil
