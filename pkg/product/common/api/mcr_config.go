@@ -14,6 +14,8 @@ var (
 	// all versions from 25.0.0 need channel-version matching.
 	minVersionNeedsMatchingChannel, _ = version.NewVersion("25.0.0")
 	ErrChannelDoesntMatchVersion      = errors.New("MCR version and channel don't match, which is required for versions >= 25.0.0")
+
+	fipsChannelSuffix = "/fips" // this suffix is removed from channels for version comparison testing
 )
 
 type DockerInfo struct {
@@ -113,7 +115,8 @@ func processVersionChannelMatch(config *MCRConfig) error {
 		return nil
 	}
 
-	chanParts := strings.Split(config.Channel, "-")
+	channel := strings.TrimSuffix(config.Channel, fipsChannelSuffix)
+	chanParts := strings.Split(channel, "-")
 	if len(chanParts) == 1 {
 		return fmt.Errorf("%w; channel has no version (%s)", ErrChannelDoesntMatchVersion, config.Channel)
 	}
