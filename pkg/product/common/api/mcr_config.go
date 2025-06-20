@@ -125,7 +125,9 @@ func processVersionChannelMatch(config *MCRConfig) error {
 		return fmt.Errorf("%w; channel parts could not be interpreted", ErrChannelDoesntMatchVersion)
 	}
 
-	if !strings.HasPrefix(chanParts[1], config.Version) {
+	// chanParts[1] is the major.minor version part of the channel like "25.0"
+	// config.Version is the full major.minor.patch version like "25.0.8"
+	if !strings.HasPrefix(config.Version, chanParts[1]) {
 		return fmt.Errorf("%w; MCR version does not match channel-version '%s' vs '%s'", ErrChannelDoesntMatchVersion, chanParts[1], config.Version)
 	}
 
