@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
@@ -15,7 +16,8 @@ var (
 	minVersionNeedsMatchingChannel, _ = version.NewVersion("25.0.0")
 	ErrChannelDoesntMatchVersion      = errors.New("MCR version and channel don't match, which is required for versions >= 25.0.0")
 
-	fipsChannelSuffix = "/fips" // this suffix is removed from channels for version comparison testing
+	fipsChannelSuffix = "/fips"                            // this suffix is removed from channels for version comparison testing
+	suffixPattern     = regexp.MustCompile(`-(tp|rc)\d+$`) // this filters out internal build suffix like -tp1
 )
 
 type DockerInfo struct {
@@ -125,7 +127,8 @@ func processVersionChannelMatch(config *MCRConfig) error {
 		return fmt.Errorf("%w; channel parts could not be interpreted", ErrChannelDoesntMatchVersion)
 	}
 
-	if !strings.HasPrefix(chanParts[1], config.Version) {
+	configVerNum := suffixPattern.ReplaceAllString(config.Version, "") // remove build number
+	if !strings.HasPrefix(chanParts[1], configVerNum) {
 		return fmt.Errorf("%w; MCR version does not match channel-version '%s' vs '%s'", ErrChannelDoesntMatchVersion, chanParts[1], config.Version)
 	}
 
