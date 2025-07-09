@@ -12,6 +12,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// regex for pulling images names from command string output, common for msr/mke bootstrappers.
+var imageListFromOutputString = regexp.MustCompile(`(?m)^(?P<repo>[\w\.\/_-]*)\/(?P<name>[\w\.\/_-]+?):(?P<tag>[\w\.\/_-]+?)$`)
+
 // Image describes a docker image.
 type Image struct {
 	Repository string
@@ -29,8 +32,7 @@ func NewImage(s string) *Image {
 
 // AllFromString parses a list of images from a newline separated string and returns a list of images.
 func AllFromString(s string) (list []*Image) {
-	re := regexp.MustCompile("(?m)^(?P<repo>.*)/(?P<name>.+?):(?P<tag>.+?)$")
-	for _, match := range re.FindAllStringSubmatch(s, -1) {
+	for _, match := range imageListFromOutputString.FindAllStringSubmatch(s, -1) {
 		list = append(list, &Image{
 			Repository: match[1],
 			Name:       match[2],
