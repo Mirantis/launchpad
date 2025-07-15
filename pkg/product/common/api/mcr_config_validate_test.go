@@ -145,3 +145,21 @@ func Test_ValidateWildcardChannelVersionFIPS(t *testing.T) {
 
 	require.Nil(t, configFips.Validate(), "received unexpected error for valid MCR config which uses a wildcard version and specific channel w/ FIPS")
 }
+
+func Test_ValidateInternalBuild(t *testing.T) {
+	config := commonapi.MCRConfig{
+		Version: "25.0.12-tp1",
+		Channel: "test-25.0.12",
+	}
+
+	require.Nil(t, config.Validate(), "received unexpected error for valid MCR config which contains internal build suffix -tp1")
+}
+
+func Test_ValidateInternalBuildFIPS(t *testing.T) {
+	config := commonapi.MCRConfig{
+		Version: "25.0.12-rc2",
+		Channel: "test-25.0.12/fips",
+	}
+
+	require.Nil(t, config.Validate(), "received unexpected error for valid MCR config which contains internal build suffix -tp1 w/ FIPS")
+}
