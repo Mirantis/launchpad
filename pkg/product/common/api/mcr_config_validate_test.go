@@ -59,6 +59,16 @@ func Test_ValidateInvalidVersion(t *testing.T) {
 	require.ErrorIs(t, config.Validate(), commonapi.ErrInvalidVersion, "did not receive expected error from invalid MCR config version")
 }
 
+// invalid version passed: reported in PRODENG-3129
+func Test_ValidateInvalidVersion_PRODENG3129(t *testing.T) {
+	config := commonapi.MCRConfig{
+		Version: "25.0.8m1-1",
+		Channel: "stable-25.0.9",
+	}
+
+	require.Error(t, config.Validate(), "did not receive expected error from invalid MCR config version (PRODENG-3129)")
+}
+
 // if a full maj.min.pat version is passed, then the channel should have the full maj.min.pat part
 func Test_ValidateMissingChannelVersion(t *testing.T) {
 	config := commonapi.MCRConfig{
@@ -163,3 +173,4 @@ func Test_ValidateInternalBuildFIPS(t *testing.T) {
 
 	require.Nil(t, config.Validate(), "received unexpected error for valid MCR config which contains internal build suffix -tp1 w/ FIPS")
 }
+
