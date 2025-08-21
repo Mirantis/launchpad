@@ -8,7 +8,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	common "github.com/Mirantis/launchpad/pkg/product/common/phase"
 	mke "github.com/Mirantis/launchpad/pkg/product/mke/phase"
-	event "gopkg.in/segmentio/analytics-go.v3"
+	event "github.com/segmentio/analytics-go/v3"
 )
 
 // Apply - installs Docker Enterprise (MKE, MSR, MCR) on the hosts that are defined in the config.

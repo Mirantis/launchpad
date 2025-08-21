@@ -8,9 +8,9 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/analytics"
 	"github.com/Mirantis/launchpad/pkg/config"
+	event "github.com/segmentio/analytics-go/v3"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
-	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 var reports = []string{"hosts", "mke", "msr", "config"}
