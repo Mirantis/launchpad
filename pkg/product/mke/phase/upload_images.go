@@ -7,10 +7,10 @@ import (
 	"path"
 	"path/filepath"
 
+	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
 	"github.com/Mirantis/launchpad/pkg/util/byteutil"
-	"github.com/alessio/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 

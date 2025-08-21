@@ -9,8 +9,8 @@ import (
 	"github.com/Mirantis/launchpad/pkg/config/user"
 	"github.com/Mirantis/launchpad/version"
 	"github.com/denisbrodbeck/machineid"
+	analytics "github.com/segmentio/analytics-go/v3"
 	log "github.com/sirupsen/logrus"
-	analytics "gopkg.in/segmentio/analytics-go.v3"
 )
 
 // SegmentToken is the API token we use for Segment. Set at compile time.

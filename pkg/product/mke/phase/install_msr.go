@@ -3,10 +3,10 @@ package phase
 import (
 	"fmt"
 
+	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
-	"github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )

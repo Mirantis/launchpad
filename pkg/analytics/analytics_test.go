@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/config/user"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/segmentio/analytics-go.v3"
+	"github.com/segmentio/analytics-go/v3"
 )
 
 type mockClient struct {

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/Mirantis/launchpad/pkg/analytics"
-	"github.com/logrusorgru/aurora"
+	"github.com/logrusorgru/aurora/v4"
+	event "github.com/segmentio/analytics-go/v3"
 	log "github.com/sirupsen/logrus"
-	event "gopkg.in/segmentio/analytics-go.v3"
 )
 
 type phase interface {

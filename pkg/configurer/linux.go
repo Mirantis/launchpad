@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
+	escape "al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/constant"
 	common "github.com/Mirantis/launchpad/pkg/product/common/api"
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
-	escape "github.com/alessio/shellescape"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	log "github.com/sirupsen/logrus"

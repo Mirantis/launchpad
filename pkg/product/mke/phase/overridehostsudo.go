@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
-	"github.com/alessio/shellescape"
 	"github.com/mattn/go-shellwords"
 	log "github.com/sirupsen/logrus"
 )
