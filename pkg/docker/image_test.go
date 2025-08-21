@@ -1,19 +1,20 @@
-package docker
+package docker_test
 
 import (
 	"testing"
 
+	"github.com/Mirantis/launchpad/pkg/docker"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewImage(t *testing.T) {
-	image := NewImage("xyz/foofoo:1.2.3-latest")
+	image := docker.NewImage("xyz/foofoo:1.2.3-latest")
 	require.Equal(t, "xyz", image.Repository)
 	require.Equal(t, "foofoo", image.Name)
 	require.Equal(t, "1.2.3-latest", image.Tag)
 	require.Equal(t, "xyz/foofoo:1.2.3-latest", image.String())
 
-	image = NewImage("docker.io/xyz/foofoo:1.2.3-latest")
+	image = docker.NewImage("docker.io/xyz/foofoo:1.2.3-latest")
 	require.Equal(t, "docker.io/xyz", image.Repository)
 	require.Equal(t, "foofoo", image.Name)
 	require.Equal(t, "1.2.3-latest", image.Tag)
@@ -21,7 +22,7 @@ func TestNewImage(t *testing.T) {
 }
 
 func TestAllFromString(t *testing.T) {
-	images := AllFromString(`docker.io/foo/bar:1.2.3
+	images := docker.AllFromString(`docker.io/foo/bar:1.2.3
 docker.io/foo/bar2:1.2.3`)
 	require.Equal(t, 2, len(images))
 	require.Equal(t, "docker.io/foo", images[0].Repository)
@@ -30,12 +31,22 @@ docker.io/foo/bar2:1.2.3`)
 }
 
 func TestAllToRepository(t *testing.T) {
-	images := AllFromString(`docker.io/foo/bar:1.2.3
-docker.io/foo/bar2:1.2.3`)
-	moved := AllToRepository(images, "custom.example.com/repo")
-	require.Equal(t, 2, len(moved))
+	images := docker.AllFromString(`docker.io/foo/bar:1.2.3
+docker.io/foo/bar2:1.2.3-tp1  
+docker.io:8888/foo2/bar3:PRODENG
+
+`) // there is whitespace EOL on purpose
+
+	require.Equal(t, 3, len(images))
+	require.Equal(t, "docker.io/foo/bar:1.2.3", images[0].String())
+	require.Equal(t, "docker.io/foo/bar2:1.2.3-tp1", images[1].String())
+	require.Equal(t, "docker.io:8888/foo2/bar3:PRODENG", images[2].String())
+
+	moved := docker.AllToRepository(images, "custom.example.com/repo")
+	require.Equal(t, 3, len(moved))
 	require.Equal(t, "custom.example.com/repo/bar:1.2.3", moved[0].String())
-	require.Equal(t, "custom.example.com/repo/bar2:1.2.3", moved[1].String())
+	require.Equal(t, "custom.example.com/repo/bar2:1.2.3-tp1", moved[1].String())
+	require.Equal(t, "custom.example.com/repo/bar3:PRODENG", moved[2].String())
 }
 
 // MKE3.8.7 forced us to refine the regex used. This test uses some real MKE output w/ --debug to confirm
@@ -52,7 +63,7 @@ time="2025-07-03T01:00:12Z" level=info msg="Bootsrapper image version: 3.8.7"
 msr.ci.mirantis.com/mirantiseng/ucp-agent:3.8.7
 msr.ci.mirantis.com/mirantiseng/ucp-alertmanager:3.8.7
 msr.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7`
-	images := AllFromString(mke387output)
+	images := docker.AllFromString(mke387output)
 	require.Equal(t, 3, len(images))
 	require.Equal(t, "msr.ci.mirantis.com/mirantiseng/ucp-agent:3.8.7", images[0].String())
 	require.Equal(t, "msr.ci.mirantis.com/mirantiseng/ucp-alertmanager:3.8.7", images[1].String())
