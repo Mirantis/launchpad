@@ -1,6 +1,7 @@
 package enterpriselinux
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -28,51 +29,77 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 
 // UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRConfig) error {
-	info, getDockerError := c.GetDockerInfo(h)
-	if engineConfig.Prune {
-		defer c.CleanupLingeringMCR(h, info)
-	}
-	if getDockerError == nil {
-		if err := h.Exec("docker system prune -f"); err != nil {
-			return fmt.Errorf("prune docker: %w", err)
-		}
-
-		if err := c.StopService(h, "docker"); err != nil {
-			return fmt.Errorf("stop docker: %w", err)
-		}
-
-		if err := c.StopService(h, "containerd"); err != nil {
-			return fmt.Errorf("stop containerd: %w", err)
-		}
-
-		if err := h.Exec("yum remove -y docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
-			return fmt.Errorf("remove docker-ee yum package: %w", err)
-		}
+	if err := c.StopMCR(h, engineConfig); err != nil {
+		return errors.Join(configurer.ErrorConfigurerMCRUninstall, err)
 	}
 
+	if err := c.uninstallMCRPackages(h); err != nil {
+		return errors.Join(configurer.ErrorConfigurerMCRUninstall, err)
+	}
+
+	if err := c.uninstallMCRRepo(h); err != nil {
+		return errors.Join(configurer.ErrorConfigurerMCRUninstall, err)
+	}
+	
 	return nil
 }
 
 // InstallMCR install Docker EE engine on Linux.
 func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
-	if isEC2 := c.isAWSInstance(h); !isEC2 {
-		log.Debugf("%s: confirmed that this is not an AWS instance", h)
-	} else if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
-		log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
+	if err := c.installELAWSDependencies(h); err != nil {
+		return errors.Join(configurer.ErrorConfigurerMCRInstall, err)
 	}
 
-	if err := c.LinuxConfigurer.InstallMCR(h, scriptPath, engineConfig); err != nil {
-		return fmt.Errorf("failed to install MCR: %w", err)
+	if err := c.installMCRRepo(h); err != nil {
+		return errors.Join(configurer.ErrorConfigurerMCRInstall, err)
+
+	}
+	if err := c.installMCRPackages(h); err != nil {
+		return errors.Join(configurer.ErrorConfigurerMCRInstall, err)		
+	}
+
+	return nil
+}
+
+// install the EL Repos
+func (c Configurer) installMCRRepo(h os.Host) error {
+	return nil
+}
+
+// un-install the EL Repos
+func (c Configurer) uninstallMCRRepo(h os.Host) error {
+	return nil
+}
+
+// install the MCR packages
+func (c Configurer) installMCRPackages(h os.Host) error {
+	return nil
+}
+
+// install the MCR packages
+func (c Configurer) uninstallMCRPackages(h os.Host) error {
+	if err := h.Exec("yum remove -y docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
+		return fmt.Errorf("remove docker-ee yum package: %w", err)
 	}
 	return nil
 }
 
 // function to check if the host is an AWS instance - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
-func (c Configurer) isAWSInstance(h os.Host) bool {
+func (c Configurer) installELAWSDependencies(h os.Host) error {
 	found, err := h.ExecOutput("curl -s -m 5 http://169.254.169.254/latest/dynamic/instance-identity/document | grep region")
 	if err != nil {
-		log.Debugf("%s: curl on local-linked AWS id document failed: %v", h, err)
-		return false
+		return err
 	}
-	return strings.Contains(found, "region")
+
+	// the test for an aws instance
+	if strings.Contains(found, "region") {
+
+		if err := c.InstallPackage(h, "rh-amazon-rhui-client"); err == nil {
+			log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
+		} else {
+			return fmt.Errorf("%s: appears to be an AWS EC2 instance, but failed to install rh-amazon-rhui-client: %w", h, err)
+		}
+	}
+
+	return nil
 }

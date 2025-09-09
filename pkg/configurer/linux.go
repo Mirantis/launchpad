@@ -94,6 +94,33 @@ func (c LinuxConfigurer) RestartMCR(h os.Host) error {
 	return nil
 }
 
+// StopMCR stop any running MCR components and dependencies (usually so that it can be uninstalled)
+func (c LinuxConfigurer) StopMCR(h os.Host, engineConfig common.MCRConfig) error {
+	info, getDockerError := c.GetDockerInfo(h)
+	if engineConfig.Prune {
+		defer c.CleanupLingeringMCR(h, info)
+	}
+	if getDockerError == nil {
+		if err := h.Exec("docker system prune -f"); err != nil {
+			return fmt.Errorf("prune docker: %w", err)
+		}
+
+		if err := c.riglinux.StopService(h, "docker"); err != nil {
+			return fmt.Errorf("stop docker: %w", err)
+		}
+
+		if err := c.riglinux.StopService(h, "containerd"); err != nil {
+			return fmt.Errorf("stop containerd: %w", err)
+		}
+
+		if err := h.Exec("yum remove -y docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
+			return fmt.Errorf("remove docker-ee yum package: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // ResolveInternalIP resolves internal ip from private interface.
 func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP string) (string, error) {
 	output, err := h.ExecOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, privateInterface))
