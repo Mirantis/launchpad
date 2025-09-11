@@ -39,6 +39,7 @@ type MCRConfig struct {
 	RepoURL                     string   `yaml:"repoURL,omitempty"`
 	AdditionalRuntimes          string   `yaml:"additionalRuntimes,omitempty"`
 	DefaultRuntime              string   `yaml:"defaultRuntime,omitempty"`
+	License                     string   `yaml:"license"`
 	InstallURLLinux             string   `yaml:"installURLLinux,omitempty"`
 	InstallScriptRemoteDirLinux string   `yaml:"installScriptRemoteDirLinux,omitempty"`
 	InstallURLWindows           string   `yaml:"installURLWindows,omitempty"`

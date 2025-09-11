@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,11 @@ import (
 	"github.com/k0sproject/rig/os"
 	ps "github.com/k0sproject/rig/pkg/powershell"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	// WindowsDockerLicenseFile filename for the docker license file on Windows machines.
+	WindowsDockerLicenseFile = "docker.lic"
 )
 
 // WindowsConfigurer is a generic windows host configurer.
@@ -38,6 +44,23 @@ type rebootable interface {
 }
 
 var errRebootRequired = fmt.Errorf("reboot required")
+
+// Install MCR License.
+func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
+	// Use default docker root dir if not specified in docker info
+	dockerRootDir := constant.WindowsDefaultDockerRoot
+
+	// set the docker root dir from docker info if it exists
+	if info, err := c.GetDockerInfo(h); err == nil && info != (common.DockerInfo{}) {
+		dockerRootDir = info.DockerRootDir
+	}
+
+	licPath := filepath.Join(dockerRootDir, WindowsDockerLicenseFile)
+	if err := c.WriteFile(h, licPath, lic, "400"); err != nil {
+		return fmt.Errorf("license write; %w", err)
+	}
+	return nil
+}
 
 // InstallMCR install MCR on Windows.
 func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {

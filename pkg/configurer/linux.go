@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,18 +19,39 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// LinuxDockerLicenseFile filename for the docker license file on Linux machines.
+	LinuxDockerLicenseFile = "docker.lic"
+	// SbinPath is for adding sbin directories to current $PATH.
+	SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
+)
+
 // LinuxConfigurer is a generic linux host configurer.
 type LinuxConfigurer struct {
 	riglinux os.Linux
 	DockerConfigurer
 }
 
-// SbinPath is for adding sbin directories to current $PATH.
-const SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
-
 // MCRConfigPath returns the configuration file path.
 func (c LinuxConfigurer) MCRConfigPath() string {
 	return "/etc/docker/daemon.json"
+}
+
+// Install MCR License.
+func (c LinuxConfigurer) InstallMCRLicense(h os.Host, lic string) error {
+	// Use default docker root dir if not specified in docker info
+	dockerRootDir := constant.LinuxDefaultDockerRoot
+
+	// set the docker root dir from docker info if it exists
+	if info, err := c.GetDockerInfo(h); err == nil && info != (common.DockerInfo{}) {
+		dockerRootDir = info.DockerRootDir
+	}
+
+	licPath := filepath.Join(dockerRootDir, LinuxDockerLicenseFile)
+	if err := c.riglinux.WriteFile(h, licPath, lic, "400"); err != nil {
+		return fmt.Errorf("license write (linux); %w", err)
+	}
+	return nil
 }
 
 // InstallMCR install MCR on Linux.
