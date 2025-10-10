@@ -141,7 +141,7 @@ func processVersionChannelMatch(config *MCRConfig) error {
 func processVersionIsAVersion(config *MCRConfig) (ver *version.Version, err error) {
 	if config.Version == "" {
 		err = ErrInvalidVersion
-		return
+		return ver, err
 	}
 
 	defer func() {
@@ -152,5 +152,5 @@ func processVersionIsAVersion(config *MCRConfig) (ver *version.Version, err erro
 	}()
 
 	ver, err = version.NewVersion(config.Version)
-	return
+	return ver, err //nolint:wrapcheck
 }

@@ -22,10 +22,10 @@ func DiscoverEnvLogin(prefixes []string) (user, pass string, err error) {
 			if pass == "" {
 				err = fmt.Errorf("%w; %s username env variable did not have matching password variable %s", ErrMissingPassword, userEnv, passEnv)
 			}
-			return
+			return user, pass, err
 		}
 	}
 	// if there were no matching vars, then we are not supposed to do a login
 	err = ErrNoEnvPasswordsFound
-	return
+	return user, pass, err
 }
