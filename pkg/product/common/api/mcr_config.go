@@ -39,6 +39,7 @@ type MCRConfig struct {
 	RepoURL                     string   `yaml:"repoURL,omitempty"`
 	AdditionalRuntimes          string   `yaml:"additionalRuntimes,omitempty"`
 	DefaultRuntime              string   `yaml:"defaultRuntime,omitempty"`
+	License                     string   `yaml:"license"`
 	InstallURLLinux             string   `yaml:"installURLLinux,omitempty"`
 	InstallScriptRemoteDirLinux string   `yaml:"installScriptRemoteDirLinux,omitempty"`
 	InstallURLWindows           string   `yaml:"installURLWindows,omitempty"`
@@ -140,7 +141,7 @@ func processVersionChannelMatch(config *MCRConfig) error {
 func processVersionIsAVersion(config *MCRConfig) (ver *version.Version, err error) {
 	if config.Version == "" {
 		err = ErrInvalidVersion
-		return
+		return ver, err
 	}
 
 	defer func() {
@@ -151,5 +152,5 @@ func processVersionIsAVersion(config *MCRConfig) (ver *version.Version, err erro
 	}()
 
 	ver, err = version.NewVersion(config.Version)
-	return
+	return ver, err //nolint:wrapcheck
 }

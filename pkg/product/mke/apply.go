@@ -32,6 +32,7 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		&mke.ConfigureMCR{},
 		&mke.InstallMCR{},
 		&mke.UpgradeMCR{Concurrency: concurrency, ForceUpgrade: forceUpgrade},
+		&mke.InstallMCRLicense{},
 		&mke.RestartMCR{},
 		&mke.LoadImages{},
 		&mke.AuthenticateDocker{},
