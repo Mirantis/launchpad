@@ -109,7 +109,7 @@ func (c *MCRConfig) Validate() error {
 //
 //	If the channel doesn't contain the right version component then version pinning won't work
 func processVersionChannelMatch(config *MCRConfig) error {
-	ver, vererr := processVersionIsAVersion(config)
+	ver, vererr := version.NewSemver(config.Version)
 	if vererr != nil {
 		return fmt.Errorf("%w; %w", ErrInvalidVersion, vererr)
 	}
@@ -134,23 +134,4 @@ func processVersionChannelMatch(config *MCRConfig) error {
 	}
 
 	return nil
-}
-
-// go-version.NewVersion throws a runtime error if you pass it something invalid
-// so we use, this to provide a runtime safe process for the version parsing.
-func processVersionIsAVersion(config *MCRConfig) (ver *version.Version, err error) {
-	if config.Version == "" {
-		err = ErrInvalidVersion
-		return ver, err
-	}
-
-	defer func() {
-		// recover from panic if one occurred. Set err to nil otherwise.
-		if recover() != nil {
-			err = ErrInvalidVersion
-		}
-	}()
-
-	ver, err = version.NewVersion(config.Version)
-	return ver, err //nolint:wrapcheck
 }
