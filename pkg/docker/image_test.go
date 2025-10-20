@@ -58,14 +58,14 @@ time="2025-07-03T01:00:12Z" level=info msg="Skipping compatible engine version c
 time="2025-07-03T01:00:12Z" level=debug msg="Start finding bootstrap container"
 time="2025-07-03T01:00:12Z" level=debug msg="Found 1 container(s) running the bootstrap image"
 time="2025-07-03T01:00:12Z" level=debug msg="Container \"/priceless_edison\" running: /bin/ucp-tool images"
-time="2025-07-03T01:00:12Z" level=info msg="Bootsrapper image org: msr.ci.mirantis.com/mirantiseng"
+time="2025-07-03T01:00:12Z" level=info msg="Bootsrapper image org: registry.ci.mirantis.com/mirantiseng"
 time="2025-07-03T01:00:12Z" level=info msg="Bootsrapper image version: 3.8.7"
-msr.ci.mirantis.com/mirantiseng/ucp-agent:3.8.7
-msr.ci.mirantis.com/mirantiseng/ucp-alertmanager:3.8.7
-msr.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7`
+registry.ci.mirantis.com/mirantiseng/ucp-agent:3.8.7
+registry.ci.mirantis.com/mirantiseng/ucp-alertmanager:3.8.7
+registry.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7`
 	images := docker.AllFromString(mke387output)
 	require.Equal(t, 3, len(images))
-	require.Equal(t, "msr.ci.mirantis.com/mirantiseng/ucp-agent:3.8.7", images[0].String())
-	require.Equal(t, "msr.ci.mirantis.com/mirantiseng/ucp-alertmanager:3.8.7", images[1].String())
-	require.Equal(t, "msr.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7", images[2].String())
+	require.Equal(t, "registry.ci.mirantis.com/mirantiseng/ucp-agent:3.8.7", images[0].String())
+	require.Equal(t, "registry.ci.mirantis.com/mirantiseng/ucp-alertmanager:3.8.7", images[1].String())
+	require.Equal(t, "registry.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7", images[2].String())
 }
