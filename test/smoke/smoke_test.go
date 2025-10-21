@@ -22,11 +22,12 @@ var MKE_CONNECT = map[string]interface{}{
 	"insecure": true,
 }
 
+// initial install
 var LAUNCHPAD = map[string]interface{}{
 	"drain":       false,
-	"mcr_version": "25.0.8",
-	"mke_version": "3.8.2",
-	"msr_version": "2.9.23",
+	"mcr_version": "25.0.13",
+	"mke_version": "3.8.8",
+	"msr_version": "2.9.28",
 	"mke_connect": MKE_CONNECT,
 }
 
@@ -165,9 +166,10 @@ func TestSupportedMatrixCluster(t *testing.T) {
 	err = product.Apply(true, true, 3, true)
 	assert.NoError(t, err)
 
-	// Replace the version values for MCR,MKE,MSR in the mkeClusterConfig
-	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mcr_version"].(string), "23.0.15")
-	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mke_version"].(string), "3.7.15")
+	// Replace the version values for MCR,MKE,MSR in the mkeClusterConfig for an upgrade
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mcr_version"].(string), "25.0.13")
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mke_version"].(string), "3.8.8")
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["msr_version"].(string), "2.9.28")
 
 	productUpgrade, err := config.ProductFromYAML([]byte(mkeClusterConfig))
 	assert.NoError(t, err)

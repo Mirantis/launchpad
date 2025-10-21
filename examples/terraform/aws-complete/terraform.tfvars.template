@@ -8,8 +8,8 @@ aws = {
 launchpad = {
   drain = false
 
-  mcr_version = "23.0.15"
-  mke_version = "3.7.15"
+  mcr_version = "25.0.13"
+  mke_version = "3.8.8"
   msr_version = ""
 
   mke_connect = {
