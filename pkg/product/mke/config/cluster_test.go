@@ -240,7 +240,7 @@ spec:
 	ucp:
 	  version: 3.3.7
   engine:
-    installURL: http://example.com/
+    installURLWindows: http://example.com/install.ps1
   hosts:
   - address: "1.2.3.4"
     sshPort: 9022
@@ -253,7 +253,7 @@ spec:
 	require.NoError(t, err)
 	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
 
-	require.Equal(t, c.Spec.MCR.InstallURLLinux, "http://example.com/")
+	require.Equal(t, c.Spec.MCR.InstallURLWindows, "http://example.com/install.ps1")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
 }
@@ -266,7 +266,7 @@ spec:
   ucp:
 	  version: 3.3.7
   engine:
-    installURL: http://example.com/
+    installURLWindows: http://example.com/install.ps1
   hosts:
   - address: "1.2.3.4"
     role: manager
@@ -300,7 +300,7 @@ spec:
 	require.NoError(t, err)
 	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
 
-	require.Equal(t, constant.MCRInstallURLLinux, c.Spec.MCR.InstallURLLinux)
+	require.Equal(t, constant.MCRInstallURLWindows, c.Spec.MCR.InstallURLWindows)
 	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
 	require.Equal(t, "foofoo", c.Spec.Hosts[0].SSH.User)
 }

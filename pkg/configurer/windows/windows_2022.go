@@ -22,7 +22,7 @@ func init() {
 		func(os rig.OSVersion) bool {
 			return os.ID == "windows" && os.Version == "10.0.20348"
 		},
-		func() interface{} {
+		func() any {
 			return Windows2022Configurer{}
 		},
 	)

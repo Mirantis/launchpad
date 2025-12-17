@@ -28,7 +28,6 @@ type HostMetadata struct {
 	LongHostname       string
 	InternalAddress    string
 	MCRVersion         string
-	MCRInstallScript   string
 	MCRRestartRequired bool
 	ImagesToUpload     []string
 	TotalImageBytes    uint64

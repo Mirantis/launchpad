@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -11,8 +12,6 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/Mirantis/launchpad/pkg/constant"
 )
 
 func TestCRDReady(t *testing.T) {

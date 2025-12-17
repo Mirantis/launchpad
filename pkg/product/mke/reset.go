@@ -25,7 +25,6 @@ func (p *MKE) Reset() error {
 		// end MSR phases
 
 		&mke.UninstallMKE{},
-		&mke.DownloadInstaller{},
 		&mke.UninstallMCR{},
 		&mke.CleanUp{},
 		&common.RunHooks{Stage: "after", Action: "reset"},

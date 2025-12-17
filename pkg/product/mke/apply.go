@@ -24,7 +24,6 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		&mke.GatherFacts{},
 		&mke.ValidateFacts{Force: force},
 		&mke.ValidateHosts{},
-		&mke.DownloadInstaller{},
 		&common.RunHooks{Stage: "before", Action: "apply"},
 		&mke.PrepareHost{},
 

@@ -174,7 +174,7 @@ func (p *UpgradeMCR) upgradeMCR(h *mkeconfig.Host) error {
 	if err := retry.Do(
 		func() error {
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
-			if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
+			if err := h.Configurer.InstallMCR(h, p.Config.Spec.MCR); err != nil {
 				return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
 			}
 			return nil

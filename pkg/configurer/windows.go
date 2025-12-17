@@ -63,11 +63,16 @@ func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 }
 
 // InstallMCR install MCR on Windows.
-func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
+func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+	installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
+	if getInstallerErr != nil {
+		return fmt.Errorf("could not install MCR; %w", getInstallerErr)
+	}
+
 	pwd := c.Pwd(h)
-	base := path.Base(scriptPath)
+	base := path.Base(installerPath)
 	installer := pwd + "\\" + base + ".ps1"
-	if err := h.Upload(scriptPath, installer, fs.FileMode(0o640)); err != nil {
+	if err := h.Upload(installerPath, installer, fs.FileMode(0o640)); err != nil {
 		return fmt.Errorf("failed to upload MCR installer: %w", err)
 	}
 	defer func() {
@@ -101,7 +106,7 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig
 // UninstallMCR uninstalls docker-ee engine
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
-func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
+func (c WindowsConfigurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
@@ -111,10 +116,15 @@ func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConf
 			return fmt.Errorf("prune docker: %w", err)
 		}
 
+		installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
+		if getInstallerErr != nil {
+			return fmt.Errorf("could not uninstall MCR; %w", getInstallerErr)
+		}
+
 		pwd := c.Pwd(h)
-		base := path.Base(scriptPath)
+		base := path.Base(installerPath)
 		uninstaller := pwd + "\\" + base + ".ps1"
-		if err := h.Upload(scriptPath, uninstaller, fs.FileMode(0o640)); err != nil {
+		if err := h.Upload(installerPath, uninstaller, fs.FileMode(0o640)); err != nil {
 			return fmt.Errorf("upload MCR uninstaller: %w", err)
 		}
 		defer func() {

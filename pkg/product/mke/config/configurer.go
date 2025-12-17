@@ -21,8 +21,8 @@ type HostConfigurer interface {
 	CleanupEnvironment(os.Host, map[string]string) error
 	MCRConfigPath() string
 	InstallMCRLicense(os.Host, string) error
-	InstallMCR(os.Host, string, common.MCRConfig) error
-	UninstallMCR(os.Host, string, common.MCRConfig) error
+	InstallMCR(os.Host, common.MCRConfig) error
+	UninstallMCR(os.Host, common.MCRConfig) error
 	DockerCommandf(template string, args ...any) string
 	RestartMCR(os.Host) error
 	AuthenticateDocker(h os.Host, user, pass, repo string) error
