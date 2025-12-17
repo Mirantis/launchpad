@@ -14,60 +14,47 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// @TODO probably can move this into the windows configurer, now that we are not using
+//       the linux install script anymore.
+
 // DownloadInstaller phase implementation does all the prep work we need for the hosts.
 type DownloadInstaller struct {
 	phase.Analytics
 	phase.BasicPhase
 
-	linuxPath string
-	winPath   string
+	winPath string
 }
 
 // Title for the phase.
 func (p *DownloadInstaller) Title() string {
-	return "Download Mirantis Container Runtime installer"
+	return "Download Mirantis Container Runtime installer for windows"
+}
+
+// ShouldRun default implementation for MSR phase returns true when the config has MSR nodes.
+func (p *DownloadInstaller) ShouldRun() bool {
+	return p.Config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() }) > 0
 }
 
 // Run does all the prep work on the hosts in parallel.
 func (p *DownloadInstaller) Run() error {
-	linuxScript, err := p.getScript(p.Config.Spec.MCR.InstallURLLinux)
+
+	winScript, err := p.getScript(p.Config.Spec.MCR.InstallURLWindows)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get Windows installer script: %w", err)
 	}
-	f, err := os.CreateTemp("", "installerLinux")
+	f, err := os.CreateTemp("", "installerWindows")
 	if err != nil {
-		return fmt.Errorf("failed to create temporary file: %w", err)
+		return fmt.Errorf("failed to create temporary file for windows installer script: %w", err)
 	}
 
-	_, err = f.WriteString(linuxScript)
+	_, err = f.WriteString(winScript)
 	if err != nil {
-		return fmt.Errorf("failed to write to temporary file: %w", err)
+		return fmt.Errorf("failed to write to temporary file for windows installer script: %w", err)
 	}
-	p.linuxPath = f.Name()
+	p.winPath = f.Name()
 
-	if p.Config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() }) > 0 {
-		winScript, err := p.getScript(p.Config.Spec.MCR.InstallURLWindows)
-		if err != nil {
-			return fmt.Errorf("failed to get Windows installer script: %w", err)
-		}
-		f, err := os.CreateTemp("", "installerWindows")
-		if err != nil {
-			return fmt.Errorf("failed to create temporary file for windows installer script: %w", err)
-		}
-
-		_, err = f.WriteString(winScript)
-		if err != nil {
-			return fmt.Errorf("failed to write to temporary file for windows installer script: %w", err)
-		}
-		p.winPath = f.Name()
-	}
-
-	for _, h := range p.Config.Spec.Hosts {
-		if h.IsWindows() {
-			h.Metadata.MCRInstallScript = p.winPath
-		} else {
-			h.Metadata.MCRInstallScript = p.linuxPath
-		}
+	for _, h := range p.Config.Spec.Hosts.Filter(func(h *api.Host) bool { return h.IsWindows() }) {
+		h.Metadata.MCRInstallScript = p.winPath
 	}
 
 	return nil
@@ -145,9 +132,6 @@ func (p *DownloadInstaller) readFile(path string) (string, error) {
 func (p *DownloadInstaller) CleanUp() {
 	if p.winPath != "" {
 		removeIfExist(p.winPath)
-	}
-	if p.linuxPath != "" {
-		removeIfExist(p.linuxPath)
 	}
 }
 

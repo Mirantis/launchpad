@@ -1,0 +1,17 @@
+* JNesbitt informal todo list
+
+** TODO Move product/mke/api/host.go:Host.MCRConfigure to /pkg/configurer interfaces
+
+The MCRConfigure() method likely exists on the host as a convenience, but as we have common
+configurer functionality and the other MCR methods are on the configurer it doesn't belong
+on the host.
+Another option would be to move functionality to the /pkg/mcr package.
+
+On top of this, the configurer.MCRConfigPath should perhaps be an accessor pair of content,
+instead of a filepath.
+
+** TODO Move MCR install script from a pkg/product/phase/download_installer to the windows configurer
+
+The phase is in a weird place, and also is no longer needed for linux installations (we dropped
+the linux script usage.)
+It should get moved to the Windows configurer and integrated into the Windows configurer MCRInstall().

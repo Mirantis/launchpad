@@ -6,7 +6,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/mcr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/product/mke/api"
-	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,7 +42,7 @@ func (p *InstallMCR) Title() string {
 
 // Run installs the engine on each host.
 func (p *InstallMCR) Run() error {
-	p.EventProperties = map[string]interface{}{
+	p.EventProperties = map[string]any{
 		"engine_version": p.Config.Spec.MCR.Version,
 	}
 
@@ -54,17 +53,10 @@ func (p *InstallMCR) Run() error {
 }
 
 func (p *InstallMCR) installMCR(h *api.Host) error {
-	if err := retry.Do(
-		func() error {
-			log.Infof("%s: installing container runtime (%s)", h, p.Config.Spec.MCR.Version)
-			if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
-				log.Errorf("%s: failed to install container runtime: %s", h, err.Error())
-				return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
-			}
-			return nil
-		},
-	); err != nil {
-		return fmt.Errorf("retry count exceeded: %w", err)
+	log.Infof("%s: installing container runtime (%s)", h, p.Config.Spec.MCR.Version)
+	if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
+		log.Errorf("%s: failed to install container runtime: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
 	}
 
 	if err := h.AuthorizeDocker(); err != nil {
