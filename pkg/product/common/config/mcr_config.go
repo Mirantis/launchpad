@@ -40,10 +40,9 @@ type MCRConfig struct {
 	AdditionalRuntimes          string   `yaml:"additionalRuntimes,omitempty"`
 	DefaultRuntime              string   `yaml:"defaultRuntime,omitempty"`
 	License                     string   `yaml:"license"`
-	InstallURLLinux             string   `yaml:"installURLLinux,omitempty"`
 	InstallScriptRemoteDirLinux string   `yaml:"installScriptRemoteDirLinux,omitempty"`
 	InstallURLWindows           string   `yaml:"installURLWindows,omitempty"`
-	Channel                     string   `yaml:"channel,omitempty"`
+	Channel                     string   `yaml:"channel,omitempty,validate=regexp=test|stable"`
 	Prune                       bool     `yaml:"prune,omitempty"`
 	ForceUpgrade                bool     `yaml:"forceUpgrade,omitempty"`
 	SwarmInstallFlags           Flags    `yaml:"swarmInstallFlags,omitempty,flow"`
@@ -58,7 +57,7 @@ type MCRMetadata struct {
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml.
-func (c *MCRConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (c *MCRConfig) UnmarshalYAML(unmarshal func(any) error) error {
 	type mcrConfig MCRConfig
 	c.Metadata = &MCRMetadata{}
 	yc := (*mcrConfig)(c)
@@ -85,10 +84,6 @@ func (c *MCRConfig) SetDefaults() {
 
 	if c.RepoURL == "" {
 		c.RepoURL = constant.MCRRepoURL
-	}
-
-	if c.InstallURLLinux == "" {
-		c.InstallURLLinux = constant.MCRInstallURLLinux
 	}
 
 	if c.InstallURLWindows == "" {

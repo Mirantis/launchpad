@@ -15,7 +15,7 @@ func init() {
 		func(os rig.OSVersion) bool {
 			return os.ID == "rhel"
 		},
-		func() interface{} {
+		func() any {
 			return Rhel{}
 		},
 	)

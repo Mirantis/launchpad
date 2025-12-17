@@ -43,7 +43,7 @@ func (p *InstallMCR) Title() string {
 
 // Run installs the engine on each host.
 func (p *InstallMCR) Run() error {
-	p.EventProperties = map[string]interface{}{
+	p.EventProperties = map[string]any{
 		"engine_version": p.Config.Spec.MCR.Version,
 	}
 
@@ -53,6 +53,7 @@ func (p *InstallMCR) Run() error {
 	return nil
 }
 
+<<<<<<< HEAD
 func (p *InstallMCR) installMCR(h *mkeconfig.Host) error {
 	if err := retry.Do(
 		func() error {
@@ -65,6 +66,13 @@ func (p *InstallMCR) installMCR(h *mkeconfig.Host) error {
 		},
 	); err != nil {
 		return fmt.Errorf("retry count exceeded: %w", err)
+=======
+func (p *InstallMCR) installMCR(h *api.Host) error {
+	log.Infof("%s: installing container runtime (%s)", h, p.Config.Spec.MCR.Version)
+	if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
+		log.Errorf("%s: failed to install container runtime: %s", h, err.Error())
+		return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
+>>>>>>> eb5baf5 (PRODENG-3100 EL native MCR install)
 	}
 
 	if err := h.AuthorizeDocker(); err != nil {

@@ -1,6 +1,7 @@
 package sles
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -11,6 +12,23 @@ import (
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/linux"
 	"github.com/k0sproject/rig/os/registry"
+	log "github.com/sirupsen/logrus"
+)
+
+func init() {
+	registry.RegisterOSModule(
+		func(os rig.OSVersion) bool {
+			return os.ID == "sles"
+		},
+		func() any {
+			return Configurer{}
+		},
+	)
+}
+
+const (
+	ZypperRepoAlias   = "mirantis"
+	ZypperPackageName = "docker-ee"
 )
 
 // Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
@@ -25,6 +43,40 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 	if err := c.InstallPackage(h, "curl", "socat"); err != nil {
 		return fmt.Errorf("failed to install base packages: %w", err)
 	}
+	return nil
+}
+
+// InstallMCR install Docker EE engine on Linux.
+func (c Configurer) InstallMCR(h os.Host, _ string, engineConfig common.MCRConfig) error {
+	ver, verErr := configurer.ResolveLinux(h)
+	if verErr != nil {
+		return fmt.Errorf("could not discover Linux version information")
+	}
+
+	zypperRepoURL := fmt.Sprintf("%s/%s/%s/%s/%s", engineConfig.RepoURL, ver.ID, "$releasever_major", "$basearch", engineConfig.Channel)
+	zypperGpgURL := fmt.Sprintf("%s/%s/gpg", engineConfig.RepoURL, ver.ID)
+
+	// remove the repo if it exists (always recreate the repo in case our values have changes)
+	if out, err := h.ExecOutput("zypper repos"); err != nil {
+		return fmt.Errorf("%s: could not list zypper repos", h)
+	} else if strings.Contains(out, ZypperRepoAlias) {
+		if err := h.Exec(fmt.Sprintf("zypper removerepo %s", ZypperRepoAlias), exec.Sudo(h)); err != nil {
+			return errors.Join(fmt.Errorf("failed to remove existing zypper MCR repo: %s", ZypperRepoAlias), err)
+		}
+	}
+	log.Debugf("%s: sles MCR GPG key import %s", h, zypperGpgURL)
+	if err := h.Exec(fmt.Sprintf("sudo rpm --import %s", zypperGpgURL), exec.Sudo(h)); err != nil {
+		return errors.Join(fmt.Errorf("failed to add zypper GPG key for MCR"), err)
+	}
+	if err := h.Exec(fmt.Sprintf("zypper addrepo --refresh '%s' mirantis", zypperRepoURL), exec.Sudo(h)); err != nil {
+		return errors.Join(fmt.Errorf("failed to add zypper MCR repo: %s", zypperRepoURL), err)
+	}
+	log.Debugf("%s: sles MCR install version", h)
+	if err := c.InstallPackage(h, "docker-ee"); err != nil {
+		return errors.Join(fmt.Errorf("failed to install zypper MCR packages"), err)
+	}
+	log.Debugf("%s: sles MCR installed from channel %s", h, engineConfig.Channel)
+
 	return nil
 }
 
@@ -53,25 +105,4 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig commonconfig.
 	}
 
 	return nil
-}
-
-// LocalAddresses returns a list of local addresses, SLES12 has an old version of "hostname" without "--all-ip-addresses" and because of that, ip addr show is used here.
-func (c Configurer) LocalAddresses(h os.Host) ([]string, error) {
-	output, err := h.ExecOutput("ip addr show | grep 'inet ' | awk '{print $2}' | cut -d/ -f1")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get local addresses: %w", err)
-	}
-
-	return strings.Fields(output), nil
-}
-
-func init() {
-	registry.RegisterOSModule(
-		func(os rig.OSVersion) bool {
-			return os.ID == "sles"
-		},
-		func() interface{} {
-			return Configurer{}
-		},
-	)
 }

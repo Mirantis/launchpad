@@ -3,7 +3,6 @@ package configurer
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -14,6 +13,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/constant"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
+	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	log "github.com/sirupsen/logrus"
@@ -24,6 +24,10 @@ const (
 	LinuxDockerLicenseFile = "docker.lic"
 	// SbinPath is for adding sbin directories to current $PATH.
 	SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
+)
+
+var (
+	LinuxMCRInstallError = errors.New("failed to install MCR on linux")
 )
 
 // LinuxConfigurer is a generic linux host configurer.
@@ -51,60 +55,6 @@ func (c LinuxConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 	if err := c.riglinux.WriteFile(h, licPath, lic, "400"); err != nil {
 		return fmt.Errorf("license write (linux); %w", err)
 	}
-	return nil
-}
-
-// InstallMCR install MCR on Linux.
-func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
-	base := path.Base(scriptPath)
-
-	installScriptDir := engineConfig.InstallScriptRemoteDirLinux
-	if installScriptDir == "" {
-		installScriptDir = c.riglinux.Pwd(h)
-	}
-
-	_, err := h.ExecOutput(fmt.Sprintf("mkdir -p %s", installScriptDir))
-	if err != nil {
-		return fmt.Errorf("failed to create directory %s: %w", installScriptDir, err)
-	}
-
-	installer := path.Join(installScriptDir, base)
-
-	err = h.Upload(scriptPath, installer, fs.FileMode(0o640))
-	if err != nil {
-		log.Errorf("failed: %s", err.Error())
-		return fmt.Errorf("upload %s to %s: %w", scriptPath, installer, err)
-	}
-	defer func() {
-		if err := c.riglinux.DeleteFile(h, installer); err != nil {
-			log.Warnf("failed to delete installer script: %s", err.Error())
-		}
-	}()
-
-	envs := fmt.Sprintf("DOCKER_URL=%s CHANNEL=%s VERSION=%s ", engineConfig.RepoURL, engineConfig.Channel, engineConfig.Version)
-	if engineConfig.AdditionalRuntimes != "" {
-		envs += fmt.Sprintf("ADDITIONAL_RUNTIMES=%s ", engineConfig.AdditionalRuntimes)
-	}
-	if engineConfig.DefaultRuntime != "" {
-		envs += fmt.Sprintf("DEFAULT_RUNTIME=%s ", engineConfig.DefaultRuntime)
-	}
-	cmd := envs + fmt.Sprintf("bash %s", escape.Quote(installer))
-
-	log.Infof("%s: running installer", h)
-	log.Debugf("%s: installer command: %s", h, cmd)
-
-	if err := h.Exec(cmd); err != nil {
-		return fmt.Errorf("run MCR installer: %w", err)
-	}
-
-	if err := c.riglinux.EnableService(h, "docker"); err != nil {
-		return fmt.Errorf("enable docker service: %w", err)
-	}
-
-	if err := c.riglinux.StartService(h, "docker"); err != nil {
-		return fmt.Errorf("start docker service: %w", err)
-	}
-
 	return nil
 }
 
@@ -405,4 +355,29 @@ func (c LinuxConfigurer) attemptPathSudoDelete(h os.Host, path string) {
 		return
 	}
 	log.Infof("%s: removed %s successfully", h, path)
+}
+
+var (
+	errAbort = errors.New("base os detected but version resolving failed")
+)
+
+// ResolveLinux stolen from k0sproject/rig.
+//
+//	We need os-release info in various scenarios, but rig doesn't really expose it.
+func ResolveLinux(h os.Host) (rig.OSVersion, error) {
+	if err := h.Exec("uname | grep -q Linux"); err != nil {
+		return rig.OSVersion{}, fmt.Errorf("not a linux host (%w)", err)
+	}
+
+	output, err := h.ExecOutput("cat /etc/os-release || cat /usr/lib/os-release")
+	if err != nil {
+		// at this point it is known that this is a linux host, so any error from here on should signal the resolver to not try the next
+		return rig.OSVersion{}, fmt.Errorf("%w: unable to read os-release file: %w", errAbort, err)
+	}
+
+	var version rig.OSVersion
+	if err := rig.ParseOSReleaseFile(output, &version); err != nil {
+		return rig.OSVersion{}, errors.Join(errAbort, err)
+	}
+	return version, nil
 }
