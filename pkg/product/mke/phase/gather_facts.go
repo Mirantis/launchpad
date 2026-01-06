@@ -21,7 +21,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/k0sproject/dig"
 	log "github.com/sirupsen/logrus"
@@ -64,11 +64,11 @@ func (p *GatherFacts) Run() error {
 	if p.Config.Spec.ContainsMSR() {
 		// If we intend to configure msr as well, gather facts for msr
 		if p.Config.Spec.MSR == nil {
-			p.Config.Spec.MSR = &api.MSRConfig{}
+			p.Config.Spec.MSR = &mkeconfig.MSRConfig{}
 		}
 
 		msrHosts := p.Config.Spec.MSRs()
-		_ = msrHosts.ParallelEach(func(h *api.Host) error {
+		_ = msrHosts.ParallelEach(func(h *mkeconfig.Host) error {
 			if h.Metadata != nil && h.Metadata.MCRVersion != "" {
 				msrMeta, err := msr.CollectFacts(h)
 				if err != nil {
@@ -90,10 +90,10 @@ func (p *GatherFacts) Run() error {
 
 var errInvalidIP = errors.New("invalid IP address")
 
-func (p *GatherFacts) investigateHost(h *api.Host, _ *api.ClusterConfig) error {
+func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h)
 	if h.Metadata == nil {
-		h.Metadata = &api.HostMetadata{}
+		h.Metadata = &mkeconfig.HostMetadata{}
 	}
 
 	if err := h.Configurer.CheckPrivilege(h); err != nil {

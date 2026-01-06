@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	log "github.com/sirupsen/logrus"
 )
@@ -45,7 +45,7 @@ func (p *DownloadInstaller) Run() error {
 	}
 	p.linuxPath = f.Name()
 
-	if p.Config.Spec.Hosts.Count(func(h *api.Host) bool { return h.IsWindows() }) > 0 {
+	if p.Config.Spec.Hosts.Count(func(h *mkeconfig.Host) bool { return h.IsWindows() }) > 0 {
 		winScript, err := p.getScript(p.Config.Spec.MCR.InstallURLWindows)
 		if err != nil {
 			return fmt.Errorf("failed to get Windows installer script: %w", err)

@@ -6,7 +6,7 @@ import (
 	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,7 +18,7 @@ type InstallMSR struct {
 	phase.CleanupDisabling
 	MSRPhase
 
-	leader *api.Host
+	leader *mkeconfig.Host
 }
 
 // Title prints the phase title.
@@ -36,7 +36,7 @@ func (p *InstallMSR) ShouldRun() bool {
 func (p *InstallMSR) Run() error {
 	h := p.leader
 	if h.MSRMetadata == nil {
-		h.MSRMetadata = &api.MSRMetadata{}
+		h.MSRMetadata = &mkeconfig.MSRMetadata{}
 	}
 
 	p.EventProperties = map[string]interface{}{

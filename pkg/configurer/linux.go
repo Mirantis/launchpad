@@ -12,7 +12,7 @@ import (
 
 	escape "al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/constant"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
@@ -43,7 +43,7 @@ func (c LinuxConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 	dockerRootDir := constant.LinuxDefaultDockerRoot
 
 	// set the docker root dir from docker info if it exists
-	if info, err := c.GetDockerInfo(h); err == nil && info != (common.DockerInfo{}) {
+	if info, err := c.GetDockerInfo(h); err == nil && info != (commonconfig.DockerInfo{}) {
 		dockerRootDir = info.DockerRootDir
 	}
 
@@ -55,7 +55,7 @@ func (c LinuxConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 }
 
 // InstallMCR install MCR on Linux.
-func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
+func (c LinuxConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
 	base := path.Base(scriptPath)
 
 	installScriptDir := engineConfig.InstallScriptRemoteDirLinux
@@ -313,14 +313,14 @@ func (c LinuxConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 }
 
 // CleanupLingeringMCR removes left over MCR files after Launchpad reset.
-func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.DockerInfo) {
+func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.DockerInfo) {
 	// Use default docker root dir if not specified in docker info
 	dockerRootDir := constant.LinuxDefaultDockerRoot
 	dockerExecRootDir := constant.LinuxDefaultDockerExecRoot
 	dockerDaemonPath := constant.LinuxDefaultDockerDaemonPath
 
 	// set the docker root dir from docker info if it exists
-	if dockerInfo != (common.DockerInfo{}) {
+	if dockerInfo != (commonconfig.DockerInfo{}) {
 		dockerRootDir = dockerInfo.DockerRootDir
 	}
 

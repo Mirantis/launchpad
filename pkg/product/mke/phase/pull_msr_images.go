@@ -6,7 +6,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/docker"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,10 +30,10 @@ func (p *PullMSRImages) Run() error {
 	log.Debugf("loaded MSR images list: %v", images)
 
 	imageRepo := p.Config.Spec.MSR.ImageRepo
-	if api.IsCustomImageRepo(imageRepo) {
+	if mkeconfig.IsCustomImageRepo(imageRepo) {
 		pullList := docker.AllToRepository(images, imageRepo)
 		// In case of custom image repo, we need to pull and retag all the images on all MSR hosts
-		err := phase.RunParallelOnHosts(p.Config.Spec.MSRs(), p.Config, func(h *api.Host, _ *api.ClusterConfig) error {
+		err := phase.RunParallelOnHosts(p.Config.Spec.MSRs(), p.Config, func(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 			if err := docker.PullImages(h, pullList); err != nil {
 				return fmt.Errorf("failed to pull MSR images: %w", err)
 			}

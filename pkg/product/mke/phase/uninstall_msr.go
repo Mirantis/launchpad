@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func (p *UninstallMSR) Run() error {
 		return nil
 	}
 
-	var msrHosts []*api.Host
+	var msrHosts []*mkeconfig.Host
 
 	for _, h := range p.Config.Spec.Hosts {
 		if h.Role == "msr" {

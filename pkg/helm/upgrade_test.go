@@ -14,11 +14,9 @@ func TestUpgrade(t *testing.T) {
 	t.Run("Upgrade success", func(t *testing.T) {
 		rd, uninstallFunc := InstallCertManagerChart(t, h)
 		t.Cleanup(uninstallFunc)
-		rd.Values = map[string]interface{}{
-			"controllerManager": map[string]interface{}{
-				"manager": map[string]interface{}{
-					"tag": "1.0.1",
-				},
+		rd.Values = map[string]any{ // picking arbitrary values to have set
+			"livenessProbe": map[string]any{
+				"enabled": true,
 			},
 		}
 
@@ -27,7 +25,7 @@ func TestUpgrade(t *testing.T) {
 			Timeout:        ptr.To(DefaultTimeout),
 		})
 		if assert.NoError(t, err) {
-			assert.Equal(t, rd.ChartName, rel.Chart.Metadata.Name)
+			assert.Equal(t, rd.ReleaseName, rel.Chart.Metadata.Name)
 			assert.ObjectsAreEqualValues(rd.Values, rel.Chart.Values)
 		}
 	})
@@ -36,8 +34,8 @@ func TestUpgrade(t *testing.T) {
 		rd, uninstallFunc := InstallCertManagerChart(t, h)
 		t.Cleanup(uninstallFunc)
 
-		rd.Values = map[string]interface{}{
-			"image": map[string]interface{}{
+		rd.Values = map[string]any{
+			"image": map[string]any{
 				"tag": "1.2.3",
 			},
 		}
@@ -48,7 +46,7 @@ func TestUpgrade(t *testing.T) {
 			Timeout:        ptr.To(DefaultTimeout),
 		})
 		if assert.NoError(t, err) {
-			assert.Equal(t, rd.ChartName, rel.Chart.Metadata.Name)
+			assert.Equal(t, rd.ReleaseName, rel.Chart.Metadata.Name)
 			// ReuseValues should not change the values, but reuse the previous
 			// ones.
 			assert.NotEqual(t, "1.2.3", rel.Chart.Values["image"].(map[string]interface{})["tag"])

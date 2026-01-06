@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/cmdbuffer"
 	"github.com/k0sproject/rig/exec"
 	"github.com/sirupsen/logrus"
@@ -15,13 +15,13 @@ import (
 
 // BootstrapOptions configure options for the Bootstrap.
 type BootstrapOptions struct {
-	OperationFlags  common.Flags  // OPTIONAL: flags to pass to the bootstrapper command
-	CleanupDisabled bool          // OPTIONAL: if true, then the bootstrapper container will not be removed
-	ExecOptions     []exec.Option // OPTIONAL: additional rig exec options to pass down to rig
+	OperationFlags  commonconfig.Flags // OPTIONAL: flags to pass to the bootstrapper command
+	CleanupDisabled bool               // OPTIONAL: if true, then the bootstrapper container will not be removed
+	ExecOptions     []exec.Option      // OPTIONAL: additional rig exec options to pass down to rig
 }
 
 // Bootstrap a leader host using the MKE bootsrapper as docker run, returning output.
-func Bootstrap(operation string, config api.ClusterConfig, bootoptions BootstrapOptions) (output string, err error) {
+func Bootstrap(operation string, config mkeconfig.ClusterConfig, bootoptions BootstrapOptions) (output string, err error) {
 	image := config.Spec.MSR.GetBootstrapperImage()
 	leader := config.Spec.MSRLeader()
 	managers := config.Spec.Managers()
@@ -34,7 +34,7 @@ func Bootstrap(operation string, config api.ClusterConfig, bootoptions Bootstrap
 		bootoptions.OperationFlags.AddUnlessExist("--debug")
 	}
 
-	runFlags := common.Flags{"-i"}
+	runFlags := commonconfig.Flags{"-i"}
 
 	if !bootoptions.CleanupDisabled {
 		runFlags.Add("--rm")

@@ -1,11 +1,11 @@
-package api
+package config
 
 import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/Mirantis/launchpad/pkg/docker/hub"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	validator "github.com/go-playground/validator/v10"
 	"github.com/k0sproject/rig"
 )

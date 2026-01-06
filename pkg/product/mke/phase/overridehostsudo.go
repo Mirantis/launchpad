@@ -6,7 +6,7 @@ import (
 
 	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/mattn/go-shellwords"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,7 +16,7 @@ type OverrideHostSudo struct {
 	phase.Analytics
 	phase.HostSelectPhase
 
-	overrideHosts api.Hosts
+	overrideHosts mkeconfig.Hosts
 }
 
 // Title for the phase.
@@ -36,7 +36,7 @@ func (p *OverrideHostSudo) ShouldRun() bool {
 
 // Run the phase.
 func (p *OverrideHostSudo) Run() error {
-	err := p.Hosts.ParallelEach(func(h *api.Host) error {
+	err := p.Hosts.ParallelEach(func(h *mkeconfig.Host) error {
 		if h.SudoOverride {
 			log.Warnf("%s: overriding sudo for host", h)
 			h.SetSudofn(sudoSudo)

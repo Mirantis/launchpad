@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -53,7 +53,7 @@ func (p *PrepareHost) Run() error {
 	return nil
 }
 
-func (p *PrepareHost) installBasePackages(h *api.Host, _ *api.ClusterConfig) error {
+func (p *PrepareHost) installBasePackages(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	err := retry.Do(
 		func() error {
 			log.Infof("%s: installing base packages", h)
@@ -73,7 +73,7 @@ func (p *PrepareHost) installBasePackages(h *api.Host, _ *api.ClusterConfig) err
 	return nil
 }
 
-func (p *PrepareHost) updateEnvironment(h *api.Host, _ *api.ClusterConfig) error {
+func (p *PrepareHost) updateEnvironment(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	if len(h.Environment) > 0 {
 		log.Infof("%s: updating environment", h)
 		if err := h.Configurer.UpdateEnvironment(h, h.Environment); err != nil {
@@ -86,7 +86,7 @@ func (p *PrepareHost) updateEnvironment(h *api.Host, _ *api.ClusterConfig) error
 	return nil
 }
 
-func (p *PrepareHost) fixContainerized(h *api.Host, _ *api.ClusterConfig) error {
+func (p *PrepareHost) fixContainerized(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	if h.Configurer.IsContainer(h) {
 		log.Infof("%s: is a container, applying a fix", h)
 		if err := h.Configurer.FixContainer(h); err != nil {
@@ -96,7 +96,7 @@ func (p *PrepareHost) fixContainerized(h *api.Host, _ *api.ClusterConfig) error 
 	return nil
 }
 
-func (p *PrepareHost) authorizeDocker(h *api.Host, _ *api.ClusterConfig) error {
+func (p *PrepareHost) authorizeDocker(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	if err := h.AuthorizeDocker(); err != nil {
 		return fmt.Errorf("failed to authorize docker: %w", err)
 	}

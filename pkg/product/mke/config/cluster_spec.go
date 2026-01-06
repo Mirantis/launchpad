@@ -1,4 +1,4 @@
-package api
+package config
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/rig"

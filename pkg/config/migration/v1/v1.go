@@ -197,7 +197,7 @@ func Migrate(plain map[string]interface{}) error { //nolint:maintidx
 }
 
 func removeIndex(s []interface{}, index int) []interface{} {
-	ret := make([]interface{}, 0)
+	ret := make([]interface{}, 0) //nolint:prealloc // we don't know how big it will need to be
 	ret = append(ret, s[:index]...)
 	return append(ret, s[index+1:]...)
 }

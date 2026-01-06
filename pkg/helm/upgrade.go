@@ -10,6 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/chartutil"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
@@ -30,7 +31,7 @@ type ReleaseDetails struct {
 	// Version is the Helm Chart version.
 	Version string `yaml:"version,omitempty"`
 	// Values contains options for the Helm chart values.
-	Values map[string]interface{} `yaml:"values,omitempty"`
+	Values map[string]any `yaml:"values,omitempty"`
 	// Installed is true if the chart is installed.
 	Installed bool `yaml:"installed,omitempty"`
 }
@@ -60,14 +61,12 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	// Create a copy of config & settings so that we don't
 	// pass in a pointer to the struct's config and settings.
 	cfg := h.config
+	cfg.Capabilities.KubeVersion = chartutil.KubeVersion{Major: "1", Minor: "22", Version: "1.22.0"}
 	settings := h.settings
 
-	chartPathOptions := action.ChartPathOptions{
-		RepoURL: opts.RepoURL,
-		Version: opts.Version,
-	}
+	u := action.NewUpgrade(&cfg)
 
-	chartToUpgrade, err := getChart(chartPathOptions, opts.ChartName, &settings)
+	chartToUpgrade, err := getChart(u.ChartPathOptions, opts.ChartName, &settings)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,6 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 
 	log.Infof("release %q found using chart: %q, upgrading to version: %q", opts.ReleaseName, opts.ChartName, opts.Version)
 
-	u := action.NewUpgrade(&cfg)
 	u.Namespace = settings.Namespace()
 	u.ReuseValues = opts.ReuseValues
 	u.Wait = opts.Wait

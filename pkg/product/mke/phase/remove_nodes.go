@@ -13,8 +13,8 @@ import (
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/k0sproject/rig/exec"
@@ -27,7 +27,7 @@ type RemoveNodes struct {
 	phase.BasicPhase
 	phase.CleanupDisabling
 
-	cleanupMSRs   []*api.Host
+	cleanupMSRs   []*mkeconfig.Host
 	msrReplicaIDs []string
 	removeNodeIDs []string
 }
@@ -73,7 +73,7 @@ func (p *RemoveNodes) ShouldRun() bool {
 
 // Prepare finds the nodes/replica ids to be removed.
 func (p *RemoveNodes) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
 	}
@@ -157,7 +157,7 @@ func (p *RemoveNodes) Run() error {
 	return nil
 }
 
-func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error) {
+func (p *RemoveNodes) currentNodeIDs(config *mkeconfig.ClusterConfig) ([]string, error) {
 	nodeIDs := []string{}
 	for _, h := range config.Spec.Hosts {
 		nodeID, err := swarm.NodeID(h)
@@ -169,7 +169,7 @@ func (p *RemoveNodes) currentNodeIDs(config *api.ClusterConfig) ([]string, error
 	return nodeIDs, nil
 }
 
-func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
+func (p *RemoveNodes) swarmNodeIDs(h *mkeconfig.Host) ([]string, error) {
 	output, err := h.ExecOutput(h.Configurer.DockerCommandf(`node ls --format="{{.ID}}"`))
 	if err != nil {
 		log.Errorln(output)
@@ -178,7 +178,7 @@ func (p *RemoveNodes) swarmNodeIDs(h *api.Host) ([]string, error) {
 	return strings.Split(output, "\n"), nil
 }
 
-func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
+func (p *RemoveNodes) removeNode(h *mkeconfig.Host, nodeID string) error {
 	nodeAddr, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format {{.Status.Addr}}`, nodeID))
 	if err != nil {
 		return fmt.Errorf("failed to get node address for node %s: %w", nodeID, err)
@@ -213,11 +213,11 @@ func (p *RemoveNodes) removeNode(h *api.Host, nodeID string) error {
 	return nil
 }
 
-func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string) error {
+func (p *RemoveNodes) removemsrNode(config *mkeconfig.ClusterConfig, replicaID string) error {
 	msrLeader := config.Spec.MSRLeader()
 	mkeFlags := msr.BuildMKEFlags(config)
 
-	runFlags := common.Flags{"-i"}
+	runFlags := commonconfig.Flags{"-i"}
 
 	if !p.CleanupDisabled() {
 		runFlags.Add("--rm")
@@ -227,7 +227,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 		runFlags.Add("--security-opt label=disable")
 	}
 
-	removeFlags := common.Flags{
+	removeFlags := commonconfig.Flags{
 		fmt.Sprintf("--replica-ids %s", replicaID),
 		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID),
 	}
@@ -247,7 +247,7 @@ func (p *RemoveNodes) removemsrNode(config *api.ClusterConfig, replicaID string)
 
 // isManagedByUs returns a struct of isManaged which contains two bools, one
 // which declares node wide management and one which declares msr management.
-func (p *RemoveNodes) isManagedByUs(h *api.Host, nodeID string) isManaged {
+func (p *RemoveNodes) isManagedByUs(h *mkeconfig.Host, nodeID string) isManaged {
 	labels, err := h.ExecOutput(h.Configurer.DockerCommandf(`node inspect %s --format="{{json .Spec.Labels}}"`, nodeID))
 	var managed isManaged
 	if err != nil {
@@ -262,7 +262,7 @@ var errGetReplicaID = errors.New("failed to get replicaID")
 
 // getReplicaIDFromHostname retreives the replicaID from the container name
 // associated with hostname.
-func (p *RemoveNodes) getReplicaIDFromHostname(config *api.ClusterConfig, h *api.Host, hostname string) (string, error) {
+func (p *RemoveNodes) getReplicaIDFromHostname(config *mkeconfig.ClusterConfig, h *mkeconfig.Host, hostname string) (string, error) {
 	// Setup httpClient
 	tlsConfig, err := mke.GetTLSConfigFrom(h, config.Spec.MKE.ImageRepo, config.Spec.MKE.Version)
 	if err != nil {

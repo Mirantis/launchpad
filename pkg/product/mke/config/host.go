@@ -1,4 +1,4 @@
-package api
+package config
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/byteutil"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"

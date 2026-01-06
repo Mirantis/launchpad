@@ -1,7 +1,7 @@
-package api
+package config
 
 import (
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/k0sproject/rig/os"
 )
 

@@ -20,8 +20,8 @@ import (
 	"time"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
@@ -43,7 +43,7 @@ type Credentials struct {
 var errInvalidVersion = errors.New("invalid version")
 
 // CollectFacts gathers the current status of installed mke setup.
-func CollectFacts(swarmLeader *api.Host, mkeMeta *api.MKEMetadata) error {
+func CollectFacts(swarmLeader *mkeconfig.Host, mkeMeta *mkeconfig.MKEMetadata) error {
 	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
 	if err != nil {
 		mkeMeta.Installed = false
@@ -156,8 +156,8 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 var errGetTLSConfig = errors.New("failed to get TLS config")
 
 // GetTLSConfigFrom retrieves the valid tlsConfig from the given mke manager.
-func GetTLSConfigFrom(manager *api.Host, imageRepo, mkeVersion string) (*tls.Config, error) {
-	runFlags := common.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
+func GetTLSConfigFrom(manager *mkeconfig.Host, imageRepo, mkeVersion string) (*tls.Config, error) {
+	runFlags := commonconfig.Flags{"--rm", "-v /var/run/docker.sock:/var/run/docker.sock"}
 	if manager.Configurer.SELinuxEnabled(manager) {
 		runFlags.Add("--security-opt label=disable")
 	}
@@ -211,7 +211,7 @@ var (
 )
 
 // DownloadBundle downloads the client bundle from MKE to local storage.
-func DownloadBundle(config *api.ClusterConfig) error {
+func DownloadBundle(config *mkeconfig.ClusterConfig) error {
 	if len(config.Spec.Managers()) == 0 {
 		return errNoManagersInConfig
 	}
@@ -257,7 +257,7 @@ func DownloadBundle(config *api.ClusterConfig) error {
 	return nil
 }
 
-func getBundleDir(config *api.ClusterConfig) (string, error) {
+func getBundleDir(config *mkeconfig.ClusterConfig) (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)

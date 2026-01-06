@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
 	"github.com/k0sproject/rig/os/linux"
@@ -27,7 +27,7 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 }
 
 // UninstallMCR uninstalls docker-ee engine.
-func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRConfig) error {
+func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
@@ -54,7 +54,7 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRCon
 }
 
 // InstallMCR install Docker EE engine on Linux.
-func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
+func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
 	if isEC2 := c.isAWSInstance(h); !isEC2 {
 		log.Debugf("%s: confirmed that this is not an AWS instance", h)
 	} else if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {

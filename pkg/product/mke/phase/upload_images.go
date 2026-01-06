@@ -9,7 +9,7 @@ import (
 
 	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/byteutil"
 	log "github.com/sirupsen/logrus"
 )
@@ -26,7 +26,7 @@ func (p *LoadImages) Title() string {
 }
 
 // HostFilterFunc returns true for hosts that have images to be uploaded.
-func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
+func (p *LoadImages) HostFilterFunc(h *mkeconfig.Host) bool {
 	if h.ImageDir == "" {
 		return false
 	}
@@ -62,7 +62,7 @@ func (p *LoadImages) HostFilterFunc(h *api.Host) bool {
 
 // Prepare collects the hosts.
 func (p *LoadImages) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
 	}
@@ -77,14 +77,14 @@ func (p *LoadImages) Prepare(config interface{}) error {
 // Run does all the work.
 func (p *LoadImages) Run() error {
 	var totalBytes uint64
-	_ = p.Hosts.Each(func(h *api.Host) error {
+	_ = p.Hosts.Each(func(h *mkeconfig.Host) error {
 		totalBytes += h.Metadata.TotalImageBytes
 		return nil
 	})
 
 	log.Infof("total %s of images to upload", byteutil.FormatBytes(totalBytes))
 
-	err := p.Hosts.Each(func(h *api.Host) error {
+	err := p.Hosts.Each(func(h *mkeconfig.Host) error {
 		for idx, f := range h.Metadata.ImagesToUpload {
 			log.Debugf("%s: uploading image %d/%d", h, idx+1, len(h.Metadata.ImagesToUpload))
 

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
 	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-version"
@@ -51,7 +51,7 @@ func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 	dockerRootDir := constant.WindowsDefaultDockerRoot
 
 	// set the docker root dir from docker info if it exists
-	if info, err := c.GetDockerInfo(h); err == nil && info != (common.DockerInfo{}) {
+	if info, err := c.GetDockerInfo(h); err == nil && info != (commonconfig.DockerInfo{}) {
 		dockerRootDir = info.DockerRootDir
 	}
 
@@ -63,7 +63,7 @@ func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 }
 
 // InstallMCR install MCR on Windows.
-func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
+func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
 	pwd := c.Pwd(h)
 	base := path.Base(scriptPath)
 	installer := pwd + "\\" + base + ".ps1"
@@ -101,7 +101,7 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, scriptPath string, engineConfig
 // UninstallMCR uninstalls docker-ee engine
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
-func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConfig common.MCRConfig) error {
+func (c WindowsConfigurer) UninstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
@@ -285,7 +285,7 @@ func (c WindowsConfigurer) AuthorizeDocker(_ os.Host) error {
 }
 
 // CleanupLingeringMCR cleans up lingering MCR configuration files.
-func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.DockerInfo) {
+func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.DockerInfo) {
 	dockerRootDir := constant.WindowsDefaultDockerRoot
 	if dockerInfo.DockerRootDir != "" {
 		dockerRootDir = dockerInfo.DockerRootDir
@@ -298,7 +298,7 @@ func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo common.Dock
 	}
 	if exists == "True" {
 		log.Infof("%s: MCR configuration file exists at %s", h, c.MCRConfigPath())
-		var dockerDaemon common.DockerDaemonConfig
+		var dockerDaemon commonconfig.DockerDaemonConfig
 		dockerDaemonString, err := h.ExecOutput(ps.Cmd(fmt.Sprintf("Get-Content -Path %s", ps.SingleQuote(c.MCRConfigPath()))))
 		if err != nil {
 			dockerDaemon, err := c.GetDockerDaemonConfig(dockerDaemonString)

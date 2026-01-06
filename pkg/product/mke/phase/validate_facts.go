@@ -7,7 +7,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,7 +32,7 @@ func (p *ValidateFacts) Run() error {
 		p.populateSan()
 	}
 
-	_ = p.Config.Spec.Hosts.Each(func(h *api.Host) error {
+	_ = p.Config.Spec.Hosts.Each(func(h *mkeconfig.Host) error {
 		if h.Configurer != nil && h.Configurer.SELinuxEnabled(h) {
 			h.DaemonConfig["selinux-enabled"] = true
 			log.Infof("%s: adding 'selinux-enabled=true' to host container runtime config", h)
@@ -169,7 +169,7 @@ func (p *ValidateFacts) validateDataPlane() error {
 
 	// User has explicitly defined --calico-vxlan=false but there is a windows host in the config
 	if !valB {
-		if p.Config.Spec.Hosts.Include(func(h *api.Host) bool { return h.IsWindows() }) {
+		if p.Config.Spec.Hosts.Include(func(h *mkeconfig.Host) bool { return h.IsWindows() }) {
 			return fmt.Errorf("%w: calico IPIP can't be used on Windows", errInvalidDataPlane)
 		}
 

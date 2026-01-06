@@ -12,7 +12,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -110,12 +110,10 @@ func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, passwo
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Debugf("Failed to get response from %s: %v", mkeURL.String(), err)
+		log.Debugf("Failed to get response from %s (%d): %v", mkeURL.String(), resp.StatusCode, err)
 		return fmt.Errorf("failed to get response from %s: %w", mkeURL.String(), err)
 	}
-	if err != nil {
-		return fmt.Errorf("failed to poll /nodes endpoint. (%d): %w", resp.StatusCode, err)
-	}
+
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("%w: failed to poll /nodes endpoint. (http %d)", errRequestFailed, resp.StatusCode)
@@ -125,7 +123,7 @@ func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, passwo
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	var nodes []api.Node
+	var nodes []mkeconfig.Node
 	if err := json.Unmarshal(body, &nodes); err != nil {
 		return fmt.Errorf("failed to unmarshal response body: %w", err)
 	}

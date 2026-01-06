@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,13 +18,13 @@ type RestartMCR struct {
 }
 
 // HostFilterFunc returns true for hosts that need their engine to be restarted.
-func (p *RestartMCR) HostFilterFunc(h *api.Host) bool {
+func (p *RestartMCR) HostFilterFunc(h *mkeconfig.Host) bool {
 	return h.Metadata.MCRRestartRequired
 }
 
 // Prepare collects the hosts.
 func (p *RestartMCR) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
 	}
@@ -51,8 +51,8 @@ func (p *RestartMCR) Run() error {
 
 // Restarts host docker engines, first managers (one-by-one) and then ~10% rolling update to workers.
 func (p *RestartMCR) restartMCRs() error {
-	var managers api.Hosts
-	var others api.Hosts
+	var managers mkeconfig.Hosts
+	var others mkeconfig.Hosts
 	for _, h := range p.Hosts {
 		if h.Role == "manager" {
 			managers = append(managers, h)

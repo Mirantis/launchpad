@@ -1,4 +1,4 @@
-package api
+package config
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/hashicorp/go-version"
 )

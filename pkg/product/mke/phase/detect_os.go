@@ -8,8 +8,6 @@ import (
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/enterpriselinux"
 	// anonymous import is needed to load the os configurers.
-	_ "github.com/Mirantis/launchpad/pkg/configurer/mkex"
-	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/oracle"
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/sles"
@@ -18,7 +16,7 @@ import (
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/windows"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,7 +33,7 @@ func (p *DetectOS) Title() string {
 
 // Run the phase.
 func (p *DetectOS) Run() error {
-	err := p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+	err := p.Config.Spec.Hosts.ParallelEach(func(h *mkeconfig.Host) error {
 		if err := h.ResolveConfigurer(); err != nil {
 			return fmt.Errorf("failed to resolve configurer for %s: %w", h, err)
 		}
