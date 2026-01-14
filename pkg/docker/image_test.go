@@ -69,3 +69,17 @@ registry.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7`
 	require.Equal(t, "registry.ci.mirantis.com/mirantiseng/ucp-alertmanager:3.8.7", images[1].String())
 	require.Equal(t, "registry.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7", images[2].String())
 }
+
+func TestImageVersions(t *testing.T) {
+	repo, tag, err := docker.ImageRepoAndTag("mirantis/ucp-proxy:3.8.8")
+	require.Nil(t, err, "SwarmMKEVersion gave unexpected error from valid version string")
+	require.Equal(t, "mirantis/ucp-proxy", repo, "SwarmMKEVersion gave wrong repo value")
+	require.Equal(t, "3.8.8", tag, "SwarmMKEVersion gave wrong repo value")
+}
+
+func TestImageVersionsWithColon(t *testing.T) {
+	repo, tag, err := docker.ImageRepoAndTag("dtr.efzp.com:9026/mirantis/ucp-agent:3.8.10")
+	require.Nil(t, err, "SwarmMKEVersion gave unexpected error from valid version string")
+	require.Equal(t, "dtr.efzp.com:9026/mirantis/ucp-agent", repo, "SwarmMKEVersion gave wrong repo value")
+	require.Equal(t, "3.8.10", tag, "SwarmMKEVersion gave wrong repo value")
+}

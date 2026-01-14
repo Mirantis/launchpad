@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -145,4 +146,21 @@ func AllToRepository(images []*Image, repo string) (list []*Image) {
 		})
 	}
 	return list
+}
+
+var errInvalidVersion = errors.New("invalid image version")
+
+// ImageRepoAndTag returns the Repo and tag from a container image.
+//
+//	e.g. `dtr.efzp.com:9026/mirantis/ucp-agent:3.8.10` => `dtr.efzp.com:9026/mirantis/ucp-agent`, `3.8.10`
+func ImageRepoAndTag(image string) (string, string, error) {
+	vparts := strings.Split(image, ":")
+	vpartslen := len(vparts)
+	if vpartslen < 2 || vpartslen > 3 {
+		return "", "", fmt.Errorf("%w: malformed version output: %s", errInvalidVersion, image)
+	}
+
+	repo := strings.Join(vparts[0:vpartslen-1], ":")
+	version := vparts[vpartslen-1]
+	return repo, version, nil
 }
