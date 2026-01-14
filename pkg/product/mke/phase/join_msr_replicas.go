@@ -6,8 +6,8 @@ import (
 	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,13 +20,13 @@ type JoinMSRReplicas struct {
 }
 
 // HostFilterFunc returns true for hosts that don't have MSR configured.
-func (p *JoinMSRReplicas) HostFilterFunc(h *api.Host) bool {
+func (p *JoinMSRReplicas) HostFilterFunc(h *mkeconfig.Host) bool {
 	return h.MSRMetadata == nil || !h.MSRMetadata.Installed
 }
 
 // Prepare collects the hosts.
 func (p *JoinMSRReplicas) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
 	}
@@ -62,7 +62,7 @@ func (p *JoinMSRReplicas) Run() error {
 		}
 
 		// Run the join with the appropriate flags taken from the install spec
-		runFlags := common.Flags{"-i"}
+		runFlags := commonconfig.Flags{"-i"}
 		if !p.CleanupDisabled() {
 			runFlags.Add("--rm")
 		}
@@ -70,7 +70,7 @@ func (p *JoinMSRReplicas) Run() error {
 		if msrLeader.Configurer.SELinuxEnabled(h) {
 			runFlags.Add("--security-opt label=disable")
 		}
-		joinFlags := common.Flags{}
+		joinFlags := commonconfig.Flags{}
 		redacts := []string{}
 		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
 		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))

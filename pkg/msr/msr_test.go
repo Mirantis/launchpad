@@ -5,8 +5,8 @@ import (
 	"sort"
 	"testing"
 
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,22 +50,22 @@ func TestPluckSharedInstallFlags(t *testing.T) {
 }
 
 func TestBuildMKEFlags(t *testing.T) {
-	config := &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
+	config := &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			MKE: mkeconfig.MKEConfig{
 				AdminUsername: "admin",
 				AdminPassword: "password1234",
 				InstallFlags: []string{
 					"--san ucp.acme.com",
 				},
 			},
-			MSR: &api.MSRConfig{},
+			MSR: &mkeconfig.MSRConfig{},
 		},
 	}
 
 	t.Run("MKE flags are built when --san is provided", func(t *testing.T) {
 		actual := BuildMKEFlags(config)
-		expected := common.Flags{
+		expected := commonconfig.Flags{
 			"--ucp-url=\"ucp.acme.com\"",
 			"--ucp-username=\"admin\"",
 			"--ucp-password=\"password1234\"",
@@ -85,14 +85,14 @@ func TestFormatReplicaID(t *testing.T) {
 }
 
 func TestSequentialReplicaIDs(t *testing.T) {
-	config := &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			Hosts: []*api.Host{
+	config := &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: []*mkeconfig.Host{
 				{Role: "msr"},
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{ReplicaID: "00000000001f"}},
+				{Role: "msr", MSRMetadata: &mkeconfig.MSRMetadata{ReplicaID: "00000000001f"}},
 				{Role: "msr"},
 			},
-			MSR: &api.MSRConfig{ReplicaIDs: "sequential"},
+			MSR: &mkeconfig.MSRConfig{ReplicaIDs: "sequential"},
 		},
 	}
 	require.NoError(t, AssignSequentialReplicaIDs(config))

@@ -6,21 +6,21 @@ import (
 	"strings"
 	"time"
 
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
 
 // CollectFacts gathers the current status of the installed MSR setup.
-func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
+func CollectFacts(h *mkeconfig.Host) (*mkeconfig.MSRMetadata, error) {
 	rethinkdbContainerID, err := h.ExecOutput(h.Configurer.DockerCommandf(`ps -aq --filter name=dtr-rethinkdb`))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MSR container ID: %w", err)
 	}
 	if rethinkdbContainerID == "" {
-		return &api.MSRMetadata{Installed: false}, nil
+		return &mkeconfig.MSRMetadata{Installed: false}, nil
 	}
 
 	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
@@ -55,7 +55,7 @@ func CollectFacts(h *api.Host) (*api.MSRMetadata, error) {
 		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
 	}
 
-	msrMeta := &api.MSRMetadata{
+	msrMeta := &mkeconfig.MSRMetadata{
 		Installed:               true,
 		InstalledVersion:        version,
 		InstalledBootstrapImage: bootstrapimage,
@@ -111,7 +111,7 @@ func FormatReplicaID(num uint64) string {
 
 // BuildMKEFlags builds the mkeFlags []string consisting of mke installFlags
 // that are shared with MSR.
-func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
+func BuildMKEFlags(config *mkeconfig.ClusterConfig) commonconfig.Flags {
 	var mkeUser string
 	var mkePass string
 
@@ -133,14 +133,14 @@ func BuildMKEFlags(config *api.ClusterConfig) common.Flags {
 		mkePass = config.Spec.MKE.AdminPassword
 	}
 
-	return common.Flags{
+	return commonconfig.Flags{
 		fmt.Sprintf("--ucp-url=\"%s\"", mkeURLHost(config)),
 		fmt.Sprintf("--ucp-username=\"%s\"", mkeUser),
 		fmt.Sprintf("--ucp-password=\"%s\"", mkePass),
 	}
 }
 
-func mkeURLHost(config *api.ClusterConfig) string {
+func mkeURLHost(config *mkeconfig.ClusterConfig) string {
 	url, _ := config.Spec.MKEURL()
 	// url.Host will be host:port when a port has been set
 	return url.Host
@@ -149,7 +149,7 @@ func mkeURLHost(config *api.ClusterConfig) string {
 // Destroy is functionally equivalent to a MSR destroy and is intended to
 // remove any MSR containers and volumes that may have been started via the
 // installer if it fails.
-func Destroy(h *api.Host, config *api.ClusterConfig) error {
+func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
 	cmd := fmt.Sprintf("run -it --rm mirantis/dtr:%s destroy --ucp-insecure-tls --ucp-url %s --ucp-username %s --ucp-password %s --replica-id %s", h.MSRMetadata.InstalledVersion, mkeFlags.GetValue("--ucp-url"), mkeFlags.GetValue("--ucp-username"), mkeFlags.GetValue("--ucp-password"), h.MSRMetadata.ReplicaID)
 	if err := h.Exec(h.Configurer.DockerCommandf(cmd)); err != nil {
@@ -204,14 +204,14 @@ func Destroy(h *api.Host, config *api.ClusterConfig) error {
 var errMaxReplicaID = fmt.Errorf("max sequential msr replica id exceeded")
 
 // AssignSequentialReplicaIDs goes through all the MSR hosts, finds the highest replica id and assigns sequential ones starting from that to all the hosts without replica ids.
-func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
+func AssignSequentialReplicaIDs(c *mkeconfig.ClusterConfig) error {
 	msrHosts := c.Spec.MSRs()
 
 	// find the largest replica id
 	var maxReplicaID uint64
-	err := msrHosts.Each(func(h *api.Host) error {
+	err := msrHosts.Each(func(h *mkeconfig.Host) error {
 		if h.MSRMetadata == nil {
-			h.MSRMetadata = &api.MSRMetadata{}
+			h.MSRMetadata = &mkeconfig.MSRMetadata{}
 		}
 		if h.MSRMetadata.ReplicaID != "" {
 			ri, err := strconv.ParseUint(h.MSRMetadata.ReplicaID, 16, 48)
@@ -231,7 +231,7 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 		return fmt.Errorf("%w: cluster already has replica id %012x which will overflow", errMaxReplicaID, maxReplicaID)
 	}
 
-	_ = msrHosts.Each(func(h *api.Host) error {
+	_ = msrHosts.Each(func(h *mkeconfig.Host) error {
 		if h.MSRMetadata.ReplicaID == "" {
 			maxReplicaID++
 			h.MSRMetadata.ReplicaID = FormatReplicaID(maxReplicaID)
@@ -245,7 +245,7 @@ func AssignSequentialReplicaIDs(c *api.ClusterConfig) error {
 // Cleanup accepts a list of msrHosts to remove all containers, volumes
 // and networks on, it is intended to be used to uninstall MSR or cleanup
 // a failed install.
-func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host, config *api.ClusterConfig) error {
+func Cleanup(msrHosts []*mkeconfig.Host, swarmLeader *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	for _, h := range msrHosts {
 		log.Debugf("%s: Destroying MSR host", h)
 		err := Destroy(h, config)
@@ -262,7 +262,7 @@ func Cleanup(msrHosts []*api.Host, swarmLeader *api.Host, config *api.ClusterCon
 }
 
 // WaitMSRNodeReady waits until MSR is up on the host.
-func WaitMSRNodeReady(h *api.Host, port int) error {
+func WaitMSRNodeReady(h *mkeconfig.Host, port int) error {
 	err := retry.Do(
 		func() error {
 			output, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -q -f health=healthy -f name=dtr-nginx"))

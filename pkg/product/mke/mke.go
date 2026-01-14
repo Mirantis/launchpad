@@ -3,13 +3,13 @@ package mke
 import (
 	"fmt"
 
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"gopkg.in/yaml.v2"
 )
 
 // MKE is the product.
 type MKE struct {
-	ClusterConfig api.ClusterConfig
+	ClusterConfig config.ClusterConfig
 }
 
 // ClusterName returns the cluster name.
@@ -19,7 +19,7 @@ func (p *MKE) ClusterName() string {
 
 // NewMKE returns a new instance of the Docker Enterprise product.
 func NewMKE(data []byte) (*MKE, error) {
-	c := api.ClusterConfig{}
+	c := config.ClusterConfig{}
 	if err := yaml.UnmarshalStrict(data, &c); err != nil {
 		return nil, fmt.Errorf("failed to parse cluster config: %w", err)
 	}
@@ -31,6 +31,6 @@ func NewMKE(data []byte) (*MKE, error) {
 }
 
 // Init returns an example configuration.
-func Init(kind string) *api.ClusterConfig {
-	return api.Init(kind)
+func Init(kind string) *config.ClusterConfig {
+	return config.Init(kind)
 }

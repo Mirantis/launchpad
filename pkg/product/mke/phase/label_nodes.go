@@ -6,8 +6,8 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,11 +35,11 @@ func (p *LabelNodes) Run() error {
 	return nil
 }
 
-func (p *LabelNodes) labelCurrentNodes(config *api.ClusterConfig, swarmLeader *api.Host) error {
+func (p *LabelNodes) labelCurrentNodes(config *mkeconfig.ClusterConfig, swarmLeader *mkeconfig.Host) error {
 	var sans []string
 	for _, flag := range p.Config.Spec.MKE.InstallFlags {
 		if strings.HasPrefix(flag, "--san") {
-			sans = append(sans, common.FlagValue(flag))
+			sans = append(sans, commonconfig.FlagValue(flag))
 		}
 	}
 	sanList := strings.Join(sans, ",")

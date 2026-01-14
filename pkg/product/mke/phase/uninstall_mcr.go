@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/mcr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,7 +54,7 @@ func (p *UninstallMCR) Run() error {
 	return nil
 }
 
-func (p *UninstallMCR) uninstallMCR(h *api.Host, config *api.ClusterConfig) error {
+func (p *UninstallMCR) uninstallMCR(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	log.Infof("%s: uninstalling container runtime", h)
 
 	uVolumeCmd := h.Configurer.DockerCommandf("volume prune -f")

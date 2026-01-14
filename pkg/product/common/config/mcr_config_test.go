@@ -1,4 +1,4 @@
-package api
+package config_test
 
 import (
 	"slices"
@@ -6,10 +6,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
+
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 )
 
 func TestSwarmInstallFlags(t *testing.T) {
-	cfg := MCRConfig{}
+	cfg := commonconfig.MCRConfig{}
 	err := yaml.Unmarshal([]byte("swarmInstallFlags:\n  - --foo=foofoo\n  - --bar barbar\n  - --foobar"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "--foobar", cfg.SwarmInstallFlags[2])
@@ -20,7 +22,7 @@ func TestSwarmInstallFlags(t *testing.T) {
 }
 
 func TestSwarmUpdateCommands(t *testing.T) {
-	cfg := MCRConfig{}
+	cfg := commonconfig.MCRConfig{}
 	err := yaml.Unmarshal([]byte("swarmUpdateCommands:\n  - command1\n  - command2\n  - command3"), &cfg)
 	require.NoError(t, err)
 	require.Equal(t, "command3", cfg.SwarmUpdateCommands[2])

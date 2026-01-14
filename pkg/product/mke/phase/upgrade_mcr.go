@@ -10,7 +10,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/mcr"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
 	log "github.com/sirupsen/logrus"
@@ -26,7 +26,7 @@ type UpgradeMCR struct {
 }
 
 // HostFilterFunc returns true for hosts that do not have engine installed.
-func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
+func (p *UpgradeMCR) HostFilterFunc(h *mkeconfig.Host) bool {
 	if h.Metadata.MCRInstalled {
 		// we just did an install, no need to run an upgrade
 		return false
@@ -46,7 +46,7 @@ func (p *UpgradeMCR) HostFilterFunc(h *api.Host) bool {
 
 // Prepare collects the hosts.
 func (p *UpgradeMCR) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
 	}
@@ -77,9 +77,9 @@ var errUnknownRole = errors.New("unknown role")
 // Upgrades host docker engines, first managers (one-by-one) and then ~10% rolling update to workers
 // TODO: should we drain?
 func (p *UpgradeMCR) upgradeMCRs() error {
-	var managers api.Hosts
-	var workers api.Hosts
-	var msrs api.Hosts
+	var managers mkeconfig.Hosts
+	var workers mkeconfig.Hosts
+	var msrs mkeconfig.Hosts
 	for _, h := range p.Hosts {
 		switch h.Role {
 		case "manager":
@@ -170,7 +170,7 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 	return nil
 }
 
-func (p *UpgradeMCR) upgradeMCR(h *api.Host) error {
+func (p *UpgradeMCR) upgradeMCR(h *mkeconfig.Host) error {
 	if err := retry.Do(
 		func() error {
 			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)

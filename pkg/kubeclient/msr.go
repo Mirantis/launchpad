@@ -19,6 +19,8 @@ import (
 	"k8s.io/client-go/dynamic"
 )
 
+// @TODO pull the MSR specific functionality out of the kubeclient (make the kubeclient.client public)
+
 func (kc *KubeClient) GetMSRCR(ctx context.Context, name string, rc dynamic.ResourceInterface) (*unstructured.Unstructured, error) {
 	unstructured, err := rc.Get(ctx, name, metav1.GetOptions{})
 	if err != nil {

@@ -19,5 +19,5 @@ func FormatBytes(bytes uint64) string {
 		float /= 1024.0
 		logBase1024++
 	}
-	return fmt.Sprintf("%d %s", uint64(float), units[logBase1024])
+	return fmt.Sprintf("%d %s", uint64(float), units[logBase1024]) //nolint:gosec
 }

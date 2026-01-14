@@ -1,5 +1,3 @@
-// go:build testing
-
 package helm
 
 import (
@@ -84,10 +82,9 @@ func InstallCertManagerChart(t *testing.T, h *Helm) (ReleaseDetails, func()) {
 	t.Helper()
 
 	rd := ReleaseDetails{
-		ChartName:   "cert-manager",
 		ReleaseName: "cert-manager",
-		RepoURL:     "https://charts.jetstack.io",
-		Version:     "1.10.0",
+		ChartName:   "oci://quay.io/jetstack/charts/cert-manager",
+		Version:     "1.19.2",
 	}
 
 	_, err := h.Upgrade(context.Background(), &Options{

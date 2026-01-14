@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 )
 
 type host interface {
@@ -36,7 +36,7 @@ func (p *RunHooks) Prepare(config interface{}) error {
 		if hooksF.IsNil() {
 			continue
 		}
-		hooksI, ok := hooksF.Interface().(common.Hooks)
+		hooksI, ok := hooksF.Interface().(commonconfig.Hooks)
 		if !ok {
 			continue
 		}

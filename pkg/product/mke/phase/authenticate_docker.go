@@ -7,7 +7,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/docker"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -76,7 +76,7 @@ func (p *AuthenticateDocker) Title() string {
 // Run authenticates docker on hosts.
 func (p *AuthenticateDocker) Run() error {
 	// now run logins to each required registry on each of the hosts.
-	if err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *api.Host, _ *api.ClusterConfig) error {
+	if err := phase.RunParallelOnHosts(p.Config.Spec.Hosts, p.Config, func(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 		errs := []error{}
 		for repo, lc := range p.logins { // running sequentially shouldn't be a problem for performance.
 			log.Infof("%s: authenticating docker for image repo %s", h, repo)

@@ -9,7 +9,7 @@ import (
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
@@ -23,7 +23,7 @@ type InstallMKE struct {
 	phase.BasicPhase
 	phase.CleanupDisabling
 
-	leader *api.Host
+	leader *mkeconfig.Host
 }
 
 // Title prints the phase title.
@@ -87,7 +87,7 @@ func (p *InstallMKE) Run() error {
 		}
 	}
 
-	if api.IsCustomImageRepo(p.Config.Spec.MKE.ImageRepo) {
+	if mkeconfig.IsCustomImageRepo(p.Config.Spec.MKE.ImageRepo) {
 		// In case of custom repo, don't let MKE check the images
 		installFlags.AddUnlessExist("--pull never")
 	}
@@ -128,7 +128,7 @@ func (p *InstallMKE) Run() error {
 
 var errUnsupportedProvider = errors.New("unsupported cloud provider")
 
-func applyCloudConfig(config *api.ClusterConfig) error {
+func applyCloudConfig(config *mkeconfig.ClusterConfig) error {
 	configData := config.Spec.MKE.Cloud.ConfigData
 	provider := config.Spec.MKE.Cloud.Provider
 
@@ -142,7 +142,7 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 		return fmt.Errorf("%w: spec.Cloud.configData is only supported with Azure and OpenStack cloud providers", errUnsupportedProvider)
 	}
 
-	err := phase.RunParallelOnHosts(config.Spec.Hosts, config, func(h *api.Host, _ *api.ClusterConfig) error {
+	err := phase.RunParallelOnHosts(config.Spec.Hosts, config, func(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 		if h.IsWindows() {
 			log.Warnf("%s: cloud provider configuration is not suppported on windows", h)
 			return nil
@@ -160,7 +160,7 @@ func applyCloudConfig(config *api.ClusterConfig) error {
 	return nil
 }
 
-func cleanupmke(h *api.Host) error {
+func cleanupmke(h *mkeconfig.Host) error {
 	containersToRemove, err := h.ExecOutput(h.Configurer.DockerCommandf("ps -aq --filter name=ucp-"))
 	if err != nil {
 		return fmt.Errorf("%s: failed to list mke containers: %w", h, err)

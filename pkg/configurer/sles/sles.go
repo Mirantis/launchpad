@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
 	"github.com/k0sproject/rig/os"
@@ -29,7 +29,7 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 }
 
 // UninstallMCR uninstalls docker-ee engine.
-func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig common.MCRConfig) error {
+func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)

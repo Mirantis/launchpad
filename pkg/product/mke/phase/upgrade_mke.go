@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
@@ -37,7 +37,7 @@ func (p *UpgradeMKE) Run() error {
 
 	swarmClusterID := swarm.ClusterID(leader)
 	upgradeFlags := p.Config.Spec.MKE.UpgradeFlags
-	upgradeFlags.Merge(common.Flags{"--id", swarmClusterID})
+	upgradeFlags.Merge(commonconfig.Flags{"--id", swarmClusterID})
 
 	log.Debugf("%s: upgrade flags: %s", leader, upgradeFlags.Join())
 	_, err := mke.Bootstrap("upgrade", *p.Config, mke.BootstrapOptions{OperationFlags: upgradeFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []exec.Option{exec.StreamOutput()}})

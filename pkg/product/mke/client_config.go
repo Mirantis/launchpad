@@ -5,14 +5,14 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/phase"
 	common "github.com/Mirantis/launchpad/pkg/product/common/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/product/mke/config"
 	de "github.com/Mirantis/launchpad/pkg/product/mke/phase"
 )
 
 // ClientConfig downloads MKE client bundle.
 func (p *MKE) ClientConfig() error {
 	manager := p.ClusterConfig.Spec.Managers()[0]
-	newHosts := make(api.Hosts, 1)
+	newHosts := make(config.Hosts, 1)
 	newHosts[0] = manager
 	p.ClusterConfig.Spec.Hosts = newHosts
 

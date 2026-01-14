@@ -6,7 +6,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -41,7 +41,7 @@ func (p *UpgradeMSR) Run() error {
 		return nil
 	}
 
-	upgradeFlags := common.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.ReplicaID)}
+	upgradeFlags := commonconfig.Flags{fmt.Sprintf("--existing-replica-id %s", h.MSRMetadata.ReplicaID)}
 
 	upgradeFlags.MergeOverwrite(msr.BuildMKEFlags(p.Config))
 	for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallUpgradeFlags) {

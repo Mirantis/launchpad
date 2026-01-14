@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -36,10 +36,10 @@ func (p *InstallMKECerts) Run() (err error) {
 }
 
 // installCertificates installs user supplied MKE certificates.
-func (p *InstallMKECerts) installCertificates(config *api.ClusterConfig) error {
+func (p *InstallMKECerts) installCertificates(config *mkeconfig.ClusterConfig) error {
 	log.Infof("Installing MKE certificates")
 	managers := config.Spec.Managers()
-	err := managers.ParallelEach(func(h *api.Host) error {
+	err := managers.ParallelEach(func(h *mkeconfig.Host) error {
 		err := h.Exec(h.Configurer.DockerCommandf("volume inspect ucp-controller-server-certs"))
 		if err != nil {
 			log.Infof("%s: creating ucp-controller-server-certs volume", h)

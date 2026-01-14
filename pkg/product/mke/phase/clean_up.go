@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 )
 
 // CleanUp phase is used by reset for performing post-uninstall cleanups.
@@ -27,7 +27,7 @@ func (p *CleanUp) Run() error {
 	return nil
 }
 
-func (p *CleanUp) cleanupEnv(h *api.Host, _ *api.ClusterConfig) error {
+func (p *CleanUp) cleanupEnv(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	if len(h.Environment) > 0 {
 		if err := h.Configurer.CleanupEnvironment(h, h.Environment); err != nil {
 			return fmt.Errorf("failed to cleanup environment: %w", err)

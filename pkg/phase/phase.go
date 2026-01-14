@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
 // BasicPhase is a phase which has all the basic functionality like Title and default implementations for Prepare and ShouldRun.
 type BasicPhase struct {
-	Config *api.ClusterConfig
+	Config *mkeconfig.ClusterConfig
 }
 
 // HostSelectPhase is a phase where hosts are collected before running to see if it's necessary to run the phase at all in ShouldRun.
 type HostSelectPhase struct {
 	BasicPhase
-	Hosts api.Hosts
+	Hosts mkeconfig.Hosts
 }
 
 // CleanupDisabling can be embedded to phases that perform in-phase cleanup
@@ -37,7 +37,7 @@ func (p *CleanupDisabling) CleanupDisabled() bool {
 
 // Prepare rceives the cluster config and stores it to the phase's config field.
 func (p *BasicPhase) Prepare(config interface{}) error {
-	if cfg, ok := config.(*api.ClusterConfig); ok {
+	if cfg, ok := config.(*mkeconfig.ClusterConfig); ok {
 		p.Config = cfg
 	}
 	return nil
@@ -45,7 +45,7 @@ func (p *BasicPhase) Prepare(config interface{}) error {
 
 // Prepare HostSelectPhase implementation which runs the supplied HostFilterFunc to populate the phase's hosts field.
 func (p *HostSelectPhase) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return nil
 	}
@@ -61,7 +61,7 @@ func (p *HostSelectPhase) ShouldRun() bool {
 }
 
 // HostFilterFunc default implementation, matches all hosts.
-func (p *HostSelectPhase) HostFilterFunc(_ *api.Host) bool {
+func (p *HostSelectPhase) HostFilterFunc(_ *mkeconfig.Host) bool {
 	return true
 }
 
@@ -98,7 +98,7 @@ func (e *Error) Count() int {
 
 // Error returns the combined stringified error.
 func (e *Error) Error() string {
-	messages := []string{}
+	messages := make([]string, 0, len(e.Errors))
 	for _, err := range e.Errors {
 		messages = append(messages, err.Error())
 	}
@@ -106,8 +106,8 @@ func (e *Error) Error() string {
 }
 
 // RunParallelOnHosts runs a function parallelly on the listed hosts.
-func RunParallelOnHosts(hosts api.Hosts, config *api.ClusterConfig, action func(h *api.Host, config *api.ClusterConfig) error) error {
-	result := hosts.ParallelEach(func(h *api.Host) error {
+func RunParallelOnHosts(hosts mkeconfig.Hosts, config *mkeconfig.ClusterConfig, action func(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error) error {
+	result := hosts.ParallelEach(func(h *mkeconfig.Host) error {
 		err := action(h, config)
 		if err != nil {
 			log.Error(err.Error())

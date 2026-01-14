@@ -5,8 +5,8 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
@@ -31,14 +31,14 @@ func (p *UninstallMKE) Run() error {
 		return nil
 	}
 
-	uninstallFlags := common.Flags{"--id", swarm.ClusterID(leader), "--purge-config"}
+	uninstallFlags := commonconfig.Flags{"--id", swarm.ClusterID(leader), "--purge-config"}
 
 	if _, err := mke.Bootstrap("uninstall-ucp", *p.Config, mke.BootstrapOptions{OperationFlags: uninstallFlags, ExecOptions: []exec.Option{exec.StreamOutput()}}); err != nil {
 		return fmt.Errorf("%s: failed to run MKE uninstaller: %w", leader, err)
 	}
 
 	managers := p.Config.Spec.Managers()
-	_ = managers.ParallelEach(func(h *api.Host) error {
+	_ = managers.ParallelEach(func(h *mkeconfig.Host) error {
 		log.Infof("%s: removing ucp-controller-server-certs volume", h)
 		err := h.Exec(h.Configurer.DockerCommandf("volume rm --force ucp-controller-server-certs"))
 		if err != nil {
@@ -52,7 +52,7 @@ func (p *UninstallMKE) Run() error {
 	})
 
 	workers := p.Config.Spec.WorkersAndMSRs()
-	_ = workers.ParallelEach(func(h *api.Host) error {
+	_ = workers.ParallelEach(func(h *mkeconfig.Host) error {
 		if err := h.Reboot(); err != nil {
 			log.Errorf("%s: failed to reboot the host: %v", h, err)
 		}

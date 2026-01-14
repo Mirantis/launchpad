@@ -10,7 +10,7 @@ import (
 
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
@@ -46,10 +46,10 @@ func (p *ValidateHosts) Run() error {
 var errValidationFailed = fmt.Errorf("validation failed")
 
 func (p *ValidateHosts) formatErrors() error {
-	errorHosts := p.Config.Spec.Hosts.Filter(func(h *api.Host) bool { return h.Errors.Count() > 0 })
+	errorHosts := p.Config.Spec.Hosts.Filter(func(h *mkeconfig.Host) bool { return h.Errors.Count() > 0 })
 
 	if len(errorHosts) > 0 {
-		messages := errorHosts.MapString(func(h *api.Host) string {
+		messages := errorHosts.MapString(func(h *mkeconfig.Host) string {
 			return fmt.Sprintf("%s:\n%s\n", h, h.Errors.String())
 		})
 
@@ -74,7 +74,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 	}
 	// TODO: validate content
 
-	err = p.Config.Spec.Hosts.Each(func(h *api.Host) error {
+	err = p.Config.Spec.Hosts.Each(func(h *mkeconfig.Host) error {
 		log.Infof("%s: testing file upload", h)
 		defer func() {
 			if err := h.Configurer.DeleteFile(h, "launchpad.test"); err != nil {
@@ -91,7 +91,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 		return fmt.Errorf("connection test failed: upload: %w", err)
 	}
 
-	err = p.Config.Spec.Hosts.Each(func(h *api.Host) error {
+	err = p.Config.Spec.Hosts.Each(func(h *mkeconfig.Host) error {
 		filename := "launchpad.test"
 		testStr := "hello world!\n"
 		defer func() {
@@ -128,7 +128,7 @@ func (p *ValidateHosts) validateHostConnection() error {
 }
 
 func (p *ValidateHosts) validateLocalhost() {
-	_ = p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+	_ = p.Config.Spec.Hosts.ParallelEach(func(h *mkeconfig.Host) error {
 		if err := h.Configurer.ValidateLocalhost(h); err != nil {
 			h.Errors.Add(err.Error())
 		}
@@ -140,7 +140,7 @@ func (p *ValidateHosts) validateHostLocalAddresses() {
 	_ = p.Config.Spec.Hosts.ParallelEach(p.validateHostLocalAddress)
 }
 
-func (p *ValidateHosts) validateHostLocalAddress(h *api.Host) error {
+func (p *ValidateHosts) validateHostLocalAddress(h *mkeconfig.Host) error {
 	localAddresses, err := h.Configurer.LocalAddresses(h)
 	if err != nil {
 		h.Errors.Add(fmt.Sprintf("failed to find host local addresses: %s", err.Error()))
@@ -158,17 +158,17 @@ func (p *ValidateHosts) validateHostLocalAddress(h *api.Host) error {
 
 func (p *ValidateHosts) validateHostnameUniqueness() {
 	log.Infof("validating hostname uniqueness")
-	hostnames := make(map[string]api.Hosts)
+	hostnames := make(map[string]mkeconfig.Hosts)
 
-	_ = p.Config.Spec.Hosts.Each(func(h *api.Host) error {
+	_ = p.Config.Spec.Hosts.Each(func(h *mkeconfig.Host) error {
 		hostnames[h.Metadata.Hostname] = append(hostnames[h.Metadata.Hostname], h)
 		return nil
 	})
 
 	for hn, hosts := range hostnames {
 		if len(hosts) > 1 {
-			others := strings.Join(hosts.MapString(func(h *api.Host) string { return h.Address() }), ", ")
-			_ = hosts.Each(func(h *api.Host) error {
+			others := strings.Join(hosts.MapString(func(h *mkeconfig.Host) string { return h.Address() }), ", ")
+			_ = hosts.Each(func(h *mkeconfig.Host) error {
 				h.Errors.Addf("duplicate hostname '%s' found on hosts %s", hn, others)
 				return nil
 			})
@@ -177,7 +177,7 @@ func (p *ValidateHosts) validateHostnameUniqueness() {
 }
 
 func (p *ValidateHosts) validateDockerGroup() {
-	_ = p.Config.Spec.Hosts.ParallelEach(func(h *api.Host) error {
+	_ = p.Config.Spec.Hosts.ParallelEach(func(h *mkeconfig.Host) error {
 		if !h.IsLocal() || h.IsWindows() {
 			return nil
 		}

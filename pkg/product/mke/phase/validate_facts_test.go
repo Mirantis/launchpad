@@ -4,18 +4,18 @@ import (
 	"strings"
 	"testing"
 
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig"
 	"github.com/stretchr/testify/require"
 )
 
 func TestValidateFactsMKEVersionJumpFail(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
-				Metadata: &api.MKEMetadata{
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			MKE: mkeconfig.MKEConfig{
+				Metadata: &mkeconfig.MKEMetadata{
 					Installed:        true,
 					InstalledVersion: "3.1.1",
 				},
@@ -28,10 +28,10 @@ func TestValidateFactsMKEVersionJumpFail(t *testing.T) {
 
 func TestValidateFactsMKEVersionJumpDowngradeFail(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
-				Metadata: &api.MKEMetadata{
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			MKE: mkeconfig.MKEConfig{
+				Metadata: &mkeconfig.MKEMetadata{
 					Installed:        true,
 					InstalledVersion: "3.3.3-tp9",
 				},
@@ -44,10 +44,10 @@ func TestValidateFactsMKEVersionJumpDowngradeFail(t *testing.T) {
 
 func TestValidateFactsMKEVersionJumpSuccess(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
-				Metadata: &api.MKEMetadata{
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			MKE: mkeconfig.MKEConfig{
+				Metadata: &mkeconfig.MKEMetadata{
 					Installed:        true,
 					InstalledVersion: "3.1.1",
 				},
@@ -60,15 +60,15 @@ func TestValidateFactsMKEVersionJumpSuccess(t *testing.T) {
 
 func TestValidateFactsMSRVersionJumpFail(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: []*mkeconfig.Host{
+				{Role: "msr", MSRMetadata: &mkeconfig.MSRMetadata{
 					Installed:        true,
 					InstalledVersion: "2.6.4",
 				}},
 			},
-			MSR: &api.MSRConfig{
+			MSR: &mkeconfig.MSRConfig{
 				Version: "2.8.4",
 			},
 		},
@@ -77,15 +77,15 @@ func TestValidateFactsMSRVersionJumpFail(t *testing.T) {
 }
 func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: []*mkeconfig.Host{
+				{Role: "msr", MSRMetadata: &mkeconfig.MSRMetadata{
 					Installed:        true,
 					InstalledVersion: "2.8.4",
 				}},
 			},
-			MSR: &api.MSRConfig{
+			MSR: &mkeconfig.MSRConfig{
 				Version: "2.7.6",
 			},
 		},
@@ -95,15 +95,15 @@ func TestValidateFactsMSRVersionJumpDowngradeFail(t *testing.T) {
 
 func TestValidateFactsMSRVersionJumpSuccess(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			Hosts: []*api.Host{
-				{Role: "msr", MSRMetadata: &api.MSRMetadata{
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: []*mkeconfig.Host{
+				{Role: "msr", MSRMetadata: &mkeconfig.MSRMetadata{
 					Installed:        true,
 					InstalledVersion: "2.6.8",
 				}},
 			},
-			MSR: &api.MSRConfig{
+			MSR: &mkeconfig.MSRConfig{
 				Version: "2.7.1",
 			},
 		},
@@ -113,14 +113,14 @@ func TestValidateFactsMSRVersionJumpSuccess(t *testing.T) {
 
 func TestValidateFactsValidateDataPlane(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			MKE: api.MKEConfig{
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			MKE: mkeconfig.MKEConfig{
 				InstallFlags: []string{
 					"--foo",
 					"--calico-vxlan=true",
 				},
-				Metadata: &api.MKEMetadata{
+				Metadata: &mkeconfig.MKEMetadata{
 					Installed: true,
 					VXLAN:     false,
 				},
@@ -154,20 +154,20 @@ func TestValidateFactsValidateDataPlane(t *testing.T) {
 
 func TestValidateFactsPopulateSan(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			Hosts: api.Hosts{
-				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
-				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
-				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: mkeconfig.Hosts{
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
-			MCR: common.MCRConfig{
+			MCR: commonconfig.MCRConfig{
 				Version: "25.0",
 				Channel: "stable-25.0",
 			},
-			MKE: api.MKEConfig{
-				Metadata: &api.MKEMetadata{},
-				InstallFlags: common.Flags{
+			MKE: mkeconfig.MKEConfig{
+				Metadata: &mkeconfig.MKEMetadata{},
+				InstallFlags: commonconfig.Flags{
 					"--foo",
 				},
 			},
@@ -191,20 +191,20 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 
 func TestValidateFactsDontPopulateSan(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			Hosts: api.Hosts{
-				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
-				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
-				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: mkeconfig.Hosts{
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
-			MCR: common.MCRConfig{
+			MCR: commonconfig.MCRConfig{
 				Version: "25.0",
 				Channel: "stable-25.0",
 			},
-			MKE: api.MKEConfig{
-				Metadata: &api.MKEMetadata{},
-				InstallFlags: common.Flags{
+			MKE: mkeconfig.MKEConfig{
+				Metadata: &mkeconfig.MKEMetadata{},
+				InstallFlags: commonconfig.Flags{
 					"--foo",
 					"--san foofoo",
 				},
@@ -226,10 +226,10 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 
 func TestValidateInvalidMCRConfig(t *testing.T) {
 	phase := ValidateFacts{}
-	phase.Config = &api.ClusterConfig{
-		Spec: &api.ClusterSpec{
-			Hosts: api.Hosts{
-				&api.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: mkeconfig.Hosts{
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
 			},
 		},
 	}

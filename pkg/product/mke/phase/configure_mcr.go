@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -15,13 +15,13 @@ type ConfigureMCR struct {
 }
 
 // HostFilterFunc returns true for hosts that need their engine to be restarted.
-func (p *ConfigureMCR) HostFilterFunc(h *api.Host) bool {
+func (p *ConfigureMCR) HostFilterFunc(h *mkeconfig.Host) bool {
 	return len(h.DaemonConfig) > 0
 }
 
 // Prepare collects the hosts.
 func (p *ConfigureMCR) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
 	}
@@ -43,7 +43,7 @@ func (p *ConfigureMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
 		"engine_version": p.Config.Spec.MCR.Version,
 	}
-	err := p.Hosts.ParallelEach(func(h *api.Host) error {
+	err := p.Hosts.ParallelEach(func(h *mkeconfig.Host) error {
 		log.Infof("%s: configuring container runtime", h)
 		if err := h.ConfigureMCR(); err != nil {
 			return fmt.Errorf("failed to configure container runtime on %s: %w", h, err)

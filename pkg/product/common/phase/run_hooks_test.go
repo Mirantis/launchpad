@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	common "github.com/Mirantis/launchpad/pkg/product/common/api"
+	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/k0sproject/rig/exec"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,7 @@ type testspec struct {
 }
 
 type testhost struct {
-	Hooks common.Hooks
+	Hooks commonconfig.Hooks
 
 	Cmds []string
 }
@@ -49,7 +49,7 @@ func (t *testhost) ExecAll(cmds []string) error {
 
 func TestRun(t *testing.T) {
 	host := &testhost{
-		Hooks: common.Hooks{
+		Hooks: commonconfig.Hooks{
 			"apply": {
 				"before": []string{"echo hello", "ls -al"},
 			},
@@ -69,7 +69,7 @@ func TestRun(t *testing.T) {
 
 func TestRunError(t *testing.T) {
 	host := &testhost{
-		Hooks: common.Hooks{
+		Hooks: commonconfig.Hooks{
 			"apply": {
 				"before": []string{"error", "ls -al"},
 			},

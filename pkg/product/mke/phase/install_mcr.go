@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/mcr"
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	retry "github.com/avast/retry-go"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,13 +17,13 @@ type InstallMCR struct {
 }
 
 // HostFilterFunc returns true for hosts that do not have engine installed.
-func (p *InstallMCR) HostFilterFunc(h *api.Host) bool {
+func (p *InstallMCR) HostFilterFunc(h *mkeconfig.Host) bool {
 	return h.Metadata.MCRVersion == ""
 }
 
 // Prepare collects the hosts.
 func (p *InstallMCR) Prepare(config interface{}) error {
-	cfg, ok := config.(*api.ClusterConfig)
+	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
 	}
@@ -53,7 +53,7 @@ func (p *InstallMCR) Run() error {
 	return nil
 }
 
-func (p *InstallMCR) installMCR(h *api.Host) error {
+func (p *InstallMCR) installMCR(h *mkeconfig.Host) error {
 	if err := retry.Do(
 		func() error {
 			log.Infof("%s: installing container runtime (%s)", h, p.Config.Spec.MCR.Version)

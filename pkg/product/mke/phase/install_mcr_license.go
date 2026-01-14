@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,7 +32,7 @@ func (p *InstallMCRLicense) Run() error {
 	return nil
 }
 
-func (p *InstallMCRLicense) installMCRLicense(h *api.Host) error {
+func (p *InstallMCRLicense) installMCRLicense(h *mkeconfig.Host) error {
 	log.Infof("%s: installing MCR license", h)
 	if err := h.Configurer.InstallMCRLicense(h, p.Config.Spec.MCR.License); err != nil {
 		log.Errorf("%s: failed to install MCR License: %s", h, err.Error())

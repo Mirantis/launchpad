@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Mirantis/launchpad/pkg/product/mke/api"
+	"github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig"
 	"github.com/k0sproject/rig/exec"
 	log "github.com/sirupsen/logrus"
@@ -19,12 +19,12 @@ var errInvalidTarget = errors.New("invalid target")
 
 // Exec runs commands or shell sessions on a configuration host.
 func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, role, hostos, cmd string) error { //nolint:maintidx
-	var hosts api.Hosts
+	var hosts config.Hosts
 
 	for _, target := range targets {
 		switch {
 		case target == "localhost":
-			hosts = append(hosts, &api.Host{Connection: rig.Connection{Localhost: &rig.Localhost{Enabled: true}}})
+			hosts = append(hosts, &config.Host{Connection: rig.Connection{Localhost: &rig.Localhost{Enabled: true}}})
 		case strings.Contains(target, ":"):
 			parts := strings.SplitN(target, ":", 2)
 			addr := parts[0]
@@ -33,7 +33,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 				return fmt.Errorf("%w: invalid port: %s", errInvalidTarget, parts[1])
 			}
 
-			host := p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+			host := p.ClusterConfig.Spec.Hosts.Find(func(h *config.Host) bool {
 				if h.Address() != addr {
 					return false
 				}
@@ -47,7 +47,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 			}
 			hosts = append(hosts, host)
 		default:
-			host := p.ClusterConfig.Spec.Hosts.Find(func(h *api.Host) bool {
+			host := p.ClusterConfig.Spec.Hosts.Find(func(h *config.Host) bool {
 				return h.Address() == target
 			})
 			if host == nil {
@@ -59,9 +59,9 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 
 	if role != "" {
 		if len(hosts) == 0 {
-			hosts = p.ClusterConfig.Spec.Hosts.Filter(func(h *api.Host) bool { return h.Role == role })
+			hosts = p.ClusterConfig.Spec.Hosts.Filter(func(h *config.Host) bool { return h.Role == role })
 		} else {
-			hosts = hosts.Filter(func(h *api.Host) bool { return h.Role == role })
+			hosts = hosts.Filter(func(h *config.Host) bool { return h.Role == role })
 		}
 	}
 
@@ -70,10 +70,10 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 			hosts = p.ClusterConfig.Spec.Hosts
 		}
 
-		var foundhosts api.Hosts
+		var foundhosts config.Hosts
 		var mutex sync.Mutex
 
-		err := hosts.ParallelEach(func(h *api.Host) error {
+		err := hosts.ParallelEach(func(h *config.Host) error {
 			if err := h.Connect(); err != nil {
 				return fmt.Errorf("failed to connect to host %s: %w", h.Address(), err)
 			}
@@ -143,7 +143,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 		}
 	}
 
-	err := hosts.ParallelEach(func(h *api.Host) error {
+	err := hosts.ParallelEach(func(h *config.Host) error {
 		if err := h.Connect(); err != nil {
 			return fmt.Errorf("connect to host %s: %w", h.Address(), err)
 		}
@@ -154,7 +154,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 	}
 
 	var linuxcount, windowscount int
-	err = hosts.Each(func(h *api.Host) error {
+	err = hosts.Each(func(h *config.Host) error {
 		if h.IsWindows() {
 			if linuxcount > 0 {
 				return fmt.Errorf("%w mixed target operating systems, use --os linux or --os windows", errInvalidTarget)
@@ -192,7 +192,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 	}
 
 	log.Tracef("running non-interactive with cmd: %q", cmd)
-	runFunc := func(h *api.Host) error {
+	runFunc := func(h *config.Host) error {
 		if err := h.Exec(cmd, exec.Stdin(stdin), exec.StreamOutput()); err != nil {
 			return fmt.Errorf("failed on host %s: %w", h.Address(), err)
 		}
