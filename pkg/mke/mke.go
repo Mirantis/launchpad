@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
+	"github.com/Mirantis/launchpad/pkg/docker"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/hashicorp/go-version"
@@ -40,8 +41,6 @@ type Credentials struct {
 	Password string `json:"password,omitempty"`
 }
 
-var errInvalidVersion = errors.New("invalid version")
-
 // CollectFacts gathers the current status of installed mke setup.
 func CollectFacts(swarmLeader *mkeconfig.Host, mkeMeta *mkeconfig.MKEMetadata) error {
 	output, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf(`inspect --format '{{.Config.Image}}' ucp-proxy`))
@@ -51,15 +50,13 @@ func CollectFacts(swarmLeader *mkeconfig.Host, mkeMeta *mkeconfig.MKEMetadata) e
 		return nil
 	}
 
-	vparts := strings.Split(output, ":")
-	if len(vparts) != 2 {
-		return fmt.Errorf("%w: malformed version output: %s", errInvalidVersion, output)
+	repo, tag, verr := docker.ImageRepoAndTag(output)
+	if verr != nil {
+		return fmt.Errorf("%w: malformed version output: %s", verr, output)
 	}
-	repo := vparts[0][:strings.LastIndexByte(vparts[0], '/')]
-
 	mkeMeta.Installed = true
-	mkeMeta.InstalledVersion = vparts[1]
-	mkeMeta.InstalledBootstrapImage = fmt.Sprintf("%s:/ucp:%s", repo, vparts[1])
+	mkeMeta.InstalledVersion = tag
+	mkeMeta.InstalledBootstrapImage = fmt.Sprintf("%s:/ucp:%s", repo, tag)
 
 	// Find out calico data plane by inspecting the calico container's env variables
 	cmd := swarmLeader.Configurer.DockerCommandf(`ps --filter label=name="Calico node" --format {{.ID}}`)
