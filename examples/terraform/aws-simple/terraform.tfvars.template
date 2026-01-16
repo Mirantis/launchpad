@@ -8,7 +8,7 @@ aws = {
 launchpad = {
   drain = false
 
-  mcr_version = "25.0.13"
+  mcr_version = "25.0.14.2"
   mke_version = "3.8.8"
   msr_version = "2.9.28"
 
@@ -32,7 +32,7 @@ subnets = {
   "main" = {
     "cidr" = "172.31.0.0/17",
     "private" = false,
-    "nodegroups" = ["MngrA",  "WrkA", "MsrA"]
+    "nodegroups" = ["MngrA",  "Wrkubuntu", "Wrkrhel", "Wrksles"]
   }
 }
 
@@ -46,22 +46,30 @@ nodegroups = {
     "role" = "manager",
     "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
   },
-  "WrkA" = {
+  "Wrkrhel" = {
+    "platform" = "rhel-9",
+    "count" = 1,
+    "type" = "c6a.xlarge",
+    "volume_size" = "100",
+    "role" = "worker",
+    "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
+  },
+  "Wrkubuntu" = {
     "platform" = "ubuntu_22.04",
     "count" = 1,
     "type" = "c6a.xlarge",
     "volume_size" = "100",
     "role" = "worker",
     "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
-  }
-  "MsrA" = {
-    "platform" = "ubuntu_22.04",
+  },
+  "Wrksles" = {
+    "platform" = "sles-15",
     "count" = 1,
     "type" = "c6a.xlarge",
     "volume_size" = "100",
-    "role" = "msr",
+    "role" = "worker",
     "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
-  }
+  },
 }
 
 // set a windows password, if you have windows nodes

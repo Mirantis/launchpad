@@ -26,6 +26,43 @@ func (c Configurer) InstallMKEBasePackages(h os.Host) error {
 	return nil
 }
 
+// InstallMCR install Docker EE engine on Linux.
+func (c Configurer) InstallMCR(h os.Host, _ string, engineConfig commonconfig.MCRConfig) error {
+	ver, verErr := configurer.ResolveLinux(h)
+	if verErr != nil {
+		return fmt.Errorf("could not discover Linux version information")
+	}
+
+	if isEC2 := c.isAWSInstance(h); !isEC2 {
+		log.Debugf("%s: confirmed that this is not an AWS instance", h)
+	} else if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
+		log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
+	}
+
+	// e.g. https://repos.mirantis.com/rhel/$releasever/$basearch/<update-channel>
+	baseURL := fmt.Sprintf("%s/%s/%s/%s/%s", engineConfig.RepoURL, ver.ID, "$releasever", "$basearch", engineConfig.Channel)
+	// e.g. https://repos.mirantis.com/oraclelinux/gpg
+	gpgURL := fmt.Sprintf("%s/%s/gpg", engineConfig.RepoURL, ver.ID)
+	elRepoFilePath := "/etc/yum.repos.d/docker-ee.repo"
+	elRepoTemplate := `[mirantis]
+name=Mirantis Container Runtime
+baseurl=%s
+enabled=1
+gpgcheck=1
+gpgkey=%s
+`
+	elRepo := fmt.Sprintf(elRepoTemplate, baseURL, gpgURL)
+
+	if err := c.WriteFile(h, elRepoFilePath, elRepo, "0600"); err != nil {
+		return fmt.Errorf("could not write Yum repo file for MCR")
+	}
+
+	if err := c.InstallPackage(h, "docker.ee"); err != nil {
+		return fmt.Errorf("package manager could not install docker-ee")
+	}
+	return nil
+}
+
 // UninstallMCR uninstalls docker-ee engine.
 func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
@@ -50,20 +87,6 @@ func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig commonconfig.
 		}
 	}
 
-	return nil
-}
-
-// InstallMCR install Docker EE engine on Linux.
-func (c Configurer) InstallMCR(h os.Host, scriptPath string, engineConfig commonconfig.MCRConfig) error {
-	if isEC2 := c.isAWSInstance(h); !isEC2 {
-		log.Debugf("%s: confirmed that this is not an AWS instance", h)
-	} else if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
-		log.Infof("%s: appears to be an AWS EC2 instance, installed rh-amazon-rhui-client", h)
-	}
-
-	if err := c.LinuxConfigurer.InstallMCR(h, scriptPath, engineConfig); err != nil {
-		return fmt.Errorf("failed to install MCR: %w", err)
-	}
 	return nil
 }
 
