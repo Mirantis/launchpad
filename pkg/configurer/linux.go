@@ -26,9 +26,7 @@ const (
 	SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
 )
 
-var (
-	LinuxMCRInstallError = errors.New("failed to install MCR on linux")
-)
+var ErrLinuxMCRInstall = errors.New("failed to install MCR on linux")
 
 // LinuxConfigurer is a generic linux host configurer.
 type LinuxConfigurer struct {
@@ -357,9 +355,7 @@ func (c LinuxConfigurer) attemptPathSudoDelete(h os.Host, path string) {
 	log.Infof("%s: removed %s successfully", h, path)
 }
 
-var (
-	errAbort = errors.New("base os detected but version resolving failed")
-)
+var errAbort = errors.New("base os detected but version resolving failed")
 
 // ResolveLinux stolen from k0sproject/rig.
 //

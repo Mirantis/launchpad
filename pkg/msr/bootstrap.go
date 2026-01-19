@@ -71,7 +71,7 @@ func Bootstrap(operation string, config mkeconfig.ClusterConfig, bootoptions Boo
 			cmdbuffer.LogrusLine(le)
 
 			if le.Level == "fatal" {
-				err = errors.Join(err, fmt.Errorf("msr bootstrap %s failure; %s", operation, le.Msg)) //nolint
+				err = errors.Join(err, fmt.Errorf("msr bootstrap %s failure; %s", operation, le.Msg))
 			}
 		} else {
 			// output line was not logrus, so just output it
