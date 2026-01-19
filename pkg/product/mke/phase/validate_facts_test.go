@@ -162,7 +162,6 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MCR: commonconfig.MCRConfig{
-				Version: "25.0",
 				Channel: "stable-25.0",
 			},
 			MKE: mkeconfig.MKEConfig{
@@ -199,7 +198,6 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MCR: commonconfig.MCRConfig{
-				Version: "25.0",
 				Channel: "stable-25.0",
 			},
 			MKE: mkeconfig.MKEConfig{

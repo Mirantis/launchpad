@@ -1,3 +1,4 @@
+// Package sles implements the mke/config/HostConfigurer for SLES machines
 package sles
 
 import (
@@ -29,6 +30,8 @@ func init() {
 const (
 	ZypperRepoAlias   = "mirantis"
 	ZypperPackageName = "docker-ee"
+
+	ZypperPackageNotFound = "No matching items found"
 )
 
 // Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
@@ -51,6 +54,12 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	ver, verErr := configurer.ResolveLinux(h)
 	if verErr != nil {
 		return fmt.Errorf("could not discover Linux version information")
+	}
+
+	if out, err := h.ExecOutput("zypper search --type=package --installed-only docker"); err == nil && !strings.Contains(out, ZypperPackageNotFound) {
+		if err := h.Exec("zypper remove -y --clean-deps docker", exec.Sudo(h)); err != nil {
+			return fmt.Errorf("could not remove existing docker-ce installation: %w", err)
+		}
 	}
 
 	zypperRepoURL := fmt.Sprintf("%s/%s/%s/%s/%s", engineConfig.RepoURL, ver.ID, "$releasever_major", "$basearch", engineConfig.Channel)
@@ -81,7 +90,7 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 }
 
 // UninstallMCR uninstalls docker-ee engine.
-func (c Configurer) UninstallMCR(h os.Host, _ string, engineConfig commonconfig.MCRConfig) error {
+func (c Configurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)

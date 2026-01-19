@@ -34,7 +34,7 @@ func TestHostRequireManagerValidationPass(t *testing.T) {
 	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	data := `
-apiVersion: "launchpad.mirantis.com/mke/v1.5"
+apiVersion: "launchpad.mirantis.com/mke/v1.6"
 kind: mke
 spec:
   hosts:
@@ -251,7 +251,7 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
 	require.Equal(t, c.Spec.MCR.InstallURLWindows, "http://example.com/install.ps1")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
@@ -276,7 +276,7 @@ spec:
 `
 	c := loadAndMigrateYaml(t, data)
 	require.NoError(t, c.Validate())
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
@@ -298,7 +298,7 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
 	require.Equal(t, constant.MCRInstallURLWindows, c.Spec.MCR.InstallURLWindows)
 	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
@@ -384,7 +384,7 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke
 spec:
 	mke:
@@ -433,7 +433,7 @@ spec:
 
 	t.Run("the role is msr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke+msr
 spec:
 	mke:

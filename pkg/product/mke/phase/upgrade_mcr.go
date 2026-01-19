@@ -175,7 +175,6 @@ func (p *UpgradeMCR) upgradeMCR(h *mkeconfig.Host) error {
 	if err := h.Configurer.InstallMCR(h, p.Config.Spec.MCR); err != nil {
 		return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
 	}
-	return nil
 
 	// ensure that MCR is installed and running
 	if err := mcr.EnsureMCRRunning(h, p.Config.Spec.MCR); err != nil {

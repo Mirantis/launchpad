@@ -10,8 +10,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var ErrInvalidMCRConfig = errors.New("MCR configuration is invalid")
-var ErrMCRNotRunning = errors.New("MCR is not running")
+var (
+	ErrInvalidMCRConfig = errors.New("MCR configuration is invalid")
+	ErrMCRNotRunning    = errors.New("MCR is not running")
+)
 
 // DrainNode drains a node from the workload via docker drain command.
 func DrainNode(lead *mkeconfig.Host, h *mkeconfig.Host) error {

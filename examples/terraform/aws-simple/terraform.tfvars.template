@@ -8,13 +8,13 @@ aws = {
 launchpad = {
   drain = false
 
-  mcr_version = "25.0.14.2"
+  mcr_channel = "stable-25.0.14"
   mke_version = "3.8.8"
   msr_version = "2.9.28"
 
   mke_connect = {
     username = "admin"
-    password = "" // an MKE passwords must be provided
+    password = "" // an MKE password must be provided
     insecure = true
   }
 
@@ -47,7 +47,7 @@ nodegroups = {
     "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
   },
   "Wrkrhel" = {
-    "platform" = "rhel-9",
+    "platform" = "rhel_9",
     "count" = 1,
     "type" = "c6a.xlarge",
     "volume_size" = "100",
@@ -63,7 +63,7 @@ nodegroups = {
     "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
   },
   "Wrksles" = {
-    "platform" = "sles-15",
+    "platform" = "sles_15",
     "count" = 1,
     "type" = "c6a.xlarge",
     "volume_size" = "100",

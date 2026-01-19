@@ -14,7 +14,7 @@ variable "launchpad" {
   type = object({
     drain = bool
 
-    mcr_version = string
+    mcr_channel = string
     mke_version = string
     msr_version = string // unused if you have no MSR hosts
 
@@ -137,8 +137,8 @@ locals {
 // ------- Ye old launchpad yaml (just for debugging)
 
 locals {
-  launchpad_yaml_15 = <<-EOT
-apiVersion: launchpad.mirantis.com/mke/v1.5
+  launchpad_yaml = <<-EOT
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke%{if local.has_msr}+msr%{endif}
 metadata:
   name: ${var.name}
@@ -165,11 +165,9 @@ spec:
       insecure: ${h.winrm_insecure}
 %{~endfor}
   mcr:
-    version: ${var.launchpad.mcr_version}
+    channel: ${var.launchpad.mcr_channel}
     repoURL: https://repos.mirantis.com
-    installURLLinux: https://get.mirantis.com/
     installURLWindows: https://get.mirantis.com/install.ps1
-    channel: stable-25.0
     prune: true
   mke:
     version: ${var.launchpad.mke_version}
@@ -199,7 +197,7 @@ EOT
 output "launchpad_yaml" {
   description = "launchpad config file yaml (for debugging)"
   sensitive   = true
-  value       = local.launchpad_yaml_15
+  value       = local.launchpad_yaml
 }
 
 output "mke_connect" {

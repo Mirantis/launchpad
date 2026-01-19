@@ -57,7 +57,7 @@ gpgkey=%s
 		return fmt.Errorf("could not write Yum repo file for MCR")
 	}
 
-	if err := c.InstallPackage(h, "docker.ee"); err != nil {
+	if err := c.InstallPackage(h, "docker-ee"); err != nil {
 		return fmt.Errorf("package manager could not install docker-ee")
 	}
 	return nil

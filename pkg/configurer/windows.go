@@ -64,7 +64,7 @@ func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 
 // InstallMCR install MCR on Windows.
 func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
-	var version = "latest"
+	version := "latest"
 
 	installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
 	if getInstallerErr != nil {

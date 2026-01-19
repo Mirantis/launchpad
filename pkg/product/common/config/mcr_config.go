@@ -25,7 +25,7 @@ type MCRConfig struct {
 	License                     string   `yaml:"license"`
 	InstallScriptRemoteDirLinux string   `yaml:"installScriptRemoteDirLinux,omitempty"`
 	InstallURLWindows           string   `yaml:"installURLWindows,omitempty"`
-	Channel                     string   `yaml:"channel,omitempty,validate=regexp=test|stable"`
+	Channel                     string   `yaml:"channel,omitempty"`
 	Prune                       bool     `yaml:"prune,omitempty"`
 	ForceUpgrade                bool     `yaml:"forceUpgrade,omitempty"`
 	SwarmInstallFlags           Flags    `yaml:"swarmInstallFlags,omitempty,flow"`
