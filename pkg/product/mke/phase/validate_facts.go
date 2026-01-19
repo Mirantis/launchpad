@@ -41,14 +41,6 @@ func (p *ValidateFacts) Run() error {
 		return nil
 	})
 
-	if err := p.Config.Spec.MCR.Validate(); err != nil {
-		if p.Force {
-			log.Warnf("%s: continuing anyway because --force given", err.Error())
-		} else {
-			return errors.Join(ErrFactsArentValid, err)
-		}
-	}
-
 	if err := p.validateMKEVersionJump(); err != nil {
 		if p.Force {
 			log.Warnf("%s: continuing anyway because --force given", err.Error())

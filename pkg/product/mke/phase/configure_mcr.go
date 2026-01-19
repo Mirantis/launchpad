@@ -41,7 +41,7 @@ func (p *ConfigureMCR) Title() string {
 // Run installs the engine on each host.
 func (p *ConfigureMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
-		"engine_version": p.Config.Spec.MCR.Version,
+		"engine_channel": p.Config.Spec.MCR.Channel,
 	}
 	err := p.Hosts.ParallelEach(func(h *mkeconfig.Host) error {
 		log.Infof("%s: configuring container runtime", h)

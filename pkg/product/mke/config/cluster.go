@@ -77,7 +77,7 @@ func Init(kind string) *ClusterConfig {
 		},
 		Spec: &ClusterSpec{
 			MCR: common.MCRConfig{
-				Version: constant.MCRVersion,
+				Channel: constant.MCRChannel,
 			},
 			MKE: MKEConfig{
 				Version: mkeV,

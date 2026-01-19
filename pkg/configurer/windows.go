@@ -64,6 +64,8 @@ func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 
 // InstallMCR install MCR on Windows.
 func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+	var version = "latest"
+
 	installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
 	if getInstallerErr != nil {
 		return fmt.Errorf("could not install MCR; %w", getInstallerErr)
@@ -81,7 +83,7 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 		}
 	}()
 
-	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, engineConfig.Version, engineConfig.Channel, ps.DoubleQuote(installer))
+	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set DOCKER_VERSION=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, version, engineConfig.Channel, ps.DoubleQuote(installer))
 
 	log.Infof("%s: running installer", h)
 

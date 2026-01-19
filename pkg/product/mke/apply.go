@@ -80,7 +80,7 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 		"dtrs":            len(p.ClusterConfig.Spec.MSRs()),
 		"linux_workers":   linuxWorkersCount,
 		"windows_workers": windowsWorkersCount,
-		"engine_version":  p.ClusterConfig.Spec.MCR.Version,
+		"engine_channel":  p.ClusterConfig.Spec.MCR.Channel,
 		"cluster_id":      clusterID,
 		// send mke analytics user id as ucp_instance_id property
 		"ucp_instance_id": fmt.Sprintf("%x", sha1.Sum([]byte(clusterID))), //nolint:gosec // sha1 is used for simple analytics id generation
