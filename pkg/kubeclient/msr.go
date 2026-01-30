@@ -190,8 +190,8 @@ func (kc *KubeClient) PrepareNodeForMSR(ctx context.Context, name string) error 
 
 // GetMSRResourceClient returns a dynamic client for the MSR custom resource.
 //
-
-func (kc *KubeClient) GetMSRResourceClient() (dynamic.ResourceInterface, error) { //nolint:ireturn
+//nolint:ireturn // dynamic.ResourceInterface is from k8s client-go; concrete type not needed by callers
+func (kc *KubeClient) GetMSRResourceClient() (dynamic.ResourceInterface, error) {
 	client, err := dynamic.NewForConfig(kc.config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)

@@ -25,7 +25,7 @@ var MKE_CONNECT = map[string]interface{}{
 // initial install
 var LAUNCHPAD = map[string]interface{}{
 	"drain":       false,
-	"mcr_version": "25.0.13",
+	"mcr_channel": "stable-25.0.14",
 	"mke_version": "3.8.8",
 	"msr_version": "2.9.28",
 	"mke_connect": MKE_CONNECT,
@@ -52,7 +52,9 @@ func TestSmallCluster(t *testing.T) {
 	nodegroups := map[string]interface{}{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
-	}
+		"WrkRhel9":  test.Platforms["Rhel9"].GetWorker(),		
+		"WrkSles15":  test.Platforms["Sles15"].GetWorker(),
+		}
 
 	uTestId := test.GenerateRandomAlphaNumericString(5)
 

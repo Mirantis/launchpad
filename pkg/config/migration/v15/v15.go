@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/config/migration"
+	"github.com/Mirantis/launchpad/pkg/constant"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,8 +20,9 @@ func Migrate(plain map[string]any) error {
 			channel := mcr["channel"]
 
 			channels, ok := channel.(string)
-			if !ok {
-				return fmt.Errorf("could not migrate non-string channel, expected something like 'test' or 'stable-25.0`, but got '%s'", channel) // this is not likely
+			if !ok || channels == "" {
+				// Configs migrated from v1beta1/v1beta2 may have no MCR channel; use default (same as MCRConfig.SetDefaults).
+				channels = constant.MCRChannel
 			}
 
 			versions, ok := version.(string)
@@ -40,7 +42,11 @@ func Migrate(plain map[string]any) error {
 				channels = channelsParts[0]
 			}
 
-			mcr["channel"] = fmt.Sprintf("%s-%s", channels, versions)
+			if versions != "" {
+				mcr["channel"] = fmt.Sprintf("%s-%s", channels, versions)
+			} else {
+				mcr["channel"] = channels
+			}
 			delete(mcr, "version")
 		}
 	}

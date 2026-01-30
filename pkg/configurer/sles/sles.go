@@ -28,10 +28,8 @@ func init() {
 }
 
 const (
-	ZypperRepoAlias   = "mirantis"
-	ZypperPackageName = "docker-ee"
-
 	ZypperPackageNotFound = "No matching items found"
+	ZypperRepoAlias       = "mirantis"
 )
 
 // Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
@@ -41,11 +39,26 @@ type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-// InstallMKEBasePackages installs the needed base packages on Ubuntu.
-func (c Configurer) InstallMKEBasePackages(h os.Host) error {
+// PrepareHost prepares the machine host by installing the needed base packages, and fixing any container issues.
+func (c Configurer) PrepareHost(h os.Host) error {
 	if err := c.InstallPackage(h, "curl", "socat"); err != nil {
 		return fmt.Errorf("failed to install base packages: %w", err)
 	}
+
+	if c.IsContainer(h) {
+		if err := c.FixContainer(h); err != nil {
+			return fmt.Errorf("fix container: %w", err)
+		}
+	}
+
+	log.Debugf("%s: checking for Docker-CE conflict", h)
+	if out, err := h.ExecOutput("zypper search --type=package --installed-only docker"); err == nil && !strings.Contains(out, ZypperPackageNotFound) && !strings.Contains(out, "docker-ee") {
+		log.Warnf("%s: detected Docker-CE, removing from system", h)
+		if err := h.Exec("zypper remove -y --clean-deps docker", exec.Sudo(h)); err != nil {
+			return fmt.Errorf("could not remove existing docker-ce installation: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -54,12 +67,6 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	ver, verErr := configurer.ResolveLinux(h)
 	if verErr != nil {
 		return fmt.Errorf("could not discover Linux version information")
-	}
-
-	if out, err := h.ExecOutput("zypper search --type=package --installed-only docker"); err == nil && !strings.Contains(out, ZypperPackageNotFound) {
-		if err := h.Exec("zypper remove -y --clean-deps docker", exec.Sudo(h)); err != nil {
-			return fmt.Errorf("could not remove existing docker-ce installation: %w", err)
-		}
 	}
 
 	zypperRepoURL := fmt.Sprintf("%s/%s/%s/%s/%s", engineConfig.RepoURL, ver.ID, "$releasever_major", "$basearch", engineConfig.Channel)
@@ -80,11 +87,15 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	if err := h.Exec(fmt.Sprintf("zypper addrepo --refresh '%s' mirantis", zypperRepoURL), exec.Sudo(h)); err != nil {
 		return errors.Join(fmt.Errorf("failed to add zypper MCR repo: %s", zypperRepoURL), err)
 	}
+
 	log.Debugf("%s: sles MCR install version", h)
 	if err := c.InstallPackage(h, "docker-ee"); err != nil {
-		return errors.Join(fmt.Errorf("failed to install zypper MCR packages"), err)
+		return fmt.Errorf("package manager could not install docker-ee")
 	}
-	log.Debugf("%s: sles MCR installed from channel %s", h, engineConfig.Channel)
+
+	if err := c.EnableMCR(h, engineConfig); err != nil {
+		return fmt.Errorf("package manager could not install docker-ee")
+	}
 
 	return nil
 }

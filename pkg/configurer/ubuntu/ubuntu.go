@@ -17,10 +17,16 @@ type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-// InstallMKEBasePackages installs the needed base packages on Ubuntu.
-func (c Configurer) InstallMKEBasePackages(h os.Host) error {
+// PrepareHost prepares the machine host by installing the needed base packages, and fixing any container issues.
+func (c Configurer) PrepareHost(h os.Host) error {
 	if err := c.InstallPackage(h, "curl", "apt-utils", "socat", "iputils-ping"); err != nil {
 		return fmt.Errorf("failed to install base packages: %w", err)
+	}
+
+	if c.IsContainer(h) {
+		if err := c.FixContainer(h); err != nil {
+			return fmt.Errorf("fix container: %w", err)
+		}
 	}
 	return nil
 }
@@ -64,6 +70,10 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 	}
 
 	if err := c.InstallPackage(h, "docker-ee"); err != nil {
+		return fmt.Errorf("package manager could not install docker-ee")
+	}
+
+	if err := c.EnableMCR(h, engineConfig); err != nil {
 		return fmt.Errorf("package manager could not install docker-ee")
 	}
 	return nil

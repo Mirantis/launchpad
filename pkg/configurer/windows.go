@@ -45,7 +45,7 @@ type rebootable interface {
 
 var errRebootRequired = fmt.Errorf("reboot required")
 
-// Install MCR License.
+// InstallMCRLicense for license install..
 func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 	// Use default docker root dir if not specified in docker info
 	dockerRootDir := constant.WindowsDefaultDockerRoot
@@ -293,6 +293,16 @@ func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
 
 // AuthorizeDocker does nothing on windows.
 func (c WindowsConfigurer) AuthorizeDocker(_ os.Host) error {
+	return nil
+}
+
+// InstallMKEBasePackages is a no-op on Windows (no base packages to install).
+func (c WindowsConfigurer) InstallMKEBasePackages(_ os.Host) error {
+	return nil
+}
+
+// PrepareHost prepares the host for MKE install (no-op on Windows).
+func (c WindowsConfigurer) PrepareHost(_ os.Host) error {
 	return nil
 }
 

@@ -18,10 +18,16 @@ type Configurer struct {
 	configurer.LinuxConfigurer
 }
 
-// InstallMKEBasePackages install all the needed base packages on the host.
-func (c Configurer) InstallMKEBasePackages(h os.Host) error {
+// PrepareHost prepares the machine host by installing the needed base packages, and fixing any container issues.
+func (c Configurer) PrepareHost(h os.Host) error {
 	if err := c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip", "openssh"); err != nil {
 		return fmt.Errorf("failed to install base packages: %w", err)
+	}
+
+	if c.IsContainer(h) {
+		if err := c.FixContainer(h); err != nil {
+			return fmt.Errorf("fix container: %w", err)
+		}
 	}
 	return nil
 }
@@ -58,6 +64,10 @@ gpgkey=%s
 	}
 
 	if err := c.InstallPackage(h, "docker-ee"); err != nil {
+		return fmt.Errorf("package manager could not install docker-ee")
+	}
+
+	if err := c.EnableMCR(h, engineConfig); err != nil {
 		return fmt.Errorf("package manager could not install docker-ee")
 	}
 	return nil

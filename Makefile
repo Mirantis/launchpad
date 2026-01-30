@@ -71,9 +71,11 @@ lint:
 
 # Testing related targets
 
+# TEST_FLAGS can be set in CI to e.g. -short to skip tests that need network/OCI
+TEST_FLAGS?=
 .PHONY: unit-test
 unit-test:
-	$(GO) test -v --tags 'testing' ./pkg/...
+	$(GO) test -v --tags 'testing' $(TEST_FLAGS) ./pkg/...
 
 .PHONY: functional-test
 functional-test:

@@ -30,14 +30,14 @@ import (
 // AuthToken represents a session token.
 type AuthToken struct {
 	ID        string `json:"token_id,omitempty"`
-	Token     string `json:"auth_token,omitempty"`
+	Token     string `json:"auth_token,omitempty"` // #nosec G117 -- MKE API auth token
 	UserAgent string `json:"user_agent,omitempty"`
 }
 
 // Credentials represents a username/password pair for mke login.
 type Credentials struct {
 	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
+	Password string `json:"password,omitempty"` // #nosec G117 -- MKE API credentials
 }
 
 var errInvalidVersion = errors.New("invalid version")
@@ -105,7 +105,7 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) // #nosec G704 -- URL is from cluster config/trusted MKE API
 	if err != nil {
 		log.Debugf("Failed to get bundle: %v", err)
 		return nil, fmt.Errorf("failed to request client bundle: %w", err)
@@ -132,7 +132,8 @@ func GetToken(client *http.Client, mkeURL *url.URL, username, password string) (
 		Password: password,
 	}
 
-	reqJSON, err := json.Marshal(creds)
+	// G117: password is intentionally sent in the login request body to MKE API.
+	reqJSON, err := json.Marshal(creds) // #nosec G117
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal credentials: %w", err)
 	}
@@ -301,7 +302,11 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 
 		// mke bundle will contain folders as well as files, if folder exists fd will not be empty
 		if dir := filepath.Dir(zipFile.Name); dir != "" && dir != "." {
-			if err := os.MkdirAll(filepath.Join(bundleDir, dir), 0o700); err != nil {
+			safeDir, err := safePath(bundleDir, dir)
+			if err != nil {
+				return err
+			}
+			if err := os.MkdirAll(safeDir, 0o700); err != nil { // #nosec G703 -- safeDir from safePath
 				return fmt.Errorf("error while creating directory: %w", err)
 			}
 		}
@@ -311,7 +316,7 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 			return err
 		}
 
-		err = os.WriteFile(outFile, data, os.FileMode(mode))
+		err = os.WriteFile(outFile, data, os.FileMode(mode)) // #nosec G703 -- outFile from safePath
 		if err != nil {
 			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
 		}

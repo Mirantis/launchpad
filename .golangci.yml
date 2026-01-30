@@ -72,6 +72,10 @@ linters:
       - test/*
       - logo.go
       - logo_windows.go
+    # package names that match stdlib (user, constant, log, version) are legacy; exclude only this rule
+    rules:
+      - linters: [revive]
+        text: "avoid package names that conflict with Go standard library"
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

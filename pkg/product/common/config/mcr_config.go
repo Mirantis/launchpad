@@ -37,6 +37,7 @@ type MCRConfig struct {
 type MCRMetadata struct {
 	ManagerJoinToken string
 	WorkerJoinToken  string
+	MCRChannel       string
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml.

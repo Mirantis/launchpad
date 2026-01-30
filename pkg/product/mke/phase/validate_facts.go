@@ -28,6 +28,10 @@ func (p *ValidateFacts) Title() string {
 
 // Run validate configuration facts.
 func (p *ValidateFacts) Run() error {
+	if p.Config.Spec.MKE.Version == "" {
+		return errors.Join(ErrFactsArentValid, fmt.Errorf("MKE spec is required (spec.mke.version)"))
+	}
+
 	if !p.Config.Spec.MKE.InstallFlags.Include("--san") {
 		p.populateSan()
 	}
@@ -79,31 +83,31 @@ func (p *ValidateFacts) populateSan() {
 
 var errInvalidUpgradePath = errors.New("invalid upgrade path")
 
-// validateMSRVersionJump validates MKE upgrade path.
+// validateMKEVersionJump validates MKE upgrade path.
 func (p *ValidateFacts) validateMKEVersionJump() error {
-	if p.Config.Spec.MKE.Metadata.Installed && p.Config.Spec.MKE.Metadata.InstalledVersion != "" {
-		installedMKE, err := version.NewVersion(p.Config.Spec.MKE.Metadata.InstalledVersion)
-		if err != nil {
-			return fmt.Errorf("can't parse installed MKE version: %w", err)
-		}
-		targetMKE, err := version.NewVersion(p.Config.Spec.MKE.Version)
-		if err != nil {
-			return fmt.Errorf("can't parse target MKE version: %w", err)
-		}
-
-		if mke.VersionGreaterThan(installedMKE, targetMKE) {
-			return fmt.Errorf("%w: can't downgrade MKE %s to %s", errInvalidUpgradePath, installedMKE, targetMKE)
-		}
-
-		installedSegments := installedMKE.Segments()
-		targetSegments := targetMKE.Segments()
-
-		// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
-		if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
-			return fmt.Errorf("%w: can't upgrade MKE directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installedMKE, targetMKE, installedSegments[0], installedSegments[1]+1)
-		}
+	if p.Config.Spec.MKE.Metadata == nil || !p.Config.Spec.MKE.Metadata.Installed || p.Config.Spec.MKE.Metadata.InstalledVersion == "" {
+		return nil
+	}
+	installedMKE, err := version.NewVersion(p.Config.Spec.MKE.Metadata.InstalledVersion)
+	if err != nil {
+		return fmt.Errorf("can't parse installed MKE version: %w", err)
+	}
+	targetMKE, err := version.NewVersion(p.Config.Spec.MKE.Version)
+	if err != nil {
+		return fmt.Errorf("can't parse target MKE version: %w", err)
 	}
 
+	if mke.VersionGreaterThan(installedMKE, targetMKE) {
+		return fmt.Errorf("%w: can't downgrade MKE %s to %s", errInvalidUpgradePath, installedMKE, targetMKE)
+	}
+
+	installedSegments := installedMKE.Segments()
+	targetSegments := targetMKE.Segments()
+
+	// This will fail if there's something like 2.x => 3.x or 3.x => 4.x.
+	if installedSegments[0] == targetSegments[0] && targetSegments[1]-installedSegments[1] > 1 {
+		return fmt.Errorf("%w: can't upgrade MKE directly from %s to %s - need to upgrade to %d.%d first", errInvalidUpgradePath, installedMKE, targetMKE, installedSegments[0], installedSegments[1]+1)
+	}
 	return nil
 }
 
@@ -168,7 +172,7 @@ func (p *ValidateFacts) validateDataPlane() error {
 		log.Debug("no windows hosts found")
 	}
 
-	if !p.Config.Spec.MKE.Metadata.Installed {
+	if p.Config.Spec.MKE.Metadata == nil || !p.Config.Spec.MKE.Metadata.Installed {
 		log.Debug("no existing MKE installation")
 		return nil
 	}

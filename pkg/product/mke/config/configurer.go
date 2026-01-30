@@ -13,10 +13,7 @@ type HostConfigurer interface {
 	LongHostname(os.Host) string
 	ResolvePrivateInterface(os.Host) (string, error)
 	ResolveInternalIP(os.Host, string, string) (string, error)
-	IsContainer(os.Host) bool
-	FixContainer(os.Host) error
 	SELinuxEnabled(os.Host) bool
-	InstallMKEBasePackages(os.Host) error
 	UpdateEnvironment(os.Host, map[string]string) error
 	CleanupEnvironment(os.Host, map[string]string) error
 	MCRConfigPath() string
@@ -37,4 +34,5 @@ type HostConfigurer interface {
 	JoinPath(...string) string
 	Reboot(os.Host) error
 	AuthorizeDocker(os.Host) error
+	PrepareHost(os.Host) error
 }

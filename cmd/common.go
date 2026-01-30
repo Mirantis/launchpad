@@ -145,7 +145,12 @@ func closeAnalytics(ctx *cli.Context) error {
 
 func upgradeCheckResult(ctx *cli.Context) error {
 	if ctx.Command.Name != "download-launchpad" {
-		latest := <-upgradeChan
+		var latest *version.LaunchpadRelease
+		select {
+		case latest = <-upgradeChan:
+		case <-ctx.Done():
+			// Context cancelled; skip upgrade message.
+		}
 		if latest != nil {
 			println(fmt.Sprintf("\nA new version (%s) of `launchpad` is available. Please visit %s or run `launchpad download-launchpad` to upgrade the tool.", latest.TagName, latest.URL))
 		}

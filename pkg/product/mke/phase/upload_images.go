@@ -52,8 +52,11 @@ func (p *LoadImages) HostFilterFunc(h *mkeconfig.Host) bool {
 		h.Metadata.ImagesToUpload = append(h.Metadata.ImagesToUpload, imagePath)
 		info, err := entry.Info()
 		if err == nil {
-			usize := uint64(info.Size()) //nolint: gosec
-			h.Metadata.TotalImageBytes += usize
+			size := info.Size()
+			if size >= 0 {
+				usize := uint64(size) // #nosec G115 -- size guarded >= 0
+				h.Metadata.TotalImageBytes += usize
+			}
 		}
 	}
 

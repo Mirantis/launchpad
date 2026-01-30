@@ -56,6 +56,18 @@ func (c LinuxConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 	return nil
 }
 
+// InstallMCR install and Docker EE engine on Linux, assuming that you already have the repos setup.
+func (c LinuxConfigurer) EnableMCR(h os.Host, _ commonconfig.MCRConfig) error {
+	if err := c.riglinux.EnableService(h, "docker"); err != nil {
+		return fmt.Errorf("init manager could not enable docker-ee, %w", err)
+	}
+	if err := c.riglinux.StartService(h, "docker"); err != nil {
+		return fmt.Errorf("init manager could not start docker-ee, %w", err)
+	}
+
+	return nil
+}
+
 // RestartMCR restarts Docker EE engine.
 func (c LinuxConfigurer) RestartMCR(h os.Host) error {
 	if err := c.riglinux.RestartService(h, "docker"); err != nil {

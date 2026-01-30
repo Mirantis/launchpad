@@ -231,7 +231,10 @@ func (h *Host) WriteFileLarge(src, dst string, fmo fs.FileMode) error {
 		return fmt.Errorf("failed to stat file: %w", err)
 	}
 	size := stat.Size()
-	usize := uint64(size) //nolint: gosec
+	if size < 0 {
+		return fmt.Errorf("invalid file size: %d", size)
+	}
+	usize := uint64(size)
 
 	log.Infof("%s: uploading %s to %s", h, byteutil.FormatBytes(usize), dst)
 

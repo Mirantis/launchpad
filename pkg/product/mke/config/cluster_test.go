@@ -19,6 +19,8 @@ import (
 	// needed to load the migrators.
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v14"
 	// needed to load the migrators.
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v15"
+	// needed to load the migrators.
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta1"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta2"
@@ -459,6 +461,7 @@ spec:
 // Just a small helper to load the config struct from yaml to get defaults etc. in place.
 func loadYaml(t *testing.T, data string) *ClusterConfig {
 	c := &ClusterConfig{}
+
 	// convert any tabs added by editor into double spaces
 	require.NoError(t, yaml.Unmarshal([]byte(strings.ReplaceAll(data, "\t", "  ")), c))
 	return c
