@@ -89,6 +89,9 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	}
 
 	log.Debugf("%s: sles MCR install version", h)
+	if err := c.InstallPackage(h, "containerd.io"); err != nil {
+		return fmt.Errorf("package manager could not install containerd.io")
+	}
 	if err := c.InstallPackage(h, "docker-ee"); err != nil {
 		return fmt.Errorf("package manager could not install docker-ee")
 	}
