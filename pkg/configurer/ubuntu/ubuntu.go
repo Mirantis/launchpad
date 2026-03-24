@@ -65,7 +65,7 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 	if err := c.WriteFile(h, debRepoFilePath, debRepo, "0600"); err != nil {
 		return fmt.Errorf("could not write APT repo file for MCR")
 	}
-	if err := h.Exec("apt update", exec.Sudo(h)); err != nil {
+	if err := h.Exec("apt-get update", exec.Sudo(h)); err != nil {
 		return fmt.Errorf("could not update apt package info")
 	}
 
