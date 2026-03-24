@@ -69,6 +69,9 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 		return fmt.Errorf("could not update apt package info")
 	}
 
+	if err := c.InstallPackage(h, "containerd.io"); err != nil {
+		return fmt.Errorf("package manager could not install containerd.io")
+	}
 	if err := c.InstallPackage(h, "docker-ee"); err != nil {
 		return fmt.Errorf("package manager could not install docker-ee")
 	}
