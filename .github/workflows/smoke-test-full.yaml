@@ -11,10 +11,11 @@ on:
       - go.mod
       - go.sum
       - examples/terraform/aws-complete/**
+      - '.github/workflows/smoke-test-full.yaml'
 
 jobs:
     smoke-full:
-        runs-on: ubuntu-latest
+        runs-on: arc-runner-set-mirantis-public
         steps:
             - name: Checkout code
               uses: actions/checkout@v6
