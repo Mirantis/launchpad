@@ -41,7 +41,7 @@ func (p *UpgradeMCR) HostFilterFunc(h *mkeconfig.Host) bool {
 	}
 
 	// the following version check prevents upgrades on MCR<25, but MCR25 should always upgrade.
-	return h.Metadata.MCRVersion != p.Config.Spec.MCR.Version
+	return true
 }
 
 // Prepare collects the hosts.
@@ -67,7 +67,7 @@ func (p *UpgradeMCR) Title() string {
 // Run installs the engine on each host.
 func (p *UpgradeMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
-		"engine_version": p.Config.Spec.MCR.Version,
+		"engine_channel": p.Config.Spec.MCR.Channel,
 	}
 	return p.upgradeMCRs()
 }
@@ -171,21 +171,13 @@ func (p *UpgradeMCR) upgradeMCRs() error {
 }
 
 func (p *UpgradeMCR) upgradeMCR(h *mkeconfig.Host) error {
-	if err := retry.Do(
-		func() error {
-			log.Infof("%s: upgrading container runtime (%s -> %s)", h, h.Metadata.MCRVersion, p.Config.Spec.MCR.Version)
-			if err := h.Configurer.InstallMCR(h, h.Metadata.MCRInstallScript, p.Config.Spec.MCR); err != nil {
-				return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
-			}
-			return nil
-		},
-	); err != nil {
-		log.Errorf("%s: failed to update container runtime -> %s", h, err.Error())
-		return fmt.Errorf("retry count exceeded: %w", err)
+	log.Infof("%s: upgrading container runtime (%s)", h, p.Config.Spec.MCR.Channel)
+	if err := h.Configurer.InstallMCR(h, p.Config.Spec.MCR); err != nil {
+		return fmt.Errorf("%s: failed to install container runtime: %w", h, err)
 	}
 
 	// ensure that MCR is installed and running
-	if err := mcr.EnsureMCRVersion(h, p.Config.Spec.MCR.Version); err != nil {
+	if err := mcr.EnsureMCRRunning(h, p.Config.Spec.MCR); err != nil {
 		return fmt.Errorf("failed while attempting to ensure the installed version: %w", err)
 	}
 

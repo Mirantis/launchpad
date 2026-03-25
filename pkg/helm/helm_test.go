@@ -9,6 +9,9 @@ import (
 )
 
 func TestChartNeedsUpgrade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping chart upgrade test in short mode (requires OCI chart pull)")
+	}
 	h := NewHelmTestClient(t)
 	rd, _ := InstallCertManagerChart(t, h)
 

@@ -13,16 +13,13 @@ type HostConfigurer interface {
 	LongHostname(os.Host) string
 	ResolvePrivateInterface(os.Host) (string, error)
 	ResolveInternalIP(os.Host, string, string) (string, error)
-	IsContainer(os.Host) bool
-	FixContainer(os.Host) error
 	SELinuxEnabled(os.Host) bool
-	InstallMKEBasePackages(os.Host) error
 	UpdateEnvironment(os.Host, map[string]string) error
 	CleanupEnvironment(os.Host, map[string]string) error
 	MCRConfigPath() string
 	InstallMCRLicense(os.Host, string) error
-	InstallMCR(os.Host, string, common.MCRConfig) error
-	UninstallMCR(os.Host, string, common.MCRConfig) error
+	InstallMCR(os.Host, common.MCRConfig) error
+	UninstallMCR(os.Host, common.MCRConfig) error
 	DockerCommandf(template string, args ...any) string
 	RestartMCR(os.Host) error
 	AuthenticateDocker(h os.Host, user, pass, repo string) error
@@ -37,4 +34,5 @@ type HostConfigurer interface {
 	JoinPath(...string) string
 	Reboot(os.Host) error
 	AuthorizeDocker(os.Host) error
+	PrepareHost(os.Host) error
 }

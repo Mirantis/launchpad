@@ -23,7 +23,7 @@ func (p *RestartMCR) HostFilterFunc(h *mkeconfig.Host) bool {
 }
 
 // Prepare collects the hosts.
-func (p *RestartMCR) Prepare(config interface{}) error {
+func (p *RestartMCR) Prepare(config any) error {
 	cfg, ok := config.(*mkeconfig.ClusterConfig)
 	if !ok {
 		return errInvalidConfig
@@ -44,7 +44,7 @@ func (p *RestartMCR) Title() string {
 // Run installs the engine on each host.
 func (p *RestartMCR) Run() error {
 	p.EventProperties = map[string]interface{}{
-		"engine_version": p.Config.Spec.MCR.Version,
+		"engine_channel": p.Config.Spec.MCR.Channel,
 	}
 	return p.restartMCRs()
 }

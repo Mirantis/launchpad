@@ -87,10 +87,15 @@ func InstallCertManagerChart(t *testing.T, h *Helm) (ReleaseDetails, func()) {
 		Version:     "1.19.2",
 	}
 
-	_, err := h.Upgrade(context.Background(), &Options{
+	rel, err := h.Upgrade(context.Background(), &Options{
 		ReleaseDetails: rd, Timeout: ptr.To(DefaultTimeout),
 	})
 	require.NoError(t, err)
+	// Use the chart version actually stored in the release so tests comparing
+	// "installed" vs "requested" version match what ChartNeedsUpgrade sees.
+	if rel != nil && rel.Chart != nil && rel.Chart.Metadata != nil {
+		rd.Version = rel.Chart.Metadata.Version
+	}
 
 	uninstallFunc := func() {
 		err := h.Uninstall(&Options{

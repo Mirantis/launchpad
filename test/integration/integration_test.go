@@ -16,33 +16,33 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var AWS = map[string]interface{}{
+var AWS = map[string]any{
 	"region": "us-east-1",
 }
 
-var MKE_CONNECT = map[string]interface{}{
+var MKE_CONNECT = map[string]any{
 	"username": "admin",
 	"password": "",
 	"insecure": false,
 }
 
-var LAUNCHPAD = map[string]interface{}{
+var LAUNCHPAD = map[string]any{
 	"drain":       false,
-	"mcr_version": "25.0.13",
+	"mcr_channel": "stable-25.0",
 	"mke_version": "3.8.8",
 	"msr_version": "2.9.28",
 	"mke_connect": MKE_CONNECT,
 }
 
 // configure the network stack
-var NETWORK = map[string]interface{}{
+var NETWORK = map[string]any{
 	"cidr": "172.31.0.0/16",
 }
-var SUBNETS = map[string]interface{}{
-	"main": map[string]interface{}{
+var SUBNETS = map[string]any{
+	"main": map[string]any{
 		"cidr":       "172.31.0.0/17",
 		"private":    false,
-		"nodegroups": []string{"MngrUbuntu22", "WrkRhel9"},
+		"nodegroups": []string{"MngrUbuntu22", "WrkUbuntu22", "WrkRhel9", "WrkSles15"},
 	},
 }
 
@@ -53,9 +53,11 @@ func TestMain(m *testing.M) {
 	tempSSHKeyPathDir := t.TempDir()
 
 	log.Println("TestMKEClientConfig")
-	nodegroups := map[string]interface{}{
+	nodegroups := map[string]any{
 		"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 		"WrkRhel9":     test.Platforms["Ubuntu22"].GetWorker(),
+		"WrkUbuntu22":  test.Platforms["Rhel9"].GetWorker(),
+		"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
 	}
 
 	uTestId := test.GenerateRandomAlphaNumericString(5)
@@ -67,7 +69,7 @@ func TestMain(m *testing.M) {
 	options := terraform.Options{
 		// The path to where the Terraform tf chart is located
 		TerraformDir: "../../examples/terraform/aws-simple",
-		Vars: map[string]interface{}{
+		Vars: map[string]any{
 			"name":            name,
 			"aws":             AWS,
 			"launchpad":       LAUNCHPAD,

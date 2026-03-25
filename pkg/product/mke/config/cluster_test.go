@@ -19,6 +19,8 @@ import (
 	// needed to load the migrators.
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v14"
 	// needed to load the migrators.
+	_ "github.com/Mirantis/launchpad/pkg/config/migration/v15"
+	// needed to load the migrators.
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta1"
 	// needed to load the migrators.
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta2"
@@ -34,7 +36,7 @@ func TestHostRequireManagerValidationPass(t *testing.T) {
 	kf, _ := os.CreateTemp("", "testkey")
 	defer kf.Close()
 	data := `
-apiVersion: "launchpad.mirantis.com/mke/v1.5"
+apiVersion: "launchpad.mirantis.com/mke/v1.6"
 kind: mke
 spec:
   hosts:
@@ -240,7 +242,7 @@ spec:
 	ucp:
 	  version: 3.3.7
   engine:
-    installURL: http://example.com/
+    installURLWindows: http://example.com/install.ps1
   hosts:
   - address: "1.2.3.4"
     sshPort: 9022
@@ -251,9 +253,9 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
-	require.Equal(t, c.Spec.MCR.InstallURLLinux, "http://example.com/")
+	require.Equal(t, c.Spec.MCR.InstallURLWindows, "http://example.com/install.ps1")
 	require.Equal(t, c.Spec.Hosts[0].SSH.Port, 9022)
 	require.Equal(t, c.Spec.Hosts[0].SSH.User, "foofoo")
 }
@@ -266,7 +268,7 @@ spec:
   ucp:
 	  version: 3.3.7
   engine:
-    installURL: http://example.com/
+    installURLWindows: http://example.com/install.ps1
   hosts:
   - address: "1.2.3.4"
     role: manager
@@ -276,7 +278,7 @@ spec:
 `
 	c := loadAndMigrateYaml(t, data)
 	require.NoError(t, c.Validate())
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 }
 
 func TestMigrateFromV1Beta1WithoutInstallURL(t *testing.T) {
@@ -298,9 +300,9 @@ spec:
 	c := loadAndMigrateYaml(t, data)
 	err := c.Validate()
 	require.NoError(t, err)
-	require.Equal(t, "launchpad.mirantis.com/mke/v1.5", c.APIVersion)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", c.APIVersion)
 
-	require.Equal(t, constant.MCRInstallURLLinux, c.Spec.MCR.InstallURLLinux)
+	require.Equal(t, constant.MCRInstallURLWindows, c.Spec.MCR.InstallURLWindows)
 	require.Equal(t, 9022, c.Spec.Hosts[0].SSH.Port)
 	require.Equal(t, "foofoo", c.Spec.Hosts[0].SSH.User)
 }
@@ -384,7 +386,7 @@ spec:
 
 func TestHostWinRMDefaults(t *testing.T) {
 	data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke
 spec:
 	mke:
@@ -433,7 +435,7 @@ spec:
 
 	t.Run("the role is msr", func(t *testing.T) {
 		data := `
-apiVersion: launchpad.mirantis.com/mke/v1.5
+apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke+msr
 spec:
 	mke:
@@ -459,6 +461,7 @@ spec:
 // Just a small helper to load the config struct from yaml to get defaults etc. in place.
 func loadYaml(t *testing.T, data string) *ClusterConfig {
 	c := &ClusterConfig{}
+
 	// convert any tabs added by editor into double spaces
 	require.NoError(t, yaml.Unmarshal([]byte(strings.ReplaceAll(data, "\t", "  ")), c))
 	return c

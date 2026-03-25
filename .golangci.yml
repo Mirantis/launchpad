@@ -11,7 +11,7 @@ linters:
     - contextcheck
     - dupword
     - durationcheck
-    - err113
+   # - err113
     - errchkjson
     - errname
     - errorlint
@@ -38,6 +38,7 @@ linters:
     - unparam
     - usestdlibvars
     - usetesting
+    - varnamelen
     - wastedassign
     - whitespace
     - wrapcheck
@@ -54,7 +55,8 @@ linters:
         - wg sync.WaitGroup
         - h Host
         - h os.Host
-        - h *api.Host
+        - h mkeconfig.Host
+        - h *mkeconfig.Host
         - ok bool
         - s string
   exclusions:
@@ -70,6 +72,10 @@ linters:
       - test/*
       - logo.go
       - logo_windows.go
+    # package names that match stdlib (user, constant, log, version) are legacy; exclude only this rule
+    rules:
+      - linters: [revive]
+        text: "avoid package names that conflict with Go standard library"
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

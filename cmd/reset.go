@@ -29,8 +29,8 @@ func NewResetCommand() *cli.Command {
 				Aliases: []string{"f"},
 			},
 		}...),
-		Before: actions(initLogger, initAnalytics, checkLicense, initExec, requireForce, startUpgradeCheck),
-		After:  actions(closeAnalytics, upgradeCheckResult),
+		Before: actions(initLogger, initAnalytics, checkLicense, initExec, requireForce),
+		After:  actions(closeAnalytics),
 		Action: func(ctx *cli.Context) error {
 			start := time.Now()
 			analytics.TrackEvent("Cluster Reset Started", nil)
