@@ -17,3 +17,5 @@ vendor
 
 # sometimes an example launchpad.yaml is used
 **/launchpad.yaml
+.gemini/
+gha-creds-*.json

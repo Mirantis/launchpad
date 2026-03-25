@@ -71,10 +71,26 @@ registry.ci.mirantis.com/mirantiseng/ucp-auth-store:3.8.7`
 }
 
 func TestImageVersions(t *testing.T) {
-	repo, tag, err := docker.ImageRepoAndTag("mirantis/ucp-proxy:3.8.8")
-	require.Nil(t, err, "SwarmMKEVersion gave unexpected error from valid version string")
-	require.Equal(t, "mirantis/ucp-proxy", repo, "SwarmMKEVersion gave wrong repo value")
-	require.Equal(t, "3.8.8", tag, "SwarmMKEVersion gave wrong repo value")
+	cases := []struct {
+		input    string
+		expected string
+		tag      string
+	}{
+		{"mirantis/ucp-proxy:3.8.8", "mirantis/ucp-proxy", "3.8.8"},
+		{"dtr.efzp.com:9026/mirantis/ucp-agent:3.8.10", "dtr.efzp.com:9026/mirantis/ucp-agent", "3.8.10"},
+		{"ucp-proxy:3.8.8", "ucp-proxy", "3.8.8"},
+		{"docker.io/library/alpine:latest", "docker.io/library/alpine", "latest"},
+		{"localhost:5000/my-image:1.0.0", "localhost:5000/my-image", "1.0.0"},
+		{"registry.mirantis.com/mirantiseng/ucp:3.9.0-rc2", "registry.mirantis.com/mirantiseng/ucp", "3.9.0-rc2"},
+		{"registry.ci.mirantis.com/mirantiseng/ecp", "registry.ci.mirantis.com/mirantiseng/ecp", "latest"},
+	}
+
+	for _, tc := range cases {
+		repo, tag, err := docker.ImageRepoAndTag(tc.input)
+		require.Nil(t, err, "ImageRepoAndTag gave unexpected error from valid version string: %s", tc.input)
+		require.Equal(t, tc.expected, repo, "ImageRepoAndTag gave wrong repo value for: %s", tc.input)
+		require.Equal(t, tc.tag, tag, "ImageRepoAndTag gave wrong tag value for: %s", tc.input)
+	}
 }
 
 func TestImageVersionsWithColon(t *testing.T) {
