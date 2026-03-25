@@ -9,6 +9,9 @@ import (
 )
 
 func TestUpgrade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping upgrade test in short mode (requires OCI chart pull)")
+	}
 	h := NewHelmTestClient(t)
 
 	t.Run("Upgrade success", func(t *testing.T) {

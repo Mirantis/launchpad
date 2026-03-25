@@ -25,3 +25,5 @@ jobs:
 
     - name: Unit Tests
       run: make unit-test
+      env:
+        TEST_FLAGS: -short

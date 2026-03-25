@@ -64,9 +64,9 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	cfg.Capabilities.KubeVersion = chartutil.KubeVersion{Major: "1", Minor: "22", Version: "1.22.0"}
 	settings := h.settings
 
-	u := action.NewUpgrade(&cfg)
+	upgrade := action.NewUpgrade(&cfg)
 
-	chartToUpgrade, err := getChart(u.ChartPathOptions, opts.ChartName, &settings)
+	chartToUpgrade, err := getChart(upgrade.ChartPathOptions, opts.ChartName, &settings)
 	if err != nil {
 		return nil, err
 	}
@@ -85,16 +85,16 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 
 	log.Infof("release %q found using chart: %q, upgrading to version: %q", opts.ReleaseName, opts.ChartName, opts.Version)
 
-	u.Namespace = settings.Namespace()
-	u.ReuseValues = opts.ReuseValues
-	u.Wait = opts.Wait
-	u.Atomic = opts.Atomic
-	u.Version = opts.Version
+	upgrade.Namespace = settings.Namespace()
+	upgrade.ReuseValues = opts.ReuseValues
+	upgrade.Wait = opts.Wait
+	upgrade.Atomic = opts.Atomic
+	upgrade.Version = opts.Version
 	if opts.Timeout != nil {
-		u.Timeout = *opts.Timeout
+		upgrade.Timeout = *opts.Timeout
 	}
 
-	release, err := u.RunWithContext(ctx, opts.ReleaseName, chartToUpgrade, opts.Values)
+	release, err := upgrade.RunWithContext(ctx, opts.ReleaseName, chartToUpgrade, opts.Values)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upgrade Helm release %q: %w", opts.ReleaseName, err)
 	}

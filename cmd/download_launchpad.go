@@ -34,7 +34,8 @@ func NewDownloadLaunchpadCommand() *cli.Command {
 			if err != nil {
 				return fmt.Errorf("failed to create download request: %w", err)
 			}
-			resp, err := http.DefaultClient.Do(req)
+			// asset.URL is from GitHub API release response (trusted source)
+			resp, err := http.DefaultClient.Do(req) // #nosec G704
 			if err != nil {
 				return fmt.Errorf("failed to perform download request: %w", err)
 			}

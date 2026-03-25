@@ -5,15 +5,10 @@ import (
 
 	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/centos"
-	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/enterpriselinux"
-	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/oracle"
-	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/sles"
-	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/ubuntu"
-	// anonymous import is needed to load the os configurers.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/windows"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"

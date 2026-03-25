@@ -1,0 +1,20 @@
+* JNesbitt informal todo list
+
+** code-quality
+
+*** TODO Move product/mke/api/host.go:Host.MCRConfigure to /pkg/configurer interfaces
+
+The MCRConfigure() method likely exists on the host as a convenience, but as we have common
+configurer functionality and the other MCR methods are on the configurer it doesn't belong
+on the host.
+
+Another option would be to move functionality to the /pkg/mcr package.
+
+On top of this, the configurer.MCRConfigPath should perhaps be an accessor pair of content,
+instead of a filepath. Maybe the configurer should have methods to write/read the MCR configuration.
+
+** linting
+
+*** general interface{} -> any replace
+
+There are a lot of `interface{}` types declared in the code base that should be changed to `any`

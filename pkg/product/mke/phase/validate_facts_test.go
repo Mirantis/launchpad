@@ -162,10 +162,10 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MCR: commonconfig.MCRConfig{
-				Version: "25.0",
 				Channel: "stable-25.0",
 			},
 			MKE: mkeconfig.MKEConfig{
+				Version: "3.6.0",
 				Metadata: &mkeconfig.MKEMetadata{},
 				InstallFlags: commonconfig.Flags{
 					"--foo",
@@ -173,7 +173,7 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 			},
 		},
 	}
-	phase.Run()
+	require.NoError(t, phase.Run())
 	var sans []string
 
 	for _, v := range phase.Config.Spec.MKE.InstallFlags {
@@ -182,7 +182,7 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 		}
 	}
 
-	require.Len(t, phase.Config.Spec.MKE.InstallFlags, 3)
+	require.Len(t, phase.Config.Spec.MKE.InstallFlags, 3, "InstallFlags should be --foo plus two --san entries for the two managers")
 	require.Len(t, sans, 2)
 
 	require.Equal(t, "--san=10.0.0.1", sans[0])
@@ -199,10 +199,10 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MCR: commonconfig.MCRConfig{
-				Version: "25.0",
 				Channel: "stable-25.0",
 			},
 			MKE: mkeconfig.MKEConfig{
+				Version:  "3.6.0",
 				Metadata: &mkeconfig.MKEMetadata{},
 				InstallFlags: commonconfig.Flags{
 					"--foo",
@@ -211,7 +211,7 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 			},
 		},
 	}
-	phase.Run()
+	require.NoError(t, phase.Run())
 	var sans []string
 
 	for _, v := range phase.Config.Spec.MKE.InstallFlags {
@@ -220,7 +220,7 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 		}
 	}
 
-	require.Len(t, sans, 1)
+	require.Len(t, sans, 1, "Run must not add manager SANs when --san is already present")
 	require.Equal(t, "--san foofoo", sans[0])
 }
 

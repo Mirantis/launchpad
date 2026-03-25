@@ -64,7 +64,7 @@ func (p *UninstallMCR) uninstallMCR(h *mkeconfig.Host, config *mkeconfig.Cluster
 		return fmt.Errorf("%s: failed to unmount dangling volumes: %w", h, err)
 	}
 
-	if err := h.Configurer.UninstallMCR(h, h.Metadata.MCRInstallScript, config.Spec.MCR); err != nil {
+	if err := h.Configurer.UninstallMCR(h, config.Spec.MCR); err != nil {
 		return fmt.Errorf("%s: uninstall container runtime failed: %w", h, err)
 	}
 

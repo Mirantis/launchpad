@@ -8,13 +8,13 @@ aws = {
 launchpad = {
   drain = false
 
-  mcr_version = "25.0.13"
+  mcr_channel = "stable-25.0.14"
   mke_version = "3.8.8"
   msr_version = "2.9.28"
 
   mke_connect = {
     username = "admin"
-    password = "" // an MKE passwords must be provided
+    password = "" // an MKE password must be provided
     insecure = true
   }
 
@@ -32,7 +32,7 @@ subnets = {
   "main" = {
     "cidr" = "172.31.0.0/17",
     "private" = false,
-    "nodegroups" = ["MngrA",  "WrkA", "MsrA"]
+    "nodegroups" = ["MngrA",  "Wrkubuntu", "Wrkrhel", "Wrksles"]
   }
 }
 
@@ -44,24 +44,32 @@ nodegroups = {
     "type" = "m6a.2xlarge",
     "volume_size" = "100",
     "role" = "manager",
-    "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
+    "user_data" = "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp"
   },
-  "WrkA" = {
+  "Wrkrhel" = {
+    "platform" = "rhel_9",
+    "count" = 1,
+    "type" = "c6a.xlarge",
+    "volume_size" = "100",
+    "role" = "worker",
+    "user_data" = "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload"
+  },
+  "Wrkubuntu" = {
     "platform" = "ubuntu_22.04",
     "count" = 1,
     "type" = "c6a.xlarge",
     "volume_size" = "100",
     "role" = "worker",
-    "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
-  }
-  "MsrA" = {
-    "platform" = "ubuntu_22.04",
+    "user_data" = "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp"
+  },
+  "Wrksles" = {
+    "platform" = "sles_15",
     "count" = 1,
     "type" = "c6a.xlarge",
     "volume_size" = "100",
-    "role" = "msr",
-    "user_data" = "sudo ufw allow 7946/tcp ; sudo ufw allow 10250/tcp "
-  }
+    "role" = "worker",
+    "user_data" = "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload"
+  },
 }
 
 // set a windows password, if you have windows nodes
