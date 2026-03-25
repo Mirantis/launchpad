@@ -83,6 +83,8 @@ func TestImageVersions(t *testing.T) {
 		{"localhost:5000/my-image:1.0.0", "localhost:5000/my-image", "1.0.0"},
 		{"registry.mirantis.com/mirantiseng/ucp:3.9.0-rc2", "registry.mirantis.com/mirantiseng/ucp", "3.9.0-rc2"},
 		{"registry.ci.mirantis.com/mirantiseng/ecp", "registry.ci.mirantis.com/mirantiseng/ecp", "latest"},
+		{"localhost:5000/my-image", "localhost:5000/my-image", "latest"},
+		{"my-complex-repo:5000/org/image:v1", "my-complex-repo:5000/org/image", "v1"},
 	}
 
 	for _, tc := range cases {

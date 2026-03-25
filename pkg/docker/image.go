@@ -154,13 +154,27 @@ var errInvalidVersion = errors.New("invalid image version")
 //
 //	e.g. `dtr.efzp.com:9026/mirantis/ucp-agent:3.8.10` => `dtr.efzp.com:9026/mirantis/ucp-agent`, `3.8.10`
 func ImageRepoAndTag(image string) (string, string, error) {
-	vparts := strings.Split(image, ":")
-	vpartslen := len(vparts)
-	if vpartslen < 2 || vpartslen > 3 {
-		return "", "", fmt.Errorf("%w: malformed version output: %s", errInvalidVersion, image)
+	lastColon := strings.LastIndexByte(image, ':')
+	lastSlash := strings.LastIndexByte(image, '/')
+
+	// If there is no colon, tag is implicitly "latest"
+	if lastColon == -1 {
+		return image, "latest", nil
 	}
 
-	repo := strings.Join(vparts[0:vpartslen-1], ":")
-	version := vparts[vpartslen-1]
-	return repo, version, nil
+	// If the last colon is part of the registry host (before the first slash),
+	// and there are no more colons, then the tag is also implicitly "latest".
+	// e.g. "localhost:5000/my-image"
+	if lastColon < lastSlash {
+		return image, "latest", nil
+	}
+
+	repo := image[:lastColon]
+	tag := image[lastColon+1:]
+
+	if tag == "" {
+		return "", "", fmt.Errorf("%w: empty tag in version output: %s", errInvalidVersion, image)
+	}
+
+	return repo, tag, nil
 }
