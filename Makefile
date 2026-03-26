@@ -6,7 +6,6 @@ RELEASE_FOLDER=dist/release
 CHECKSUM=$(shell which sha256sum)
 
 VOLUME_MOUNTS=-v "$(CURDIR):/v"
-SIGN?=docker run --rm -i $(VOLUME_MOUNTS) -e SM_API_KEY -e SM_CLIENT_CERT_PASSWORD -e SM_CLIENT_CERT_FILE -v "$(SM_CLIENT_CERT_FILE):$(SM_CLIENT_CERT_FILE)" -w "/v" registry.mirantis.com/prodeng/digicert-keytools-jsign:latest sign
 
 GOLANGCI_LINT?=docker run -t --rm -v "$(CURDIR):/data" -w "/data" golangci/golangci-lint:latest golangci-lint
 
@@ -16,27 +15,26 @@ SEGMENT_TOKEN?=""
 clean:
 	rm -fr dist
 
-# Sign release binaries (Windows)
-# (build may need to be run in a separate make run)
-.PHONY: sign-release
-sign-release: $(RELEASE_FOLDER)
-	for f in `find $(RELEASE_FOLDER)/*.exe`; do echo $(SIGN) "$$f"; done
+# TODO: Digicert signing will be reimplemented in GitHub Actions.
 
 # Force a clean build of the artifacts by first cleaning
 # and then building
 .PHONY: build-release
 build-release: clean $(RELEASE_FOLDER)
-# build all the binaries for release, using goreleaser, but
-# don't use any of the other features of goreleaser - because
-# we need to use digicert to sign the binaries first, and
-# goreleaser doesn't allow for that (some pro features may
-# allow it in a round about way.)
-#
-# If you are using more than one tag for a commit, then use
-# the GORELEASER_CURRENT_TAG env var to clarify the version to
-# avoid having the wrong tag version applied
+# Build all the binaries for release using native Go commands.
+# This replaces Goreleaser to avoid dependency on external tools.
 $(RELEASE_FOLDER):
-	SEGMENT_TOKEN=${SEGMENT_TOKEN} goreleaser build --clean --config=.goreleaser.release.yml
+	mkdir -p $(RELEASE_FOLDER)
+	platforms=("linux/amd64" "linux/arm64" "windows/amd64" "windows/arm64" "darwin/amd64" "darwin/arm64")
+	for platform in "$${platforms[@]}"; do \
+		GOOS=$${platform%/*} GOARCH=$${platform#*/} \
+		output_name="$(RELEASE_FOLDER)/launchpad_$${GOOS}_$${GOARCH}" \
+		if [ "$${GOOS}" = "windows" ]; then \
+			output_name+=".exe" \
+		fi \
+		echo "Building $${output_name}" \
+		GOOS=$${GOOS} GOARCH=$${GOARCH} $(GO) build -o "$${output_name}" ./main.go; \
+	done
 
 .PHONY: create-checksum
 create-checksum:
@@ -57,12 +55,18 @@ verify-checksum:
 clean-release:
 	rm -fr $(RELEASE_FOLDER)
 
-# Local build of the plugin. This saves time building platforms that you
-# won't test locally. To use it, find the path to your build binary path
-# and alias it.
+# Local build of the plugin. This saves time building only the host platform.
+# Uses native Go commands to avoid Goreleaser dependency.
 .PHONY: local
 local:
-	SEGMENT_TOKEN=${SEGMENT_TOKEN} goreleaser build --clean --single-target --skip=validate --snapshot --config .goreleaser.local.yml
+	mkdir -p dist
+	GOOS=$(shell go env GOOS) GOARCH=$(shell go env GOARCH) \
+	output_name="dist/launchpad_$${GOOS}_$${GOARCH}"; \
+	if [ "$${GOOS}" = "windows" ]; then \
+		output_name="$${output_name}.exe"; \
+	fi; \
+	$(GO) build -o "$${output_name}" ./main.go && \
+	./$${output_name} --help
 
 # run linting
 .PHONY: lint
