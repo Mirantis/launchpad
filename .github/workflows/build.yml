@@ -4,6 +4,7 @@
 name: Build and Test
 permissions:
   contents: read
+  packages: write  # Required for uploading artifacts
 
 on:
   push:

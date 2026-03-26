@@ -5,6 +5,7 @@ name: PR Validation
 
 permissions:
   contents: read
+  pull-requests: write  # Required for PR comments or labels
 
 on:
   pull_request:

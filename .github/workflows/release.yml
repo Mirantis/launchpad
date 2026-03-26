@@ -3,7 +3,8 @@
 
 name: Release
 permissions:
-  contents: read
+  contents: read  # Top-level: Restricts all jobs by default
+  packages: write  # Required for uploading artifacts
 
 on:
   push:
