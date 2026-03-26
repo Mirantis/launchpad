@@ -1,7 +1,6 @@
 module github.com/Mirantis/launchpad
-go 1.25
 
-
+go 1.25.0
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
@@ -158,7 +157,7 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tidwall/transform v0.0.0-20201103190739-32f242e2dbde // indirect
 	github.com/tmccombs/hcl2json v0.6.4 // indirect
-	github.com/ulikunitz/xz v0.5.14 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20250705151800-55b8f293f342 // indirect
