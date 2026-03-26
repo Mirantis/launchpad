@@ -1,21 +1,30 @@
 # Mirantis Launchpad CLI Tool
 
-The Mirantis custom binary cli tool to assist installing, upgrading and resetting MKE3 & MCR clusters on provisioned compute node resources. Launchpad provides advantages over manually installing MCR and MKE3 in it automates the process without limiting how the underlying cluster is provisioned or managed. The tool is a golang cli written leveraging the k0sproject rig library for managing compute nodes/machines.
+The Mirantis Launchpad CLI tool automates the installation, upgrading, and resetting of MKE (Mirantis Kubernetes Engine) and MCR (Mirantis Container Runtime) clusters on provisioned compute node resources.
 
-Launchpad is an open source tool, steered by Mirantis.
+## Documentation Index
 
-Launchpad was open sourced in early 2025, during which time development moved from an internal process to a GitHub based bublic process. Older pull requests include internal ticket numbers for reference.
+Documentation is organized to provide clear, context-efficient guidance for both users and AI agents:
 
-## Development 
+- **[AI Agent Mandates](GEMINI.md)**: Foundational instructions for AI agents working in this repository.
+- **[Requirements (PRDs)](docs/requirements/launchpad-prd.md)**: High-level objectives and product requirements.
+- **[Corporate Guidance](docs/guidance/corporate.md)**: Steering and contribution principles from Mirantis.
+- **[Project Guidance](docs/guidance/project.md)**: Core architectural principles and technical frameworks.
+- **[Technical Specification](docs/specifications/architecture.md)**: Details on the Phase Manager and internal components.
+- **[Development Workflow](docs/development/workflow.md)**: Building, testing, and contribution rules.
+- **[User Guide](docs/usage/getting-started.md)**: Installation, provisioning, and running instructions.
 
-Issues are reported as Github issues. Feature requests can also be submitted as Issues.
+## Quick Start
 
-Pull requests are accepted, but it is requested that contributors first read through the [developer's guide](docs/developer.md)
+1.  **Download**: Get the latest binary from [GitHub Releases](https://github.com/Mirantis/launchpad/releases).
+2.  **Provision**: Set up your compute nodes (optionally using [Mirantis Terraform helpers](docs/usage/getting-started.md#terraform-helpers)).
+3.  **Configure**: Create a `launchpad.yaml`.
+4.  **Execute**: Run `launchpad apply`.
 
-Steering is heavily guided by Mirantis, mainly in order to avoid breaking changes, and to avoid adding complexity that serves only rare use-cases.
+For detailed usage, refer to the [public documentation](https://docs.mirantis.com/mke/3.8/launchpad.html).
 
-## Usage 
+## Contributing
 
-Launchpad is installed pulling directly from the Launchpad GitHub releases. Before executing, clusters need to be provisioned and a configuration file needs to be provided.
+We welcome contributions! Please read our [Contribution Rules](docs/guidance/corporate.md#contribution-rules-signed-commits-required) and [Development Workflow](docs/development/workflow.md) before submitting a pull request.
 
-Users can get oriented using the [usage guide](docs/usage.md) but should read the [public documentation](https://docs.mirantis.com/mke/3.8/launchpad.html) for real usage.
+**All commits MUST be signed.**
