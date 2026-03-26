@@ -9,6 +9,16 @@ permissions:
 on:
   pull_request:
     branches: [ main ]
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "go.sum"
+      - "test/**"
+      - "examples/**"
+      - ".github/workflows/**"
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
 
 jobs:
   lint:
