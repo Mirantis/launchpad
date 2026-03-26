@@ -18,7 +18,7 @@ spec:
   - name: regcred-registry-mirantis-com
   containers:
   - name: jnlp
-    image: "registry.mirantis.com/prodeng/ci-workspace:1.0.8"
+    image: "registry.mirantis.com/prodeng/ci-workspace:1.0.10"
     securityContext:
      runAsUser: 0
      runAsGroup: 0
@@ -31,10 +31,12 @@ spec:
     resources:
       limits:
         cpu: "1"
+        memory: 2Gi
       requests:
         cpu: "0.5"
+        memory: 1Gi
   - name: docker-daemon
-    image: "docker:24.0.9-dind"
+    image: "docker:25.0.4-dind"
     securityContext:
      privileged: true
     volumeMounts:
@@ -45,10 +47,12 @@ spec:
     resources:
       limits:
         cpu: 1
+        memory: 2Gi
       requests:
         cpu: 0.5
+        memory: 1Gi
   - name: goreleaser
-    image: goreleaser/goreleaser:latest
+    image: goreleaser/goreleaser:v1.25.0
     imagePullPolicy: Always
     resources:
       limits:
