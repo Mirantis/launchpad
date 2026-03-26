@@ -1,12 +1,4 @@
 
-GO=$(shell which go)
-
-VOLUME_MOUNTS=-v "$(CURDIR):/v"
-
-GOLANGCI_LINT?=docker run -t --rm -v "$(CURDIR):/data" -w "/data" golangci/golangci-lint:latest golangci-lint
-
-SEGMENT_TOKEN?=""
-
 .PHONY: clean
 clean:
 	rm -fr dist
@@ -23,13 +15,18 @@ local:
 	if [ "$${GOOS}" = "windows" ]; then \
 		output_name="$${output_name}.exe"; \
 	fi; \
-	$(GO) build -o "$${output_name}" ./main.go && \
+	go build -o "$${output_name}" ./main.go && \
 	./$${output_name} --help
 
 # run linting
 .PHONY: lint
 lint:
-	$(GOLANGCI_LINT) run
+	golangci-lint run
+
+# security scanning
+.PHONY: security-scan
+security-scan:
+	govulncheck ./...
 
 # Testing related targets
 
@@ -37,7 +34,7 @@ lint:
 TEST_FLAGS?=
 .PHONY: unit-test
 unit-test:
-	$(GO) test -v --tags 'testing' $(TEST_FLAGS) ./pkg/...
+	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/...
 
 .PHONY: functional-test
 functional-test:
