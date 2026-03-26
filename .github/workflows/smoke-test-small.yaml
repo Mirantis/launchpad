@@ -9,10 +9,11 @@ on:
       - go.mod
       - go.sum
       - examples/terraform/aws-simple/**
+      - '.github/workflows/smoke-test-small.yaml'
 
 jobs:
     smoke-small:
-        runs-on: ubuntu-latest
+        runs-on: arc-runner-set-mirantis-public
         steps:
             - name: Checkout code
               uses: actions/checkout@v6
