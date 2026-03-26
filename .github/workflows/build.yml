@@ -1,16 +1,17 @@
-# Release workflow for Launchpad
-# Triggered on tags (e.g., v1.5.16).
+# Build and test workflow for Launchpad
+# Triggered on PRs and pushes to main.
 
-name: Release
+name: Build and Test
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   build:
-    name: Build Release Binaries
+    name: Build Binaries
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -39,28 +40,24 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: launchpad-release-binaries
+          name: launchpad-binaries
           path: dist/
 
-  release:
-    name: Create GitHub Release
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Download binaries
-        uses: actions/download-artifact@v4
-        with:
-          name: launchpad-release-binaries
-          path: dist/
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          files: dist/*
-          generate_release_notes: true
-          draft: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          go-version: "1.22"
 
-      # TODO: Add Digicert signing here.
-      # TODO: Push signed artifacts to S3 here.
+      - name: Run unit tests
+        run: go test -v ./...
+
+      - name: Run integration tests
+        run: go test -v -tags=integration ./test/integration
