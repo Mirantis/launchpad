@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -145,4 +146,35 @@ func AllToRepository(images []*Image, repo string) (list []*Image) {
 		})
 	}
 	return list
+}
+
+var errInvalidVersion = errors.New("invalid image version")
+
+// ImageRepoAndTag returns the Repo and tag from a container image.
+//
+//	e.g. `dtr.efzp.com:9026/mirantis/ucp-agent:3.8.10` => `dtr.efzp.com:9026/mirantis/ucp-agent`, `3.8.10`
+func ImageRepoAndTag(image string) (string, string, error) {
+	lastColon := strings.LastIndexByte(image, ':')
+	lastSlash := strings.LastIndexByte(image, '/')
+
+	// If there is no colon, tag is implicitly "latest"
+	if lastColon == -1 {
+		return image, "latest", nil
+	}
+
+	// If the last colon is part of the registry host (before the first slash),
+	// and there are no more colons, then the tag is also implicitly "latest".
+	// e.g. "localhost:5000/my-image"
+	if lastColon < lastSlash {
+		return image, "latest", nil
+	}
+
+	repo := image[:lastColon]
+	tag := image[lastColon+1:]
+
+	if tag == "" {
+		return "", "", fmt.Errorf("%w: empty tag in version output: %s", errInvalidVersion, image)
+	}
+
+	return repo, tag, nil
 }
