@@ -15,6 +15,9 @@ jobs:
   build:
     name: Build Release Binaries
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,22 +25,27 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
 
       - name: Build binaries
         run: |
           mkdir -p dist
-          platforms=("linux/amd64" "linux/arm64" "windows/amd64" "windows/arm64" "darwin/amd64" "darwin/arm64")
+          VERSION=${{ github.ref_name }}
+          platforms=("linux/amd64" "linux/arm64" "windows/amd64" "windows/arm64" "darwin/amd64" "darwin/arm64" "freebsd/amd64" "freebsd/arm64")
           for platform in "${platforms[@]}"; do
             GOOS=${platform%/*}
             GOARCH=${platform#*/}
-            output_name="dist/launchpad_${GOOS}_${GOARCH}"
+            output_name="dist/launchpad_${GOOS}_${GOARCH}_${VERSION#v}"
             if [ "$GOOS" = "windows" ]; then
               output_name+=".exe"
             fi
             echo "Building $output_name"
             GOOS=$GOOS GOARCH=$GOARCH go build -o "$output_name" ./main.go
           done
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum launchpad_* > checksums.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

@@ -1,4 +1,8 @@
 
+# Ensure we use auto toolchain
+export GOTOOLCHAIN=auto
+
+
 .PHONY: clean
 clean:
 	rm -fr dist
