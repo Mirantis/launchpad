@@ -1,10 +1,11 @@
-# Release workflow for Launchpad
-# Triggered on tags (e.g., v1.5.16).
+# Release on version tags. Security scan runs before integration tests, then build and publish.
+# DigiCert build+sign is in build-and-sign.yml; wire it in here when ready.
 
 name: Release
+
 permissions:
-  contents: read  # Top-level: Restricts all jobs by default
-  packages: write  # Required for uploading artifacts
+  contents: read
+  actions: write # upload-artifact in build job
 
 on:
   push:
@@ -12,22 +13,46 @@ on:
       - "v*"
 
 jobs:
-  build:
-    name: Build Release Binaries
+  security-scan:
+    name: Security scan
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
+      - name: govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run security scan
+        run: make security-scan
 
+  integration-test:
+    name: Integration Tests
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Integration tests
+        run: make integration-test
+
+  build:
+    name: Build release binaries
+    needs: integration-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
       - name: Build binaries
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p dist
-          platforms=("linux/amd64" "linux/arm64" "windows/amd64" "windows/arm64" "darwin/amd64" "darwin/arm64")
+          platforms=(linux/amd64 linux/arm64 windows/amd64 windows/arm64 darwin/amd64 darwin/arm64)
           for platform in "${platforms[@]}"; do
             GOOS=${platform%/*}
             GOARCH=${platform#*/}
@@ -38,34 +63,28 @@ jobs:
             echo "Building $output_name"
             GOOS=$GOOS GOARCH=$GOARCH go build -o "$output_name" ./main.go
           done
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: launchpad-release-binaries
           path: dist/
 
   release:
-    name: Create GitHub Release
+    name: GitHub Release
     runs-on: ubuntu-latest
     needs: build
     permissions:
       contents: write
     steps:
-      - name: Download binaries
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: launchpad-release-binaries
           path: dist/
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Create release
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           generate_release_notes: true
           draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # TODO: Add Digicert signing here.
-      # TODO: Push signed artifacts to S3 here.
