@@ -14,6 +14,9 @@ jobs:
   build:
     name: Build Binaries
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,7 +24,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
+          cache: true
 
       - name: Build binaries
         run: |
@@ -47,6 +51,9 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
     needs: build
     steps:
       - name: Checkout code
@@ -55,7 +62,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version-file: go.mod
+          cache: true
 
       - name: Run unit tests
         run: go test -v ./...

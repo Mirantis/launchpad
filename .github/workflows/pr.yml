@@ -25,6 +25,9 @@ jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,7 +35,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
+          cache: true
 
       - name: Run golangci-lint
         run: make lint
@@ -40,6 +44,9 @@ jobs:
   unit-test:
     name: Unit Tests
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,7 +54,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
+          cache: true
 
       - name: Run unit tests
         run: make unit-test
@@ -55,6 +63,9 @@ jobs:
   integration-test:
     name: Integration Tests
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -62,7 +73,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
+          cache: true
 
       - name: Run integration tests
         run: make integration-test
@@ -72,6 +84,9 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -79,7 +94,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
+          cache: true
 
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest

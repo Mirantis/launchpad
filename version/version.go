@@ -44,6 +44,9 @@ func (a *Asset) IsForHost() bool {
 	}
 
 	parts := strings.Split(strings.TrimSuffix(a.Name, ".exe"), "_")
+	if len(parts) < 3 {
+		return false
+	}
 	return parts[1] == runtime.GOOS && parts[2] == runtime.GOARCH
 }
 
