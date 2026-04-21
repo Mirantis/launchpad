@@ -40,7 +40,7 @@ jobs:
               output_name+=".exe"
             fi
             echo "Building $output_name"
-            GOOS=$GOOS GOARCH=$GOARCH go build -o "$output_name" ./main.go
+            GOOS=$GOOS GOARCH=$GOARCH go build -ldflags "-X github.com/Mirantis/launchpad/version.Version=${VERSION#v} -X github.com/Mirantis/launchpad/version.GitCommit=$GITHUB_SHA" -o "$output_name" ./main.go
           done
       - name: Generate checksums
         run: |
