@@ -15,12 +15,16 @@ clean:
 local:
 	mkdir -p dist
 	GOOS=$(shell go env GOOS) GOARCH=$(shell go env GOARCH) \
+	VERSION=$(shell git describe --tags --always --dirty 2>/dev/null || echo 0.0.0) \
+	COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo HEAD) \
 	output_name="dist/launchpad_$${GOOS}_$${GOARCH}"; \
 	if [ "$${GOOS}" = "windows" ]; then \
 		output_name="$${output_name}.exe"; \
 	fi; \
-	go build -o "$${output_name}" ./main.go && \
-	./$${output_name} --help
+	go build \
+		-ldflags "-X github.com/Mirantis/launchpad/version.Version=$${VERSION} -X github.com/Mirantis/launchpad/version.GitCommit=$${COMMIT}" \
+		-o "$${output_name}" ./main.go && \
+	./$${output_name} version
 
 # run linting
 .PHONY: lint
