@@ -119,16 +119,34 @@ func isExitCode3010(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "3010")
 }
 
-// Reboot issues a forced restart via PowerShell's Restart-Computer, which
+// Reboot issues an immediate forced restart via shutdown /r /t 0, which
 // reliably reboots Windows hosts even when a reboot is already pending (e.g.
 // after an MCR install that exits with code 3010). The rig implementation uses
 // 'shutdown /r /t 5' which can be silently ignored in that state.
 //
+// After issuing the command we sleep briefly so that Windows has time to begin
+// its shutdown sequence before the caller's waitForHost poll loop starts.
+// Without this delay the host may return WinRM responses for several seconds
+// after shutdown /r /t 0 returns, causing waitForHost to never see an offline
+// window.
+//
+// The WinRM session may be forcibly terminated by the OS during shutdown,
+// causing the exec to return an error. We tolerate that by also accepting
+// errors whose message contains "connection" or "closed" — those indicate
+// the reboot is in progress.
+//
 // TODO: move this fix upstream into the k0sproject/rig Windows configurer.
 func (c WindowsConfigurer) Reboot(h os.Host) error {
-	if err := h.Exec(`powershell -Command "Restart-Computer -Force"`); err != nil {
-		return fmt.Errorf("failed to reboot: %w", err)
+	if err := h.Exec("shutdown /r /t 0"); err != nil {
+		// The OS may kill the WinRM session before the command returns;
+		// treat connection-level errors as success since the reboot is underway.
+		errMsg := err.Error()
+		if !strings.Contains(errMsg, "connection") && !strings.Contains(errMsg, "closed") && !strings.Contains(errMsg, "EOF") {
+			return fmt.Errorf("failed to reboot: %w", err)
+		}
 	}
+	// Allow Windows time to start shutting down before waitForHost begins polling.
+	time.Sleep(15 * time.Second)
 	return nil
 }
 
