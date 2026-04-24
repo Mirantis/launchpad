@@ -39,10 +39,6 @@ func (c WindowsConfigurer) MCRConfigPath() string {
 	return `C:\ProgramData\Docker\config\daemon.json`
 }
 
-type rebootable interface {
-	Reboot() error
-}
-
 var errRebootRequired = fmt.Errorf("reboot required")
 
 // InstallMCRLicense for license install..
@@ -88,21 +84,39 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 	log.Infof("%s: running installer", h)
 
 	output, err := h.ExecOutput(installCommand)
+
+	needsReboot := false
 	if err != nil {
-		return fmt.Errorf("failed to run MCR installer: %w", err)
+		if isExitCode3010(err) {
+			needsReboot = true
+		} else {
+			return fmt.Errorf("failed to run MCR installer: %w", err)
+		}
 	}
 
-	if strings.Contains(output, "Your machine needs to be rebooted") {
-		log.Warnf("%s: host needs to be rebooted", h)
-		if rh, ok := h.(rebootable); ok {
-			if err := rh.Reboot(); err != nil {
-				return fmt.Errorf("%s: failed to reboot host: %w", h, err)
-			}
+	if !needsReboot && strings.Contains(output, "Your machine needs to be rebooted") {
+		needsReboot = true
+	}
+
+	if needsReboot {
+		log.Warnf("%s: host needs to be rebooted after MCR install", h)
+		rh, ok := h.(rebootable)
+		if !ok {
+			return fmt.Errorf("%s: %w: host does not support reboot", h, errRebootRequired)
 		}
-		return fmt.Errorf("%s: %w: host isn't rebootable", h, errRebootRequired)
+		if err := rh.Reboot(); err != nil {
+			return fmt.Errorf("%s: failed to reboot host: %w", h, err)
+		}
+		return nil
 	}
 
 	return nil
+}
+
+// isExitCode3010 checks if the error is a command failure with Windows exit
+// code 3010 (ERROR_SUCCESS_REBOOT_REQUIRED).
+func isExitCode3010(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "3010")
 }
 
 // UninstallMCR uninstalls docker-ee engine

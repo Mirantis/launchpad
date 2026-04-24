@@ -24,10 +24,6 @@ func GetInstaller(source string) (string, error) {
 		return path, nil
 	}
 
-	if path == "" {
-		return "", fmt.Errorf("%w; skipping failed installer download", ErrInstallerDownloadFailed)
-	}
-
 	path, getErr := downloadInstaller(source)
 	if getErr != nil {
 		return "", fmt.Errorf("%w, installer download failed; %s", ErrInstallerDownloadFailed, getErr.Error())
