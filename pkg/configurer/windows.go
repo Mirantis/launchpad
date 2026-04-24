@@ -119,6 +119,19 @@ func isExitCode3010(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "3010")
 }
 
+// Reboot issues a forced restart via PowerShell's Restart-Computer, which
+// reliably reboots Windows hosts even when a reboot is already pending (e.g.
+// after an MCR install that exits with code 3010). The rig implementation uses
+// 'shutdown /r /t 5' which can be silently ignored in that state.
+//
+// TODO: move this fix upstream into the k0sproject/rig Windows configurer.
+func (c WindowsConfigurer) Reboot(h os.Host) error {
+	if err := h.Exec(`powershell -Command "Restart-Computer -Force"`); err != nil {
+		return fmt.Errorf("failed to reboot: %w", err)
+	}
+	return nil
+}
+
 // UninstallMCR uninstalls docker-ee engine
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
