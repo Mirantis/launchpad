@@ -137,7 +137,7 @@ func isExitCode3010(err error) bool {
 //
 // TODO: move this fix upstream into the k0sproject/rig Windows configurer.
 func (c WindowsConfigurer) Reboot(h os.Host) error {
-	if err := h.Exec("shutdown /r /t 0"); err != nil {
+	if err := h.Exec("shutdown /r /f /t 0"); err != nil {
 		// The OS may kill the WinRM session before the command returns;
 		// treat connection-level errors as success since the reboot is underway.
 		errMsg := err.Error()
