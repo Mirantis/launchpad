@@ -119,22 +119,26 @@ func isExitCode3010(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "3010")
 }
 
-// Reboot triggers an immediate forced restart by scheduling a one-shot SYSTEM
-// task that runs 'shutdown /r /f /t 0'. Running via a scheduled task bypasses
-// the filtered Administrator token used by WinRM sessions, which lacks
-// SeShutdownPrivilege on AWS EC2 instances. The rig implementation uses
-// 'shutdown /r /t 5' directly in the WinRM session, which is silently ignored
-// in that context.
+// Reboot triggers an immediate forced restart by scheduling a SYSTEM-context
+// task that runs 'shutdown /r /f /t 0', then immediately triggering it.
+// Running via a scheduled task bypasses the filtered Administrator token used
+// by WinRM sessions on AWS EC2, which lacks SeShutdownPrivilege. The rig
+// implementation uses 'shutdown /r /t 5' directly in the WinRM session,
+// which is silently ignored in that context.
 //
-// After scheduling the task we sleep briefly so that Windows has time to begin
-// its shutdown sequence before the caller's waitForHost poll loop starts.
+// /sc onstart is used instead of /sc once to avoid schtasks writing a
+// stderr warning about the start time being in the past, which rig treats
+// as an error.
+//
+// After scheduling the task we sleep briefly so that Windows has time to
+// begin its shutdown sequence before the caller's waitForHost poll loop starts.
 //
 // TODO: move this fix upstream into the k0sproject/rig Windows configurer.
 func (c WindowsConfigurer) Reboot(h os.Host) error {
 	const taskName = "LaunchpadReboot"
 	// Create (or overwrite) a one-shot scheduled task running as SYSTEM, then
 	// trigger it immediately. SYSTEM always holds SeShutdownPrivilege.
-	create := fmt.Sprintf(`schtasks /create /tn "%s" /tr "shutdown /r /f /t 0" /sc once /st 00:00 /f /ru SYSTEM`, taskName)
+	create := fmt.Sprintf(`schtasks /create /tn "%s" /tr "shutdown /r /f /t 0" /sc onstart /f /ru SYSTEM`, taskName)
 	if err := h.Exec(create); err != nil {
 		return fmt.Errorf("failed to create reboot task: %w", err)
 	}
