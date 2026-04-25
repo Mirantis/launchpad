@@ -124,6 +124,44 @@ func isExitCode3010(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "non-zero exit code: 3010")
 }
 
+// Reboot triggers an immediate forced restart by scheduling a SYSTEM-context
+// task that runs 'shutdown /r /f /t 0', then immediately triggering it.
+// Running via a scheduled task bypasses the filtered Administrator token used
+// by WinRM sessions on AWS EC2, which lacks SeShutdownPrivilege. The rig
+// implementation uses 'shutdown /r /t 5' directly in the WinRM session,
+// which is silently ignored in that context.
+//
+// /sc onstart is used instead of /sc once to avoid schtasks writing a
+// stderr warning about the start time being in the past, which rig treats
+// as an error.
+//
+// After scheduling the task we sleep briefly so that Windows has time to
+// begin its shutdown sequence before the caller's waitForHost poll loop starts.
+//
+// TODO: move this fix upstream into the k0sproject/rig Windows configurer.
+func (c WindowsConfigurer) Reboot(h os.Host) error {
+	const taskName = "LaunchpadReboot"
+	// Create (or overwrite) a one-shot scheduled task running as SYSTEM, then
+	// trigger it immediately. SYSTEM always holds SeShutdownPrivilege.
+	create := fmt.Sprintf(`schtasks /create /tn "%s" /tr "shutdown /r /f /t 0" /sc onstart /f /ru SYSTEM`, taskName)
+	if err := h.Exec(create); err != nil {
+		return fmt.Errorf("failed to create reboot task: %w", err)
+	}
+	run := fmt.Sprintf(`schtasks /run /tn "%s"`, taskName)
+	if err := h.Exec(run); err != nil {
+		// Tolerate connection-level errors; the OS may kill WinRM as it starts
+		// rebooting before the run command returns.
+		errMsg := err.Error()
+		if !strings.Contains(errMsg, "connection") && !strings.Contains(errMsg, "closed") && !strings.Contains(errMsg, "EOF") {
+			return fmt.Errorf("failed to run reboot task: %w", err)
+		}
+	}
+	// Allow Windows time to start shutting down before waitForHost begins polling.
+	time.Sleep(15 * time.Second)
+	return nil
+}
+
+>>>>>>> 5d13580 (windows configurer: use /sc onstart to avoid schtasks stderr warning)
 // UninstallMCR uninstalls docker-ee engine
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
