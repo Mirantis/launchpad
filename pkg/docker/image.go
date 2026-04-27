@@ -103,16 +103,12 @@ func PullImages(h *mkeconfig.Host, images []*Image) error {
 	for _, image := range images {
 		i := image // So we can safely pass i forward to pool without it getting mutated
 		wp.Submit(func() {
-			mutex.Lock()
-			defer mutex.Unlock()
-			if lastError != nil {
-				return
-			}
-
-			err := i.Pull(h)
-			if err != nil {
+			if err := i.Pull(h); err != nil {
 				mutex.Lock()
-				lastError = err
+				if lastError == nil {
+					lastError = err
+				}
+				mutex.Unlock()
 			}
 		})
 	}
