@@ -107,6 +107,11 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 		if err := rh.Reboot(); err != nil {
 			return fmt.Errorf("%s: failed to reboot host: %w", h, err)
 		}
+		// Machine is back up. Delete the ONSTART scheduled task so it does not
+		// trigger another reboot on subsequent startups.
+		if err := h.Exec(`schtasks /delete /tn "LaunchpadReboot" /f`); err != nil {
+			log.Warnf("%s: failed to clean up LaunchpadReboot task: %s", h, err)
+		}
 		return nil
 	}
 
