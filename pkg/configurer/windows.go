@@ -141,9 +141,11 @@ func isExitCode3010(err error) bool {
 // TODO: move this fix upstream into the k0sproject/rig Windows configurer.
 func (c WindowsConfigurer) Reboot(h os.Host) error {
 	const taskName = "LaunchpadReboot"
-	// Create (or overwrite) a one-shot scheduled task running as SYSTEM, then
-	// trigger it immediately. SYSTEM always holds SeShutdownPrivilege.
-	create := fmt.Sprintf(`schtasks /create /tn "%s" /tr "shutdown /r /f /t 0" /sc onstart /f /ru SYSTEM`, taskName)
+	// Create a SYSTEM-context ONSTART task that runs 'shutdown /r /f /t 5'.
+	// The 5-second delay gives us time to delete the task before the OS
+	// actually executes the reboot, preventing it from firing again on the
+	// next startup.
+	create := fmt.Sprintf(`schtasks /create /tn "%s" /tr "shutdown /r /f /t 5" /sc onstart /f /ru SYSTEM`, taskName)
 	if err := h.Exec(create); err != nil {
 		return fmt.Errorf("failed to create reboot task: %w", err)
 	}
@@ -156,7 +158,15 @@ func (c WindowsConfigurer) Reboot(h os.Host) error {
 			return fmt.Errorf("failed to run reboot task: %w", err)
 		}
 	}
-	// Allow Windows time to start shutting down before waitForHost begins polling.
+	// Delete the task immediately while the 5-second shutdown timer is still
+	// counting down. This prevents it from re-firing on subsequent startups.
+	del := fmt.Sprintf(`schtasks /delete /tn "%s" /f`, taskName)
+	if err := h.Exec(del); err != nil {
+		// Best-effort: warn but don't fail — the post-reboot cleanup in
+		// InstallMCR will attempt deletion again once the host is back up.
+		log.Warnf("%v: failed to pre-delete reboot task (will retry after reboot): %s", h, err)
+	}
+	// Allow Windows time to complete shutdown before waitForHost begins polling.
 	time.Sleep(15 * time.Second)
 	return nil
 }
