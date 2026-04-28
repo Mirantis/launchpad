@@ -121,22 +121,24 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 // isExitCode3010 checks if the error is a command failure with Windows exit
 // code 3010 (ERROR_SUCCESS_REBOOT_REQUIRED).
 func isExitCode3010(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "3010")
+	return err != nil && strings.Contains(err.Error(), "non-zero exit code: 3010")
 }
 
 // Reboot triggers an immediate forced restart by scheduling a SYSTEM-context
-// task that runs 'shutdown /r /f /t 0', then immediately triggering it.
+// one-shot task that runs 'shutdown /r /f /t 5', then immediately triggering
+// and deleting it within the 5-second countdown window.
+//
 // Running via a scheduled task bypasses the filtered Administrator token used
-// by WinRM sessions on AWS EC2, which lacks SeShutdownPrivilege. The rig
-// implementation uses 'shutdown /r /t 5' directly in the WinRM session,
-// which is silently ignored in that context.
+// by WinRM sessions on AWS EC2, which lacks SeShutdownPrivilege. Issuing
+// 'shutdown /r' directly in the WinRM session is silently ignored in that
+// context.
 //
 // /sc onstart is used instead of /sc once to avoid schtasks writing a
 // stderr warning about the start time being in the past, which rig treats
-// as an error.
-//
-// After scheduling the task we sleep briefly so that Windows has time to
-// begin its shutdown sequence before the caller's waitForHost poll loop starts.
+// as an error. The task is deleted immediately after triggering (while the
+// 5-second timer counts down) so it does not re-fire on subsequent startups.
+// A post-reboot cleanup in InstallMCR provides a second deletion attempt as
+// a fallback.
 //
 // TODO: move this fix upstream into the k0sproject/rig Windows configurer.
 func (c WindowsConfigurer) Reboot(h os.Host) error {
