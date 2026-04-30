@@ -10,6 +10,10 @@ import (
 	"github.com/k0sproject/rig/os"
 )
 
+type rebootable interface {
+	Reboot() error
+}
+
 type DockerConfigurer struct{}
 
 // GetDockerInfo gets docker info from the host.

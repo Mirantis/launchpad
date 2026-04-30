@@ -39,10 +39,6 @@ func (c WindowsConfigurer) MCRConfigPath() string {
 	return `C:\ProgramData\Docker\config\daemon.json`
 }
 
-type rebootable interface {
-	Reboot() error
-}
-
 var errRebootRequired = fmt.Errorf("reboot required")
 
 // InstallMCRLicense for license install..
@@ -88,20 +84,92 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 	log.Infof("%s: running installer", h)
 
 	output, err := h.ExecOutput(installCommand)
+
+	needsReboot := false
 	if err != nil {
-		return fmt.Errorf("failed to run MCR installer: %w", err)
-	}
-
-	if strings.Contains(output, "Your machine needs to be rebooted") {
-		log.Warnf("%s: host needs to be rebooted", h)
-		if rh, ok := h.(rebootable); ok {
-			if err := rh.Reboot(); err != nil {
-				return fmt.Errorf("%s: failed to reboot host: %w", h, err)
-			}
+		if isExitCode3010(err) {
+			needsReboot = true
+		} else {
+			return fmt.Errorf("failed to run MCR installer: %w", err)
 		}
-		return fmt.Errorf("%s: %w: host isn't rebootable", h, errRebootRequired)
 	}
 
+	if !needsReboot && strings.Contains(output, "Your machine needs to be rebooted") {
+		needsReboot = true
+	}
+
+	if needsReboot {
+		log.Warnf("%s: host needs to be rebooted after MCR install", h)
+		rh, ok := h.(rebootable)
+		if !ok {
+			return fmt.Errorf("%s: %w: host does not support reboot", h, errRebootRequired)
+		}
+		if err := rh.Reboot(); err != nil {
+			return fmt.Errorf("%s: failed to reboot host: %w", h, err)
+		}
+		// Machine is back up. Delete the ONSTART scheduled task so it does not
+		// trigger another reboot on subsequent startups.
+		if err := h.Exec(`schtasks /delete /tn "LaunchpadReboot" /f`); err != nil {
+			log.Warnf("%s: failed to clean up LaunchpadReboot task: %s", h, err)
+		}
+		return nil
+	}
+
+	return nil
+}
+
+// isExitCode3010 checks if the error is a command failure with Windows exit
+// code 3010 (ERROR_SUCCESS_REBOOT_REQUIRED).
+func isExitCode3010(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "non-zero exit code: 3010")
+}
+
+// Reboot triggers an immediate forced restart by scheduling a SYSTEM-context
+// one-shot task that runs 'shutdown /r /f /t 5', then immediately triggering
+// and deleting it within the 5-second countdown window.
+//
+// Running via a scheduled task bypasses the filtered Administrator token used
+// by WinRM sessions on AWS EC2, which lacks SeShutdownPrivilege. Issuing
+// 'shutdown /r' directly in the WinRM session is silently ignored in that
+// context.
+//
+// /sc onstart is used instead of /sc once to avoid schtasks writing a
+// stderr warning about the start time being in the past, which rig treats
+// as an error. The task is deleted immediately after triggering (while the
+// 5-second timer counts down) so it does not re-fire on subsequent startups.
+// A post-reboot cleanup in InstallMCR provides a second deletion attempt as
+// a fallback.
+//
+// TODO: move this fix upstream into the k0sproject/rig Windows configurer.
+func (c WindowsConfigurer) Reboot(h os.Host) error {
+	const taskName = "LaunchpadReboot"
+	// Create a SYSTEM-context ONSTART task that runs 'shutdown /r /f /t 5'.
+	// The 5-second delay gives us time to delete the task before the OS
+	// actually executes the reboot, preventing it from firing again on the
+	// next startup.
+	create := fmt.Sprintf(`schtasks /create /tn "%s" /tr "shutdown /r /f /t 5" /sc onstart /f /ru SYSTEM`, taskName)
+	if err := h.Exec(create); err != nil {
+		return fmt.Errorf("failed to create reboot task: %w", err)
+	}
+	run := fmt.Sprintf(`schtasks /run /tn "%s"`, taskName)
+	if err := h.Exec(run); err != nil {
+		// Tolerate connection-level errors; the OS may kill WinRM as it starts
+		// rebooting before the run command returns.
+		errMsg := err.Error()
+		if !strings.Contains(errMsg, "connection") && !strings.Contains(errMsg, "closed") && !strings.Contains(errMsg, "EOF") {
+			return fmt.Errorf("failed to run reboot task: %w", err)
+		}
+	}
+	// Delete the task immediately while the 5-second shutdown timer is still
+	// counting down. This prevents it from re-firing on subsequent startups.
+	del := fmt.Sprintf(`schtasks /delete /tn "%s" /f`, taskName)
+	if err := h.Exec(del); err != nil {
+		// Best-effort: warn but don't fail — the post-reboot cleanup in
+		// InstallMCR will attempt deletion again once the host is back up.
+		log.Warnf("%v: failed to pre-delete reboot task (will retry after reboot): %s", h, err)
+	}
+	// Allow Windows time to complete shutdown before waitForHost begins polling.
+	time.Sleep(15 * time.Second)
 	return nil
 }
 
