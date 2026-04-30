@@ -52,14 +52,17 @@ functional-test:
 integration-test:
 	go test -v ./test/integration/... -timeout 20m
 
-.PHONY: smoke-small
-smoke-small:
-	go test -count=1 -v ./test/smoke/... -run TestSmallCluster -timeout 20m
+.PHONY: smoke-modern
+smoke-modern:
+	go test -count=1 -v ./test/smoke/... -run TestModernCluster -timeout 50m
 
-.PHONY: smoke-full
-smoke-full:
-	go test -count=1 -v ./test/smoke/... -run TestSupportedMatrixCluster -timeout 50m
+.PHONY: smoke-legacy
+smoke-legacy:
+	go test -count=1 -v ./test/smoke/... -run TestLegacyCluster -timeout 50m
 
+.PHONY: smoke-windows
+smoke-windows:
+	go test -count=1 -v ./test/smoke/... -run TestWindowsCluster -timeout 60m
 .PHONY: clean-launchpad-chart
 clean-launchpad-chart:
 	terraform -chdir=./examples/tf-aws/launchpad apply --auto-approve --destroy
