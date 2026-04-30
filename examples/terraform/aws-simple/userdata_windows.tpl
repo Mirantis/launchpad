@@ -1,6 +1,6 @@
 <powershell>
 $admin = [adsi]("WinNT://./administrator, user")
-$admin.psbase.invoke("SetPassword", "${windows_administrator_password}")
+$admin.psbase.invoke("SetPassword", '${windows_administrator_password}')
 
 # Snippet to enable WinRM over HTTPS with a self-signed certificate
 # from https://gist.github.com/TechIsCool/d65017b8427cfa49d579a6d7b6e03c93
