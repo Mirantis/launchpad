@@ -169,7 +169,7 @@ func TestSupportedMatrixCluster(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Replace the version values for MCR,MKE,MSR in the mkeClusterConfig for an upgrade
-	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mcr_version"].(string), "25.0.13")
+	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mcr_channel"].(string), "stable-25.0")
 	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["mke_version"].(string), "3.8.8")
 	mkeClusterConfig = strings.ReplaceAll(mkeClusterConfig, LAUNCHPAD["msr_version"].(string), "2.9.28")
 
