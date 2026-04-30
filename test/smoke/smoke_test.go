@@ -35,7 +35,8 @@ type smokeConfig struct {
 
 // generateWindowsPassword returns a 20-character password satisfying Windows
 // complexity requirements (upper, lower, digit, symbol).
-func generateWindowsPassword() string {
+func generateWindowsPassword(t *testing.T) string {
+	t.Helper()
 	const (
 		upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		lower   = "abcdefghijklmnopqrstuvwxyz"
@@ -48,14 +49,14 @@ func generateWindowsPassword() string {
 	for i, charset := range []string{upper, lower, digits, symbols} {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
-			panic(err)
+			t.Fatalf("generateWindowsPassword: crypto/rand failed: %v", err)
 		}
 		buf[i] = charset[n.Int64()]
 	}
 	for i := 4; i < 20; i++ {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(all))))
 		if err != nil {
-			panic(err)
+			t.Fatalf("generateWindowsPassword: crypto/rand failed: %v", err)
 		}
 		buf[i] = all[n.Int64()]
 	}
@@ -110,6 +111,10 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		"ssh_pk_location":   tempSSHKeyPathDir,
 		"nodegroups":        cfg.Nodegroups,
 		"ssh_key_algorithm": cfg.SSHKeyAlgorithm,
+		"extra_tags": map[string]string{
+			"launchpad-smoke-test": "true",
+			"launchpad-smoke-test-name": cfg.Name,
+		},
 	}
 
 	// Detect windows nodegroups; pass windows_password if any present.
@@ -126,7 +131,7 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		}
 	}
 	if hasWindows {
-		vars["windows_password"] = generateWindowsPassword()
+		vars["windows_password"] = generateWindowsPassword(t)
 	}
 
 	options := terraform.Options{
@@ -135,10 +140,12 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 	}
 
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
+	// Register destroy before apply so it runs even if apply partially succeeds
+	// and then t.Fatal is called. t.Fatal calls runtime.Goexit which runs defers.
+	defer terraform.Destroy(t, terraformOptions)
 	if _, err := terraform.InitAndApplyE(t, terraformOptions); err != nil {
 		t.Fatal(err)
 	}
-	defer terraform.Destroy(t, terraformOptions)
 
 	mkeClusterConfig := terraform.Output(t, terraformOptions, "launchpad_yaml")
 
