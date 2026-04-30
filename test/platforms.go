@@ -131,4 +131,18 @@ var Platforms = map[string]Platform{
 		Public:     true,
 		UserData:   "",
 	},
+	"Ubuntu24": {
+		Name:       "ubuntu_24.04",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp",
+	},
+	"Windows2025": {
+		Name:       "windows_2025",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "",
+	},
 }

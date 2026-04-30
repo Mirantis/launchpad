@@ -20,7 +20,7 @@ module "provision" {
     }
     count : ngd.count
     type : ngd.type
-    keypair_id : module.key.keypair_id
+    keypair_id : aws_key_pair.this.key_pair_id
     root_device_name : ngd.root_device_name
     volume_size : ngd.volume_size
     role : ngd.role
