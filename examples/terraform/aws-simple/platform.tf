@@ -18,6 +18,15 @@ locals {
       ssh_user   = "ubuntu"
       ssh_port   = 22
     }
+    "windows_2025" = {
+      ami_name       = "Windows_Server-2025-English-Core-Base-*"
+      owner          = "801119661308"
+      interface      = "Ethernet 3"
+      connection     = "winrm"
+      winrm_user     = "Administrator"
+      winrm_useHTTPS = true
+      winrm_insecure = true
+    }
   }
 }
 
@@ -63,7 +72,9 @@ locals {
     for p, def in local.lib_local_platform_definitions : p => merge(def, {
       ami              = data.aws_ami.local[p].id
       root_device_name = data.aws_ami.local[p].root_device_name
-      user_data        = ""
+      user_data = def.connection == "winrm" ? templatefile("${path.module}/userdata_windows.tpl", {
+        windows_administrator_password = var.windows_password
+      }) : ""
     }) if contains(local.local_platform_keys, p)
   }
 
