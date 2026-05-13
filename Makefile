@@ -63,6 +63,9 @@ smoke-legacy:
 .PHONY: smoke-windows
 smoke-windows:
 	go test -count=1 -v ./test/smoke/... -run TestWindowsCluster -timeout 60m
+.PHONY: smoke-upgrade
+smoke-upgrade:
+	go test -count=1 -v ./test/smoke/... -run TestUpgrade -timeout 90m
 .PHONY: clean-launchpad-chart
 clean-launchpad-chart:
 	terraform -chdir=./examples/tf-aws/launchpad apply --auto-approve --destroy

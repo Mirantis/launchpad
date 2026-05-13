@@ -4,37 +4,78 @@ This guide covers building, testing, and contributing to the Launchpad codebase.
 
 ## Building Locally
 
-Launchpad uses `goreleaser` for production builds, but provides a `Makefile` for local development.
+```bash
+make local    # Build for the current platform → dist/launchpad_GOOS_GOARCH
+```
 
-- **`make local`**: Builds a single, platform-specific binary for rapid testing.
-- **`make build-release`**: Performs a full production build, requiring a clean repository and release tag.
-- **`make sign-release`**: Signs the Windows binary (requires specific environment variables).
+The binary version and commit hash are injected at build time via `-ldflags`. Production release builds are handled by Goreleaser in CI.
 
 ## Testing Strategy
 
 Launchpad's system-centric nature requires a layered testing approach:
 
-### 1. Unit and Functional Tests (`pkg/`, `test/functional/`)
-- **Unit**: Small tests for individual functions or components.
-- **Functional**: Tests that verify specific functional components.
-- **Run**: `go test ./pkg/...` and `go test ./test/functional/...`.
+### 1. Unit Tests (`pkg/`)
 
-### 2. Integration Tests (`test/integration/`)
-- **Focus**: Verifies functional elements on actual clusters provisioned by the test suite.
-- **Run**: `go test ./test/integration/...`.
+Tests for individual functions and components. Require the `testing` build tag.
 
-### 3. Smoke Tests (`test/smoke/`)
-- **Focus**: End-to-end command testing (`apply`, `reset`, etc.) using a real compute cluster.
-- **Smoke Small**: Provision a small number of machines.
-- **Smoke Large**: Provision a large and varied cluster.
-- **Run**: `go test ./test/smoke/...`.
+```bash
+make unit-test
+# or directly:
+go test -v --tags 'testing' ./pkg/...
+
+# Single package:
+go test -v --tags 'testing' ./pkg/config/...
+
+# Single test:
+go test -v --tags 'testing' ./pkg/config/... -run TestFoo
+```
+
+### 2. Functional Tests (`test/functional/`)
+
+Component-level tests that may require network access but do not need a live cluster.
+
+```bash
+make functional-test
+```
+
+### 3. Integration Tests (`test/integration/`)
+
+Verify behaviour against real provisioned nodes.
+
+```bash
+make integration-test
+```
+
+### 4. Smoke Tests (`test/smoke/`)
+
+Full end-to-end tests using [Terratest](https://terratest.gruntwork.io/). Each test provisions real AWS infrastructure via `examples/terraform/aws-simple/`, runs the complete Launchpad lifecycle (install → reset), and destroys all infrastructure unconditionally via `defer terraform.Destroy`.
+
+Require `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
+
+| Make target | Test | Timeout | Description |
+|---|---|---|---|
+| `smoke-modern` | `TestModernCluster` | 50m | RHEL9/Ubuntu24/Rocky9, MCR stable-29.2, MKE 3.9.2 |
+| `smoke-legacy` | `TestLegacyCluster` | 50m | RHEL8/Rocky8/Ubuntu22, MCR stable-25.0, MKE 3.8.8 |
+| `smoke-windows` | `TestWindowsCluster` | 60m | Ubuntu24 manager + Windows 2019/2022/2025 workers |
+| `smoke-upgrade` | `TestUpgradeLegacyToModern` | 90m | Install MCR stable-25.0/MKE 3.8.8, upgrade to stable-29.2/MKE 3.9.2 |
+
+```bash
+# Run a specific smoke test
+make smoke-modern
+make smoke-upgrade
+```
+
+All smoke-test AWS resources are tagged `launchpad-smoke-test: true` for cost tracking. CI smoke jobs are gated by PR labels (`smoke-test`, `smoke-modern`, `smoke-legacy`, `smoke-windows`, `smoke-upgrade`).
 
 ## Contributing Principles
 
 - **Signed Commits**: All commits must be signed using `git commit -s`.
+- **Feature Branches**: Never commit directly to `main`. Always work on a feature branch and open a PR.
 - **Feature Options**: Make new features optional via configuration or command flags.
 - **Phase Integration**: Implement new functionality as phases whenever possible for reusability.
 - **Schema Safety**: Avoid changes to the configuration syntax. If a change is necessary:
-  - Bump the version.
+  - Bump the `apiVersion` (currently `launchpad.mirantis.com/mke/v1.6`).
   - Include an in-memory migration in `pkg/config/migration/`.
-- **Linting**: Ensure all changes pass `golangci-lint`.
+  - Add unit tests for the migration.
+- **Linting**: Ensure all changes pass `make lint` (`golangci-lint run`).
+- **Security**: Run `make security-scan` (`govulncheck ./...`) before raising a PR.
