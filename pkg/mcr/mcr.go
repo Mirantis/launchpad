@@ -16,18 +16,22 @@ var (
 )
 
 // DrainNode drains a node from the workload via docker drain command.
+// If the node is not part of a swarm (empty NodeID) the call is a no-op;
+// this is the expected state after a forced swarm dissolution.
 func DrainNode(lead *mkeconfig.Host, h *mkeconfig.Host) error {
 	nodeID, err := swarm.NodeID(h)
 	if err != nil {
 		return fmt.Errorf("failed to get node ID for %s: %w", h, err)
 	}
 
+	if nodeID == "" {
+		log.Debugf("%s: not part of a swarm, skipping drain", h)
+		return nil
+	}
+
 	drainCmd := lead.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
 	if err := lead.Exec(drainCmd); err != nil {
-		return fmt.Errorf("%s: failed to run MKE uninstaller: %w", lead, err)
-	}
-	if err := lead.Exec(drainCmd); err != nil {
-		return fmt.Errorf("failed to drain node %s: %w", nodeID, err)
+		return fmt.Errorf("%s: failed to drain node %s: %w", lead, nodeID, err)
 	}
 
 	log.Infof("%s: node %s drained", lead, nodeID)
