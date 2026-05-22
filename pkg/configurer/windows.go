@@ -60,7 +60,7 @@ func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 
 // InstallMCR install MCR on Windows.
 func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
-	version := "latest"
+	version := windowsInstallerVersion(engineConfig.Channel)
 
 	installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
 	if getInstallerErr != nil {
@@ -122,6 +122,25 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 // code 3010 (ERROR_SUCCESS_REBOOT_REQUIRED).
 func isExitCode3010(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "non-zero exit code: 3010")
+}
+
+// windowsInstallerVersion returns the version token to pass as DOCKER_VERSION
+// to install.ps1. For non-FIPS channels the repo publishes only
+// docker-latest.zip so "latest" is correct. For FIPS channels (suffix /fips)
+// the repo publishes docker-<version>+fips.zip but no docker-latest+fips.zip,
+// so the version must be extracted from the channel string.
+func windowsInstallerVersion(channel string) string {
+	if !strings.HasSuffix(channel, "/fips") {
+		return "latest"
+	}
+	ch := strings.TrimSuffix(channel, "/fips")
+	parts := strings.Split(ch, "-")
+	for i, p := range parts {
+		if len(p) > 0 && p[0] >= '0' && p[0] <= '9' {
+			return strings.Join(parts[i:], "-")
+		}
+	}
+	return "latest"
 }
 
 // Reboot triggers an immediate forced restart by scheduling a SYSTEM-context
