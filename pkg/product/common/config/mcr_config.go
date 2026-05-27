@@ -58,9 +58,8 @@ func (c *MCRConfig) UnmarshalYAML(unmarshal func(any) error) error {
 // SetDefaults sets defaults on the object.
 func (c *MCRConfig) SetDefaults() {
 	// Constants can't be used in tags, so yaml defaults can't be used here.
-	if c.Channel == "" {
-		c.Channel = constant.MCRChannel
-	}
+	// Note: Channel intentionally has no default — it is required and must be
+	// set explicitly. See ClusterSpec.UnmarshalYAML for the validation.
 
 	if c.RepoURL == "" {
 		c.RepoURL = constant.MCRRepoURL
