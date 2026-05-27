@@ -39,14 +39,16 @@ func TestHostRequireManagerValidationPass(t *testing.T) {
 apiVersion: "launchpad.mirantis.com/mke/v1.6"
 kind: mke
 spec:
+  mcr:
+    channel: stable
   hosts:
     - ssh:
         address: 10.0.0.1
-				keyPath: ` + kf.Name() + `
+			keyPath: ` + kf.Name() + `
       role: manager
     - ssh:
         address: 10.0.0.2
-				keyPath: ` + kf.Name() + `
+			keyPath: ` + kf.Name() + `
       role: worker
 	mke:
 	  version: 3.3.7
@@ -63,14 +65,16 @@ func TestHostRequireManagerValidationFail(t *testing.T) {
 apiVersion: "launchpad.mirantis.com/mke/v1.4"
 kind: mke
 spec:
+  mcr:
+    channel: stable
   hosts:
     - ssh:
         address: 10.0.0.1
-				keyPath: ` + kf.Name() + `
+			keyPath: ` + kf.Name() + `
       role: worker
     - ssh:
         address: 10.0.0.2
-				keyPath: ` + kf.Name() + `
+			keyPath: ` + kf.Name() + `
       role: worker
 	mke:
 	  version: 3.3.7
@@ -87,6 +91,8 @@ func TestNonExistingHostsFails(t *testing.T) {
 apiVersion: "launchpad.mirantis.com/mke/v1.4"
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -98,11 +104,31 @@ spec:
 	validateErrorField(t, err, "Hosts")
 }
 
+func TestMissingMCRChannelFails(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mke:
+    version: 3.3.7
+  hosts:
+    - ssh:
+        address: "1.2.3.4"
+      role: manager
+`
+	c := &ClusterConfig{}
+	err := yaml.Unmarshal([]byte(strings.ReplaceAll(data, "\t", "  ")), c)
+	require.Error(t, err)
+	require.ErrorContains(t, err, "spec.mcr.channel")
+}
+
 func TestHostAddressValidationWithInvalidIP(t *testing.T) {
 	data := `
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -122,6 +148,8 @@ func TestHostAddressValidationWithValidIP(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -140,6 +168,8 @@ func TestHostAddressValidationWithInvalidHostname(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -159,6 +189,8 @@ func TestHostAddressValidationWithValidHostname(t *testing.T) {
 apiVersion: launchpad.mirantis.com/v1
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -177,6 +209,8 @@ func TestHostSshPortValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -196,6 +230,8 @@ func TestHostRoleValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -215,6 +251,8 @@ func TestHostWithComplexMCRConfig(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -312,6 +350,8 @@ func TestHostWinRMCACertPathValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -332,6 +372,8 @@ func TestHostWinRMCertPathValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -352,6 +394,8 @@ func TestHostWinRMKeyPathValidation(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -371,6 +415,8 @@ func TestHostSSHDefaults(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -389,6 +435,8 @@ func TestHostWinRMDefaults(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
   hosts:
@@ -416,6 +464,8 @@ func TestValidationWithMSRRole(t *testing.T) {
 apiVersion: launchpad.mirantis.com/mke/v1.4
 kind: mke
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
 	msr:
@@ -423,7 +473,7 @@ spec:
   hosts:
     - ssh:
         address: "10.0.0.1"
-				keyPath: ` + kf.Name() + `
+			keyPath: ` + kf.Name() + `
       role: weirdrole
     - ssh:
         address: "10.0.0.2"
@@ -438,6 +488,8 @@ spec:
 apiVersion: launchpad.mirantis.com/mke/v1.6
 kind: mke+msr
 spec:
+  mcr:
+    channel: stable
 	mke:
 	  version: 3.3.7
 	msr:
@@ -445,11 +497,11 @@ spec:
   hosts:
     - ssh:
         address: "10.0.0.1"
-				keyPath: ` + kf.Name() + `
+			keyPath: ` + kf.Name() + `
       role: msr
     - ssh:
         address: "10.0.0.2"
-				keyPath: ` + kf.Name() + `
+			keyPath: ` + kf.Name() + `
       role: manager
 `
 		c := loadYaml(t, data)
