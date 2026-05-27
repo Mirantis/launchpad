@@ -73,7 +73,10 @@ var Platforms = map[string]Platform{
 		Count:      1,
 		VolumeSize: "100",
 		Public:     true,
-		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+		// Disable the container-tools module stream before MCR install. RHEL8
+		// AppStream pulls in system runc as a container-selinux dependency; that
+		// package conflicts with Mirantis's containerd.io-runc at install time.
+		UserData: "sudo dnf module disable container-tools -y; sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
 	},
 	"Centos7": {
 		Name:       "centos_7",

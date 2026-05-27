@@ -53,8 +53,8 @@ locals {
 
       routes = {
         "msr" = {
-          port_incoming = 443
-          port_target   = 443
+          port_incoming = var.msr_port
+          port_target   = 443 # DTR always listens on 443 internally; msr_port is the external NLB port
           protocol      = "TCP"
         }
       }
@@ -188,7 +188,7 @@ spec:
     "replicaIDs": "sequential"
     installFlags:
     - "--ucp-insecure-tls"
-    - "--dtr-external-url=${local.MSR_URL}"
+    - "--dtr-external-url=${local.MSR_URL}${var.msr_port != 443 ? ":${var.msr_port}" : ""}"
 %{endif}
 EOT
 

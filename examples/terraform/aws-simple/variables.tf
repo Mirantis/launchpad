@@ -73,3 +73,9 @@ variable "ssh_pk_location" {
   type        = string
   default     = ""
 }
+
+variable "msr_port" {
+  description = "External port on which DTR/MSR is exposed via the NLB. The DTR replica always listens on 443 internally; this controls only the NLB's port_incoming and the --dtr-external-url flag. Use a non-standard port (e.g. 4443) to test airgap registry configurations."
+  type        = number
+  default     = 443
+}

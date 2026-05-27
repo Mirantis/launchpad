@@ -66,6 +66,11 @@ smoke-windows:
 .PHONY: smoke-upgrade
 smoke-upgrade:
 	go test -count=1 -v ./test/smoke/... -run TestUpgrade -timeout 90m
+
+.PHONY: smoke-airgapped-multi-hop
+smoke-airgapped-multi-hop:
+	go test -count=1 -v ./test/smoke/... -run TestAirgappedMultiHopUpgrade -timeout 200m
+
 .PHONY: clean-launchpad-chart
 clean-launchpad-chart:
 	terraform -chdir=./examples/tf-aws/launchpad apply --auto-approve --destroy
