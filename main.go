@@ -70,7 +70,7 @@ func main() {
 
 	cli.AppHelpTemplate = fmt.Sprintf(`%s
 GETTING STARTED:
-	https://docs.mirantis.com/mke/3.7/overview.html
+	https://docs.mirantis.com/mke/3.9/overview.html
 
 SUPPORT:
     https://github.com/Mirantis/launchpad/issues
