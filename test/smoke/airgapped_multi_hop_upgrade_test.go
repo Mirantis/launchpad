@@ -626,7 +626,11 @@ func TestAirgappedMultiHopUpgrade(t *testing.T) {
 
 	runAirgappedMultiHopUpgradeTest(t, airgapUpgradeConfig{
 		Base: smokeConfig{
-			Name:            "airgapped-multi-hop",
+			// NOTE: AWS LB/target-group names are limited to 32 chars. The stack
+			// name is "smoke-{Name}-{5-char-random}", and Terraform appends suffixes
+			// like "-mke-kube" (9 chars). That caps len(Name) at 11. Keep this
+			// short even though the CI label is "smoke-airgapped-multi-hop".
+			Name: "airgap-mhop",
 			MCRChannel:      "stable-25.0",
 			MKEVersion:      "3.8.8",
 			MSRVersion:      "2.9.27",
