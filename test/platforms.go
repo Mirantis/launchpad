@@ -111,7 +111,8 @@ var Platforms = map[string]Platform{
 		Count:      1,
 		VolumeSize: "100",
 		Public:     true,
-		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+		// Same AppStream container-tools conflict as RHEL8 — disable before MCR install.
+		UserData: "sudo dnf module disable container-tools -y; sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
 	},
 	"Rocky9": {
 		Name:       "rocky_9",

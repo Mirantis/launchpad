@@ -91,7 +91,6 @@ jobs:
     timeout-minutes: 205
     if: |
       github.event_name == 'push' ||
-      contains(github.event.pull_request.labels.*.name, 'smoke-test') ||
       contains(github.event.pull_request.labels.*.name, 'smoke-airgapped-multi-hop')
     steps:
       - name: Checkout code

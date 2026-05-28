@@ -119,8 +119,9 @@ Smoke tests (`test/smoke/`) use [Terratest](https://terratest.gruntwork.io/) to 
 | `smoke-legacy` | `TestLegacyCluster` | 50m | Install on RHEL8/Rocky8/Ubuntu22 |
 | `smoke-windows` | `TestWindowsCluster` | 60m | Install with Windows 2019/2022/2025 workers |
 | `smoke-upgrade` | `TestUpgradeLegacyToModern` | 90m | Install 3.8.8 then upgrade to 3.9.2 in place |
+| `smoke-airgapped-multi-hop` | `TestAirgappedMultiHopUpgrade` | 200m | Multi-step upgrade through internal MSR (port 4443) with imageRepo override |
 
-CI jobs are gated by PR labels: `smoke-test` (all jobs), or individual labels `smoke-modern`, `smoke-legacy`, `smoke-windows`, `smoke-upgrade`.
+CI jobs are gated by PR labels: `smoke-test` (all jobs except `smoke-airgapped-multi-hop`), or individual labels `smoke-modern`, `smoke-legacy`, `smoke-windows`, `smoke-upgrade`, `smoke-airgapped-multi-hop`.
 
 **To add a new smoke test**, read `docs/development/smoke-tests.md` — it documents the full framework: available platforms, helper functions, how to write install/reset and upgrade tests, CI wiring, and a pre-submission checklist.
 

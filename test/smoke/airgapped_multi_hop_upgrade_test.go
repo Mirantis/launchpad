@@ -18,9 +18,10 @@ package smoke_test
 //   - Launchpad correctly uses mke.imageRepo and msr.imageRepo when set to an
 //     internal registry address that includes a non-standard port.
 //   - The full 3.8.8 → 3.8.11 → 3.8.12 → 3.9.2 upgrade chain completes when
-//     all MKE bootstrapper images are served from an internal registry.
-//   - DTR exposed on a non-standard port (4443) is reachable and usable as an
-//     image registry for both Docker operations and Launchpad imageRepo config.
+//     all MKE bootstrapper images are resolved via Launchpad's imageRepo string
+//     pointing to a locally available (pre-tagged) registry prefix.
+//   - Launchpad accepts a non-standard MSR port (4443) in the imageRepo address
+//     without attempting any docker login/push/pull against DTR directly.
 //
 // What this test does NOT validate:
 //   - True network-level airgap. Manager and worker nodes can still reach the
@@ -47,6 +48,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Mirantis/launchpad/pkg/config"
 	"github.com/Mirantis/launchpad/test"
@@ -346,12 +348,16 @@ func fetchLatestMKEVersion(t *testing.T, major string) string {
 	// Match only bare X.Y.Z tags in the requested major series.
 	versionRe := regexp.MustCompile(`^` + regexp.QuoteMeta(major) + `\.\d+\.\d+$`)
 
+	client := &http.Client{Timeout: 30 * time.Second}
+
 	var candidates []string
 	pageURL := "https://hub.docker.com/v2/repositories/mirantis/ucp/tags/?page_size=100"
 	const maxPages = 20
 	for page := 0; pageURL != "" && page < maxPages; page++ {
-		resp, err := http.Get(pageURL)
+		resp, err := client.Get(pageURL)
 		require.NoError(t, err, "query Docker Hub tags for mirantis/ucp (page %d)", page+1)
+		require.Equal(t, http.StatusOK, resp.StatusCode,
+			"unexpected HTTP %d from Docker Hub tags API (page %d)", resp.StatusCode, page+1)
 		var p hubPage
 		require.NoError(t, json.NewDecoder(resp.Body).Decode(&p),
 			"decode Docker Hub tags response (page %d)", page+1)
@@ -393,11 +399,13 @@ func fetchLatestMCRChannel(t *testing.T, major int) string {
 		maxMinor  = 20
 	)
 
+	client := &http.Client{Timeout: 15 * time.Second}
+
 	last := ""
 	for minor := 1; minor <= maxMinor; minor++ {
 		channel := fmt.Sprintf("stable-%d.%d", major, minor)
 		url := fmt.Sprintf("%s/%s/%s", probeBase, channel, probeArch)
-		resp, err := http.Head(url)
+		resp, err := client.Head(url)
 		if resp != nil {
 			resp.Body.Close()
 		}
@@ -558,13 +566,14 @@ func runAirgappedMultiHopUpgradeTest(t *testing.T, cfg airgapUpgradeConfig) {
 
 		err = upgradeProduct.Apply(true, true, 3, true)
 		assert.NoError(t, err, "upgrade Apply() for step %d", i+1)
+		// Update lastProduct regardless of error so Reset() uses the config from
+		// the attempted step (the cluster may be partially upgraded on failure).
+		currentYAML = upgradeYAML
+		lastProduct = upgradeProduct
 		if err != nil {
 			t.Logf("upgrade step %d failed; stopping upgrade chain", i+1)
 			break
 		}
-
-		currentYAML = upgradeYAML
-		lastProduct = upgradeProduct
 	}
 
 	// ── Reset (best-effort) ───────────────────────────────────────────────────
@@ -617,7 +626,7 @@ func TestAirgappedMultiHopUpgrade(t *testing.T) {
 
 	runAirgappedMultiHopUpgradeTest(t, airgapUpgradeConfig{
 		Base: smokeConfig{
-			Name:            "airgappedup",
+			Name:            "airgapped-multi-hop",
 			MCRChannel:      "stable-25.0",
 			MKEVersion:      "3.8.8",
 			MSRVersion:      "2.9.27",

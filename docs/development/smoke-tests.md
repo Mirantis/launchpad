@@ -192,6 +192,7 @@ Timeout guidance:
 - Install-only tests: **50m**
 - Windows tests: **60m** (WinRM setup and Windows image pull are slower)
 - Upgrade tests: **90m** (two full apply cycles)
+- Multi-hop upgrade tests with image preloading: **200m+** (N apply cycles plus per-node image pulls across all upgrade versions)
 
 ### 2. Add a CI job
 

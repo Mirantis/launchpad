@@ -58,14 +58,16 @@ Require `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
 | `smoke-legacy` | `TestLegacyCluster` | 50m | RHEL8/Rocky8/Ubuntu22, MCR stable-25.0, MKE 3.8.8 |
 | `smoke-windows` | `TestWindowsCluster` | 60m | Ubuntu24 manager + Windows 2019/2022/2025 workers |
 | `smoke-upgrade` | `TestUpgradeLegacyToModern` | 90m | Install MCR stable-25.0/MKE 3.8.8, upgrade to stable-29.2/MKE 3.9.2 |
+| `smoke-airgapped-multi-hop` | `TestAirgappedMultiHopUpgrade` | 200m | Multi-step upgrade with internal MSR on port 4443 and imageRepo override |
 
 ```bash
 # Run a specific smoke test
 make smoke-modern
 make smoke-upgrade
+make smoke-airgapped-multi-hop
 ```
 
-All smoke-test AWS resources are tagged `launchpad-smoke-test: true` for cost tracking. CI smoke jobs are gated by PR labels (`smoke-test`, `smoke-modern`, `smoke-legacy`, `smoke-windows`, `smoke-upgrade`).
+All smoke-test AWS resources are tagged `launchpad-smoke-test: true` for cost tracking. CI smoke jobs are gated by PR labels (`smoke-test`, `smoke-modern`, `smoke-legacy`, `smoke-windows`, `smoke-upgrade`, `smoke-airgapped-multi-hop`).
 
 ## Contributing Principles
 
