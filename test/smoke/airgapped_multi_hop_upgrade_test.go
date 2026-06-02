@@ -1,11 +1,11 @@
 package smoke_test
 
 // Airgapped multi-hop upgrade smoke test — customer scenario.
-//
 // TestAirgappedMultiHopUpgrade provisions a cluster with an internal MSR/DTR
-// (2.9.27) on port 4443, installs the baseline software, pre-loads all MKE
-// and MSR upgrade images into DTR, then drives three sequential upgrades with
-// mke.imageRepo and msr.imageRepo pointing to DTR throughout.
+// (2.9.27) on port 4443, installs the baseline software, pre-tags all MKE
+// upgrade images on each node with the DTR registry address prefix, then
+// drives three sequential upgrades with mke.imageRepo and msr.imageRepo
+// pointing to DTR throughout.
 //
 // Upgrade chain:
 //
@@ -43,6 +43,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"os/exec"
 	"regexp"
 	"sort"
@@ -582,7 +583,6 @@ func runAirgappedMultiHopUpgradeTest(t *testing.T, cfg airgapUpgradeConfig) {
 		t.Logf("WARN: product.Reset() failed (non-fatal): %v", err)
 	}
 }
-
 // TestAirgappedMultiHopUpgrade provisions an airgapped cluster with an
 // internal DTR on port 4443 and exercises the following upgrade chain,
 // pulling all MKE images from DTR after the initial bootstrap:
@@ -591,20 +591,14 @@ func runAirgappedMultiHopUpgradeTest(t *testing.T, cfg airgapUpgradeConfig) {
 //	step 1:  MCR stable-25.0 / MKE 3.8.11               (from DTR :4443)
 //	step 2:  MCR stable-29.2 / MKE 3.8.12               (from DTR :4443)
 //	step 3:  MCR stable-29.2 / MKE 3.9.2                (from DTR :4443)
-//	step 4:  MCR <latest 29.x channel> / MKE <latest 3.x> (discovered at runtime)
 //
-// Step 4 is resolved dynamically at test runtime: fetchLatestMKEVersion queries
-// Docker Hub for the highest mirantis/ucp 3.x.y tag, and fetchLatestMCRChannel
-// probes the Mirantis apt repository for the highest stable-29.x channel. If
-// the resolved versions are identical to step 3 (no new releases), step 4 is
-// omitted.
+// An optional step 4 — upgrading to the dynamically-discovered latest MKE 3.x
+// and MCR stable-29.x — is appended when the SMOKE_UPGRADE_TO_LATEST env var
+// is set (non-empty). Omitting it keeps PR smoke runs reproducible; set the
+// var in scheduled/nightly CI jobs to catch regressions against new releases.
 //
 // Node matrix: Ubuntu22 manager + Rhel8 worker + Ubuntu22 MSR.
 func TestAirgappedMultiHopUpgrade(t *testing.T) {
-	latestMKE := fetchLatestMKEVersion(t, "3")
-	latestMCR := fetchLatestMCRChannel(t, 29)
-	t.Logf("discovered latest: MKE %s / MCR channel %s", latestMKE, latestMCR)
-
 	// Fixed portion of the upgrade chain — the specific versions that model
 	// the customer scenario and must always be exercised.
 	steps := []upgradeStep{
@@ -613,15 +607,21 @@ func TestAirgappedMultiHopUpgrade(t *testing.T) {
 		{MCRChannel: "stable-29.2", MKEVersion: "3.9.2"},
 	}
 
-	// Append the dynamic "to latest" step only when it differs from the last
-	// fixed step — avoids a redundant no-op when the fixed chain already ends
-	// on the current latest release.
-	lastFixed := steps[len(steps)-1]
-	if latestMKE != lastFixed.MKEVersion || latestMCR != lastFixed.MCRChannel {
-		steps = append(steps, upgradeStep{MCRChannel: latestMCR, MKEVersion: latestMKE})
-		t.Logf("appending upgrade-to-latest step: MCR %s / MKE %s", latestMCR, latestMKE)
-	} else {
-		t.Logf("latest versions match last fixed step; no additional upgrade step needed")
+	// Append a "to latest" step only when explicitly requested. Dynamic
+	// version discovery makes the test non-deterministic for PR runs; gate
+	// it behind SMOKE_UPGRADE_TO_LATEST so scheduled jobs opt in while PR
+	// smoke runs stay reproducible.
+	if os.Getenv("SMOKE_UPGRADE_TO_LATEST") != "" {
+		latestMKE := fetchLatestMKEVersion(t, "3")
+		latestMCR := fetchLatestMCRChannel(t, 29)
+		t.Logf("discovered latest: MKE %s / MCR channel %s", latestMKE, latestMCR)
+		lastFixed := steps[len(steps)-1]
+		if latestMKE != lastFixed.MKEVersion || latestMCR != lastFixed.MCRChannel {
+			steps = append(steps, upgradeStep{MCRChannel: latestMCR, MKEVersion: latestMKE})
+			t.Logf("appending upgrade-to-latest step: MCR %s / MKE %s", latestMCR, latestMKE)
+		} else {
+			t.Logf("latest versions match last fixed step; no additional upgrade step needed")
+		}
 	}
 
 	runAirgappedMultiHopUpgradeTest(t, airgapUpgradeConfig{
