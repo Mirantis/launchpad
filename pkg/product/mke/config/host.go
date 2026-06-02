@@ -80,6 +80,12 @@ type Host struct {
 	SudoDocker       bool              `yaml:"sudodocker"`
 	SudoOverride     bool              `yaml:"sudooverride"`   // some customers can't allow the default rig connection sudo detection
 	MCRUpgradeSkip   bool              `yaml:"mcrupgradeskip"` // don't upgrade this host when upgraing MCR (to allow upgrades in batches
+	// SwarmAddressOverride, when set, is used as the advertise address for
+	// Docker Swarm init and join operations instead of the discovered
+	// InternalAddress. Use this in stretched/multi-DC environments where the
+	// private NIC IP is not routable across DCs but the SSH/floating address is.
+	SwarmAddressOverride string `yaml:"swarmAddress,omitempty"`
+
 
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
@@ -190,9 +196,16 @@ func (h *Host) AuthenticateDocker(imageRepo string) error {
 	return nil
 }
 
-// SwarmAddress determines the swarm address for the host.
+// SwarmAddress returns the address used for Swarm clustering.
+// When swarmAddress is set in the host config it takes precedence over the
+// discovered InternalAddress, allowing users in stretched/multi-DC environments
+// to specify a routable floating address instead of the private NIC IP.
 func (h *Host) SwarmAddress() string {
-	return fmt.Sprintf("%s:%d", h.Metadata.InternalAddress, 2377)
+	addr := h.Metadata.InternalAddress
+	if h.SwarmAddressOverride != "" {
+		addr = h.SwarmAddressOverride
+	}
+	return fmt.Sprintf("%s:%d", addr, 2377)
 }
 
 // MCRVersion returns the current engine version installed on the host.
