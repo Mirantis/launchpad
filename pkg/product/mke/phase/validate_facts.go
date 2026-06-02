@@ -3,6 +3,7 @@ package phase
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/Mirantis/launchpad/pkg/mke"
@@ -67,6 +68,10 @@ func (p *ValidateFacts) Run() error {
 		} else {
 			return errors.Join(ErrFactsArentValid, err)
 		}
+	}
+
+	if err := p.validatePodCIDR(); err != nil {
+		return errors.Join(ErrFactsArentValid, err)
 	}
 
 	return nil
@@ -193,5 +198,50 @@ func (p *ValidateFacts) validateDataPlane() error {
 
 	log.Debug("data plane settings check passed")
 
+	return nil
+}
+
+var errInvalidPodCIDR = errors.New("invalid pod CIDR configuration")
+
+// swarmDefaultAddrPool is the Docker Swarm default overlay address pool.
+const swarmDefaultAddrPool = "10.0.0.0/8"
+
+// validatePodCIDR checks that --pod-cidr in mke.installFlags does not overlap
+// with the Swarm overlay address pool. Overlapping CIDRs cause the Docker daemon
+// to restart into a broken network state during MKE bootstrap, which silently
+// drops the SSH connection and produces a connection timeout after 20+ minutes.
+//
+// If mcr.swarmInstallFlags contains --default-addr-pool, that value is used as
+// the Swarm pool instead of the compiled-in default (10.0.0.0/8).
+func (p *ValidateFacts) validatePodCIDR() error {
+	podCIDRStr := p.Config.Spec.MKE.InstallFlags.GetValue("--pod-cidr")
+	if podCIDRStr == "" {
+		return nil
+	}
+
+	swarmPoolStr := p.Config.Spec.MCR.SwarmInstallFlags.GetValue("--default-addr-pool")
+	if swarmPoolStr == "" {
+		swarmPoolStr = swarmDefaultAddrPool
+	}
+
+	_, podNet, err := net.ParseCIDR(podCIDRStr)
+	if err != nil {
+		return fmt.Errorf("%w: cannot parse --pod-cidr %q: %w", errInvalidPodCIDR, podCIDRStr, err)
+	}
+
+	_, swarmNet, err := net.ParseCIDR(swarmPoolStr)
+	if err != nil {
+		return fmt.Errorf("%w: cannot parse Swarm address pool %q: %w", errInvalidPodCIDR, swarmPoolStr, err)
+	}
+
+	if swarmNet.Contains(podNet.IP) || podNet.Contains(swarmNet.IP) {
+		return fmt.Errorf(
+			"%w: --pod-cidr %s overlaps with the Swarm overlay address pool %s; "+
+				"choose a non-overlapping range or set mcr.swarmInstallFlags --default-addr-pool to a non-conflicting pool",
+			errInvalidPodCIDR, podCIDRStr, swarmPoolStr,
+		)
+	}
+
+	log.Debugf("pod CIDR %s does not overlap with Swarm pool %s", podCIDRStr, swarmPoolStr)
 	return nil
 }
