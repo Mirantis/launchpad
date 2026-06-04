@@ -225,7 +225,7 @@ func TestWindowsCluster(t *testing.T) {
 	})
 }
 
-// TestFIPSCluster exercises ubuntu24 manager and a windows_2022 worker
+// TestFIPSCluster exercises an ubuntu_22.04_fips manager and a windows_2022 worker
 // with MCR stable-29.2.1/fips and MKE 3.9.2. Validates that the Windows
 // installer correctly resolves a versioned FIPS artifact from the channel
 // index rather than attempting the non-existent docker-latest+fips.zip.
@@ -238,7 +238,7 @@ func TestFIPSCluster(t *testing.T) {
 		MSRVersion:      "3.1.18",
 		SSHKeyAlgorithm: "rsa",
 		Nodegroups: map[string]interface{}{
-			"MngrUbuntu24": test.Platforms["Ubuntu24"].GetManager(),
+			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
 			"WrkWin2022":   test.Platforms["Windows2022"].GetWorker(),
 		},
 	})
