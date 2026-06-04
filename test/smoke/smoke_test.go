@@ -225,3 +225,21 @@ func TestWindowsCluster(t *testing.T) {
 	})
 }
 
+// TestFIPSCluster exercises an ubuntu_22.04_fips manager and a windows_2022 worker
+// with MCR stable-29.2.1/fips and MKE 3.9.2. Validates that the Windows
+// installer correctly resolves a versioned FIPS artifact from the channel
+// index rather than attempting the non-existent docker-latest+fips.zip.
+// Uses RSA keypair (required for Windows password retrieval).
+func TestFIPSCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		Name:            "fips",
+		MCRChannel:      "stable-29.2.1/fips",
+		MKEVersion:      "3.9.2",
+		MSRVersion:      "3.1.18",
+		SSHKeyAlgorithm: "rsa",
+		Nodegroups: map[string]interface{}{
+			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
+			"WrkWin2025":   test.Platforms["Windows2025"].GetWorker(),
+		},
+	})
+}
