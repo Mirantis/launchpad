@@ -239,7 +239,7 @@ func TestFIPSCluster(t *testing.T) {
 		SSHKeyAlgorithm: "rsa",
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
-			"WrkWin2022":   test.Platforms["Windows2022"].GetWorker(),
+			"WrkWin2025":   test.Platforms["Windows2025"].GetWorker(),
 		},
 	})
 }
