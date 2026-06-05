@@ -26,14 +26,14 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'smoke-modern')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
       - name: Run modern smoke test
@@ -50,14 +50,14 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'smoke-legacy')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
       - name: Run legacy smoke test
@@ -74,14 +74,14 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'smoke-windows')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
       - name: Run windows smoke test
@@ -115,14 +115,14 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'smoke-upgrade')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v4
         with:
           terraform_wrapper: false
       - name: Run upgrade smoke test
