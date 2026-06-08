@@ -52,6 +52,10 @@ functional-test:
 integration-test:
 	go test -v ./test/integration/... -timeout 20m
 
+.PHONY: smoke-cutting-edge
+smoke-cutting-edge:
+	go test -count=1 -v ./test/smoke/... -run TestCuttingEdgeCluster -timeout 50m
+
 .PHONY: smoke-modern
 smoke-modern:
 	go test -count=1 -v ./test/smoke/... -run TestModernCluster -timeout 50m

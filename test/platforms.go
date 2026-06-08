@@ -117,6 +117,20 @@ var Platforms = map[string]Platform{
 		Public:     true,
 		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
 	},
+	"Rocky10": {
+		Name:       "rocky_10",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+	},
+	"Rhel10": {
+		Name:       "rhel_10",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+	},
 	"Windows2019": {
 		Name:       "windows_2019",
 		Count:      1,
