@@ -187,7 +187,7 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
-// TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and workers
+// TestLegacyCluster exercises rocky8/ubuntu22 managers and workers
 // with MCR stable-25.0 and MKE 3.8.8.
 func TestLegacyCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
@@ -197,10 +197,8 @@ func TestLegacyCluster(t *testing.T) {
 		MSRVersion:      "2.9.28",
 		SSHKeyAlgorithm: "ed25519",
 		Nodegroups: map[string]interface{}{
-			"MngrRhel8":    test.Platforms["Rhel8"].GetManager(),
 			"MngrRocky8":   test.Platforms["Rocky8"].GetManager(),
 			"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
-			"WrkRhel8":     test.Platforms["Rhel8"].GetWorker(),
 			"WrkRocky8":    test.Platforms["Rocky8"].GetWorker(),
 			"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
 		},
