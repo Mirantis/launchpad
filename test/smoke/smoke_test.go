@@ -187,6 +187,29 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
+// TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu24 managers and workers
+// with sles15 as an additional worker, using the latest MCR and MKE versions.
+// Requires terraform-mirantis-modules/terraform-mirantis-provision-aws PR #22 (rhel_10/rocky_10
+// platform keys) to be merged and the module version bumped before this test can run.
+func TestCuttingEdgeCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		Name:            "cutting-edge",
+		MCRChannel:      "stable-29.4",
+		MKEVersion:      "3.9.2",
+		MSRVersion:      "3.1.18",
+		SSHKeyAlgorithm: "ed25519",
+		Nodegroups: map[string]interface{}{
+			"MngrRhel10":   test.Platforms["Rhel10"].GetManager(),
+			"MngrRocky10":  test.Platforms["Rocky10"].GetManager(),
+			"MngrUbuntu24": test.Platforms["Ubuntu24"].GetManager(),
+			"WrkRhel10":    test.Platforms["Rhel10"].GetWorker(),
+			"WrkRocky10":   test.Platforms["Rocky10"].GetWorker(),
+			"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
+			"WrkUbuntu24":  test.Platforms["Ubuntu24"].GetWorker(),
+		},
+	})
+}
+
 // TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and workers
 // with MCR stable-25.0 and MKE 3.8.8.
 func TestLegacyCluster(t *testing.T) {
