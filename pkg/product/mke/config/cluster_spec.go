@@ -176,6 +176,10 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if err := unmarshal(specAlias); err != nil {
 		return err
 	}
+	if c.MCR.Channel == "" {
+		return fmt.Errorf("%w: missing spec.mcr.channel — the mcr block is required; set a channel (e.g. channel: stable-29.4)", errInvalidConfig)
+	}
+
 
 	if c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
 		if specAlias.MSR == nil {

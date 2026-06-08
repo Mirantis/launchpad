@@ -187,8 +187,9 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
-// TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and workers
-// with MCR stable-25.0 and MKE 3.8.8.
+// TestLegacyCluster exercises rhel8/ubuntu22 managers and workers
+// with MCR stable-25.0 and MKE 3.8.8. rocky8 was dropped: AMI unavailable in us-east-1
+// (owner 792107900819 no longer publishes Rocky-8-EC2-Base-8.*.x86_64 there).
 func TestLegacyCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		Name:            "legacy",
@@ -198,10 +199,8 @@ func TestLegacyCluster(t *testing.T) {
 		SSHKeyAlgorithm: "ed25519",
 		Nodegroups: map[string]interface{}{
 			"MngrRhel8":    test.Platforms["Rhel8"].GetManager(),
-			"MngrRocky8":   test.Platforms["Rocky8"].GetManager(),
 			"MngrUbuntu22": test.Platforms["Ubuntu22"].GetManager(),
 			"WrkRhel8":     test.Platforms["Rhel8"].GetWorker(),
-			"WrkRocky8":    test.Platforms["Rocky8"].GetWorker(),
 			"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
 		},
 	})
