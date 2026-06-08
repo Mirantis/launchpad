@@ -192,7 +192,7 @@ func TestModernCluster(t *testing.T) {
 }
 
 // TestLegacyCluster exercises rocky8/ubuntu22 managers and workers
-// with MCR stable-25.0 and MKE 3.8.8.
+// with MCR stable-25.0 and MKE 3.8.8. rhel8 was dropped: AMI unavailable in us-east-1.
 func TestLegacyCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		Name:            "legacy",
