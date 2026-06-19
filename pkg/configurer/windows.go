@@ -78,7 +78,7 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 		}
 	}()
 
-	installCommand := fmt.Sprintf("set DOWNLOAD_URL=%s && set CHANNEL=%s && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose", engineConfig.RepoURL, engineConfig.Channel, ps.DoubleQuote(installer))
+	installCommand := fmt.Sprintf(`set "DOWNLOAD_URL=%s" && set "CHANNEL=%s" && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose`, engineConfig.RepoURL, engineConfig.Channel, ps.DoubleQuote(installer))
 
 	log.Infof("%s: running installer", h)
 
