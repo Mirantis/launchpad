@@ -68,6 +68,27 @@ func (f Flags) GetValue(s string) string {
 	return FlagValue(fl)
 }
 
+// GetValues returns the value parts of every flag matching the prefix, such as
+// ["10.0.0.0/8", "192.168.0.0/16"] for a repeated flag like
+// "--default-addr-pool=10.0.0.0/8 --default-addr-pool=192.168.0.0/16". Returns
+// nil when no flag matches.
+func (f Flags) GetValues(s string) []string {
+	var flag string
+	sepidx := strings.IndexAny(s, "= ")
+	if sepidx < 0 {
+		flag = s
+	} else {
+		flag = s[:sepidx]
+	}
+	var values []string
+	for _, v := range f {
+		if v == s || strings.HasPrefix(v, flag+"=") || strings.HasPrefix(v, flag+" ") {
+			values = append(values, FlagValue(v))
+		}
+	}
+	return values
+}
+
 // Delete removes a matching flag from the list.
 func (f *Flags) Delete(s string) {
 	idx := f.Index(s)

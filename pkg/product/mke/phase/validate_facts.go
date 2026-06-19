@@ -219,29 +219,33 @@ func (p *ValidateFacts) validatePodCIDR() error {
 		return nil
 	}
 
-	swarmPoolStr := p.Config.Spec.MCR.SwarmInstallFlags.GetValue("--default-addr-pool")
-	if swarmPoolStr == "" {
-		swarmPoolStr = swarmDefaultAddrPool
-	}
-
 	_, podNet, err := net.ParseCIDR(podCIDRStr)
 	if err != nil {
 		return fmt.Errorf("%w: cannot parse --pod-cidr %q: %w", errInvalidPodCIDR, podCIDRStr, err)
 	}
 
-	_, swarmNet, err := net.ParseCIDR(swarmPoolStr)
-	if err != nil {
-		return fmt.Errorf("%w: cannot parse Swarm address pool %q: %w", errInvalidPodCIDR, swarmPoolStr, err)
+	// docker swarm init accepts --default-addr-pool repeated, so check every
+	// pool. Fall back to the compiled-in default when none is configured.
+	swarmPools := p.Config.Spec.MCR.SwarmInstallFlags.GetValues("--default-addr-pool")
+	if len(swarmPools) == 0 {
+		swarmPools = []string{swarmDefaultAddrPool}
 	}
 
-	if swarmNet.Contains(podNet.IP) || podNet.Contains(swarmNet.IP) {
-		return fmt.Errorf(
-			"%w: --pod-cidr %s overlaps with the Swarm overlay address pool %s; "+
-				"choose a non-overlapping range or set mcr.swarmInstallFlags --default-addr-pool to a non-conflicting pool",
-			errInvalidPodCIDR, podCIDRStr, swarmPoolStr,
-		)
+	for _, swarmPoolStr := range swarmPools {
+		_, swarmNet, err := net.ParseCIDR(swarmPoolStr)
+		if err != nil {
+			return fmt.Errorf("%w: cannot parse Swarm address pool %q: %w", errInvalidPodCIDR, swarmPoolStr, err)
+		}
+
+		if swarmNet.Contains(podNet.IP) || podNet.Contains(swarmNet.IP) {
+			return fmt.Errorf(
+				"%w: --pod-cidr %s overlaps with the Swarm overlay address pool %s; "+
+					"choose a non-overlapping range or set mcr.swarmInstallFlags --default-addr-pool to a non-conflicting pool",
+				errInvalidPodCIDR, podCIDRStr, swarmPoolStr,
+			)
+		}
 	}
 
-	log.Debugf("pod CIDR %s does not overlap with Swarm pool %s", podCIDRStr, swarmPoolStr)
+	log.Debugf("pod CIDR %s does not overlap with any Swarm pool %v", podCIDRStr, swarmPools)
 	return nil
 }
