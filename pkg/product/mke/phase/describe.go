@@ -103,8 +103,8 @@ func (p *Describe) hostReport() {
 			if h.Metadata.MCRVersion != "" {
 				mcrV = h.Metadata.MCRVersion
 			}
-			if h.OSVersion.ID != "" {
-				hostOS = fmt.Sprintf("%s/%s", h.OSVersion.ID, h.OSVersion.Version)
+			if h.OSRelease != nil && h.OSRelease.ID != "" {
+				hostOS = fmt.Sprintf("%s/%s", h.OSRelease.ID, h.OSRelease.Version)
 			}
 			if h.Metadata.InternalAddress != "" {
 				internalAddr = h.Metadata.InternalAddress

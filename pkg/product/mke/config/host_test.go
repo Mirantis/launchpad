@@ -3,14 +3,16 @@ package config
 import (
 	"testing"
 
-	"github.com/k0sproject/rig"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/protocol/ssh"
+	"github.com/k0sproject/rig/v2/protocol/winrm"
 	"github.com/stretchr/testify/require"
 )
 
 func TestHostSwarmAddress(t *testing.T) {
 	h := Host{
-		Connection: rig.Connection{
-			SSH: &rig.SSH{
+		CompositeConfig: rig.CompositeConfig{
+			SSH: &ssh.Config{
 				Address: "1.2.3.4",
 			},
 		},
@@ -22,8 +24,8 @@ func TestHostSwarmAddress(t *testing.T) {
 	require.Equal(t, "1.2.3.4:2377", h.SwarmAddress())
 
 	h = Host{
-		Connection: rig.Connection{
-			WinRM: &rig.WinRM{
+		CompositeConfig: rig.CompositeConfig{
+			WinRM: &winrm.Config{
 				Address: "10.0.0.1",
 			},
 		},
@@ -38,8 +40,8 @@ func TestHostSwarmAddress(t *testing.T) {
 func TestHostSwarmAddressOverride(t *testing.T) {
 	// When SwarmAddressOverride is set it takes precedence over InternalAddress.
 	h := Host{
-		Connection: rig.Connection{
-			SSH: &rig.SSH{Address: "172.19.121.30"},
+		CompositeConfig: rig.CompositeConfig{
+			SSH: &ssh.Config{Address: "172.19.121.30"},
 		},
 		SwarmAddressOverride: "172.19.121.30",
 		Metadata: &HostMetadata{
@@ -52,8 +54,8 @@ func TestHostSwarmAddressOverride(t *testing.T) {
 func TestHostSwarmAddressOverrideEmpty(t *testing.T) {
 	// An empty SwarmAddressOverride falls back to InternalAddress.
 	h := Host{
-		Connection: rig.Connection{
-			SSH: &rig.SSH{Address: "172.19.121.30"},
+		CompositeConfig: rig.CompositeConfig{
+			SSH: &ssh.Config{Address: "172.19.121.30"},
 		},
 		SwarmAddressOverride: "",
 		Metadata: &HostMetadata{
@@ -65,8 +67,8 @@ func TestHostSwarmAddressOverrideEmpty(t *testing.T) {
 
 func TestHostAddress(t *testing.T) {
 	h := Host{
-		Connection: rig.Connection{
-			SSH: &rig.SSH{
+		CompositeConfig: rig.CompositeConfig{
+			SSH: &ssh.Config{
 				Address: "1.2.3.4",
 			},
 		},

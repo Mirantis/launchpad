@@ -7,10 +7,10 @@ import (
 	"path"
 	"path/filepath"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/byteutil"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -92,7 +92,7 @@ func (p *LoadImages) Run() error {
 			log.Debugf("%s: uploading image %d/%d", h, idx+1, len(h.Metadata.ImagesToUpload))
 
 			base := path.Base(f)
-			df := h.Configurer.JoinPath(h.Configurer.Pwd(h), base)
+			df := h.FS().Join(h.Configurer.Pwd(h), base)
 			err := h.WriteFileLarge(f, df, fs.FileMode(0o640))
 			if err != nil {
 				return fmt.Errorf("failed to write file %s: %w", f, err)

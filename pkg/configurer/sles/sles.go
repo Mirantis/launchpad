@@ -8,18 +8,15 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
-	"github.com/k0sproject/rig/os"
-	"github.com/k0sproject/rig/os/linux"
-	"github.com/k0sproject/rig/os/registry"
+	rigos "github.com/k0sproject/rig/v2/os"
+	"github.com/k0sproject/rig/v2/sh"
 	log "github.com/sirupsen/logrus"
 )
 
 func init() {
-	registry.RegisterOSModule(
-		func(os rig.OSVersion) bool {
-			return os.ID == "sles"
+	configurer.RegisterOSModule(
+		func(r *rigos.Release) bool {
+			return r.ID == "sles"
 		},
 		func() any {
 			return Configurer{}
@@ -32,15 +29,13 @@ const (
 	ZypperRepoAlias       = "mirantis"
 )
 
-// Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
-// might be on OS version specific implementation such as for Bionic.
+// Configurer is a generic SLES level configurer implementation.
 type Configurer struct {
-	linux.SLES
 	configurer.LinuxConfigurer
 }
 
 // PrepareHost prepares the machine host by installing the needed base packages, and fixing any container issues.
-func (c Configurer) PrepareHost(h os.Host) error {
+func (c Configurer) PrepareHost(h configurer.Host) error {
 	if err := c.InstallPackage(h, "curl", "socat"); err != nil {
 		return fmt.Errorf("failed to install base packages: %w", err)
 	}
@@ -54,7 +49,7 @@ func (c Configurer) PrepareHost(h os.Host) error {
 	log.Debugf("%s: checking for Docker-CE conflict", h)
 	if out, err := h.ExecOutput("zypper search --type=package --installed-only docker"); err == nil && !strings.Contains(out, ZypperPackageNotFound) && !strings.Contains(out, "docker-ee") {
 		log.Warnf("%s: detected Docker-CE, removing from system", h)
-		if err := h.Exec("zypper remove -y --clean-deps docker", exec.Sudo(h)); err != nil {
+		if err := c.RemovePackage(h, "docker"); err != nil {
 			return fmt.Errorf("could not remove existing docker-ce installation: %w", err)
 		}
 	}
@@ -63,7 +58,7 @@ func (c Configurer) PrepareHost(h os.Host) error {
 }
 
 // InstallMCR install Docker EE engine on Linux.
-func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+func (c Configurer) InstallMCR(h configurer.Host, engineConfig commonconfig.MCRConfig) error {
 	ver, verErr := configurer.ResolveLinux(h)
 	if verErr != nil {
 		return fmt.Errorf("could not discover Linux version information")
@@ -76,15 +71,15 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	if out, err := h.ExecOutput("zypper repos"); err != nil {
 		return fmt.Errorf("%s: could not list zypper repos", h)
 	} else if strings.Contains(out, ZypperRepoAlias) {
-		if err := h.Exec(fmt.Sprintf("zypper removerepo %s", ZypperRepoAlias), exec.Sudo(h)); err != nil {
+		if err := h.Sudo().Exec(sh.Command("zypper", "removerepo", ZypperRepoAlias)); err != nil {
 			return errors.Join(fmt.Errorf("failed to remove existing zypper MCR repo: %s", ZypperRepoAlias), err)
 		}
 	}
 	log.Debugf("%s: sles MCR GPG key import %s", h, zypperGpgURL)
-	if err := h.Exec(fmt.Sprintf("sudo rpm --import %s", zypperGpgURL), exec.Sudo(h)); err != nil {
+	if err := h.Sudo().Exec(sh.Command("rpm", "--import", zypperGpgURL)); err != nil {
 		return errors.Join(fmt.Errorf("failed to add zypper GPG key for MCR"), err)
 	}
-	if err := h.Exec(fmt.Sprintf("zypper addrepo --refresh '%s' mirantis", zypperRepoURL), exec.Sudo(h)); err != nil {
+	if err := h.Sudo().Exec(sh.Command("zypper", "addrepo", "--refresh", zypperRepoURL, "mirantis")); err != nil {
 		return errors.Join(fmt.Errorf("failed to add zypper MCR repo: %s", zypperRepoURL), err)
 	}
 
@@ -104,7 +99,7 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 }
 
 // UninstallMCR uninstalls docker-ee engine.
-func (c Configurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+func (c Configurer) UninstallMCR(h configurer.Host, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
@@ -122,8 +117,8 @@ func (c Configurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig)
 			return fmt.Errorf("stop containerd: %w", err)
 		}
 
-		if err := h.Exec("zypper -n remove -y --clean-deps docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
-			return fmt.Errorf("remove docker-ee zypper package: %w", err)
+		if err := c.RemovePackage(h, "docker-ee", "docker-ee-cli"); err != nil {
+			return fmt.Errorf("remove docker-ee package: %w", err)
 		}
 	}
 

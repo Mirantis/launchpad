@@ -9,10 +9,10 @@ import (
 	"github.com/Mirantis/launchpad/pkg/analytics"
 	"github.com/Mirantis/launchpad/pkg/constant"
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
+	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/product/mke/phase"
 	"github.com/Mirantis/launchpad/version"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/mitchellh/go-homedir"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -64,7 +64,7 @@ var (
 
 	confirmFlag = &cli.BoolFlag{
 		Name:  "confirm",
-		Usage: "Ask confirmation for all commands",
+		Usage: "Ask confirmation before running each command on a host",
 		Value: false,
 	}
 
@@ -122,7 +122,6 @@ func initLogger(ctx *cli.Context) error {
 
 	// stdout hook on by default of course.
 	log.AddHook(mcclog.NewStdoutHook())
-	rig.SetLogger(log.StandardLogger())
 
 	return nil
 }
@@ -159,8 +158,8 @@ func upgradeCheckResult(ctx *cli.Context) error {
 }
 
 func initExec(ctx *cli.Context) error {
-	exec.Confirm = ctx.Bool("confirm")
-	exec.DisableRedact = ctx.Bool("disable-redact")
+	cmd.DisableRedact = ctx.Bool("disable-redact")
+	mkeconfig.ConfirmCommands = ctx.Bool("confirm")
 	return nil
 }
 

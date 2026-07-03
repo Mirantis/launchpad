@@ -9,14 +9,14 @@ import (
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/cmdbuffer"
-	"github.com/k0sproject/rig/exec"
+	rigcmd "github.com/k0sproject/rig/v2/cmd"
 )
 
 // BootstrapOptions configure options for the Bootstrap.
 type BootstrapOptions struct {
-	OperationFlags  commonconfig.Flags // OPTIONAL: flags to pass to the bootstrapper command
-	CleanupDisabled bool               // OPTIONAL: if true, then the bootstrapper container will not be removed
-	ExecOptions     []exec.Option      // OPTIONAL: additional rig exec options to pass down to rig
+	OperationFlags  commonconfig.Flags  // OPTIONAL: flags to pass to the bootstrapper command
+	CleanupDisabled bool                // OPTIONAL: if true, then the bootstrapper container will not be removed
+	ExecOptions     []rigcmd.ExecOption // OPTIONAL: additional rig exec options to pass down to rig
 }
 
 // Bootstrap a leader host using the MKE bootsrapper as docker run, returning output.

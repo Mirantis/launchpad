@@ -1,6 +1,7 @@
 package phase
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -8,15 +9,15 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
 type connectable interface {
-	Connect() error
+	Connect(context.Context) error
 	String() string
-	Exec(cmd string, opts ...exec.Option) error
+	Exec(cmd string, opts ...cmd.ExecOption) error
 }
 
 // Connect connects to each of the hosts.
@@ -82,7 +83,7 @@ const retries = 60
 func (p *Connect) connectHost(host connectable) error {
 	err := retry.Do(
 		func() error {
-			if err := host.Connect(); err != nil {
+			if err := host.Connect(context.Background()); err != nil {
 				return fmt.Errorf("connect: %w", err)
 			}
 			return nil
@@ -94,7 +95,7 @@ func (p *Connect) connectHost(host connectable) error {
 		),
 		retry.RetryIf(
 			func(err error) bool {
-				return !errors.Is(err, rig.ErrCantConnect)
+				return !errors.Is(err, rig.ErrNonRetryable)
 			},
 		),
 		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),

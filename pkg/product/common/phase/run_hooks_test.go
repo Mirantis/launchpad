@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,11 +27,11 @@ func (t *testhost) String() string {
 	return "foo"
 }
 
-func (t *testhost) Exec(cmd string, opts ...exec.Option) error {
+func (t *testhost) Exec(command string, opts ...cmd.ExecOption) error {
 	return nil
 }
 
-func (t *testhost) ExecOutput(cmd string, opts ...exec.Option) (string, error) {
+func (t *testhost) ExecOutput(command string, opts ...cmd.ExecOption) (string, error) {
 	return "", nil
 }
 

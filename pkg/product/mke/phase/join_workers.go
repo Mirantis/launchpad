@@ -1,13 +1,14 @@
 package phase
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	retry "github.com/avast/retry-go"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,7 +36,7 @@ func (p *JoinWorkers) Run() error {
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --advertise-addr=%s --token %s %s", h.SwarmAddress(), p.Config.Spec.MCR.Metadata.WorkerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as worker", h)
-		err := h.Exec(joinCmd, exec.RedactString(p.Config.Spec.MCR.Metadata.WorkerJoinToken))
+		err := h.Exec(joinCmd, cmd.Redact(p.Config.Spec.MCR.Metadata.WorkerJoinToken))
 		if err != nil {
 			return fmt.Errorf("failed to join worker %s node to swarm: %w", h, err)
 		}
@@ -49,7 +50,7 @@ func (p *JoinWorkers) Run() error {
 			err = retry.Do(
 				func() error {
 					h.Disconnect()
-					err = h.Connect()
+					err = h.Connect(context.Background())
 					if err != nil {
 						return fmt.Errorf("error reconnecting host %s: %w", h, err)
 					}

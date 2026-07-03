@@ -1,21 +1,23 @@
 package configurer
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"path"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
-	escape "al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/constant"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
-	"github.com/k0sproject/rig/os"
+	"github.com/k0sproject/rig/v2/cmd"
+	rigos "github.com/k0sproject/rig/v2/os"
+	"github.com/k0sproject/rig/v2/remotefs"
+	"github.com/k0sproject/rig/v2/sh"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,8 +32,110 @@ var ErrLinuxMCRInstall = errors.New("failed to install MCR on linux")
 
 // LinuxConfigurer is a generic linux host configurer.
 type LinuxConfigurer struct {
-	riglinux os.Linux
 	DockerConfigurer
+}
+
+// Pwd returns the current working directory of the session.
+func (c LinuxConfigurer) Pwd(h Host) string {
+	pwd, err := h.ExecOutput("pwd 2> /dev/null")
+	if err != nil {
+		return ""
+	}
+	return pwd
+}
+
+// IsContainer returns true if the host is actually a container.
+func (c LinuxConfigurer) IsContainer(h Host) bool {
+	return h.Exec("grep 'container=docker' /proc/1/environ 2> /dev/null") == nil
+}
+
+// FixContainer makes a container work like a real host.
+func (c LinuxConfigurer) FixContainer(h Host) error {
+	if err := h.Sudo().Exec("mount --make-rshared / 2> /dev/null"); err != nil {
+		return fmt.Errorf("failed to mount / as rshared: %w", err)
+	}
+	return nil
+}
+
+// SELinuxEnabled is true when SELinux is enabled.
+func (c LinuxConfigurer) SELinuxEnabled(h Host) bool {
+	return h.Sudo().Exec("getenforce | grep -iq enforcing 2> /dev/null") == nil
+}
+
+// Reboot reboots the host.
+func (c LinuxConfigurer) Reboot(h Host) error {
+	if err := h.Sudo().Exec("shutdown --reboot 0 2> /dev/null"); err != nil {
+		return fmt.Errorf("failed to reboot: %w", err)
+	}
+	return nil
+}
+
+// InstallPackage installs the given packages using the host's package manager.
+func (c LinuxConfigurer) InstallPackage(h Host, packages ...string) error {
+	pm := h.Sudo().PackageManager()
+	if err := pm.Update(context.Background()); err != nil {
+		return fmt.Errorf("failed to update package sources: %w", err)
+	}
+	if err := pm.Install(context.Background(), packages...); err != nil {
+		return fmt.Errorf("failed to install packages: %w", err)
+	}
+	return nil
+}
+
+// RemovePackage removes the given packages using the host's package manager.
+func (c LinuxConfigurer) RemovePackage(h Host, packages ...string) error {
+	if err := h.Sudo().PackageManager().Remove(context.Background(), packages...); err != nil {
+		return fmt.Errorf("failed to remove packages: %w", err)
+	}
+	return nil
+}
+
+// StartService starts a service on the host.
+func (c LinuxConfigurer) StartService(h Host, name string) error {
+	svc, err := h.Sudo().Service(name)
+	if err != nil {
+		return fmt.Errorf("failed to resolve service %s: %w", name, err)
+	}
+	if err := svc.Start(context.Background()); err != nil {
+		return fmt.Errorf("failed to start service %s: %w", name, err)
+	}
+	return nil
+}
+
+// StopService stops a service on the host.
+func (c LinuxConfigurer) StopService(h Host, name string) error {
+	svc, err := h.Sudo().Service(name)
+	if err != nil {
+		return fmt.Errorf("failed to resolve service %s: %w", name, err)
+	}
+	if err := svc.Stop(context.Background()); err != nil {
+		return fmt.Errorf("failed to stop service %s: %w", name, err)
+	}
+	return nil
+}
+
+// RestartService restarts a service on the host.
+func (c LinuxConfigurer) RestartService(h Host, name string) error {
+	svc, err := h.Sudo().Service(name)
+	if err != nil {
+		return fmt.Errorf("failed to resolve service %s: %w", name, err)
+	}
+	if err := svc.Restart(context.Background()); err != nil {
+		return fmt.Errorf("failed to restart service %s: %w", name, err)
+	}
+	return nil
+}
+
+// EnableService enables a service on the host.
+func (c LinuxConfigurer) EnableService(h Host, name string) error {
+	svc, err := h.Sudo().Service(name)
+	if err != nil {
+		return fmt.Errorf("failed to resolve service %s: %w", name, err)
+	}
+	if err := svc.Enable(context.Background()); err != nil {
+		return fmt.Errorf("failed to enable service %s: %w", name, err)
+	}
+	return nil
 }
 
 // MCRConfigPath returns the configuration file path.
@@ -39,8 +143,8 @@ func (c LinuxConfigurer) MCRConfigPath() string {
 	return "/etc/docker/daemon.json"
 }
 
-// Install MCR License.
-func (c LinuxConfigurer) InstallMCRLicense(h os.Host, lic string) error {
+// InstallMCRLicense installs the MCR license file.
+func (c LinuxConfigurer) InstallMCRLicense(h Host, lic string) error {
 	// Use default docker root dir if not specified in docker info
 	dockerRootDir := constant.LinuxDefaultDockerRoot
 
@@ -50,18 +154,18 @@ func (c LinuxConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 	}
 
 	licPath := filepath.Join(dockerRootDir, LinuxDockerLicenseFile)
-	if err := c.riglinux.WriteFile(h, licPath, lic, "400"); err != nil {
+	if err := h.Sudo().FS().WriteFile(licPath, []byte(lic), fs.FileMode(0o400)); err != nil {
 		return fmt.Errorf("license write (linux); %w", err)
 	}
 	return nil
 }
 
-// InstallMCR install and Docker EE engine on Linux, assuming that you already have the repos setup.
-func (c LinuxConfigurer) EnableMCR(h os.Host, _ commonconfig.MCRConfig) error {
-	if err := c.riglinux.EnableService(h, "docker"); err != nil {
+// EnableMCR enables and starts the Docker EE engine on Linux, assuming that you already have the repos setup.
+func (c LinuxConfigurer) EnableMCR(h Host, _ commonconfig.MCRConfig) error {
+	if err := c.EnableService(h, "docker"); err != nil {
 		return fmt.Errorf("init manager could not enable docker-ee, %w", err)
 	}
-	if err := c.riglinux.StartService(h, "docker"); err != nil {
+	if err := c.StartService(h, "docker"); err != nil {
 		return fmt.Errorf("init manager could not start docker-ee, %w", err)
 	}
 
@@ -69,16 +173,16 @@ func (c LinuxConfigurer) EnableMCR(h os.Host, _ commonconfig.MCRConfig) error {
 }
 
 // RestartMCR restarts Docker EE engine.
-func (c LinuxConfigurer) RestartMCR(h os.Host) error {
-	if err := c.riglinux.RestartService(h, "docker"); err != nil {
+func (c LinuxConfigurer) RestartMCR(h Host) error {
+	if err := c.RestartService(h, "docker"); err != nil {
 		return fmt.Errorf("restart docker service: %w", err)
 	}
 	return nil
 }
 
 // ResolveInternalIP resolves internal ip from private interface.
-func (c LinuxConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP string) (string, error) {
-	output, err := h.ExecOutput(fmt.Sprintf("%s ip -o addr show dev %s scope global", SbinPath, privateInterface))
+func (c LinuxConfigurer) ResolveInternalIP(h Host, privateInterface, publicIP string) (string, error) {
+	output, err := h.ExecOutput(SbinPath + " " + sh.Command("ip", "-o", "addr", "show", "dev", privateInterface, "scope", "global"))
 	if err != nil {
 		return "", fmt.Errorf("%w: failed to find private interface with name %s: %s. Make sure you've set correct 'privateInterface' for the host in config", err, privateInterface, output)
 	}
@@ -118,7 +222,7 @@ func (c LinuxConfigurer) DockerCommandf(template string, args ...any) string {
 }
 
 // ValidateLocalhost returns an error if "localhost" is not a local address.
-func (c LinuxConfigurer) ValidateLocalhost(h os.Host) error {
+func (c LinuxConfigurer) ValidateLocalhost(h Host) error {
 	if err := h.Exec("ping -c 1 -w 1 localhost"); err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host: %w", err)
 	}
@@ -126,12 +230,12 @@ func (c LinuxConfigurer) ValidateLocalhost(h os.Host) error {
 }
 
 // CheckPrivilege returns an error if the user does not have passwordless sudo enabled.
-func (c LinuxConfigurer) CheckPrivilege(_ os.Host) error {
+func (c LinuxConfigurer) CheckPrivilege(_ Host) error {
 	return nil
 }
 
 // LocalAddresses returns a list of local addresses.
-func (c LinuxConfigurer) LocalAddresses(h os.Host) ([]string, error) {
+func (c LinuxConfigurer) LocalAddresses(h Host) ([]string, error) {
 	output, err := h.ExecOutput("hostname --all-ip-addresses")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get local addresses: %w", err)
@@ -146,7 +250,7 @@ type reconnectable interface {
 }
 
 // AuthorizeDocker adds the current user to the docker group.
-func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
+func (c LinuxConfigurer) AuthorizeDocker(h Host) error {
 	if h.Exec(`[ "$(id -u)" = 0 ]`) == nil {
 		log.Debugf("%s: current user is uid 0 - no need to authorize", h)
 		return nil
@@ -162,7 +266,7 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return nil //nolint:nilerr
 	}
 
-	if err := h.Exec("usermod -aG docker $USER", exec.Sudo(h)); err != nil {
+	if err := h.Sudo().Exec("usermod -aG docker $USER"); err != nil {
 		return fmt.Errorf("failed to add the current user to the 'docker' group: %w", err)
 	}
 
@@ -183,31 +287,68 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 }
 
 // AuthenticateDocker performs a docker login on the host.
-func (c LinuxConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
-	if err := h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", escape.Quote(user), imageRepo), exec.Stdin(pass), exec.RedactString(user, pass)); err != nil {
+func (c LinuxConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo string) error {
+	if err := h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", shellescape.Quote(user), imageRepo), cmd.StdinString(pass), cmd.Redact(user), cmd.Redact(pass)); err != nil {
 		return fmt.Errorf("failed to login to the docker registry: %w", err)
 	}
 	return nil
 }
 
+// envKeyRegexp matches valid environment variable names: they must start with a
+// letter or underscore and contain only letters, digits and underscores. This
+// prevents keys with spaces or shell metacharacters from breaking (or being
+// abused via) the /etc/environment and export steps.
+var envKeyRegexp = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
 // UpdateEnvironment updates the hosts's environment variables.
-func (c LinuxConfigurer) UpdateEnvironment(h os.Host, env map[string]string) error {
-	if err := c.riglinux.UpdateEnvironment(h, env); err != nil {
-		return fmt.Errorf("failed updating the env: %w", err)
+func (c LinuxConfigurer) UpdateEnvironment(h Host, env map[string]string) error {
+	fsys := h.Sudo().FS()
+	for k, v := range env {
+		if !envKeyRegexp.MatchString(k) {
+			return fmt.Errorf("invalid environment variable key %q: must match %s", k, envKeyRegexp.String())
+		}
+		if strings.ContainsRune(v, '\n') {
+			return fmt.Errorf("invalid environment variable value for key %q: must not contain newline", k)
+		}
+		patch := remotefs.ReplaceOrAppend(remotefs.ByPrefix(k+"="), fmt.Sprintf("%s=%s", k, v))
+		if err := remotefs.PatchFile(fsys, "/etc/environment", []remotefs.Patch{patch}, remotefs.WithCreate(fs.FileMode(0o644))); err != nil {
+			return fmt.Errorf("failed updating the env: %w", err)
+		}
 	}
+
+	// Export the values into the current session environment using the
+	// in-memory values with proper shell escaping.
+	var export strings.Builder
+	for k, v := range env {
+		fmt.Fprintf(&export, "export %s=%s\n", k, shellescape.Quote(v))
+	}
+	if export.Len() > 0 {
+		if err := h.Sudo().Exec(export.String()); err != nil {
+			return fmt.Errorf("failed to update environment: %w", err)
+		}
+	}
+
 	return c.ConfigureDockerProxy(h, env)
 }
 
 // CleanupEnvironment removes environment variable configuration.
-func (c LinuxConfigurer) CleanupEnvironment(h os.Host, env map[string]string) error {
-	if err := c.riglinux.CleanupEnvironment(h, env); err != nil {
+func (c LinuxConfigurer) CleanupEnvironment(h Host, env map[string]string) error {
+	if len(env) == 0 {
+		return nil
+	}
+	fsys := h.Sudo().FS()
+	patches := make([]remotefs.Patch, 0, len(env))
+	for k := range env {
+		patches = append(patches, remotefs.DeleteMatching(remotefs.ByPrefix(k+"=")))
+	}
+	if err := remotefs.PatchFile(fsys, "/etc/environment", patches, remotefs.WithCreate(fs.FileMode(0o644))); err != nil {
 		return fmt.Errorf("failed cleaning the env: %w", err)
 	}
 	return nil
 }
 
 // ConfigureDockerProxy creates a docker systemd configuration for the proxy environment variables.
-func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) error {
+func (c LinuxConfigurer) ConfigureDockerProxy(h Host, env map[string]string) error {
 	proxyenvs := make(map[string]string)
 
 	for k, v := range env {
@@ -224,17 +365,16 @@ func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) 
 	dir := "/etc/systemd/system/docker.service.d"
 	cfg := path.Join(dir, "http-proxy.conf")
 
-	err := c.riglinux.MkDir(h, dir, exec.Sudo(h))
-	if err != nil {
+	if err := h.Sudo().FS().MkdirAll(dir, fs.FileMode(0o755)); err != nil {
 		return fmt.Errorf("failed to create %s: %w", dir, err)
 	}
 
 	content := "[Service]\n"
 	for k, v := range proxyenvs {
-		content += fmt.Sprintf("Environment=\"%s=%s\"\n", escape.Quote(k), escape.Quote(v))
+		content += fmt.Sprintf("Environment=\"%s=%s\"\n", shellescape.Quote(k), shellescape.Quote(v))
 	}
 
-	if err := c.riglinux.WriteFile(h, cfg, content, "0600"); err != nil {
+	if err := h.Sudo().FS().WriteFile(cfg, []byte(content), fs.FileMode(0o600)); err != nil {
 		return fmt.Errorf("failed to create %s: %w", cfg, err)
 	}
 
@@ -244,7 +384,7 @@ func (c LinuxConfigurer) ConfigureDockerProxy(h os.Host, env map[string]string) 
 var errDetectPrivateInterface = errors.New("failed to detect a private network interface, define the host privateInterface manually")
 
 // ResolvePrivateInterface tries to find a private network interface.
-func (c LinuxConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
+func (c LinuxConfigurer) ResolvePrivateInterface(h Host) (string, error) {
 	output, err := h.ExecOutput(fmt.Sprintf(`%s; (ip route list scope global | grep -P "\b(172|10|192\.168)\.") || (ip route list | grep -m1 default)`, SbinPath))
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errDetectPrivateInterface, err)
@@ -257,23 +397,8 @@ func (c LinuxConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
 	return string(match[1]), nil
 }
 
-// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error.
-func (c LinuxConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
-	log.Debugf("%s: requesting %s", h, url)
-	output, err := h.ExecOutput(fmt.Sprintf(`curl -kso /dev/null -w "%%{http_code}" "%s"`, url))
-	if err != nil {
-		return -1, fmt.Errorf("failed to perform http request: %w", err)
-	}
-	status, err := strconv.Atoi(output)
-	if err != nil {
-		return -1, fmt.Errorf("invalid http response: %w", err)
-	}
-
-	return status, nil
-}
-
 // CleanupLingeringMCR removes left over MCR files after Launchpad reset.
-func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.DockerInfo) {
+func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.DockerInfo) {
 	// Use default docker root dir if not specified in docker info
 	dockerRootDir := constant.LinuxDefaultDockerRoot
 	dockerExecRootDir := constant.LinuxDefaultDockerExecRoot
@@ -285,7 +410,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.
 	}
 
 	// https://docs.docker.com/config/daemon/
-	if !c.riglinux.FileExist(h, dockerDaemonPath) {
+	if !h.Sudo().FS().FileExist(dockerDaemonPath) {
 		// Check if the default Rootless Docker daemon config file exists
 		log.Debugf("%s: attempting to detect Rootless docker installation", h)
 		// Extract the value from the xdgConfigHome environment variable
@@ -299,11 +424,11 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.
 		}
 	}
 
-	dockerDaemonString, err := c.riglinux.ReadFile(h, dockerDaemonPath)
+	dockerDaemonData, err := fs.ReadFile(h.Sudo().FS(), dockerDaemonPath)
 	if err != nil {
 		log.Debugf("%s: couldn't read the Docker Daemon config file %s: %s", h, dockerDaemonPath, err)
 	}
-	dockerConfig, err := c.GetDockerDaemonConfig(dockerDaemonString)
+	dockerConfig, err := c.GetDockerDaemonConfig(string(dockerDaemonData))
 	if err != nil {
 		log.Debugf("%s: failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
 	}
@@ -326,7 +451,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.
 
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
-	if err := h.Exec(fmt.Sprintf("umount %s", execRootNetnsUnmount), exec.Sudo(h)); err != nil {
+	if err := h.Sudo().Exec(fmt.Sprintf("umount %s", execRootNetnsUnmount)); err != nil {
 		log.Debugf("%s: failed to umount %s: %s", h, execRootNetnsUnmount, err)
 	}
 
@@ -343,14 +468,14 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.
 	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.socket")
 }
 
-func (c LinuxConfigurer) attemptPathSudoDelete(h os.Host, path string) {
-	fileInfo, err := c.riglinux.Stat(h, path, exec.Sudo(h))
+func (c LinuxConfigurer) attemptPathSudoDelete(h Host, path string) {
+	fileInfo, err := h.Sudo().FS().Stat(path)
 	if err != nil {
 		log.Debugf("%s: error getting file information for %s: %s", h, path, err)
 		return
 	}
 
-	if !c.riglinux.FileExist(h, path) {
+	if !h.Sudo().FS().FileExist(path) {
 		log.Infof("%s: file %s doesn't exist", h, path)
 		return
 	}
@@ -360,7 +485,7 @@ func (c LinuxConfigurer) attemptPathSudoDelete(h os.Host, path string) {
 		command = fmt.Sprintf("rm -rf %s", path)
 	}
 
-	if err := h.Exec(command, exec.Sudo(h)); err != nil {
+	if err := h.Sudo().Exec(command); err != nil {
 		log.Infof("%s: failed to remove %s: %s", h, path, err)
 		return
 	}
@@ -369,23 +494,11 @@ func (c LinuxConfigurer) attemptPathSudoDelete(h os.Host, path string) {
 
 var errAbort = errors.New("base os detected but version resolving failed")
 
-// ResolveLinux stolen from k0sproject/rig.
-//
-//	We need os-release info in various scenarios, but rig doesn't really expose it.
-func ResolveLinux(h os.Host) (rig.OSVersion, error) {
-	if err := h.Exec("uname | grep -q Linux"); err != nil {
-		return rig.OSVersion{}, fmt.Errorf("not a linux host (%w)", err)
+// ResolveLinux resolves the OS release information for a linux host.
+func ResolveLinux(h Host) (*rigos.Release, error) {
+	release, ok := rigos.ResolveLinux(h)
+	if !ok {
+		return nil, fmt.Errorf("%w: unable to resolve linux OS release", errAbort)
 	}
-
-	output, err := h.ExecOutput("cat /etc/os-release || cat /usr/lib/os-release")
-	if err != nil {
-		// at this point it is known that this is a linux host, so any error from here on should signal the resolver to not try the next
-		return rig.OSVersion{}, fmt.Errorf("%w: unable to read os-release file: %w", errAbort, err)
-	}
-
-	var version rig.OSVersion
-	if err := rig.ParseOSReleaseFile(output, &version); err != nil {
-		return rig.OSVersion{}, errors.Join(errAbort, err)
-	}
-	return version, nil
+	return release, nil
 }

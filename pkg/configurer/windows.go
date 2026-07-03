@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -15,9 +14,9 @@ import (
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
 	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-version"
-	"github.com/k0sproject/rig/exec"
-	"github.com/k0sproject/rig/os"
-	ps "github.com/k0sproject/rig/pkg/powershell"
+	"github.com/k0sproject/rig/v2/cmd"
+	ps "github.com/k0sproject/rig/v2/powershell"
+	"github.com/k0sproject/rig/v2/remotefs"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -28,10 +27,21 @@ const (
 
 // WindowsConfigurer is a generic windows host configurer.
 type WindowsConfigurer struct {
-	os.Windows
-
 	PowerShellVersion *version.Version
 	DockerConfigurer
+}
+
+// Pwd returns the current working directory.
+func (c WindowsConfigurer) Pwd(h Host) string {
+	if pwd, err := h.ExecOutput("echo %cd%"); err == nil {
+		return pwd
+	}
+	return ""
+}
+
+// SELinuxEnabled is always false on windows.
+func (c WindowsConfigurer) SELinuxEnabled(_ Host) bool {
+	return false
 }
 
 // MCRConfigPath returns the configuration file path.
@@ -42,7 +52,7 @@ func (c WindowsConfigurer) MCRConfigPath() string {
 var errRebootRequired = fmt.Errorf("reboot required")
 
 // InstallMCRLicense for license install..
-func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
+func (c WindowsConfigurer) InstallMCRLicense(h Host, lic string) error {
 	// Use default docker root dir if not specified in docker info
 	dockerRootDir := constant.WindowsDefaultDockerRoot
 
@@ -52,14 +62,14 @@ func (c WindowsConfigurer) InstallMCRLicense(h os.Host, lic string) error {
 	}
 
 	licPath := filepath.Join(dockerRootDir, WindowsDockerLicenseFile)
-	if err := c.WriteFile(h, licPath, lic, "400"); err != nil {
+	if err := h.FS().WriteFile(licPath, []byte(lic), fs.FileMode(0o400)); err != nil {
 		return fmt.Errorf("license write; %w", err)
 	}
 	return nil
 }
 
 // InstallMCR install MCR on Windows.
-func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfig) error {
 	version := "latest"
 
 	installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
@@ -70,11 +80,11 @@ func (c WindowsConfigurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRCo
 	pwd := c.Pwd(h)
 	base := path.Base(installerPath)
 	installer := pwd + "\\" + base + ".ps1"
-	if err := h.Upload(installerPath, installer, fs.FileMode(0o640)); err != nil {
+	if err := remotefs.Upload(h.FS(), installerPath, installer, remotefs.WithPermissions(fs.FileMode(0o640))); err != nil {
 		return fmt.Errorf("failed to upload MCR installer: %w", err)
 	}
 	defer func() {
-		if err := c.DeleteFile(h, installer); err != nil {
+		if err := h.FS().Remove(installer); err != nil {
 			log.Warnf("failed to delete MCR installer: %s", err.Error())
 		}
 	}()
@@ -141,7 +151,7 @@ func isExitCode3010(err error) bool {
 // a fallback.
 //
 // TODO: move this fix upstream into the k0sproject/rig Windows configurer.
-func (c WindowsConfigurer) Reboot(h os.Host) error {
+func (c WindowsConfigurer) Reboot(h Host) error {
 	const taskName = "LaunchpadReboot"
 	// The ONSTART trigger means the task will re-fire on the next startup, but
 	// the post-reboot cleanup in InstallMCR deletes it once the host is back up.
@@ -166,7 +176,7 @@ func (c WindowsConfigurer) Reboot(h os.Host) error {
 // UninstallMCR uninstalls docker-ee engine
 // This relies on using the http://get.mirantis.com/install.ps1 script with the '-Uninstall' option, and some cleanup as per
 // https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-docker/configure-docker-daemon#how-to-uninstall-docker
-func (c WindowsConfigurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+func (c WindowsConfigurer) UninstallMCR(h Host, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
@@ -184,11 +194,11 @@ func (c WindowsConfigurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCR
 		pwd := c.Pwd(h)
 		base := path.Base(installerPath)
 		uninstaller := pwd + "\\" + base + ".ps1"
-		if err := h.Upload(installerPath, uninstaller, fs.FileMode(0o640)); err != nil {
+		if err := remotefs.Upload(h.FS(), installerPath, uninstaller, remotefs.WithPermissions(fs.FileMode(0o640))); err != nil {
 			return fmt.Errorf("upload MCR uninstaller: %w", err)
 		}
 		defer func() {
-			if err := c.DeleteFile(h, uninstaller); err != nil {
+			if err := h.FS().Remove(uninstaller); err != nil {
 				log.Warnf("failed to delete MCR uninstaller: %s", err.Error())
 			}
 		}()
@@ -203,7 +213,7 @@ func (c WindowsConfigurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCR
 }
 
 // RestartMCR restarts Docker EE engine.
-func (c WindowsConfigurer) RestartMCR(h os.Host) error {
+func (c WindowsConfigurer) RestartMCR(h Host) error {
 	_ = h.Exec("net stop com.docker.service")
 	_ = h.Exec("net start com.docker.service")
 	err := retry.Do(
@@ -225,7 +235,7 @@ func (c WindowsConfigurer) RestartMCR(h os.Host) error {
 }
 
 // ResolveInternalIP resolves internal ip from private interface.
-func (c WindowsConfigurer) ResolveInternalIP(h os.Host, privateInterface, publicIP string) (string, error) {
+func (c WindowsConfigurer) ResolveInternalIP(h Host, privateInterface, publicIP string) (string, error) {
 	output, err := c.interfaceIP(h, privateInterface)
 	if err != nil {
 		if !strings.HasPrefix(privateInterface, "vEthernet") {
@@ -249,7 +259,7 @@ func (c WindowsConfigurer) ResolveInternalIP(h os.Host, privateInterface, public
 	return publicIP, nil
 }
 
-func (c WindowsConfigurer) interfaceIP(h os.Host, iface string) (string, error) {
+func (c WindowsConfigurer) interfaceIP(h Host, iface string) (string, error) {
 	output, err := h.ExecOutput(ps.Cmd(fmt.Sprintf(`(Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias %s).IPAddress`, ps.SingleQuote(iface))))
 	if err != nil {
 		return "", fmt.Errorf("failed to get IP address for interface %s: %w", iface, err)
@@ -264,7 +274,7 @@ func (c WindowsConfigurer) DockerCommandf(template string, args ...interface{}) 
 }
 
 // ValidateLocalhost returns an error if "localhost" is not local on the host.
-func (c WindowsConfigurer) ValidateLocalhost(h os.Host) error {
+func (c WindowsConfigurer) ValidateLocalhost(h Host) error {
 	err := h.Exec(ps.Cmd(`"$ips=[System.Net.Dns]::GetHostAddresses('localhost'); Get-NetIPAddress -IPAddress $ips"`))
 	if err != nil {
 		return fmt.Errorf("hostname 'localhost' does not resolve to an address local to the host: %w", err)
@@ -273,7 +283,7 @@ func (c WindowsConfigurer) ValidateLocalhost(h os.Host) error {
 }
 
 // LocalAddresses returns a list of local addresses.
-func (c WindowsConfigurer) LocalAddresses(h os.Host) ([]string, error) {
+func (c WindowsConfigurer) LocalAddresses(h Host) ([]string, error) {
 	output, err := h.ExecOutput(ps.Cmd(`(Get-NetIPAddress).IPV4Address`))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get local addresses: %w", err)
@@ -288,7 +298,7 @@ func (c WindowsConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 }
 
 // CheckPrivilege returns an error if the user does not have admin access to the host.
-func (c WindowsConfigurer) CheckPrivilege(h os.Host) error {
+func (c WindowsConfigurer) CheckPrivilege(h Host) error {
 	privCheck := "\"$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent()); if (!$currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { $host.SetShouldExit(1) }\""
 
 	if err := h.Exec(ps.Cmd(privCheck)); err != nil {
@@ -299,32 +309,39 @@ func (c WindowsConfigurer) CheckPrivilege(h os.Host) error {
 }
 
 // AuthenticateDocker performs a docker login on the host.
-func (c WindowsConfigurer) AuthenticateDocker(h os.Host, user, pass, imageRepo string) error {
+func (c WindowsConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	if err := h.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), exec.RedactString(user, pass), exec.AllowWinStderr()); err != nil {
+	if err := h.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), cmd.Redact(user), cmd.Redact(pass), cmd.AllowWinStderr()); err != nil {
 		return fmt.Errorf("failed to login to docker registry: %w", err)
 	}
 	return nil
 }
 
 // UpdateEnvironment updates the hosts's environment variables.
-func (c WindowsConfigurer) UpdateEnvironment(h os.Host, env map[string]string) error {
-	if err := c.Windows.UpdateEnvironment(h, env); err != nil {
-		return fmt.Errorf("failed updating the env: %w", err)
+func (c WindowsConfigurer) UpdateEnvironment(h Host, env map[string]string) error {
+	for k, v := range env {
+		if err := h.Exec(fmt.Sprintf(`setx %s %s`, ps.DoubleQuote(k), ps.DoubleQuote(v))); err != nil {
+			return fmt.Errorf("failed to set environment variable %s: %w", k, err)
+		}
 	}
 	return nil
 }
 
 // CleanupEnvironment removes environment variable configuration.
-func (c WindowsConfigurer) CleanupEnvironment(h os.Host, env map[string]string) error {
-	if err := c.Windows.CleanupEnvironment(h, env); err != nil {
-		return fmt.Errorf("failed cleaning the env: %w", err)
+func (c WindowsConfigurer) CleanupEnvironment(h Host, env map[string]string) error {
+	for k := range env {
+		if err := h.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'User')"`, ps.SingleQuote(k))); err != nil {
+			return fmt.Errorf("failed to remove user environment variable %s: %w", k, err)
+		}
+		if err := h.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')"`, ps.SingleQuote(k))); err != nil {
+			return fmt.Errorf("failed to remove machine environment variable %s: %w", k, err)
+		}
 	}
 	return nil
 }
 
 // ResolvePrivateInterface tries to find a private network interface.
-func (c WindowsConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
+func (c WindowsConfigurer) ResolvePrivateInterface(h Host) (string, error) {
 	output, err := h.ExecOutput(ps.Cmd(`(Get-NetConnectionProfile -NetworkCategory Private | Select-Object -First 1).InterfaceAlias`))
 	if err != nil || output == "" {
 		output, err = h.ExecOutput(ps.Cmd(`(Get-NetConnectionProfile | Select-Object -First 1).InterfaceAlias`))
@@ -335,37 +352,23 @@ func (c WindowsConfigurer) ResolvePrivateInterface(h os.Host) (string, error) {
 	return strings.TrimSpace(output), nil
 }
 
-// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error.
-func (c WindowsConfigurer) HTTPStatus(h os.Host, url string) (int, error) {
-	log.Debugf("%s: requesting %s", h, url)
-	output, err := h.ExecOutput(ps.Cmd(fmt.Sprintf(`[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode`, ps.SingleQuote(url))))
-	if err != nil {
-		return -1, fmt.Errorf("failed to get HTTP status code: %w", err)
-	}
-	status, err := strconv.Atoi(output)
-	if err != nil {
-		return -1, fmt.Errorf("invalid response: %w", err)
-	}
-	return status, nil
-}
-
 // AuthorizeDocker does nothing on windows.
-func (c WindowsConfigurer) AuthorizeDocker(_ os.Host) error {
+func (c WindowsConfigurer) AuthorizeDocker(_ Host) error {
 	return nil
 }
 
 // InstallMKEBasePackages is a no-op on Windows (no base packages to install).
-func (c WindowsConfigurer) InstallMKEBasePackages(_ os.Host) error {
+func (c WindowsConfigurer) InstallMKEBasePackages(_ Host) error {
 	return nil
 }
 
 // PrepareHost prepares the host for MKE install (no-op on Windows).
-func (c WindowsConfigurer) PrepareHost(_ os.Host) error {
+func (c WindowsConfigurer) PrepareHost(_ Host) error {
 	return nil
 }
 
 // CleanupLingeringMCR cleans up lingering MCR configuration files.
-func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfig.DockerInfo) {
+func (c WindowsConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.DockerInfo) {
 	dockerRootDir := constant.WindowsDefaultDockerRoot
 	if dockerInfo.DockerRootDir != "" {
 		dockerRootDir = dockerInfo.DockerRootDir
@@ -394,7 +397,7 @@ func (c WindowsConfigurer) CleanupLingeringMCR(h os.Host, dockerInfo commonconfi
 	c.attemptPathDelete(h, dockerRootDir)
 }
 
-func (c WindowsConfigurer) attemptPathDelete(h os.Host, path string) {
+func (c WindowsConfigurer) attemptPathDelete(h Host, path string) {
 	// Remove a folder using PowerShell command.
 	removeCommand := fmt.Sprintf("powershell Remove-Item -LiteralPath %s -Force -Recurse ", ps.SingleQuote(path))
 

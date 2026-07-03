@@ -6,8 +6,7 @@ import (
 	"fmt"
 
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
-	"github.com/k0sproject/rig/log"
-	"github.com/k0sproject/rig/os"
+	log "github.com/sirupsen/logrus"
 )
 
 type rebootable interface {
@@ -17,7 +16,7 @@ type rebootable interface {
 type DockerConfigurer struct{}
 
 // GetDockerInfo gets docker info from the host.
-func (c DockerConfigurer) GetDockerInfo(h os.Host) (commonconfig.DockerInfo, error) {
+func (c DockerConfigurer) GetDockerInfo(h Host) (commonconfig.DockerInfo, error) {
 	command := "docker info --format \"{{json . }}\""
 	log.Debugf("%s attempting to gather info with `%s`", h, command)
 	info, err := h.ExecOutput(command)

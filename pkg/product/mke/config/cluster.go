@@ -7,7 +7,8 @@ import (
 	"github.com/Mirantis/launchpad/pkg/docker/hub"
 	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	validator "github.com/go-playground/validator/v10"
-	"github.com/k0sproject/rig"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/protocol/ssh"
 )
 
 // ClusterMeta defines cluster metadata.
@@ -85,8 +86,8 @@ func Init(kind string) *ClusterConfig {
 			Hosts: []*Host{
 				{
 					Role: "manager",
-					Connection: rig.Connection{
-						SSH: &rig.SSH{
+					CompositeConfig: rig.CompositeConfig{
+						SSH: &ssh.Config{
 							Address: "10.0.0.1",
 							User:    "root",
 							Port:    22,
@@ -95,8 +96,8 @@ func Init(kind string) *ClusterConfig {
 				},
 				{
 					Role: "worker",
-					Connection: rig.Connection{
-						SSH: &rig.SSH{
+					CompositeConfig: rig.CompositeConfig{
+						SSH: &ssh.Config{
 							Address: "10.0.0.2",
 							User:    "root",
 							Port:    22,
@@ -119,8 +120,8 @@ func Init(kind string) *ClusterConfig {
 		config.Spec.Hosts = append(config.Spec.Hosts,
 			&Host{
 				Role: "msr",
-				Connection: rig.Connection{
-					SSH: &rig.SSH{
+				CompositeConfig: rig.CompositeConfig{
+					SSH: &ssh.Config{
 						Address: "10.0.0.2",
 						User:    "root",
 						Port:    22,

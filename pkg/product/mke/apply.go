@@ -18,7 +18,6 @@ func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bo
 
 	phaseManager.AddPhases(
 		&mke.UpgradeCheck{},
-		&mke.OverrideHostSudo{},
 		&common.Connect{},
 		&mke.DetectOS{},
 		&mke.GatherFacts{},
