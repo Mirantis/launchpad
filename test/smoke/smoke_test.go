@@ -112,7 +112,7 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		"nodegroups":        cfg.Nodegroups,
 		"ssh_key_algorithm": cfg.SSHKeyAlgorithm,
 		"extra_tags": map[string]string{
-			"launchpad-smoke-test": "true",
+			"launchpad-smoke-test":      "true",
 			"launchpad-smoke-test-name": cfg.Name,
 		},
 	}
@@ -193,11 +193,15 @@ func TestModernCluster(t *testing.T) {
 
 // TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu24 managers and workers
 // with sles15 as an additional worker, using the latest MCR and MKE versions.
-// Requires terraform-mirantis-modules/terraform-mirantis-provision-aws PR #22 (rhel_10/rocky_10
-// platform keys) to be merged and the module version bumped before this test can run.
+// The rhel_10/rocky_10 platform keys are available in
+// terraform-mirantis-provision-aws >= v0.1.7 (pinned in examples/terraform/aws-simple).
 func TestCuttingEdgeCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
-		Name:            "cutting-edge",
+		// AWS LB/target-group names are capped at 32 chars: the stack name is
+		// "smoke-{Name}-{5-char-random}" and Terraform appends suffixes like
+		// "-mke-kube" (9 chars), capping len(Name) at 11. Hence "cuttingedge"
+		// rather than "cutting-edge" (12 chars).
+		Name:            "cuttingedge",
 		MCRChannel:      "stable-29.4",
 		MKEVersion:      "3.9.2",
 		MSRVersion:      "3.1.18",
