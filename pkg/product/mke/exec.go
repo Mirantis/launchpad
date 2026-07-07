@@ -1,6 +1,7 @@
 package mke
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,8 +11,8 @@ import (
 	"sync"
 
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
+	rig "github.com/k0sproject/rig/v2"
+	rigcmd "github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,7 +25,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 	for _, target := range targets {
 		switch {
 		case target == "localhost":
-			hosts = append(hosts, &mkeconfig.Host{Connection: rig.Connection{Localhost: &rig.Localhost{Enabled: true}}})
+			hosts = append(hosts, &mkeconfig.Host{CompositeConfig: rig.CompositeConfig{Localhost: rig.LocalhostConfig(true)}})
 		case strings.Contains(target, ":"):
 			parts := strings.SplitN(target, ":", 2)
 			addr := parts[0]
@@ -74,7 +75,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 		var mutex sync.Mutex
 
 		err := hosts.ParallelEach(func(host *mkeconfig.Host) error {
-			if err := host.Connect(); err != nil {
+			if err := host.Connect(context.Background()); err != nil {
 				return fmt.Errorf("failed to connect to host %s: %w", host.Address(), err)
 			}
 			if err := host.ResolveConfigurer(); err != nil {
@@ -87,7 +88,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 					mutex.Unlock()
 				}
 			} else {
-				if hostos == "linux" || host.OSVersion.ID == hostos {
+				if hostos == "linux" || host.OSRelease.ID == hostos {
 					mutex.Lock()
 					foundhosts = append(foundhosts, host)
 					mutex.Unlock()
@@ -144,7 +145,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 	}
 
 	err := hosts.ParallelEach(func(h *mkeconfig.Host) error {
-		if err := h.Connect(); err != nil {
+		if err := h.Connect(context.Background()); err != nil {
 			return fmt.Errorf("connect to host %s: %w", h.Address(), err)
 		}
 		return nil
@@ -193,7 +194,7 @@ func (p *MKE) Exec(targets []string, interactive, first, all, parallel bool, rol
 
 	log.Tracef("running non-interactive with cmd: %q", cmd)
 	runFunc := func(h *mkeconfig.Host) error {
-		if err := h.Exec(cmd, exec.Stdin(stdin), exec.StreamOutput()); err != nil {
+		if err := h.Exec(cmd, rigcmd.StdinString(stdin), rigcmd.StreamOutput()); err != nil {
 			return fmt.Errorf("failed on host %s: %w", h.Address(), err)
 		}
 		return nil

@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/swarm"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,7 +31,7 @@ func (p *JoinManagers) Run() error {
 		}
 		joinCmd := h.Configurer.DockerCommandf("swarm join --advertise-addr=%s --token %s %s", h.SwarmAddress(), p.Config.Spec.MCR.Metadata.ManagerJoinToken, swarmLeader.SwarmAddress())
 		log.Debugf("%s: joining as manager", h)
-		err := h.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(p.Config.Spec.MCR.Metadata.ManagerJoinToken))
+		err := h.Exec(joinCmd, cmd.StreamOutput(), cmd.Redact(p.Config.Spec.MCR.Metadata.ManagerJoinToken))
 		if err != nil {
 			return fmt.Errorf("%s: failed to join manager node to swarm: %w", h, err)
 		}

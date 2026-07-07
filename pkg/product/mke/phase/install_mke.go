@@ -3,6 +3,7 @@ package phase
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"regexp"
 	"strings"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -61,7 +62,7 @@ func (p *InstallMKE) Run() error {
 		installFlags.AddUnlessExist("--existing-config")
 		log.Info("Creating MKE configuration")
 		configCmd := p.leader.Configurer.DockerCommandf("config create %s -", configName)
-		err := p.leader.Exec(configCmd, exec.Stdin(p.Config.Spec.MKE.ConfigData))
+		err := p.leader.Exec(configCmd, cmd.StdinString(p.Config.Spec.MKE.ConfigData))
 		if err != nil {
 			return fmt.Errorf("%s: failed to create MKE configuration: %w", p.leader, err)
 		}
@@ -100,7 +101,7 @@ func (p *InstallMKE) Run() error {
 	}
 
 	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
-	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []exec.Option{exec.StreamOutput(), exec.RedactString(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword)}})
+	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []cmd.ExecOption{cmd.StreamOutput(), cmd.Redact(p.Config.Spec.MKE.AdminUsername), cmd.Redact(p.Config.Spec.MKE.AdminPassword)}})
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
 	}
@@ -149,7 +150,7 @@ func applyCloudConfig(config *mkeconfig.ClusterConfig) error {
 		}
 
 		log.Infof("%s: copying cloud provider (%s) config to %s", h, provider, destFile)
-		if err := h.Configurer.WriteFile(h, destFile, configData, "0600"); err != nil {
+		if err := h.Sudo().FS().WriteFile(destFile, []byte(configData), fs.FileMode(0o600)); err != nil {
 			return fmt.Errorf("%s: failed to write cloud provider config: %w", h, err)
 		}
 		return nil

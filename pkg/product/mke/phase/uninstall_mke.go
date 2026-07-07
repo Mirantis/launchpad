@@ -9,7 +9,7 @@ import (
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/swarm"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -38,7 +38,7 @@ func (p *UninstallMKE) Run() error {
 	// took too long") is emitted at error level by MKE and appears only in
 	// the streamed output, not in the returned error (which only aggregates
 	// fatal-level log lines from the bootstrapper).
-	output, err := mke.Bootstrap("uninstall-ucp", *p.Config, mke.BootstrapOptions{OperationFlags: uninstallFlags, ExecOptions: []exec.Option{exec.StreamOutput()}})
+	output, err := mke.Bootstrap("uninstall-ucp", *p.Config, mke.BootstrapOptions{OperationFlags: uninstallFlags, ExecOptions: []cmd.ExecOption{cmd.StreamOutput()}})
 	if err != nil {
 		// The uninstall-ucp bootstrapper deploys ucp-uninstall-agent as a global
 		// Swarm service and waits (hardcoded ~2 minutes) for every node to report

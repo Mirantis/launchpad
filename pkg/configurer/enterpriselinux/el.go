@@ -2,24 +2,21 @@ package enterpriselinux
 
 import (
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
-	"github.com/k0sproject/rig/exec"
-	"github.com/k0sproject/rig/os"
-	"github.com/k0sproject/rig/os/linux"
 	log "github.com/sirupsen/logrus"
 )
 
 // Configurer is the EL family specific implementation of a host configurer.
 type Configurer struct {
-	linux.EnterpriseLinux
 	configurer.LinuxConfigurer
 }
 
 // PrepareHost prepares the machine host by installing the needed base packages, and fixing any container issues.
-func (c Configurer) PrepareHost(h os.Host) error {
+func (c Configurer) PrepareHost(h configurer.Host) error {
 	if err := c.InstallPackage(h, "curl", "socat", "iptables", "iputils", "gzip", "openssh"); err != nil {
 		return fmt.Errorf("failed to install base packages: %w", err)
 	}
@@ -33,7 +30,7 @@ func (c Configurer) PrepareHost(h os.Host) error {
 }
 
 // InstallMCR install Docker EE engine on Linux.
-func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+func (c Configurer) InstallMCR(h configurer.Host, engineConfig commonconfig.MCRConfig) error {
 	ver, verErr := configurer.ResolveLinux(h)
 	if verErr != nil {
 		return fmt.Errorf("could not discover Linux version information")
@@ -59,7 +56,7 @@ gpgkey=%s
 `
 	elRepo := fmt.Sprintf(elRepoTemplate, baseURL, gpgURL)
 
-	if err := c.WriteFile(h, elRepoFilePath, elRepo, "0600"); err != nil {
+	if err := h.Sudo().FS().WriteFile(elRepoFilePath, []byte(elRepo), fs.FileMode(0o600)); err != nil {
 		return fmt.Errorf("could not write Yum repo file for MCR")
 	}
 
@@ -77,7 +74,7 @@ gpgkey=%s
 }
 
 // UninstallMCR uninstalls docker-ee engine.
-func (c Configurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) error {
+func (c Configurer) UninstallMCR(h configurer.Host, engineConfig commonconfig.MCRConfig) error {
 	info, getDockerError := c.GetDockerInfo(h)
 	if engineConfig.Prune {
 		defer c.CleanupLingeringMCR(h, info)
@@ -95,8 +92,8 @@ func (c Configurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig)
 			return fmt.Errorf("stop containerd: %w", err)
 		}
 
-		if err := h.Exec("yum remove -y docker-ee docker-ee-cli", exec.Sudo(h)); err != nil {
-			return fmt.Errorf("remove docker-ee yum package: %w", err)
+		if err := c.RemovePackage(h, "docker-ee", "docker-ee-cli"); err != nil {
+			return fmt.Errorf("remove docker-ee package: %w", err)
 		}
 	}
 
@@ -104,7 +101,7 @@ func (c Configurer) UninstallMCR(h os.Host, engineConfig commonconfig.MCRConfig)
 }
 
 // function to check if the host is an AWS instance - https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instance-identity-documents.html
-func (c Configurer) isAWSInstance(h os.Host) bool {
+func (c Configurer) isAWSInstance(h configurer.Host) bool {
 	found, err := h.ExecOutput("curl -s -m 5 http://169.254.169.254/latest/dynamic/instance-identity/document | grep region")
 	if err != nil {
 		log.Debugf("%s: curl on local-linked AWS id document failed: %v", h, err)

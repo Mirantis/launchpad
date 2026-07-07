@@ -29,7 +29,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/product"
 	"github.com/Mirantis/launchpad/pkg/product/mke"
 	"github.com/a8m/envsubst"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -71,7 +71,7 @@ func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
 	}
 
 	cfg := string(plain)
-	if !exec.DisableRedact {
+	if !cmd.DisableRedact {
 		re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
 		cfg = re.ReplaceAllString(cfg, "$1$2[REDACTED]")
 	}

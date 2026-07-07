@@ -5,7 +5,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/phase"
 	"github.com/Mirantis/launchpad/pkg/swarm"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -26,7 +26,7 @@ func (p *InitSwarm) Run() error {
 
 	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader)
-		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s %s", swarmLeader.SwarmAddress(), p.Config.Spec.MCR.SwarmInstallFlags.Join()), exec.Redact(`--token \S+`))
+		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s %s", swarmLeader.SwarmAddress(), p.Config.Spec.MCR.SwarmInstallFlags.Join()), cmd.Redact(`--token \S+`))
 		if err != nil {
 			return fmt.Errorf("failed to initialize swarm: %w", err)
 		}
@@ -49,13 +49,13 @@ func (p *InitSwarm) Run() error {
 		}
 	}
 
-	mgrToken, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"), exec.HideOutput())
+	mgrToken, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token manager -q"), cmd.HideOutput())
 	if err != nil {
 		return fmt.Errorf("%s: failed to get swarm manager join-token: %w", swarmLeader, err)
 	}
 	p.Config.Spec.MCR.Metadata.ManagerJoinToken = mgrToken
 
-	workerToken, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token worker -q"), exec.HideOutput())
+	workerToken, err := swarmLeader.ExecOutput(swarmLeader.Configurer.DockerCommandf("swarm join-token worker -q"), cmd.HideOutput())
 	if err != nil {
 		return fmt.Errorf("%s: failed to get swarm worker join-token: %w", swarmLeader, err)
 	}

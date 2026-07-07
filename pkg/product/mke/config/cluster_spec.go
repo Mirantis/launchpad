@@ -14,7 +14,7 @@ import (
 	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
-	"github.com/k0sproject/rig"
+	"github.com/k0sproject/rig/v2/protocol/ssh"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -194,7 +194,7 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	})
 	if len(bastionHosts) > 0 {
 		log.Debugf("linking bastion hosts")
-		bastions := make(map[string]*rig.SSH)
+		bastions := make(map[string]*ssh.Config)
 		for _, h := range bastionHosts {
 			if h.WinRM != nil {
 				id := fmt.Sprintf("%s@%s:%d", h.WinRM.User, h.WinRM.Address, h.WinRM.Port)
