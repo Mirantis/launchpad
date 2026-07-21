@@ -143,6 +143,10 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 	// Register destroy before apply so it runs even if apply partially succeeds
 	// and then t.Fatal is called. t.Fatal calls runtime.Goexit which runs defers.
 	defer terraform.Destroy(t, terraformOptions)
+	// Registered after Destroy so it runs first (defers are LIFO): capture
+	// EC2 console output for this stack's instances before they're torn
+	// down, but only if the test already failed.
+	defer dumpConsoleOutputOnFailure(t, name)
 	if _, err := terraform.InitAndApplyE(t, terraformOptions); err != nil {
 		t.Fatal(err)
 	}
