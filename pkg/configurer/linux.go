@@ -162,7 +162,12 @@ func (c LinuxConfigurer) AuthorizeDocker(h os.Host) error {
 		return nil //nolint:nilerr
 	}
 
-	if err := h.Exec("usermod -aG docker $USER", exec.Sudo(h)); err != nil {
+	// rig's sudo wrapper (changed between k0sproject/rig v0.21.8 and v0.21.11) runs the
+	// command through `sudo -- "$SHELL" -c '<cmd>'`, so any variable in <cmd> is expanded
+	// inside the *elevated* shell after sudo's env_reset -- $USER/$LOGNAME/$HOME there
+	// resolve to root, not the SSH login user. $SUDO_USER is explicitly exported by sudo
+	// across env_reset for exactly this case, so it still names the real user.
+	if err := h.Exec("usermod -aG docker $SUDO_USER", exec.Sudo(h)); err != nil {
 		return fmt.Errorf("failed to add the current user to the 'docker' group: %w", err)
 	}
 
