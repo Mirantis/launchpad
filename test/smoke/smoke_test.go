@@ -143,6 +143,10 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 	// Register destroy before apply so it runs even if apply partially succeeds
 	// and then t.Fatal is called. t.Fatal calls runtime.Goexit which runs defers.
 	defer terraform.Destroy(t, terraformOptions)
+	// Registered after Destroy so it runs first (defers are LIFO): capture
+	// EC2 console output for this stack's instances before they're torn
+	// down, but only if the test already failed.
+	defer dumpConsoleOutputOnFailure(t, name)
 	if _, err := terraform.InitAndApplyE(t, terraformOptions); err != nil {
 		t.Fatal(err)
 	}
@@ -225,3 +229,21 @@ func TestWindowsCluster(t *testing.T) {
 	})
 }
 
+// TestFIPSCluster exercises an ubuntu_22.04_fips manager and a windows_2022 worker
+// with MCR stable-29.2.1/fips and MKE 3.9.2. Validates that the Windows
+// installer correctly resolves a versioned FIPS artifact from the channel
+// index rather than attempting the non-existent docker-latest+fips.zip.
+// Uses RSA keypair (required for Windows password retrieval).
+func TestFIPSCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		Name:            "fips",
+		MCRChannel:      "stable-29.2.1/fips",
+		MKEVersion:      "3.9.2",
+		MSRVersion:      "3.1.18",
+		SSHKeyAlgorithm: "rsa",
+		Nodegroups: map[string]interface{}{
+			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
+			"WrkWin2025":   test.Platforms["Windows2025"].GetWorker(),
+		},
+	})
+}

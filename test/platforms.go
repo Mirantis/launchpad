@@ -145,4 +145,12 @@ var Platforms = map[string]Platform{
 		Public:     true,
 		UserData:   "",
 	},
+	"Ubuntu22FIPS": {
+		Name:       "ubuntu_22.04_fips",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp",
+	},
 }
+

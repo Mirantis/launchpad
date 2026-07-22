@@ -63,6 +63,9 @@ smoke-legacy:
 .PHONY: smoke-windows
 smoke-windows:
 	go test -count=1 -v ./test/smoke/... -run TestWindowsCluster -timeout 60m
+.PHONY: smoke-fips
+smoke-fips:
+	go test -count=1 -v ./test/smoke/... -run TestFIPSCluster -timeout 60m
 .PHONY: smoke-upgrade
 smoke-upgrade:
 	go test -count=1 -v ./test/smoke/... -run TestUpgrade -timeout 90m
