@@ -39,6 +39,13 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 		return fmt.Errorf("could not discover Linux version information")
 	}
 
+	// Oracle Linux's os-release ID ("ol") doesn't match its directory on
+	// repos.mirantis.com ("oraclelinux") -- remap it so the repo/gpg URLs
+	// below resolve. rhel/centos/rocky/sles IDs already match their dirs.
+	if ver.ID == "ol" {
+		ver.ID = "oraclelinux"
+	}
+
 	if isEC2 := c.isAWSInstance(h); !isEC2 {
 		log.Debugf("%s: confirmed that this is not an AWS instance", h)
 	} else if c.InstallPackage(h, "rh-amazon-rhui-client") == nil {
