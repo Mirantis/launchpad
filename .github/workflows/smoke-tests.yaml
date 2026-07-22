@@ -66,6 +66,12 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: make smoke-legacy
 
+  # Bleeding-edge platforms (rhel10/rocky10). MCR package availability for
+  # these platforms lags their AMI/repo-metadata availability -- this job is
+  # intentionally merged ahead of full support so it goes green automatically,
+  # with no further workflow changes, once repos.mirantis.com publishes
+  # docker-ee for rhel/10 and rocky/10. Label-gated rather than always-on
+  # while that support is pending.
   smoke-cutting-edge:
     runs-on: ubuntu-latest
     if: |
