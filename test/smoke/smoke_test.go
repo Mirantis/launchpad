@@ -112,7 +112,7 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		"nodegroups":        cfg.Nodegroups,
 		"ssh_key_algorithm": cfg.SSHKeyAlgorithm,
 		"extra_tags": map[string]string{
-			"launchpad-smoke-test": "true",
+			"launchpad-smoke-test":      "true",
 			"launchpad-smoke-test-name": cfg.Name,
 		},
 	}
@@ -191,8 +191,8 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
-// TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and workers
-// with MCR stable-25.0 and MKE 3.8.8.
+// TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and
+// rhel8/rocky8/ubuntu22/sles12 workers with MCR stable-25.0 and MKE 3.8.8.
 func TestLegacyCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		Name:            "legacy",
@@ -207,6 +207,7 @@ func TestLegacyCluster(t *testing.T) {
 			"WrkRhel8":     test.Platforms["Rhel8"].GetWorker(),
 			"WrkRocky8":    test.Platforms["Rocky8"].GetWorker(),
 			"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
+			"WrkSles12":    test.Platforms["Sles12"].GetWorker(),
 		},
 	})
 }
@@ -243,7 +244,7 @@ func TestFIPSCluster(t *testing.T) {
 		SSHKeyAlgorithm: "rsa",
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
-			"WrkWin2025":   test.Platforms["Windows2025"].GetWorker(),
+			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
 		},
 	})
 }
