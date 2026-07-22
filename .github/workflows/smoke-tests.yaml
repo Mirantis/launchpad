@@ -130,3 +130,19 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: make smoke-upgrade
+
+  smoke-airgapped-multi-hop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 205
+    if: |
+      contains(github.event.pull_request.labels.*.name, 'smoke-airgapped-multi-hop')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      - name: Run airgapped multi-hop upgrade smoke test
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: make smoke-airgapped-multi-hop
