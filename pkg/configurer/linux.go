@@ -130,14 +130,41 @@ func (c LinuxConfigurer) CheckPrivilege(_ os.Host) error {
 	return nil
 }
 
-// LocalAddresses returns a list of local addresses.
+// LocalAddresses returns a list of local IP addresses for the host.
+//
+// It first tries "hostname --all-ip-addresses" (GNU net-tools). Older toolchains
+// such as SLES 12 SP5 ship a hostname(1) that does not support this flag and
+// exit with status 4. In that case it falls back to parsing "ip -4 -o addr show
+// scope global", which is available on all supported Linux platforms.
 func (c LinuxConfigurer) LocalAddresses(h os.Host) ([]string, error) {
 	output, err := h.ExecOutput("hostname --all-ip-addresses")
+	if err == nil {
+		// hostname emits addresses separated by spaces with a trailing space;
+		// use Fields so the trailing space does not produce an empty element.
+		return strings.Fields(output), nil
+	}
+
+	// Fallback: "ip -4 -o addr show scope global" produces one line per
+	// address in the form:
+	//   2: eth0    inet 10.0.0.5/24 brd 10.0.0.255 scope global eth0\
+	// Field index 3 is "addr/prefix".
+	output, err = h.ExecOutput("ip -4 -o addr show scope global")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get local addresses: %w", err)
 	}
 
-	return strings.Split(output, " "), nil
+	var addrs []string
+	for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
+			continue
+		}
+		addr, _, _ := strings.Cut(fields[3], "/")
+		if iputil.IsValidAddress(addr) {
+			addrs = append(addrs, addr)
+		}
+	}
+	return addrs, nil
 }
 
 type reconnectable interface {
