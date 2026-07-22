@@ -191,15 +191,19 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
-// TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu24 managers and workers
+// TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu26 managers and workers
 // with sles16 as an additional worker, using the latest MCR and MKE versions.
 // The rhel_10/rocky_10 platform keys are available in
 // terraform-mirantis-provision-aws >= v0.1.7 (pinned in examples/terraform/aws-simple).
 //
-// NOTE: as of 2026-07-22, MCR has not published Docker EE packages for SLES 16
-// (repos.mirantis.com/sles/ only has 12/12.3/15 - no 16 directory). This node
-// is expected to fail at the Install MCR phase until MCR ships SLES 16 support;
-// see also the RHEL10/Rocky10 MCR-daemon-start gap tracked separately.
+// NOTE: as of 2026-07-22, MCR has not published Docker EE packages for either
+// SLES 16 (repos.mirantis.com/sles/ only has 12/12.3/15 - no 16 directory) or
+// Ubuntu 26.04 "resolute" (repos.mirantis.com/ubuntu/dists/ only has
+// trusty/xenial/bionic/focal/jammy/noble - no resolute directory). Both nodes
+// are expected to fail at the Install MCR phase until MCR ships support; see
+// also the RHEL10/Rocky10 MCR-daemon-start gap (missing xt_* kernel modules
+// break iptables, and MCR's nftables backend is incompatible with swarm mode)
+// tracked separately.
 func TestCuttingEdgeCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		// AWS LB/target-group names are capped at 32 chars: the stack name is
@@ -214,11 +218,11 @@ func TestCuttingEdgeCluster(t *testing.T) {
 		Nodegroups: map[string]interface{}{
 			"MngrRhel10":   test.Platforms["Rhel10"].GetManager(),
 			"MngrRocky10":  test.Platforms["Rocky10"].GetManager(),
-			"MngrUbuntu24": test.Platforms["Ubuntu24"].GetManager(),
+			"MngrUbuntu26": test.Platforms["Ubuntu26"].GetManager(),
 			"WrkRhel10":    test.Platforms["Rhel10"].GetWorker(),
 			"WrkRocky10":   test.Platforms["Rocky10"].GetWorker(),
 			"WrkSles16":    test.Platforms["Sles16"].GetWorker(),
-			"WrkUbuntu24":  test.Platforms["Ubuntu24"].GetWorker(),
+			"WrkUbuntu26":  test.Platforms["Ubuntu26"].GetWorker(),
 		},
 	})
 }
