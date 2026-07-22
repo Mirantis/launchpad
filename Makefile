@@ -52,6 +52,12 @@ functional-test:
 integration-test:
 	go test -v ./test/integration/... -timeout 20m
 
+# Targets bleeding-edge platforms (rhel10/rocky10) via TestCuttingEdgeCluster.
+# MCR package availability for these platforms lags their AMI/repo-metadata
+# availability -- this target (and its CI job) is intentionally merged ahead
+# of full support so it goes green automatically, with no further code
+# changes, the moment repos.mirantis.com publishes docker-ee for rhel/10 and
+# rocky/10. Run manually or via the smoke-cutting-edge label to check status.
 .PHONY: smoke-cutting-edge
 smoke-cutting-edge:
 	go test -count=1 -v ./test/smoke/... -run TestCuttingEdgeCluster -timeout 50m
