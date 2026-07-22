@@ -65,10 +65,18 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 	if err := c.WriteFile(h, debRepoFilePath, debRepo, "0600"); err != nil {
 		return fmt.Errorf("could not write APT repo file for MCR")
 	}
-	if err := h.Exec("apt-get update", exec.Sudo(h)); err != nil {
+	if err := h.Exec("DEBIAN_FRONTEND=noninteractive apt-get update", exec.Sudo(h)); err != nil {
 		return fmt.Errorf("could not update apt package info")
 	}
 
+	// NOTE: policy-rc.d — the docker-ee dpkg post-install script calls
+	// `systemctl start docker` immediately on package install. On hosts where
+	// the daemon fails to start (network conflicts, restricted systemd
+	// environments), the error is indistinguishable from a genuine
+	// package-not-found failure. A robust fix would install a
+	// /usr/sbin/policy-rc.d that exits 101 (deny) before these calls and
+	// remove it afterward, delegating daemon startup solely to EnableMCR
+	// below. Not implemented here pending a confirmed reproduction.
 	if err := c.InstallPackage(h, "containerd.io"); err != nil {
 		return fmt.Errorf("package manager could not install containerd.io")
 	}
