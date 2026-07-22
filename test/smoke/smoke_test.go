@@ -192,9 +192,14 @@ func TestModernCluster(t *testing.T) {
 }
 
 // TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu24 managers and workers
-// with sles15 as an additional worker, using the latest MCR and MKE versions.
+// with sles16 as an additional worker, using the latest MCR and MKE versions.
 // The rhel_10/rocky_10 platform keys are available in
 // terraform-mirantis-provision-aws >= v0.1.7 (pinned in examples/terraform/aws-simple).
+//
+// NOTE: as of 2026-07-22, MCR has not published Docker EE packages for SLES 16
+// (repos.mirantis.com/sles/ only has 12/12.3/15 - no 16 directory). This node
+// is expected to fail at the Install MCR phase until MCR ships SLES 16 support;
+// see also the RHEL10/Rocky10 MCR-daemon-start gap tracked separately.
 func TestCuttingEdgeCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		// AWS LB/target-group names are capped at 32 chars: the stack name is
@@ -212,7 +217,7 @@ func TestCuttingEdgeCluster(t *testing.T) {
 			"MngrUbuntu24": test.Platforms["Ubuntu24"].GetManager(),
 			"WrkRhel10":    test.Platforms["Rhel10"].GetWorker(),
 			"WrkRocky10":   test.Platforms["Rocky10"].GetWorker(),
-			"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
+			"WrkSles16":    test.Platforms["Sles16"].GetWorker(),
 			"WrkUbuntu24":  test.Platforms["Ubuntu24"].GetWorker(),
 		},
 	})
@@ -270,7 +275,7 @@ func TestFIPSCluster(t *testing.T) {
 		SSHKeyAlgorithm: "rsa",
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
-			"WrkWin2025":   test.Platforms["Windows2025"].GetWorker(),
+			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
 		},
 	})
 }

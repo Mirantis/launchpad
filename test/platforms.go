@@ -103,6 +103,13 @@ var Platforms = map[string]Platform{
 		Public:     true,
 		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
 	},
+	"Sles16": {
+		Name:       "sles_16",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+	},
 	"Rocky8": {
 		Name:       "rocky_8",
 		Count:      1,
@@ -167,4 +174,3 @@ var Platforms = map[string]Platform{
 		UserData:   "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp",
 	},
 }
-
