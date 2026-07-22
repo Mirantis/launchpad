@@ -103,6 +103,13 @@ var Platforms = map[string]Platform{
 		Public:     true,
 		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
 	},
+	"Sles16": {
+		Name:       "sles_16",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+	},
 	"Rocky8": {
 		Name:       "rocky_8",
 		Count:      1,
@@ -112,6 +119,20 @@ var Platforms = map[string]Platform{
 	},
 	"Rocky9": {
 		Name:       "rocky_9",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+	},
+	"Rocky10": {
+		Name:       "rocky_10",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+	},
+	"Rhel10": {
+		Name:       "rhel_10",
 		Count:      1,
 		VolumeSize: "100",
 		Public:     true,
@@ -138,6 +159,13 @@ var Platforms = map[string]Platform{
 		Public:     true,
 		UserData:   "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp",
 	},
+	"Ubuntu26": {
+		Name:       "ubuntu_26.04",
+		Count:      1,
+		VolumeSize: "100",
+		Public:     true,
+		UserData:   "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp",
+	},
 	"Windows2025": {
 		Name:       "windows_2025",
 		Count:      1,
@@ -153,4 +181,3 @@ var Platforms = map[string]Platform{
 		UserData:   "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp",
 	},
 }
-

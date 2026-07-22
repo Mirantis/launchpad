@@ -112,7 +112,7 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		"nodegroups":        cfg.Nodegroups,
 		"ssh_key_algorithm": cfg.SSHKeyAlgorithm,
 		"extra_tags": map[string]string{
-			"launchpad-smoke-test": "true",
+			"launchpad-smoke-test":      "true",
 			"launchpad-smoke-test-name": cfg.Name,
 		},
 	}
@@ -191,6 +191,42 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
+// TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu26 managers and workers
+// with sles16 as an additional worker, using the latest MCR and MKE versions.
+// The rhel_10/rocky_10 platform keys are available in
+// terraform-mirantis-provision-aws >= v0.1.7 (pinned in examples/terraform/aws-simple).
+//
+// NOTE: as of 2026-07-22, MCR has not published Docker EE packages for either
+// SLES 16 (repos.mirantis.com/sles/ only has 12/12.3/15 - no 16 directory) or
+// Ubuntu 26.04 "resolute" (repos.mirantis.com/ubuntu/dists/ only has
+// trusty/xenial/bionic/focal/jammy/noble - no resolute directory). Both nodes
+// are expected to fail at the Install MCR phase until MCR ships support; see
+// also the RHEL10/Rocky10 MCR-daemon-start gap (missing xt_* kernel modules
+// break iptables, and MCR's nftables backend is incompatible with swarm mode)
+// tracked separately.
+func TestCuttingEdgeCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		// AWS LB/target-group names are capped at 32 chars: the stack name is
+		// "smoke-{Name}-{5-char-random}" and Terraform appends suffixes like
+		// "-mke-kube" (9 chars), capping len(Name) at 11. Hence "cuttingedge"
+		// rather than "cutting-edge" (12 chars).
+		Name:            "cuttingedge",
+		MCRChannel:      "stable-29.4",
+		MKEVersion:      "3.9.2",
+		MSRVersion:      "3.1.18",
+		SSHKeyAlgorithm: "ed25519",
+		Nodegroups: map[string]interface{}{
+			"MngrRhel10":   test.Platforms["Rhel10"].GetManager(),
+			"MngrRocky10":  test.Platforms["Rocky10"].GetManager(),
+			"MngrUbuntu26": test.Platforms["Ubuntu26"].GetManager(),
+			"WrkRhel10":    test.Platforms["Rhel10"].GetWorker(),
+			"WrkRocky10":   test.Platforms["Rocky10"].GetWorker(),
+			"WrkSles16":    test.Platforms["Sles16"].GetWorker(),
+			"WrkUbuntu26":  test.Platforms["Ubuntu26"].GetWorker(),
+		},
+	})
+}
+
 // TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and workers
 // with MCR stable-25.0 and MKE 3.8.8. sles12 was tried as a worker here but
 // launchpad's Validate Hosts phase fails on it (hostname --all-ip-addresses
@@ -245,7 +281,7 @@ func TestFIPSCluster(t *testing.T) {
 		SSHKeyAlgorithm: "rsa",
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
-			"WrkWin2025":   test.Platforms["Windows2025"].GetWorker(),
+			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
 		},
 	})
 }
