@@ -203,10 +203,8 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
-// TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and workers
-// with MCR stable-25.0 and MKE 3.8.8. sles12 was tried as a worker here but
-// launchpad's Validate Hosts phase fails on it (hostname --all-ip-addresses
-// is unsupported on SLES 12's toolchain) -- see PRODENG-3588.
+// TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and
+// rhel8/rocky8/ubuntu22/sles12 workers with MCR stable-25.0 and MKE 3.8.8.
 func TestLegacyCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		Name:            "legacy",
@@ -221,6 +219,7 @@ func TestLegacyCluster(t *testing.T) {
 			"WrkRhel8":     test.Platforms["Rhel8"].GetWorker(),
 			"WrkRocky8":    test.Platforms["Rocky8"].GetWorker(),
 			"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
+			"WrkSles12":    test.Platforms["Sles12"].GetWorker(),
 		},
 	})
 }
