@@ -74,6 +74,24 @@ func TestFlags_GetValue(t *testing.T) {
 	require.Equal(t, "", f.GetValue("--missing"))
 }
 
+func TestFlags_GetValues(t *testing.T) {
+	// Repeated flag with both separator forms returns every value in order.
+	f := Flags{
+		"--default-addr-pool=10.0.0.0/8",
+		"--san=10.0.0.1",
+		"--default-addr-pool 192.168.0.0/16",
+	}
+	require.Equal(t, []string{"10.0.0.0/8", "192.168.0.0/16"}, f.GetValues("--default-addr-pool"))
+	// Single match returns a one-element slice.
+	require.Equal(t, []string{"10.0.0.1"}, f.GetValues("--san"))
+	// No match returns nil, not an empty slice.
+	require.Nil(t, f.GetValues("--missing"))
+	// Prefix must not bleed into a longer flag name.
+	g := Flags{"--default-addr-pool-mask-length=24", "--default-addr-pool=10.0.0.0/8"}
+	require.Equal(t, []string{"10.0.0.0/8"}, g.GetValues("--default-addr-pool"))
+	require.Equal(t, []string{"24"}, g.GetValues("--default-addr-pool-mask-length"))
+}
+
 func TestFlags_Delete(t *testing.T) {
 	f := Flags{"--a", "--b", "--c"}
 	f.Delete("--b")

@@ -236,3 +236,117 @@ func TestValidateInvalidMCRConfig(t *testing.T) {
 
 	require.Error(t, phase.Run(), "MCR version validated an invalid config")
 }
+
+func makePhaseWithPodCIDR(podCIDR string, swarmPools ...string) ValidateFacts {
+	p := ValidateFacts{}
+	installFlags := commonconfig.Flags{"--san=10.0.0.1"}
+	if podCIDR != "" {
+		installFlags = append(installFlags, "--pod-cidr "+podCIDR)
+	}
+	swarmFlags := commonconfig.Flags{}
+	for _, swarmPool := range swarmPools {
+		if swarmPool != "" {
+			swarmFlags = append(swarmFlags, "--default-addr-pool "+swarmPool)
+		}
+	}
+	p.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			Hosts: mkeconfig.Hosts{
+				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+			},
+			MCR: commonconfig.MCRConfig{
+				Channel:           "stable-29.4",
+				SwarmInstallFlags: swarmFlags,
+				Metadata:          &commonconfig.MCRMetadata{},
+			},
+			MKE: mkeconfig.MKEConfig{
+				Version:      "3.8.2",
+				Metadata:     &mkeconfig.MKEMetadata{},
+				InstallFlags: installFlags,
+			},
+		},
+	}
+	return p
+}
+
+func TestValidatePodCIDROverlapsDefaultPool(t *testing.T) {
+	// 10.0.0.0/16 is a subnet of the default Swarm pool 10.0.0.0/8 — must fail.
+	p := makePhaseWithPodCIDR("10.0.0.0/16", "")
+	err := p.validatePodCIDR()
+	require.Error(t, err)
+	require.ErrorIs(t, err, errInvalidPodCIDR)
+	require.ErrorContains(t, err, "10.0.0.0/16")
+	require.ErrorContains(t, err, "10.0.0.0/8")
+}
+
+func TestValidatePodCIDRNoOverlap(t *testing.T) {
+	// 192.168.0.0/16 does not overlap with 10.0.0.0/8.
+	p := makePhaseWithPodCIDR("192.168.0.0/16", "")
+	require.NoError(t, p.validatePodCIDR())
+}
+
+func TestValidatePodCIDRAbsent(t *testing.T) {
+	// No --pod-cidr flag — validation must be a no-op.
+	p := makePhaseWithPodCIDR("", "")
+	require.NoError(t, p.validatePodCIDR())
+}
+
+func TestValidatePodCIDRCustomSwarmPool(t *testing.T) {
+	// --default-addr-pool overrides the compiled-in default.
+	// 10.0.0.0/16 would overlap 10.0.0.0/8 but not 172.16.0.0/12.
+	p := makePhaseWithPodCIDR("10.0.0.0/16", "172.16.0.0/12")
+	require.NoError(t, p.validatePodCIDR())
+}
+
+func TestValidatePodCIDRCustomSwarmPoolOverlap(t *testing.T) {
+	// Custom pool 192.168.0.0/16 overlaps with pod-cidr 192.168.1.0/24.
+	p := makePhaseWithPodCIDR("192.168.1.0/24", "192.168.0.0/16")
+	err := p.validatePodCIDR()
+	require.Error(t, err)
+	require.ErrorIs(t, err, errInvalidPodCIDR)
+}
+
+func TestValidatePodCIDROverlapsLaterSwarmPool(t *testing.T) {
+	// docker swarm init accepts --default-addr-pool repeated. The pod-cidr
+	// overlaps only the SECOND pool — validation must still fail, proving every
+	// pool is checked and not just the first.
+	p := makePhaseWithPodCIDR("172.16.0.0/16", "192.168.0.0/16", "172.16.0.0/12")
+	err := p.validatePodCIDR()
+	require.Error(t, err)
+	require.ErrorIs(t, err, errInvalidPodCIDR)
+	require.ErrorContains(t, err, "172.16.0.0/12")
+}
+
+func TestValidatePodCIDRMultipleSwarmPoolsNoOverlap(t *testing.T) {
+	// Multiple pools, none overlapping the pod-cidr — validation passes.
+	p := makePhaseWithPodCIDR("10.96.0.0/16", "192.168.0.0/16", "172.16.0.0/12")
+	require.NoError(t, p.validatePodCIDR())
+}
+
+func TestValidatePodCIDRContainsSwarmPool(t *testing.T) {
+	// Reverse containment: the pod-cidr is BROADER than the swarm pool, so
+	// podNet.Contains(swarmNet.IP) is the deciding operand. Guards the second
+	// half of the overlap check, which the other overlap tests never exercise.
+	p := makePhaseWithPodCIDR("172.16.0.0/12", "172.20.0.0/16")
+	err := p.validatePodCIDR()
+	require.Error(t, err)
+	require.ErrorIs(t, err, errInvalidPodCIDR)
+}
+
+func TestValidatePodCIDRMalformedPodCIDR(t *testing.T) {
+	// A malformed --pod-cidr must fail fast with a parse error, not panic or pass.
+	p := makePhaseWithPodCIDR("not-a-cidr", "")
+	err := p.validatePodCIDR()
+	require.Error(t, err)
+	require.ErrorIs(t, err, errInvalidPodCIDR)
+	require.ErrorContains(t, err, "cannot parse --pod-cidr")
+}
+
+func TestValidatePodCIDRMalformedSwarmPool(t *testing.T) {
+	// A malformed --default-addr-pool must fail with a distinct parse error.
+	p := makePhaseWithPodCIDR("10.244.0.0/16", "garbage")
+	err := p.validatePodCIDR()
+	require.Error(t, err)
+	require.ErrorIs(t, err, errInvalidPodCIDR)
+	require.ErrorContains(t, err, "cannot parse Swarm address pool")
+}
