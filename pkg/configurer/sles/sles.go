@@ -101,7 +101,7 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	// (issue k0sproject/rig#417, PR k0sproject/rig#418). Once that lands and is
 	// vendored, revert this to the generic InstallPackage path (or rig's opt-in
 	// option, depending on the shape upstream accepts).
-	if err := h.Exec("zypper refresh", exec.Sudo(h)); err != nil {
+	if err := h.Exec("zypper -n refresh", exec.Sudo(h)); err != nil {
 		return fmt.Errorf("failed to refresh zypper: %w", err)
 	}
 	if err := h.Exec("zypper -n install -y --allow-vendor-change containerd.io", exec.Sudo(h)); err != nil {
