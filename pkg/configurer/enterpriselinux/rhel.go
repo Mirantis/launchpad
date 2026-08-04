@@ -1,8 +1,8 @@
 package enterpriselinux
 
 import (
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/os/registry"
+	"github.com/Mirantis/launchpad/pkg/configurer"
+	rigos "github.com/k0sproject/rig/v2/os"
 )
 
 // Rhel RedHat Enterprise Linux.
@@ -11,9 +11,9 @@ type Rhel struct {
 }
 
 func init() {
-	registry.RegisterOSModule(
-		func(os rig.OSVersion) bool {
-			return os.ID == "rhel"
+	configurer.RegisterOSModule(
+		func(r *rigos.Release) bool {
+			return r.ID == "rhel"
 		},
 		func() any {
 			return Rhel{}

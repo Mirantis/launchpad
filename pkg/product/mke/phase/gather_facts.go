@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 
 	// needed to load the build func in package init.
@@ -105,10 +106,10 @@ func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterCon
 		log.Infof("%s: mirantis container runtime not installed", h)
 	} else {
 		log.Infof("%s: is running mirantis container runtime version %s", h, version)
-		configData, err := h.Configurer.ReadFile(h, "/etc/docker/daemon.json")
+		configData, err := fs.ReadFile(h.Sudo().FS(), "/etc/docker/daemon.json")
 		if err == nil {
 			var newCfg dig.Mapping
-			if err = json.Unmarshal([]byte(configData), &newCfg); err == nil {
+			if err = json.Unmarshal(configData, &newCfg); err == nil {
 				for k, v := range newCfg {
 					if _, ok := h.DaemonConfig[k]; !ok {
 						log.Debugf("%s: set %s = %t for spec.hosts[].daemonConfig from existing daemon.json", h, k, v)
@@ -121,8 +122,8 @@ func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterCon
 
 	h.Metadata.MCRVersion = version
 
-	h.Metadata.Hostname = h.Configurer.Hostname(h)
-	h.Metadata.LongHostname = h.Configurer.LongHostname(h)
+	h.Metadata.Hostname, _ = h.FS().Hostname()
+	h.Metadata.LongHostname, _ = h.FS().LongHostname()
 
 	if h.PrivateInterface == "" {
 		i, err := h.Configurer.ResolvePrivateInterface(h)
@@ -142,7 +143,9 @@ func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterCon
 	}
 	h.Metadata.InternalAddress = a
 
-	log.Infof("%s: is running \"%s\"", h, h.OSVersion.String())
+	if h.OSRelease != nil {
+		log.Infof("%s: is running \"%s\"", h, h.OSRelease.String())
+	}
 	log.Infof("%s: internal address: %s", h, h.Metadata.InternalAddress)
 
 	log.Infof("%s: gathered all facts", h)

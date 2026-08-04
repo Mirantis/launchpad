@@ -3,13 +3,14 @@ package config
 import (
 	"testing"
 
-	"github.com/k0sproject/rig"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/protocol/ssh"
 	"github.com/stretchr/testify/require"
 )
 
 var manager = &Host{
-	Connection: rig.Connection{
-		SSH: &rig.SSH{
+	CompositeConfig: rig.CompositeConfig{
+		SSH: &ssh.Config{
 			Address: "192.168.1.2",
 		},
 	},
@@ -17,8 +18,8 @@ var manager = &Host{
 }
 
 var msr = &Host{
-	Connection: rig.Connection{
-		SSH: &rig.SSH{
+	CompositeConfig: rig.CompositeConfig{
+		SSH: &ssh.Config{
 			Address: "192.168.1.3",
 		},
 	},
@@ -107,8 +108,8 @@ func TestMKEClusterSpecMSRURLWithoutExternalURL(t *testing.T) {
 		Hosts: []*Host{
 			manager,
 			{
-				Connection: rig.Connection{
-					SSH: &rig.SSH{
+				CompositeConfig: rig.CompositeConfig{
+					SSH: &ssh.Config{
 						Address: "192.168.1.3",
 					},
 				},

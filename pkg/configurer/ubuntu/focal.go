@@ -1,8 +1,8 @@
 package ubuntu
 
 import (
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/os/registry"
+	"github.com/Mirantis/launchpad/pkg/configurer"
+	rigos "github.com/k0sproject/rig/v2/os"
 )
 
 // FocalConfigurer is the Ubuntu Focal (20.04) specific host configurer implementation.
@@ -11,9 +11,9 @@ type FocalConfigurer struct {
 }
 
 func init() {
-	registry.RegisterOSModule(
-		func(os rig.OSVersion) bool {
-			return os.ID == "ubuntu" && os.Version == "20.04"
+	configurer.RegisterOSModule(
+		func(r *rigos.Release) bool {
+			return r.ID == "ubuntu" && r.Version == "20.04"
 		},
 		func() interface{} {
 			return FocalConfigurer{}
