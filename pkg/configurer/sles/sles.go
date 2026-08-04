@@ -94,6 +94,13 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	// must obsolete/replace it, which zypper treats as a vendor change and will
 	// not perform non-interactively without --allow-vendor-change -- it
 	// otherwise silently cancels and exits non-zero. See PRODENG-3623.
+	//
+	// INTERIM WORKAROUND: this bypasses the generic InstallPackage helper only
+	// because rig's zypper provider runs `zypper install -y` with no way to pass
+	// --allow-vendor-change. The proper fix belongs upstream in k0sproject/rig
+	// (issue k0sproject/rig#417, PR k0sproject/rig#418). Once that lands and is
+	// vendored, revert this to the generic InstallPackage path (or rig's opt-in
+	// option, depending on the shape upstream accepts).
 	if err := h.Exec("zypper refresh", exec.Sudo(h)); err != nil {
 		return fmt.Errorf("failed to refresh zypper: %w", err)
 	}
