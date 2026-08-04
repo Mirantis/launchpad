@@ -32,7 +32,7 @@ func (p *DetectOS) Run() error {
 		if err := h.ResolveConfigurer(); err != nil {
 			return fmt.Errorf("failed to resolve configurer for %s: %w", h, err)
 		}
-		os := h.OSVersion.String()
+		os := h.OSRelease.String()
 		log.Infof("%s: is running %s", h, os)
 
 		return nil

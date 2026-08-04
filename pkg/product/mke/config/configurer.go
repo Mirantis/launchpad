@@ -1,38 +1,30 @@
 package config
 
 import (
+	"github.com/Mirantis/launchpad/pkg/configurer"
 	common "github.com/Mirantis/launchpad/pkg/product/common/config"
-	"github.com/k0sproject/rig/os"
 )
 
 // HostConfigurer defines the interface each host OS specific configurers implement.
 // This is under api because it has direct deps to api structs.
 type HostConfigurer interface {
-	CheckPrivilege(os.Host) error
-	Hostname(os.Host) string
-	LongHostname(os.Host) string
-	ResolvePrivateInterface(os.Host) (string, error)
-	ResolveInternalIP(os.Host, string, string) (string, error)
-	SELinuxEnabled(os.Host) bool
-	UpdateEnvironment(os.Host, map[string]string) error
-	CleanupEnvironment(os.Host, map[string]string) error
+	CheckPrivilege(configurer.Host) error
+	ResolvePrivateInterface(configurer.Host) (string, error)
+	ResolveInternalIP(configurer.Host, string, string) (string, error)
+	SELinuxEnabled(configurer.Host) bool
+	UpdateEnvironment(configurer.Host, map[string]string) error
+	CleanupEnvironment(configurer.Host, map[string]string) error
 	MCRConfigPath() string
-	InstallMCRLicense(os.Host, string) error
-	InstallMCR(os.Host, common.MCRConfig) error
-	UninstallMCR(os.Host, common.MCRConfig) error
+	InstallMCRLicense(configurer.Host, string) error
+	InstallMCR(configurer.Host, common.MCRConfig) error
+	UninstallMCR(configurer.Host, common.MCRConfig) error
 	DockerCommandf(template string, args ...any) string
-	RestartMCR(os.Host) error
-	AuthenticateDocker(h os.Host, user, pass, repo string) error
-	LocalAddresses(os.Host) ([]string, error)
-	ValidateLocalhost(os.Host) error
-	WriteFile(os.Host, string, string, string) error
-	ReadFile(os.Host, string) (string, error)
-	DeleteFile(os.Host, string) error
-	FileExist(os.Host, string) bool
-	HTTPStatus(os.Host, string) (int, error)
-	Pwd(os.Host) string
-	JoinPath(...string) string
-	Reboot(os.Host) error
-	AuthorizeDocker(os.Host) error
-	PrepareHost(os.Host) error
+	RestartMCR(configurer.Host) error
+	AuthenticateDocker(h configurer.Host, user, pass, repo string) error
+	LocalAddresses(configurer.Host) ([]string, error)
+	ValidateLocalhost(configurer.Host) error
+	Pwd(configurer.Host) string
+	Reboot(configurer.Host) error
+	AuthorizeDocker(configurer.Host) error
+	PrepareHost(configurer.Host) error
 }

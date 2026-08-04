@@ -12,7 +12,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -66,7 +66,8 @@ func (p *ValidateHosts) validateHostConnection() error {
 	if err != nil {
 		return fmt.Errorf("connection test failed: create temp file: %w", err)
 	}
-	defer os.Remove("uploadTest")
+	defer testFile.Close()
+	defer os.Remove(testFile.Name())
 
 	_, err = io.CopyN(testFile, rand.Reader, 1048576) // create an 1MB temp file full of random data
 	if err != nil {
@@ -76,16 +77,17 @@ func (p *ValidateHosts) validateHostConnection() error {
 
 	err = p.Config.Spec.Hosts.Each(func(h *mkeconfig.Host) error {
 		log.Infof("%s: testing file upload", h)
+		target := h.FS().Join(h.Configurer.Pwd(h), "launchpad.test")
 		defer func() {
-			if err := h.Configurer.DeleteFile(h, "launchpad.test"); err != nil {
+			if err := h.Sudo().FS().Remove(target); err != nil {
 				log.Debugf("%s: failed to delete test file: %s", h, err.Error())
 			}
 		}()
-		err := h.WriteFileLarge(testFile.Name(), h.Configurer.JoinPath(h.Configurer.Pwd(h), "launchpad.test"), fs.FileMode(0o640))
-		if err != nil {
+		if err := h.WriteFileLarge(testFile.Name(), target, fs.FileMode(0o640)); err != nil {
 			h.Errors.Add(err.Error())
+			return fmt.Errorf("failed to upload file: %w", err)
 		}
-		return fmt.Errorf("failed to upload file: %w", err)
+		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("connection test failed: upload: %w", err)
@@ -95,26 +97,27 @@ func (p *ValidateHosts) validateHostConnection() error {
 		filename := "launchpad.test"
 		testStr := "hello world!\n"
 		defer func() {
-			if err := h.Configurer.DeleteFile(h, filename); err != nil {
+			if err := h.Sudo().FS().Remove(filename); err != nil {
 				log.Debugf("%s: failed to delete test file: %s", h, err.Error())
 			}
 		}()
 		log.Infof("%s: testing stdin redirection", h)
 		if h.IsWindows() {
-			err := h.Exec(fmt.Sprintf(`findstr "^" > %s`, filename), exec.Stdin(testStr))
+			err := h.Exec(fmt.Sprintf(`findstr "^" > %s`, filename), cmd.StdinString(testStr))
 			if err != nil {
 				return fmt.Errorf("failed to test stdin redirection: %w", err)
 			}
 		} else {
-			err := h.Exec(fmt.Sprintf("cat > %s", filename), exec.Stdin(testStr))
+			err := h.Exec(fmt.Sprintf("cat > %s", filename), cmd.StdinString(testStr))
 			if err != nil {
 				return fmt.Errorf("failed to test stdin redirection: %w", err)
 			}
 		}
-		content, err := h.Configurer.ReadFile(h, filename)
+		data, err := fs.ReadFile(h.Sudo().FS(), filename)
 		if err != nil {
 			return fmt.Errorf("failed to read file: %w", err)
 		}
+		content := string(data)
 		if strings.TrimSpace(content) != strings.TrimSpace(testStr) {
 			// Allow trailing linefeeds etc, mainly because windows is weird.
 			return fmt.Errorf("%w: file write test content check mismatch: %q vs %q", errContentMismatch, strings.TrimSpace(content), strings.TrimSpace(testStr))

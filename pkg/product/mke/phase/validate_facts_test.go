@@ -7,7 +7,8 @@ import (
 
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
-	"github.com/k0sproject/rig"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/protocol/ssh"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
@@ -159,9 +160,9 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 	phase.Config = &mkeconfig.ClusterConfig{
 		Spec: &mkeconfig.ClusterSpec{
 			Hosts: mkeconfig.Hosts{
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.1"}}, Role: "manager"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.2"}}, Role: "manager"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MCR: commonconfig.MCRConfig{
 				Channel: "stable-25.0",
@@ -196,9 +197,9 @@ func TestValidateFactsDontPopulateSan(t *testing.T) {
 	phase.Config = &mkeconfig.ClusterConfig{
 		Spec: &mkeconfig.ClusterSpec{
 			Hosts: mkeconfig.Hosts{
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.2"}}, Role: "manager"},
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.3"}}, Role: "worker"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.1"}}, Role: "manager"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.2"}}, Role: "manager"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.3"}}, Role: "worker"},
 			},
 			MCR: commonconfig.MCRConfig{
 				Channel: "stable-25.0",
@@ -231,7 +232,7 @@ func TestValidateInvalidMCRConfig(t *testing.T) {
 	phase.Config = &mkeconfig.ClusterConfig{
 		Spec: &mkeconfig.ClusterSpec{
 			Hosts: mkeconfig.Hosts{
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.1"}}, Role: "manager"},
 			},
 		},
 	}
@@ -254,7 +255,7 @@ func makePhaseWithPodCIDR(podCIDR string, swarmPools ...string) ValidateFacts {
 	p.Config = &mkeconfig.ClusterConfig{
 		Spec: &mkeconfig.ClusterSpec{
 			Hosts: mkeconfig.Hosts{
-				&mkeconfig.Host{Connection: rig.Connection{SSH: &rig.SSH{Address: "10.0.0.1"}}, Role: "manager"},
+				&mkeconfig.Host{CompositeConfig: rig.CompositeConfig{SSH: &ssh.Config{Address: "10.0.0.1"}}, Role: "manager"},
 			},
 			MCR: commonconfig.MCRConfig{
 				Channel:           "stable-29.4",

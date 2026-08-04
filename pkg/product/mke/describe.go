@@ -35,7 +35,6 @@ func (p *MKE) Describe(reportName string) error {
 	phaseManager.IgnoreErrors = true
 
 	phaseManager.AddPhases(
-		&de.OverrideHostSudo{},
 		&common.Connect{},
 		&de.DetectOS{},
 		&de.GatherFacts{},
