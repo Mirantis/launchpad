@@ -89,11 +89,26 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	}
 
 	log.Debugf("%s: sles MCR install version", h)
-	if err := c.InstallPackage(h, "containerd.io"); err != nil {
-		return fmt.Errorf("package manager could not install containerd.io")
+	// SLES cloud images (e.g. SUSE's SLES 15 SP7 AMIs) ship a SUSE-vendor
+	// containerd package pre-installed. The Mirantis containerd.io package set
+	// must obsolete/replace it, which zypper treats as a vendor change and will
+	// not perform non-interactively without --allow-vendor-change -- it
+	// otherwise silently cancels and exits non-zero. See PRODENG-3623.
+	//
+	// INTERIM WORKAROUND: this bypasses the generic InstallPackage helper only
+	// because rig's zypper provider runs `zypper install -y` with no way to pass
+	// --allow-vendor-change. The proper fix belongs upstream in k0sproject/rig
+	// (issue k0sproject/rig#417, PR k0sproject/rig#418). Once that lands and is
+	// vendored, revert this to the generic InstallPackage path (or rig's opt-in
+	// option, depending on the shape upstream accepts).
+	if err := h.Exec("zypper -n refresh", exec.Sudo(h)); err != nil {
+		return fmt.Errorf("failed to refresh zypper: %w", err)
 	}
-	if err := c.InstallPackage(h, "docker-ee"); err != nil {
-		return fmt.Errorf("package manager could not install docker-ee")
+	if err := h.Exec("zypper -n install -y --allow-vendor-change containerd.io", exec.Sudo(h)); err != nil {
+		return fmt.Errorf("package manager could not install containerd.io: %w", err)
+	}
+	if err := h.Exec("zypper -n install -y --allow-vendor-change docker-ee", exec.Sudo(h)); err != nil {
+		return fmt.Errorf("package manager could not install docker-ee: %w", err)
 	}
 
 	if err := c.EnableMCR(h, engineConfig); err != nil {
