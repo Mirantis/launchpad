@@ -260,13 +260,19 @@ func IsCustomImageRepo(imageRepo string) bool {
 	return imageRepo != constant.ImageRepo && imageRepo != constant.ImageRepoLegacy
 }
 
-func pingHost(h *Host, address string, waitgroup *sync.WaitGroup, errCh chan<- error) {
+func pingHost(host *Host, address string, waitgroup *sync.WaitGroup, errCh chan<- error) {
+	// Done must always run, and exactly one value must be sent on errCh. errCh is
+	// buffered to len(hosts) and drained only after wg.Wait(), so sending twice
+	// (as this previously did on the error path) overflows the buffer, blocks the
+	// second send, and deadlocks wg.Wait() forever. See PRODENG-3594.
+	defer waitgroup.Done()
+
 	url := fmt.Sprintf("https://%s/_ping", address)
 
 	err := retry.Do(
 		func() error {
-			log.Infof("%s: waiting for MKE at %s to become healthy", h, url)
-			if err := h.CheckHTTPStatus(url, http.StatusOK); err != nil {
+			log.Infof("%s: waiting for MKE at %s to become healthy", host, url)
+			if err := host.CheckHTTPStatus(url, http.StatusOK); err != nil {
 				return fmt.Errorf("check http status: %w", err)
 			}
 			return nil
@@ -277,10 +283,10 @@ func pingHost(h *Host, address string, waitgroup *sync.WaitGroup, errCh chan<- e
 		retry.Attempts(10), // should try for ~5min
 	)
 	if err != nil {
-		errCh <- fmt.Errorf("MKE health check failed: %w", err)
+		errCh <- err
+		return
 	}
 	errCh <- nil
-	waitgroup.Done()
 }
 
 // CheckMKEHealthRemote will check mke cluster health from a list of hosts and return an error if it failed.
