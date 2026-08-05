@@ -24,6 +24,7 @@ type HostConfigurer interface {
 	LocalAddresses(configurer.Host) ([]string, error)
 	ValidateLocalhost(configurer.Host) error
 	Pwd(configurer.Host) string
+	HTTPStatus(configurer.Host, string) (int, error)
 	Reboot(configurer.Host) error
 	AuthorizeDocker(configurer.Host) error
 	PrepareHost(configurer.Host) error

@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -348,6 +349,28 @@ func (c WindowsConfigurer) ResolvePrivateInterface(h Host) (string, error) {
 		return "", fmt.Errorf("failed to detect a private network interface, define the host privateInterface manually: %w", err)
 	}
 	return strings.TrimSpace(output), nil
+}
+
+// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error.
+//
+// As with the Linux implementation, this deliberately does not use rig's
+// remotefs.HTTPStatusInsecure, which issues a HEAD request that the MKE health
+// endpoints do not answer with 200. See PRODENG-3594.
+func (c WindowsConfigurer) HTTPStatus(h Host, url string) (int, error) {
+	log.Debugf("%s: requesting %s", h, url)
+	output, err := h.ExecOutput(
+		ps.Cmd(fmt.Sprintf(`[int][System.Net.WebRequest]::Create(%s).GetResponse().StatusCode`, ps.SingleQuote(url))),
+		cmd.Sensitive(),
+	)
+	if err != nil {
+		return -1, fmt.Errorf("failed to get HTTP status code: %w", err)
+	}
+	status, err := strconv.Atoi(strings.TrimSpace(output))
+	if err != nil {
+		return -1, fmt.Errorf("invalid response %q: %w", output, err)
+	}
+
+	return status, nil
 }
 
 // AuthorizeDocker does nothing on windows.

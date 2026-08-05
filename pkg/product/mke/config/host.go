@@ -349,7 +349,7 @@ var errUnexpectedResponse = errors.New("unexpected response")
 // TLS certificate verification is skipped, since these checks target services
 // with self-signed certificates (e.g. the MKE controllers).
 func (h *Host) CheckHTTPStatus(url string, expected int) error {
-	status, err := remotefs.HTTPStatusInsecure(context.Background(), h.FS(), url)
+	status, err := h.Configurer.HTTPStatus(h, url)
 	if err != nil {
 		return fmt.Errorf("failed to get http status: %w", err)
 	}

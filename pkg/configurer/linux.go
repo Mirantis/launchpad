@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
@@ -400,6 +401,30 @@ func (c LinuxConfigurer) ResolvePrivateInterface(h Host) (string, error) {
 		return "", fmt.Errorf("can't find 'dev' in output: %w", errDetectPrivateInterface)
 	}
 	return string(match[1]), nil
+}
+
+// HTTPStatus makes a HTTP GET request to the url and returns the status code or an error.
+// TLS certificate verification is skipped, since these checks target services with
+// self-signed certificates (e.g. the MKE controllers).
+//
+// This deliberately does not use rig's remotefs.HTTPStatusInsecure: that helper issues a
+// HEAD request, which the MKE health endpoints do not answer with 200, so the health
+// check would never pass. See PRODENG-3594.
+func (c LinuxConfigurer) HTTPStatus(h Host, url string) (int, error) {
+	log.Debugf("%s: requesting %s", h, url)
+	output, err := h.ExecOutput(
+		sh.Command("curl", "-kso", "/dev/null", "-w", "%{http_code}", "--", url),
+		cmd.Sensitive(),
+	)
+	if err != nil {
+		return -1, fmt.Errorf("failed to perform http request: %w", err)
+	}
+	status, err := strconv.Atoi(strings.TrimSpace(output))
+	if err != nil {
+		return -1, fmt.Errorf("invalid http response %q: %w", output, err)
+	}
+
+	return status, nil
 }
 
 // CleanupLingeringMCR removes left over MCR files after Launchpad reset.
