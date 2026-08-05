@@ -165,7 +165,7 @@ func TestValidateFactsPopulateSan(t *testing.T) {
 				Channel: "stable-25.0",
 			},
 			MKE: mkeconfig.MKEConfig{
-				Version: "3.6.0",
+				Version:  "3.6.0",
 				Metadata: &mkeconfig.MKEMetadata{},
 				InstallFlags: commonconfig.Flags{
 					"--foo",

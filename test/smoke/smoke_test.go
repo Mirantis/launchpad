@@ -112,7 +112,7 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		"nodegroups":        cfg.Nodegroups,
 		"ssh_key_algorithm": cfg.SSHKeyAlgorithm,
 		"extra_tags": map[string]string{
-			"launchpad-smoke-test": "true",
+			"launchpad-smoke-test":      "true",
 			"launchpad-smoke-test-name": cfg.Name,
 		},
 	}
@@ -245,7 +245,7 @@ func TestFIPSCluster(t *testing.T) {
 		SSHKeyAlgorithm: "rsa",
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
-			"WrkWin2025":   test.Platforms["Windows2025"].GetWorker(),
+			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
 		},
 	})
 }
