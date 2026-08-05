@@ -29,6 +29,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	// winRMPortPlain is the default WinRM port for plaintext HTTP.
+	winRMPortPlain = 5985
+	// winRMPortTLS is the default WinRM port for HTTPS.
+	winRMPortTLS = 5986
+)
+
 // rigLogger bridges rig v2's slog-based logging into launchpad's logrus output.
 // It wraps the logrus standard logger, so any level and hook changes applied
 // there are reflected automatically. rig v2 has no global logger setter; the
@@ -123,6 +130,17 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 	if err := defaults.Set(yh); err != nil {
 		return fmt.Errorf("failed to set host defaults: %w", err)
+	}
+
+	// creasty/defaults applies rig's winRM port struct-tag default (5985) before rig
+	// ever sees the config, so the port is never zero by the time rig defaults it.
+	// rig v0 corrected that for HTTPS by bumping 5985 -> 5986, but rig v2 only
+	// derives the port when it is zero (and only infers useHTTPS when the port is
+	// already 5986). Without this, a host with `useHTTPS: true` and no explicit port
+	// -- which is what the docs and the terraform modules generate -- would try to
+	// connect over TLS to the plaintext WinRM port and fail. See PRODENG-3594.
+	if wrm := h.WinRM; wrm != nil && wrm.UseHTTPS && wrm.Port == winRMPortPlain {
+		wrm.Port = winRMPortTLS
 	}
 
 	if h.Client != nil {
