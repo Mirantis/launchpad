@@ -180,7 +180,6 @@ func (c *ClusterSpec) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return fmt.Errorf("%w: missing spec.mcr.channel — the mcr block is required; set a channel (e.g. channel: stable-29.4)", errInvalidConfig)
 	}
 
-
 	if c.Hosts.Count(func(h *Host) bool { return h.Role == "msr" }) > 0 {
 		if specAlias.MSR == nil {
 			return fmt.Errorf("%w: hosts with msr role present, but no spec.msr defined", errInvalidConfig)

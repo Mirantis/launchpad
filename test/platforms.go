@@ -153,4 +153,3 @@ var Platforms = map[string]Platform{
 		UserData:   "sudo ufw allow 2377,7946,10250/tcp; sudo ufw allow 7946,4789/udp",
 	},
 }
-
