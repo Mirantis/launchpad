@@ -134,9 +134,14 @@ for vpc in "${doomed[@]}"; do
     run aws elbv2 delete-target-group --target-group-arn "$arn"
   done
 
-  # 3. Any instances the ASGs did not already take with them.
+  # 3. Any instances still present, including ones the ASG deletion above is
+  #    already tearing down. "shutting-down" must be in this filter: the
+  #    --force-delete above terminates asynchronously, so by the time we get
+  #    here the ASG's instances are usually in that state rather than running.
+  #    Omitting it matched nothing, skipped the wait, and left their ENIs
+  #    attached, which then blocked subnet and VPC deletion.
   instances="$(aws ec2 describe-instances --filters "Name=vpc-id,Values=$vpc" \
-    "Name=instance-state-name,Values=running,pending,stopping,stopped" \
+    "Name=instance-state-name,Values=running,pending,stopping,stopped,shutting-down" \
     --query 'Reservations[].Instances[].InstanceId' --output text 2>/dev/null || true)"
   if [ -n "$instances" ]; then
     log "  terminating instances: $instances"
@@ -164,6 +169,20 @@ for vpc in "${doomed[@]}"; do
     log "  eni  $eni"
     run aws ec2 delete-network-interface --network-interface-id "$eni"
   done
+
+  # 5b. Wait for the VPC's ENIs to drain. Terminating an instance or deleting a
+  #     load balancer releases its ENIs asynchronously, and a single lingering
+  #     one fails subnet and VPC deletion with a DependencyViolation. Bounded so
+  #     a stuck ENI is reported rather than hanging the job.
+  if [ "$DRY_RUN" != "true" ]; then
+    for _ in $(seq 1 30); do
+      enis_left="$(aws ec2 describe-network-interfaces --filters "Name=vpc-id,Values=$vpc" \
+        --query 'length(NetworkInterfaces)' --output text 2>/dev/null || echo 0)"
+      [ "$enis_left" = "0" ] && break
+      log "  waiting for ${enis_left} ENI(s) to release"
+      sleep 10
+    done
+  fi
 
   # 6. Networking, then the VPC itself.
   for igw in $(aws ec2 describe-internet-gateways --filters "Name=attachment.vpc-id,Values=$vpc" \
