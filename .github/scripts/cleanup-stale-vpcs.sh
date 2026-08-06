@@ -2,8 +2,9 @@
 #
 # Delete stale smoke-test VPCs and everything inside them.
 #
-# A VPC is deleted when all of the following hold:
+# A VPC is deleted only when all of the following hold:
 #   * it is not the default VPC
+#   * it belongs to this repo's smoke tests -- see the ownership gate below
 #   * it does not carry the persist tag (see PERSIST_TAG below)
 #   * it has a "created" tag (written by the terraform modules) whose timestamp
 #     is older than MAX_AGE_HOURS
@@ -29,32 +30,55 @@ DRY_RUN="${DRY_RUN:-false}"
 # `launchpad-persist=investigating PRODENG-1234` works as well as `=true`.
 # Fail-safe by design: a typo in the value must not cause a deletion.
 PERSIST_TAG="${PERSIST_TAG:-launchpad-persist}"
+# Ownership gate: a VPC is only ever a deletion candidate if it carries this
+# tag key, or if its `stack` tag starts with this prefix. Both signals are
+# needed because neither is reliable on its own -- see the selector below.
+SMOKE_TAG="${SMOKE_TAG:-launchpad-smoke-test}"
+STACK_PREFIX="${STACK_PREFIX:-smoke-}"
+
+# workflow_dispatch inputs arrive as free-form strings, so validate before the
+# selector float()s this and dies with a traceback. Zero is rejected too: it
+# would sweep up stacks belonging to smoke runs that are still in flight.
+MAX_AGE_HOURS="$(python3 -c "
+import sys
+try:
+    v = float(sys.argv[1])
+except ValueError:
+    sys.exit(f'ERROR: MAX_AGE_HOURS must be a number, got {sys.argv[1]!r}')
+if v <= 0:
+    sys.exit(f'ERROR: MAX_AGE_HOURS must be greater than zero, got {v}')
+print(v)
+" "$MAX_AGE_HOURS")" || exit 2
 
 log()  { echo "[cleanup] $*"; }
 run()  { if [ "$DRY_RUN" = "true" ]; then echo "[dry-run] $*"; else "$@" >/dev/null 2>&1 || true; fi; }
 
-tag_value() { # $1=json tags, $2=key
-  python3 -c "
-import json,sys
-tags=json.loads(sys.argv[1] or '[]')
-print(next((t['Value'] for t in tags if t['Key']==sys.argv[2]), ''))
-" "$1" "$2"
-}
-
-log "region=${AWS_REGION:-unset} max_age_hours=${MAX_AGE_HOURS} dry_run=${DRY_RUN} persist_tag=${PERSIST_TAG}"
+log "region=${AWS_REGION:-unset} max_age_hours=${MAX_AGE_HOURS} dry_run=${DRY_RUN}"
+log "scope: stack prefix '${STACK_PREFIX}' or tag '${SMOKE_TAG}'; persist tag '${PERSIST_TAG}'"
 
 vpcs_json="$(aws ec2 describe-vpcs \
   --query 'Vpcs[?IsDefault==`false`].{VpcId:VpcId,Tags:Tags}' --output json)"
 
-mapfile -t doomed < <(python3 - "$vpcs_json" "$MAX_AGE_HOURS" "$PERSIST_TAG" <<'PY'
+mapfile -t doomed < <(python3 - "$vpcs_json" "$MAX_AGE_HOURS" "$PERSIST_TAG" "$SMOKE_TAG" "$STACK_PREFIX" <<'PY'
 import json, sys, datetime
-vpcs, max_age, persist_tag = json.loads(sys.argv[1]), float(sys.argv[2]), sys.argv[3]
+vpcs = json.loads(sys.argv[1])
+max_age = float(sys.argv[2])
+persist_tag, smoke_tag, stack_prefix = sys.argv[3], sys.argv[4], sys.argv[5]
 now = datetime.datetime.now(datetime.timezone.utc)
 for v in vpcs:
     tags = {t["Key"]: t["Value"] for t in (v.get("Tags") or [])}
     vpc, stack = v["VpcId"], tags.get("stack", "<untagged>")
     if persist_tag in tags:
         print(f"KEEP\t{vpc}\t{stack}\tpersist tag present", file=sys.stderr)
+        continue
+    # Ownership gate. Two independent signals, because neither is sufficient
+    # alone: of the 16 leaked stacks cleaned up by hand on 2026-08-06, all 16
+    # had a `stack` tag starting with "smoke-" but only 15 carried the
+    # `launchpad-smoke-test` tag -- "smoke-mPOzo" had no smoke tag at all and
+    # would have leaked indefinitely under a tag-only rule. Anything failing
+    # both checks is not ours and is never a deletion candidate.
+    if smoke_tag not in tags and not stack.startswith(stack_prefix):
+        print(f"SKIP\t{vpc}\t{stack}\tnot a smoke-test stack - out of scope", file=sys.stderr)
         continue
     created = tags.get("created")
     if not created:
