@@ -11,6 +11,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
@@ -44,6 +45,32 @@ var rigLogger = slog.New(sloglogrus.Option{
 	Level:  slog.LevelDebug,
 	Logger: log.StandardLogger(),
 }.NewLogrusHandler())
+
+// osReleaseRegistry resolves a host's OS release. It deliberately mirrors rig's
+// os.DefaultRegistry minus ResolveLinuxCompat.
+//
+// rig's registry reorders itself: on a successful match the winning resolver is
+// swapped to the front so later hosts hit it first. That optimisation is unsafe
+// when one resolver matches a superset of another. ResolveLinuxCompat is exactly
+// that -- a fallback for hosts with no /etc/os-release, which reports ID "linux"
+// for any Linux host. Resolving a Windows host swaps ResolveWindows to index 0,
+// which pushes ResolveLinuxCompat ahead of ResolveLinux, and every Linux host
+// resolved afterwards is misreported as "linux" and fails configurer lookup.
+// Mixed Linux/Windows clusters therefore broke while Linux-only ones passed.
+//
+// Dropping the fallback also restores rig v0's behaviour: a host whose
+// os-release cannot be read now fails with os.ErrNotRecognized naming the real
+// cause, instead of being silently misclassified. Every OS launchpad supports
+// ships an os-release file, so the fallback could never yield a usable
+// configurer anyway. See PRODENG-3594.
+var osReleaseRegistry = sync.OnceValue(func() *rigos.Registry {
+	r := rigos.NewRegistry()
+	r.Register(rigos.ResolveLinux)
+	r.Register(rigos.ResolveWindows)
+	r.Register(rigos.ResolveDarwin)
+
+	return r
+})
 
 // HostMetadata resolved metadata for host.
 type HostMetadata struct {
@@ -160,6 +187,7 @@ func (h *Host) Connect(ctx context.Context) error {
 		opts := []rig.ClientOption{
 			rig.WithConnectionFactory(&h.CompositeConfig),
 			rig.WithLogger(rigLogger),
+			rig.WithOSReleaseProvider(osReleaseRegistry().Get),
 		}
 		if ConfirmCommands {
 			opts = append(opts, rig.WithConfirmFunc(confirmCommand))
