@@ -1,0 +1,52 @@
+# Reclaim leaked smoke-test infrastructure.
+#
+# When a smoke test exceeds its `go test -timeout`, the panic kills the process
+# before terratest's deferred `terraform destroy` can run, so the whole stack is
+# left behind. Enough of those and the account hits VpcLimitExceeded, at which
+# point every later smoke run fails during `terraform apply` for reasons that
+# have nothing to do with the code being tested.
+#
+# Tag a VPC with `launchpad-persist` (any value) to exempt it.
+
+name: Cleanup stale VPCs
+
+on:
+  schedule:
+    # 03:00 UTC daily, before European working hours.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report what would be deleted without deleting it"
+        type: boolean
+        default: true
+      max_age_hours:
+        description: "Delete VPCs older than this many hours"
+        type: string
+        default: "24"
+      region:
+        description: "AWS region to clean"
+        type: string
+        default: "us-east-1"
+
+permissions:
+  contents: read
+
+jobs:
+  cleanup:
+    name: Delete stale VPCs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Delete stale VPCs
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # Scheduled runs delete for real; manual runs default to a dry run so
+          # the button is safe to press.
+          AWS_REGION: ${{ github.event.inputs.region || 'us-east-1' }}
+          MAX_AGE_HOURS: ${{ github.event.inputs.max_age_hours || '24' }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
+        run: ./.github/scripts/cleanup-stale-vpcs.sh
