@@ -31,6 +31,29 @@ type MCRConfig struct {
 	SwarmInstallFlags           Flags    `yaml:"swarmInstallFlags,omitempty,flow"`
 	SwarmUpdateCommands         []string `yaml:"swarmUpdateCommands,omitempty,flow"`
 
+	// InstallRecommends tells the package manager to install the runtime's
+	// recommended packages even when the host is configured not to.
+	//
+	// docker-ee declares docker-ee-cli and cri-dockerd-ee as recommended
+	// packages (rpm Recommends / deb Recommends), not as hard requirements.
+	// Package managers install recommended packages by default, so this is
+	// normally unnecessary. Hardening baselines commonly turn that off --
+	// install_weak_deps=false for dnf/yum, APT::Install-Recommends "false" for
+	// apt, solver.onlyRequires for zypper -- and the runtime then installs
+	// without its CLI, leaving later docker commands to fail on a host that
+	// otherwise looks correctly installed. See PRODENG-3641.
+	//
+	// Note the set of recommended packages is defined by the repository
+	// metadata, not by launchpad, and differs by platform. On rpm hosts it is
+	// docker-ee-cli and cri-dockerd-ee. On deb hosts it additionally includes
+	// ca-certificates, docker-ee-rootless-extras, git, a kernel package,
+	// libltdl7, pigz, procps and xz-utils.
+	//
+	// Linux only. Windows installs MCR through install.ps1 from a single archive
+	// that already contains the CLI; there is no package manager and no
+	// equivalent concept, so this value is ignored on Windows hosts.
+	InstallRecommends bool `yaml:"installRecommends,omitempty"`
+
 	Metadata *MCRMetadata `yaml:"-"`
 }
 
