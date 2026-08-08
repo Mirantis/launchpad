@@ -31,6 +31,25 @@ type MCRConfig struct {
 	SwarmInstallFlags           Flags    `yaml:"swarmInstallFlags,omitempty,flow"`
 	SwarmUpdateCommands         []string `yaml:"swarmUpdateCommands,omitempty,flow"`
 
+	// InstallCLI additionally installs the docker CLI package (docker-ee-cli)
+	// alongside the runtime, in the same package manager transaction so the two
+	// cannot end up at mismatched versions.
+	//
+	// The runtime package lists the CLI only as a Recommends (a weak
+	// dependency), not a Requires/Depends, on every repos.mirantis.com package
+	// checked -- rpm (dnf/yum) and deb (apt) alike. Package managers install
+	// Recommends by default, so this is normally not needed. It is needed when
+	// weak-dependency installation is disabled, which common hardening
+	// baselines do explicitly (dnf/yum: install_weak_deps=false; apt:
+	// APT::Install-Recommends "false"). Set it on hosts where that applies, or
+	// where the runtime has otherwise installed without the CLI. See
+	// PRODENG-3641.
+	//
+	// Linux only. Windows installs MCR through install.ps1, which ships the CLI
+	// as part of the same archive and has no separate package, so this value is
+	// ignored on Windows hosts.
+	InstallCLI bool `yaml:"installCLI,omitempty"`
+
 	Metadata *MCRMetadata `yaml:"-"`
 }
 

@@ -2,6 +2,7 @@ package ubuntu
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
@@ -80,8 +81,9 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 	if err := c.InstallPackage(h, "containerd.io"); err != nil {
 		return fmt.Errorf("package manager could not install containerd.io")
 	}
-	if err := c.InstallPackage(h, "docker-ee"); err != nil {
-		return fmt.Errorf("package manager could not install docker-ee")
+	mcrPackages := configurer.MCRPackages(engineConfig)
+	if err := c.InstallPackage(h, mcrPackages...); err != nil {
+		return fmt.Errorf("package manager could not install %s", strings.Join(mcrPackages, ", "))
 	}
 
 	if err := c.EnableMCR(h, engineConfig); err != nil {

@@ -73,8 +73,9 @@ gpgkey=%s
 	if err := c.InstallPackage(h, "containerd.io"); err != nil {
 		return fmt.Errorf("package manager could not install containerd.io")
 	}
-	if err := c.InstallPackage(h, "docker-ee"); err != nil {
-		return fmt.Errorf("package manager could not install docker-ee")
+	mcrPackages := configurer.MCRPackages(engineConfig)
+	if err := c.InstallPackage(h, mcrPackages...); err != nil {
+		return fmt.Errorf("package manager could not install %s", strings.Join(mcrPackages, ", "))
 	}
 
 	if err := c.EnableMCR(h, engineConfig); err != nil {

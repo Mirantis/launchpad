@@ -26,6 +26,29 @@ const (
 	SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
 )
 
+const (
+	// mcrPackage is the Mirantis Container Runtime package name. It is identical
+	// across the rpm and deb repositories on repos.mirantis.com.
+	mcrPackage = "docker-ee"
+	// mcrCLIPackage is the docker CLI package name, likewise identical across
+	// rpm and deb.
+	mcrCLIPackage = "docker-ee-cli"
+)
+
+// MCRPackages returns the packages to install for MCR, in the order they should
+// be passed to the package manager.
+//
+// The CLI is only listed when spec.mcr.installCLI is set. It is returned in the
+// same slice rather than installed separately so that both land in a single
+// package manager transaction and cannot be resolved to mismatched versions.
+func MCRPackages(engineConfig commonconfig.MCRConfig) []string {
+	if engineConfig.InstallCLI {
+		return []string{mcrPackage, mcrCLIPackage}
+	}
+
+	return []string{mcrPackage}
+}
+
 var ErrLinuxMCRInstall = errors.New("failed to install MCR on linux")
 
 // LinuxConfigurer is a generic linux host configurer.

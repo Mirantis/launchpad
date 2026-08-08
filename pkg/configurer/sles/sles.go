@@ -107,8 +107,9 @@ func (c Configurer) InstallMCR(h os.Host, engineConfig commonconfig.MCRConfig) e
 	if err := h.Exec("zypper -n install -y --allow-vendor-change containerd.io", exec.Sudo(h)); err != nil {
 		return fmt.Errorf("package manager could not install containerd.io: %w", err)
 	}
-	if err := h.Exec("zypper -n install -y --allow-vendor-change docker-ee", exec.Sudo(h)); err != nil {
-		return fmt.Errorf("package manager could not install docker-ee: %w", err)
+	mcrPackages := configurer.MCRPackages(engineConfig)
+	if err := h.Exec("zypper -n install -y --allow-vendor-change "+strings.Join(mcrPackages, " "), exec.Sudo(h)); err != nil {
+		return fmt.Errorf("package manager could not install %s: %w", strings.Join(mcrPackages, ", "), err)
 	}
 
 	if err := c.EnableMCR(h, engineConfig); err != nil {
