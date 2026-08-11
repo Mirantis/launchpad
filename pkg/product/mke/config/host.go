@@ -86,7 +86,6 @@ type Host struct {
 	// private NIC IP is not routable across DCs but the SSH/floating address is.
 	SwarmAddressOverride string `yaml:"swarmAddress,omitempty"`
 
-
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
 	Configurer  HostConfigurer `yaml:"-"`
