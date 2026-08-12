@@ -60,6 +60,11 @@ type MCRMetadata struct {
 	ManagerJoinToken string
 	WorkerJoinToken  string
 	MCRChannel       string
+	// SwarmDefaultAddrPool holds the overlay address pools an already existing
+	// swarm allocates from, as discovered on the swarm leader. It is empty when
+	// no swarm exists yet, so a non-empty value means the swarm predates this
+	// run and its pool can no longer be changed. See PRODENG-3642.
+	SwarmDefaultAddrPool []string
 }
 
 // UnmarshalYAML puts in sane defaults when unmarshaling from yaml.
