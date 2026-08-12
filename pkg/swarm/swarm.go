@@ -60,24 +60,31 @@ const DefaultAddrPoolFallback = "10.0.0.0/8"
 // DefaultAddrPoolFallback is returned, so a non-empty result means "this host is
 // in a swarm and these are the pools it allocates overlay networks from".
 func DefaultAddrPool(h *mkeconfig.Host) ([]string, error) {
-	// The swarm state is read in the same call so that "not in a swarm" is
-	// distinguishable from "in a swarm with no explicit pool". Cluster is nil
-	// outside a swarm and dereferencing it fails the whole template, hence the
-	// guard.
-	out, err := h.ExecOutput(h.Configurer.DockerCommandf(
-		`info --format "{{.Swarm.LocalNodeState}}|{{if .Swarm.Cluster}}{{range .Swarm.Cluster.DefaultAddrPool}}{{.}} {{end}}{{end}}"`))
+	out, err := h.ExecOutput(h.Configurer.DockerCommandf(defaultAddrPoolCmd))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get swarm overlay address pool: %w", err)
 	}
 
+	return parseDefaultAddrPool(out), nil
+}
+
+// defaultAddrPoolCmd reports the swarm state alongside the pools, so that "not in
+// a swarm" stays distinguishable from "in a swarm with no explicit pool". Cluster
+// is nil outside a swarm and dereferencing it fails the whole template, hence the
+// guard.
+const defaultAddrPoolCmd = `info --format "{{.Swarm.LocalNodeState}}|{{if .Swarm.Cluster}}{{range .Swarm.Cluster.DefaultAddrPool}}{{.}} {{end}}{{end}}"`
+
+// parseDefaultAddrPool turns the output of defaultAddrPoolCmd into the pools in
+// effect, or nil when the host is not in a swarm.
+func parseDefaultAddrPool(out string) []string {
 	state, pools, _ := strings.Cut(out, "|")
 	if strings.TrimSpace(state) != "active" {
-		return nil, nil
+		return nil
 	}
 
 	if configured := strings.Fields(pools); len(configured) > 0 {
-		return configured, nil
+		return configured
 	}
 
-	return []string{DefaultAddrPoolFallback}, nil
+	return []string{DefaultAddrPoolFallback}
 }
