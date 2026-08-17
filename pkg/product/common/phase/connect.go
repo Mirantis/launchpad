@@ -1,22 +1,24 @@
 package phase
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
 	retry "github.com/avast/retry-go"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
 type connectable interface {
-	Connect() error
+	Connect(context.Context) error
 	String() string
-	Exec(cmd string, opts ...exec.Option) error
+	Exec(cmd string, opts ...cmd.ExecOption) error
 }
 
 // Connect connects to each of the hosts.
@@ -82,7 +84,7 @@ const retries = 60
 func (p *Connect) connectHost(host connectable) error {
 	err := retry.Do(
 		func() error {
-			if err := host.Connect(); err != nil {
+			if err := host.Connect(context.Background()); err != nil {
 				return fmt.Errorf("connect: %w", err)
 			}
 			return nil
@@ -92,11 +94,7 @@ func (p *Connect) connectHost(host connectable) error {
 				log.Errorf("%s: attempt %d of %d.. failed to connect: %s", host, n+1, retries, err.Error())
 			},
 		),
-		retry.RetryIf(
-			func(err error) bool {
-				return !errors.Is(err, rig.ErrCantConnect)
-			},
-		),
+		retry.RetryIf(shouldRetryConnect),
 		retry.DelayType(retry.CombineDelay(retry.FixedDelay, retry.RandomDelay)),
 		retry.MaxJitter(time.Second*2),
 		retry.Delay(time.Second*3),
@@ -107,6 +105,60 @@ func (p *Connect) connectHost(host connectable) error {
 	}
 
 	return p.testConnection(host)
+}
+
+// shouldRetryConnect reports whether a failed connect attempt is worth another
+// try. Everything is retried except states no amount of waiting will change.
+func shouldRetryConnect(err error) bool {
+	if isTransientAuthError(err) {
+		return true
+	}
+
+	return !errors.Is(err, rig.ErrNonRetryable)
+}
+
+// isTransientAuthError reports whether err is a WinRM HTTP 401/403.
+//
+// This phase exists to wait for hosts to become reachable, and on Windows an
+// auth rejection is an expected part of that wait: the WinRM HTTPS listener
+// starts answering before provisioning has finished configuring authentication,
+// so a freshly booted host returns 401 for a while with entirely correct
+// credentials.
+//
+// rig v2 wraps 401/403 as protocol.ErrNonRetryable, which is reasonable for a
+// general purpose library but wrong here -- it aborts the wait on its first
+// attempt. rig v0 did not classify these, so launchpad retried them and the
+// condition healed itself; smoke-fips regressed on exactly this. Treat them as
+// retryable again, while still honouring ErrNonRetryable for everything else
+// (bad certificates, host key mismatches, misconfigured bastions), which no
+// amount of waiting will fix.
+//
+// The cost is that genuinely wrong credentials now take the full retry budget
+// to report instead of failing immediately. That is the right trade for a
+// provisioning tool: a cluster that would have come up must not fail, and the
+// budget is bounded at a few minutes.
+//
+// Matching is by substring because the underlying WinRM library returns untyped
+// formatted errors and rig exports no sentinel for them. rig's own isAuthError
+// does the same thing, and both message shapes it covers are matched here. See
+// PRODENG-3594.
+func isTransientAuthError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	for _, probe := range []string{
+		"http error 401",
+		"http error 403",
+		"http response error: 401",
+		"http response error: 403",
+	} {
+		if strings.Contains(msg, probe) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (p *Connect) testConnection(h connectable) error {

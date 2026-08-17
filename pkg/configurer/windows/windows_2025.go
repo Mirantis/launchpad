@@ -2,8 +2,7 @@ package windows
 
 import (
 	"github.com/Mirantis/launchpad/pkg/configurer"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/os/registry"
+	rigos "github.com/k0sproject/rig/v2/os"
 )
 
 // Windows2025Configurer is a Windows 2025 configurer implementation.
@@ -12,9 +11,9 @@ type Windows2025Configurer struct {
 }
 
 func init() {
-	registry.RegisterOSModule(
-		func(os rig.OSVersion) bool {
-			return os.ID == "windows" && os.Version == "10.0.26100"
+	configurer.RegisterOSModule(
+		func(r *rigos.Release) bool {
+			return r.ID == "windows" && r.Version == "10.0.26100"
 		},
 		func() any {
 			return Windows2025Configurer{}

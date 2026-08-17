@@ -207,3 +207,34 @@ func TestUpgradeLegacyToModern(t *testing.T) {
 		UpgradeMKEVersion: "3.9.2",
 	})
 }
+
+// TestUpgradeModernClusterFromLegacy installs MKE 3.8.8 / MCR stable-25.0 on
+// the modern Linux matrix (rhel9, ubuntu24, rocky9 managers; rhel9, sles15,
+// ubuntu24, rocky9 workers -- same nodegroups as TestModernCluster) and then
+// upgrades in place to MKE 3.9.2 / MCR stable-29.2. Exercises the same
+// version transition as TestUpgradeLegacyToModern but against newer OS
+// releases, covering the per-OS configurer paths (rhel9/ubuntu24/rocky9/
+// sles15) that TestUpgradeLegacyToModern's rhel8/rocky8/ubuntu22 matrix does
+// not.
+func TestUpgradeModernClusterFromLegacy(t *testing.T) {
+	runUpgradeTest(t, upgradeConfig{
+		Base: smokeConfig{
+			Name:            "upg-modern",
+			MCRChannel:      "stable-25.0",
+			MKEVersion:      "3.8.8",
+			MSRVersion:      "2.9.28",
+			SSHKeyAlgorithm: "ed25519",
+			Nodegroups: map[string]interface{}{
+				"MngrRhel9":    test.Platforms["Rhel9"].GetManager(),
+				"MngrUbuntu24": test.Platforms["Ubuntu24"].GetManager(),
+				"MngrRocky9":   test.Platforms["Rocky9"].GetManager(),
+				"WrkRhel9":     test.Platforms["Rhel9"].GetWorker(),
+				"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
+				"WrkUbuntu24":  test.Platforms["Ubuntu24"].GetWorker(),
+				"WrkRocky9":    test.Platforms["Rocky9"].GetWorker(),
+			},
+		},
+		UpgradeMCRChannel: "stable-29.2",
+		UpgradeMKEVersion: "3.9.2",
+	})
+}

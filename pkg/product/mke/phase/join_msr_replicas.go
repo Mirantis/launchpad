@@ -3,12 +3,12 @@ package phase
 import (
 	"fmt"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -93,7 +93,12 @@ func (p *JoinMSRReplicas) Run() error {
 		}
 
 		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
-		err := msrLeader.Exec(joinCmd, exec.StreamOutput(), exec.RedactString(redacts...))
+		execOpts := make([]cmd.ExecOption, 0, 1+len(redacts))
+		execOpts = append(execOpts, cmd.StreamOutput())
+		for _, r := range redacts {
+			execOpts = append(execOpts, cmd.Redact(r))
+		}
+		err := msrLeader.Exec(joinCmd, execOpts...)
 		if err != nil {
 			return fmt.Errorf("%s: failed to run MSR join: %w", h, err)
 		}

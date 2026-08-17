@@ -1,33 +1,35 @@
 package config
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/k0sproject/rig"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/protocol/ssh"
 	"github.com/stretchr/testify/require"
 )
 
 var hosts = Hosts{
 	{
-		Connection: rig.Connection{
-			SSH: &rig.SSH{
+		CompositeConfig: rig.CompositeConfig{
+			SSH: &ssh.Config{
 				Address: "man1",
 			},
 		},
 		Role: "manager",
 	},
 	{
-		Connection: rig.Connection{
-			SSH: &rig.SSH{
+		CompositeConfig: rig.CompositeConfig{
+			SSH: &ssh.Config{
 				Address: "man2",
 			},
 		},
 		Role: "manager",
 	},
 	{
-		Connection: rig.Connection{
-			SSH: &rig.SSH{
+		CompositeConfig: rig.CompositeConfig{
+			SSH: &ssh.Config{
 				Address: "work1",
 			},
 		},
@@ -170,5 +172,5 @@ func ExampleHosts_Filter() {
 		return h.Role == "manager"
 	})
 
-	managers[0].Connect()
+	_ = managers[0].Connect(context.Background())
 }

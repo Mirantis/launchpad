@@ -1,26 +1,76 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/Mirantis/launchpad/pkg/configurer"
 	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/byteutil"
 	retry "github.com/avast/retry-go"
 	"github.com/creasty/defaults"
 	"github.com/k0sproject/dig"
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/exec"
-	"github.com/k0sproject/rig/os/registry"
+	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/cmd"
+	rigos "github.com/k0sproject/rig/v2/os"
+	"github.com/k0sproject/rig/v2/protocol"
+	"github.com/k0sproject/rig/v2/remotefs"
+	"github.com/k0sproject/rig/v2/sudo"
+	sloglogrus "github.com/samber/slog-logrus/v2"
 	log "github.com/sirupsen/logrus"
 )
+
+const (
+	// winRMPortPlain is the default WinRM port for plaintext HTTP.
+	winRMPortPlain = 5985
+	// winRMPortTLS is the default WinRM port for HTTPS.
+	winRMPortTLS = 5986
+)
+
+// rigLogger bridges rig v2's slog-based logging into launchpad's logrus output.
+// It wraps the logrus standard logger, so any level and hook changes applied
+// there are reflected automatically. rig v2 has no global logger setter; the
+// logger is injected per client via rig.WithLogger at Connect time.
+var rigLogger = slog.New(sloglogrus.Option{
+	Level:  slog.LevelDebug,
+	Logger: log.StandardLogger(),
+}.NewLogrusHandler())
+
+// osReleaseRegistry resolves a host's OS release. It deliberately mirrors rig's
+// os.DefaultRegistry minus ResolveLinuxCompat.
+//
+// rig's registry reorders itself: on a successful match the winning resolver is
+// swapped to the front so later hosts hit it first. That optimisation is unsafe
+// when one resolver matches a superset of another. ResolveLinuxCompat is exactly
+// that -- a fallback for hosts with no /etc/os-release, which reports ID "linux"
+// for any Linux host. Resolving a Windows host swaps ResolveWindows to index 0,
+// which pushes ResolveLinuxCompat ahead of ResolveLinux, and every Linux host
+// resolved afterwards is misreported as "linux" and fails configurer lookup.
+// Mixed Linux/Windows clusters therefore broke while Linux-only ones passed.
+//
+// Dropping the fallback also restores rig v0's behaviour: a host whose
+// os-release cannot be read now fails with os.ErrNotRecognized naming the real
+// cause, instead of being silently misclassified. Every OS launchpad supports
+// ships an os-release file, so the fallback could never yield a usable
+// configurer anyway. See PRODENG-3594.
+var osReleaseRegistry = sync.OnceValue(func() *rigos.Registry {
+	r := rigos.NewRegistry()
+	r.Register(rigos.ResolveLinux)
+	r.Register(rigos.ResolveWindows)
+	r.Register(rigos.ResolveDarwin)
+
+	return r
+})
 
 // HostMetadata resolved metadata for host.
 type HostMetadata struct {
@@ -69,7 +119,8 @@ func (errors *errs) String() string {
 
 // Host contains all the needed details to work with hosts.
 type Host struct {
-	rig.Connection `yaml:",inline"`
+	rig.CompositeConfig `yaml:",inline"`
+	*rig.Client         `yaml:"-"`
 
 	Role             string            `yaml:"role" validate:"oneof=manager worker msr"`
 	PrivateInterface string            `yaml:"privateInterface,omitempty" validate:"omitempty,gt=2"`
@@ -89,10 +140,13 @@ type Host struct {
 	Metadata    *HostMetadata  `yaml:"-"`
 	MSRMetadata *MSRMetadata   `yaml:"-"`
 	Configurer  HostConfigurer `yaml:"-"`
+	OSRelease   *rigos.Release `yaml:"-"`
 	Errors      errs           `yaml:"-"`
 }
 
 // UnmarshalYAML sets in some sane defaults when unmarshaling the data from yaml.
+// The alias type prevents recursion; the client is reset so Connect re-creates
+// it with any updated connection config.
 func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	type host Host
 	yh := (*host)(h)
@@ -101,14 +155,108 @@ func (h *Host) UnmarshalYAML(unmarshal func(interface{}) error) error {
 		return err
 	}
 
-	if yh.SSH != nil && yh.SSH.HostKey != "" {
-		log.Warnf("%s: spec.hosts[*].ssh.hostKey is deprecated, please use ssh known hosts file instead (.ssh/config, SSH_KNOWN_HOSTS)", h)
-	}
-
 	if err := defaults.Set(yh); err != nil {
 		return fmt.Errorf("failed to set host defaults: %w", err)
 	}
+
+	// creasty/defaults applies rig's winRM port struct-tag default (5985) before rig
+	// ever sees the config, so the port is never zero by the time rig defaults it.
+	// rig v0 corrected that for HTTPS by bumping 5985 -> 5986, but rig v2 only
+	// derives the port when it is zero (and only infers useHTTPS when the port is
+	// already 5986). Without this, a host with `useHTTPS: true` and no explicit port
+	// -- which is what the docs and the terraform modules generate -- would try to
+	// connect over TLS to the plaintext WinRM port and fail. See PRODENG-3594.
+	if wrm := h.WinRM; wrm != nil && wrm.UseHTTPS && wrm.Port == winRMPortPlain {
+		wrm.Port = winRMPortTLS
+	}
+
+	if h.Client != nil {
+		h.Disconnect()
+		h.Client = nil
+	}
+
 	return nil
+}
+
+// Connect establishes the connection to the host, injecting launchpad's logger
+// so that rig's internal logging is routed into logrus. When the host has
+// sudooverride set, the sudo detection is bypassed and every privileged command
+// is wrapped with sudo unconditionally.
+func (h *Host) Connect(ctx context.Context) error {
+	if h.Client == nil {
+		opts := []rig.ClientOption{
+			rig.WithConnectionFactory(&h.CompositeConfig),
+			rig.WithLogger(rigLogger),
+			rig.WithOSReleaseProvider(osReleaseRegistry().Get),
+		}
+		if ConfirmCommands {
+			opts = append(opts, rig.WithConfirmFunc(confirmCommand))
+		}
+		if h.SudoOverride {
+			opts = append(opts, rig.WithSudoProvider(func(runner cmd.Runner) (cmd.Runner, error) {
+				return cmd.NewExecutor(runner, sudo.Sudo), nil
+			}))
+		}
+		client, err := rig.NewClient(opts...)
+		if err != nil {
+			return fmt.Errorf("create rig client: %w", err)
+		}
+		h.Client = client
+	}
+	if err := h.Client.Connect(ctx); err != nil {
+		return fmt.Errorf("connect: %w", err)
+	}
+	return nil
+}
+
+// String returns a human-readable description of the host, safe before Connect.
+func (h *Host) String() string {
+	if h.Client != nil {
+		return h.Client.String()
+	}
+	return h.CompositeConfig.String()
+}
+
+// Protocol returns the host communication protocol family.
+func (h *Host) Protocol() string {
+	if h.Client != nil {
+		return h.Client.Protocol()
+	}
+	if h.WinRM != nil {
+		return "WinRM"
+	}
+	if bool(h.Localhost) {
+		return "Local"
+	}
+	return "SSH"
+}
+
+// Address returns the host address, falling back to the configured connection
+// address when the client is not yet connected.
+func (h *Host) Address() string {
+	if h.Client != nil {
+		if addr := h.Client.Address(); addr != "" {
+			return addr
+		}
+	}
+	if h.SSH != nil && h.SSH.Address != "" {
+		return h.SSH.Address
+	}
+	if h.WinRM != nil && h.WinRM.Address != "" {
+		return h.WinRM.Address
+	}
+	if h.OpenSSH != nil && h.OpenSSH.Address != "" {
+		return h.OpenSSH.Address
+	}
+	return "127.0.0.1"
+}
+
+// IsWindows returns true when the detected OS is Windows.
+func (h *Host) IsWindows() bool {
+	if h.Client != nil {
+		return h.Client.IsWindows()
+	}
+	return h.WinRM != nil
 }
 
 // IsLocal returns true for localhost connections.
@@ -124,6 +272,15 @@ func (h *Host) IsSudoCommand(cmd string) bool {
 	return false
 }
 
+// runner returns the client used to execute cmd, using the sudo-decorated
+// client clone when the command must run with elevated privileges.
+func (h *Host) runner(cmd string) *rig.Client {
+	if h.IsSudoCommand(cmd) {
+		return h.Sudo()
+	}
+	return h.Client
+}
+
 // AuthorizeDocker if needed.
 func (h *Host) AuthorizeDocker() error {
 	if h.SudoDocker {
@@ -134,11 +291,42 @@ func (h *Host) AuthorizeDocker() error {
 	return h.Configurer.AuthorizeDocker(h) //nolint:wrapcheck
 }
 
-func (h *Host) sudoCommandOptions(cmd string, opts []exec.Option) []exec.Option {
-	if h.IsSudoCommand(cmd) {
-		opts = append(opts, exec.Sudo(h))
+// ExecStreams runs a command with the given stdin/stdout/stderr streams and
+// returns a protocol.Waiter whose Wait blocks until the command exits. It is a
+// thin wrapper over rig's cmd.Proc that adds the SudoDocker routing (see
+// runner); callers that do not need that routing can use h.Proc directly.
+func (h *Host) ExecStreams(cmd string, stdin io.Reader, stdout, stderr io.Writer, opts ...cmd.ExecOption) (protocol.Waiter, error) { //nolint:ireturn
+	proc := h.runner(cmd).Proc(cmd)
+	proc.Stdin = stdin
+	proc.Stdout = stdout
+	proc.Stderr = stderr
+	waiter, err := proc.Start(context.Background(), opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start command: %w", err)
 	}
-	return opts
+	return waiter, nil
+}
+
+// Exec runs a command on the host. It delegates to rig's runner, selecting the
+// sudo-decorated client clone for commands that must run privileged (see runner
+// / SudoDocker).
+func (h *Host) Exec(cmd string, opts ...cmd.ExecOption) error {
+	return h.runner(cmd).Exec(cmd, opts...) //nolint:wrapcheck
+}
+
+// ExecOutput runs a command on the host and returns its output, applying the
+// same SudoDocker routing as Exec.
+func (h *Host) ExecOutput(cmd string, opts ...cmd.ExecOption) (string, error) {
+	return h.runner(cmd).ExecOutput(cmd, opts...) //nolint:wrapcheck
+}
+
+// ExecInteractive runs a command (or an interactive shell when cmd is empty)
+// on the host, wired to the local standard streams.
+func (h *Host) ExecInteractive(cmd string) error {
+	if err := h.Client.ExecInteractive(context.Background(), cmd, os.Stdin, os.Stdout, os.Stderr); err != nil {
+		return fmt.Errorf("interactive exec failed: %w", err)
+	}
+	return nil
 }
 
 // ExecAll execs a slice of commands on the host.
@@ -155,22 +343,6 @@ func (h *Host) ExecAll(cmds []string) error {
 		}
 	}
 	return nil
-}
-
-// ExecStreams executes a command on the remote host and uses the passed in streams for stdin, stdout and stderr. It returns a Waiter with a .Wait() function that
-// blocks until the command finishes and returns an error if the exit code is not zero.
-func (h *Host) ExecStreams(cmd string, stdin io.ReadCloser, stdout, stderr io.Writer, opts ...exec.Option) (exec.Waiter, error) { //nolint:ireturn
-	return h.Connection.ExecStreams(cmd, stdin, stdout, stderr, h.sudoCommandOptions(cmd, opts)...) //nolint:wrapcheck
-}
-
-// Exec runs a command on the host.
-func (h *Host) Exec(cmd string, opts ...exec.Option) error {
-	return h.Connection.Exec(cmd, h.sudoCommandOptions(cmd, opts)...) //nolint:wrapcheck
-}
-
-// ExecOutput runs a command on the host and returns the output as a String.
-func (h *Host) ExecOutput(cmd string, opts ...exec.Option) (string, error) {
-	return h.Connection.ExecOutput(cmd, h.sudoCommandOptions(cmd, opts)...) //nolint:wrapcheck
 }
 
 var errAuthFailed = errors.New("authentication failed")
@@ -220,6 +392,8 @@ func (h *Host) MCRVersion() (string, error) {
 var errUnexpectedResponse = errors.New("unexpected response")
 
 // CheckHTTPStatus will perform a web request to the url and return an error if the http status is not the expected.
+// TLS certificate verification is skipped, since these checks target services
+// with self-signed certificates (e.g. the MKE controllers).
 func (h *Host) CheckHTTPStatus(url string, expected int) error {
 	status, err := h.Configurer.HTTPStatus(h, url)
 	if err != nil {
@@ -250,7 +424,7 @@ func (h *Host) WriteFileLarge(src, dst string, fmo fs.FileMode) error {
 
 	log.Infof("%s: uploading %s to %s", h, byteutil.FormatBytes(usize), dst)
 
-	if err := h.Upload(src, dst, fmo); err != nil {
+	if err := remotefs.Upload(h.FS(), src, dst, remotefs.WithPermissions(fmo)); err != nil {
 		return fmt.Errorf("upload failed: %w", err)
 	}
 
@@ -268,7 +442,7 @@ func (h *Host) Reconnect() error {
 	log.Infof("%s: waiting for reconnection", h)
 	err := retry.Do(
 		func() error {
-			if err := h.Connect(); err != nil {
+			if err := h.Connect(context.Background()); err != nil {
 				return fmt.Errorf("failed to reconnect: %w", err)
 			}
 			return nil
@@ -323,9 +497,9 @@ func (h *Host) ConfigureMCR() error {
 
 	oldJSON := make(dig.Mapping)
 
-	if f, err := h.Configurer.ReadFile(h, cfgPath); err == nil {
+	if data, err := fs.ReadFile(h.Sudo().FS(), cfgPath); err == nil {
 		log.Debugf("%s: parsing existing daemon.json", h)
-		if err := json.Unmarshal([]byte(f), &oldJSON); err != nil {
+		if err := json.Unmarshal(data, &oldJSON); err != nil {
 			log.Debugf("%s: failed to parse existing MCR config: %s", h, err)
 		}
 	} else {
@@ -349,13 +523,11 @@ func (h *Host) ConfigureMCR() error {
 
 	log.Debugf("%s: writing new daemon.json", h)
 
-	daemonJSONContent := string(newJSONbytes)
-
-	if err := h.Configurer.DeleteFile(h, cfgPath); err != nil {
+	if err := h.Sudo().FS().Remove(cfgPath); err != nil {
 		log.Debugf("%s: failed to delete existing daemon.json: %s", h, err)
 	}
 
-	if err := h.Configurer.WriteFile(h, cfgPath, daemonJSONContent, "0600"); err != nil {
+	if err := h.Sudo().FS().WriteFile(cfgPath, newJSONbytes, fs.FileMode(0o600)); err != nil {
 		return fmt.Errorf("failed to write daemon.json: %w", err)
 	}
 
@@ -396,9 +568,17 @@ var errUnsupportedOS = errors.New("unsupported OS")
 
 // ResolveConfigurer assigns a rig-style configurer to the Host (see configurer/).
 func (h *Host) ResolveConfigurer() error {
-	bf, err := registry.GetOSModuleBuilder(*h.OSVersion)
-	if err != nil {
-		return fmt.Errorf("%w: failed to get OS module builder: %w", errUnsupportedOS, err)
+	if h.OSRelease == nil {
+		release, err := h.OS()
+		if err != nil {
+			return fmt.Errorf("%w: OS detection failed: %w", errUnsupportedOS, err)
+		}
+		h.OSRelease = release
+	}
+
+	bf, ok := configurer.ResolveOSModule(h.OSRelease)
+	if !ok {
+		return fmt.Errorf("%w: %s", errUnsupportedOS, h.OSRelease.ID)
 	}
 
 	if c, ok := bf().(HostConfigurer); ok {

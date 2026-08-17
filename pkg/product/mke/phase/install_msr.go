@@ -3,11 +3,11 @@ package phase
 import (
 	"fmt"
 
-	"al.essio.dev/pkg/shellescape"
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -85,7 +85,11 @@ func (p *InstallMSR) Run() error {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}
 
-	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []exec.Option{exec.RedactString(redacts...)}}); err != nil {
+	execOpts := make([]cmd.ExecOption, 0, len(redacts))
+	for _, r := range redacts {
+		execOpts = append(execOpts, cmd.Redact(r))
+	}
+	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: execOpts}); err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %w", h, err)
 	}
 
