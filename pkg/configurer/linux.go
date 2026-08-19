@@ -26,6 +26,79 @@ const (
 	SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
 )
 
+// mcrPackage is the Mirantis Container Runtime package name. It is identical
+// across the rpm and deb repositories on repos.mirantis.com.
+const mcrPackage = "docker-ee"
+
+// PackageManager identifies the package manager a Linux family installs MCR with.
+type PackageManager int
+
+const (
+	// Yum is dnf/yum, on the enterprise linux family.
+	Yum PackageManager = iota
+	// AptGet is apt-get, on debian and ubuntu.
+	AptGet
+	// Zypper is zypper, on SLES.
+	Zypper
+)
+
+// ErrUnknownPackageManager is returned for a PackageManager this package does
+// not know how to build a command for.
+var ErrUnknownPackageManager = errors.New("unknown package manager")
+
+// MCRInstallCommand returns the command that installs the MCR runtime package.
+//
+// These commands are issued directly rather than through rig's InstallPackage,
+// which hardcodes `<manager> install -y <packages>` and offers no way to pass
+// additional arguments. SLES already had to bypass it for --allow-vendor-change
+// (PRODENG-3623); installRecommends needs the same freedom on every family, so
+// all three are built here instead, in one place, rather than three.
+//
+// When engineConfig.InstallRecommends is set, the manager is instructed to
+// install recommended packages regardless of the host's configured default:
+//
+//   - yum/dnf: --setopt=install_weak_deps=True
+//   - apt-get: -o APT::Install-Recommends=true, the configuration item behind
+//     apt's --no-install-recommends flag
+//   - zypper:  --recommends, "install also recommended packages in addition to
+//     the required ones"
+//
+// Which packages those are is decided by the repository metadata, not here. See
+// PRODENG-3641.
+func MCRInstallCommand(manager PackageManager, engineConfig commonconfig.MCRConfig) (string, error) {
+	switch manager {
+	case Yum:
+		args := []string{"yum", "install", "-y"}
+		if engineConfig.InstallRecommends {
+			args = append(args, "--setopt=install_weak_deps=True")
+		}
+
+		return strings.Join(append(args, mcrPackage), " "), nil
+	case AptGet:
+		// -q matches what rig's InstallPackage ran, so the default command is
+		// unchanged. rig also ran `apt-get update` here; InstallMCR already does
+		// that explicitly above, so it is not repeated.
+		args := []string{"DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y", "-q"}
+		if engineConfig.InstallRecommends {
+			args = append(args, "-o", "APT::Install-Recommends=true")
+		}
+
+		return strings.Join(append(args, mcrPackage), " "), nil
+	case Zypper:
+		// --allow-vendor-change is unconditional on SLES: cloud images ship a
+		// SUSE-vendor containerd that the Mirantis packages must replace, and
+		// zypper otherwise cancels non-interactively. See PRODENG-3623.
+		args := []string{"zypper", "-n", "install", "-y", "--allow-vendor-change"}
+		if engineConfig.InstallRecommends {
+			args = append(args, "--recommends")
+		}
+
+		return strings.Join(append(args, mcrPackage), " "), nil
+	default:
+		return "", fmt.Errorf("%w: %d", ErrUnknownPackageManager, manager)
+	}
+}
+
 var ErrLinuxMCRInstall = errors.New("failed to install MCR on linux")
 
 // LinuxConfigurer is a generic linux host configurer.

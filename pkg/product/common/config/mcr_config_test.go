@@ -39,3 +39,36 @@ func TestSwarmUpdateCommands(t *testing.T) {
 	require.Equal(t, 1, slices.Index(cfg.SwarmUpdateCommands, "command2"))
 	require.Equal(t, 2, slices.Index(cfg.SwarmUpdateCommands, "command3"))
 }
+
+func TestMCRConfig_InstallRecommends(t *testing.T) {
+	// The yaml key is the user-facing contract: a mismatch here would silently
+	// ignore the setting and leave the runtime installed without its CLI on a
+	// host that disables weak dependencies. See PRODENG-3641.
+	for _, tc := range []struct {
+		name     string
+		yaml     string
+		expected bool
+	}{
+		{
+			name:     "absent defaults to false",
+			yaml:     "channel: stable",
+			expected: false,
+		},
+		{
+			name:     "installRecommends true is honoured",
+			yaml:     "channel: stable\ninstallRecommends: true",
+			expected: true,
+		},
+		{
+			name:     "installRecommends false is honoured",
+			yaml:     "channel: stable\ninstallRecommends: false",
+			expected: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := commonconfig.MCRConfig{}
+			require.NoError(t, yaml.Unmarshal([]byte(tc.yaml), &cfg))
+			require.Equal(t, tc.expected, cfg.InstallRecommends)
+		})
+	}
+}

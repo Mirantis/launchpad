@@ -80,8 +80,12 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 	if err := c.InstallPackage(h, "containerd.io"); err != nil {
 		return fmt.Errorf("package manager could not install containerd.io")
 	}
-	if err := c.InstallPackage(h, "docker-ee"); err != nil {
-		return fmt.Errorf("package manager could not install docker-ee")
+	installCmd, cmdErr := configurer.MCRInstallCommand(configurer.AptGet, engineConfig)
+	if cmdErr != nil {
+		return fmt.Errorf("could not build MCR install command: %w", cmdErr)
+	}
+	if err := h.Exec(installCmd, exec.Sudo(h)); err != nil {
+		return fmt.Errorf("package manager could not install docker-ee: %w", err)
 	}
 
 	if err := c.EnableMCR(h, engineConfig); err != nil {
