@@ -43,11 +43,10 @@ type MCRConfig struct {
 	// without its CLI, leaving later docker commands to fail on a host that
 	// otherwise looks correctly installed. See PRODENG-3641.
 	//
-	// Note the set of recommended packages is defined by the repository
-	// metadata, not by launchpad, and differs by platform. On rpm hosts it is
-	// docker-ee-cli and cri-dockerd-ee. On deb hosts it additionally includes
-	// ca-certificates, docker-ee-rootless-extras, git, a kernel package,
-	// libltdl7, pigz, procps and xz-utils.
+	// Note the set of recommended packages is defined by repository metadata,
+	// not by launchpad, and can differ by platform and change over time. On rpm
+	// hosts it typically includes docker-ee-cli and cri-dockerd-ee. On deb hosts
+	// it may include additional packages (including a kernel package).
 	//
 	// Linux only. Windows installs MCR through install.ps1 from a single archive
 	// that already contains the CLI; there is no package manager and no
