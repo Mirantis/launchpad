@@ -132,13 +132,27 @@ func runUpgradeTest(t *testing.T, cfg upgradeConfig) {
 	require.NoError(t, err, "mutate YAML for upgrade")
 
 	// ── Step 3: upgrade ───────────────────────────────────────────────────────
+	// PRODENG-3642: this is the only place CI runs launchpad against a swarm that
+	// predates the run, so the existing-swarm pool behaviour is asserted here.
+	// Both injected settings are inert on an existing cluster -- InitSwarm
+	// discards swarmInstallFlags once a swarm exists, and UpgradeMKE passes
+	// spec.mke.upgradeFlags rather than installFlags -- so this declares the
+	// customer's conflicting configuration without creating the network
+	// condition the pod CIDR check exists to prevent.
+	upgradeYAML, err = setSwarmPoolAndPodCIDR(upgradeYAML, poolOutsideVPC, podCIDRConflictingWithDefault)
+	require.NoError(t, err, "inject swarm pool and pod CIDR")
+
 	t.Logf("upgrading to: MCR %s / MKE %s", cfg.UpgradeMCRChannel, cfg.UpgradeMKEVersion)
 
 	upgradeProduct, err := config.ProductFromYAML([]byte(upgradeYAML))
 	require.NoError(t, err, "parse upgrade launchpad YAML")
 
-	err = upgradeProduct.Apply(true, true, 3, true)
-	assert.NoError(t, err, "upgrade Apply()")
+	upgradeLogs := captureLaunchpadLogs(t, func() {
+		err = upgradeProduct.Apply(true, true, 3, true)
+	})
+	assert.NoError(t, err, "upgrade Apply() must not fail over a pool conflict it cannot fix")
+
+	assertExistingSwarmPoolBehaviour(t, upgradeProduct, upgradeLogs)
 
 	// ── Step 4: reset (best-effort) ───────────────────────────────────────────
 	// See smoke_test.go for rationale on non-fatal Reset().
