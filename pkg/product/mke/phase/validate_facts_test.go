@@ -1,12 +1,14 @@
 package phase
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -349,4 +351,146 @@ func TestValidatePodCIDRMalformedSwarmPool(t *testing.T) {
 	require.Error(t, err)
 	require.ErrorIs(t, err, errInvalidPodCIDR)
 	require.ErrorContains(t, err, "cannot parse Swarm address pool")
+}
+
+// --- swarm overlay address pool (PRODENG-3642) -------------------------------
+
+// podCIDRPhase builds a ValidateFacts phase for the pod CIDR checks. A nil
+// livePools means no existing swarm was discovered, i.e. a first install.
+func podCIDRPhase(podCIDR string, configuredPools, livePools []string) ValidateFacts {
+	installFlags := commonconfig.Flags{}
+	if podCIDR != "" {
+		installFlags = append(installFlags, "--pod-cidr="+podCIDR)
+	}
+
+	swarmFlags := commonconfig.Flags{}
+	for _, pool := range configuredPools {
+		swarmFlags = append(swarmFlags, "--default-addr-pool="+pool)
+	}
+
+	phase := ValidateFacts{}
+	phase.Config = &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			MKE: mkeconfig.MKEConfig{InstallFlags: installFlags},
+			MCR: commonconfig.MCRConfig{
+				SwarmInstallFlags: swarmFlags,
+				Metadata:          &commonconfig.MCRMetadata{SwarmDefaultAddrPool: livePools},
+			},
+		},
+	}
+
+	return phase
+}
+
+// captureLogs returns everything fn logs, so warn-only behaviour is observable.
+func captureLogs(t *testing.T, fn func()) string {
+	t.Helper()
+
+	var buf bytes.Buffer
+	logger := logrus.StandardLogger()
+	originalOut, originalLevel := logger.Out, logger.GetLevel()
+	logger.SetOutput(&buf)
+	logger.SetLevel(logrus.DebugLevel)
+
+	t.Cleanup(func() {
+		logger.SetOutput(originalOut)
+		logger.SetLevel(originalLevel)
+	})
+
+	fn()
+
+	return buf.String()
+}
+
+// The reported bug: on an existing swarm the configured pool is discarded by
+// InitSwarm, so validating against it hides a live overlap. The overlap must be
+// reported, and must not block a cluster that already runs this way.
+func TestValidatePodCIDRWarnsOnLiveOverlapHiddenByConfiguredPool(t *testing.T) {
+	phase := podCIDRPhase("10.244.0.0/16", []string{"10.0.0.0/16"}, []string{"10.0.0.0/8"})
+
+	var err error
+	out := captureLogs(t, func() { err = phase.validatePodCIDR() })
+
+	require.NoError(t, err, "the pool of an existing swarm cannot be changed, so this must not fail the run")
+	require.Contains(t, out, "--pod-cidr 10.244.0.0/16 overlaps the overlay address pool 10.0.0.0/8 of the existing swarm")
+	require.Contains(t, out, "cannot resolve this on a running cluster")
+}
+
+// The live pool takes precedence: this configuration would pass on its own.
+func TestValidatePodCIDRPrefersLivePoolOverConfiguredPool(t *testing.T) {
+	phase := podCIDRPhase("10.244.0.0/16", []string{"10.10.0.0/16"}, []string{"10.244.0.0/16"})
+
+	var err error
+	out := captureLogs(t, func() { err = phase.validatePodCIDR() })
+
+	require.NoError(t, err)
+	require.Contains(t, out, "of the existing swarm")
+}
+
+// A swarm may hold several pools; all of them are checked.
+func TestValidatePodCIDRChecksEveryLivePool(t *testing.T) {
+	phase := podCIDRPhase("10.244.0.0/16", nil, []string{"10.10.0.0/16", "10.244.0.0/16"})
+
+	var err error
+	out := captureLogs(t, func() { err = phase.validatePodCIDR() })
+
+	require.NoError(t, err)
+	require.Contains(t, out, "overlay address pool 10.244.0.0/16")
+}
+
+func TestValidatePodCIDRSilentWhenLivePoolDoesNotOverlap(t *testing.T) {
+	phase := podCIDRPhase("10.244.0.0/16", nil, []string{"10.10.0.0/16"})
+
+	var err error
+	out := captureLogs(t, func() { err = phase.validatePodCIDR() })
+
+	require.NoError(t, err)
+	require.NotContains(t, out, "of the existing swarm")
+}
+
+// Metadata is populated from yaml and can be absent when a config is built by
+// hand; the check must fall back to the configured pool rather than panic.
+func TestValidatePodCIDRToleratesMissingMCRMetadata(t *testing.T) {
+	phase := podCIDRPhase("10.244.0.0/16", nil, nil)
+	phase.Config.Spec.MCR.Metadata = nil
+
+	require.ErrorContains(t, phase.validatePodCIDR(), "10.0.0.0/8")
+}
+
+// A pool configured on an existing swarm changes nothing on the hosts, which is
+// what makes the cluster stop matching its configuration.
+func TestWarnSwarmAddrPoolDivergenceReportsInertSetting(t *testing.T) {
+	phase := podCIDRPhase("", []string{"10.0.0.0/16"}, []string{"10.0.0.0/8"})
+
+	out := captureLogs(t, phase.warnSwarmAddrPoolDivergence)
+
+	require.Contains(t, out, "sets --default-addr-pool 10.0.0.0/16 but the existing swarm allocates overlay networks from 10.0.0.0/8")
+	require.Contains(t, out, "has no effect here")
+}
+
+// The ordinary case: no pool configured and a swarm on the default. Comparing an
+// empty configuration against the fallback would warn on every apply of every
+// cluster that never set the flag.
+func TestWarnSwarmAddrPoolDivergenceSilentWhenPoolNotConfigured(t *testing.T) {
+	phase := podCIDRPhase("", nil, []string{"10.0.0.0/8"})
+	require.Empty(t, captureLogs(t, phase.warnSwarmAddrPoolDivergence))
+}
+
+func TestWarnSwarmAddrPoolDivergenceSilentWhenConfigMatchesSwarm(t *testing.T) {
+	phase := podCIDRPhase("", []string{"10.10.0.0/16"}, []string{"10.10.0.0/16"})
+	require.Empty(t, captureLogs(t, phase.warnSwarmAddrPoolDivergence))
+}
+
+// On a first install there is no swarm to diverge from and the flags will be
+// applied, so there is nothing to report.
+func TestWarnSwarmAddrPoolDivergenceSilentOnFirstInstall(t *testing.T) {
+	phase := podCIDRPhase("", []string{"10.10.0.0/16"}, nil)
+	require.Empty(t, captureLogs(t, phase.warnSwarmAddrPoolDivergence))
+}
+
+func TestWarnSwarmAddrPoolDivergenceToleratesMissingMCRMetadata(t *testing.T) {
+	phase := podCIDRPhase("", []string{"10.10.0.0/16"}, nil)
+	phase.Config.Spec.MCR.Metadata = nil
+
+	require.Empty(t, captureLogs(t, phase.warnSwarmAddrPoolDivergence))
 }

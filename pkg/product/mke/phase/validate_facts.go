@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
+	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/hashicorp/go-version"
 	log "github.com/sirupsen/logrus"
 )
@@ -69,6 +72,8 @@ func (p *ValidateFacts) Run() error {
 			return errors.Join(ErrFactsArentValid, err)
 		}
 	}
+
+	p.warnSwarmAddrPoolDivergence()
 
 	if err := p.validatePodCIDR(); err != nil {
 		return errors.Join(ErrFactsArentValid, err)
@@ -203,16 +208,67 @@ func (p *ValidateFacts) validateDataPlane() error {
 
 var errInvalidPodCIDR = errors.New("invalid pod CIDR configuration")
 
-// swarmDefaultAddrPool is the Docker Swarm default overlay address pool.
-const swarmDefaultAddrPool = "10.0.0.0/8"
-
-// validatePodCIDR checks that --pod-cidr in mke.installFlags does not overlap
-// with the Swarm overlay address pool. Overlapping CIDRs cause the Docker daemon
-// to restart into a broken network state during MKE bootstrap, which silently
-// drops the SSH connection and produces a connection timeout after 20+ minutes.
+// swarmAddrPools returns the overlay address pools that --pod-cidr must not
+// overlap, and whether they describe a swarm that already exists.
 //
-// If mcr.swarmInstallFlags contains --default-addr-pool, that value is used as
-// the Swarm pool instead of the compiled-in default (10.0.0.0/8).
+// An existing swarm is authoritative. Its pool is fixed at creation and the
+// InitSwarm phase discards mcr.swarmInstallFlags on such a cluster, so the
+// configured value describes nothing there. Before a swarm exists the configured
+// value is what swarm init will apply, and so is the pool to validate against.
+func (p *ValidateFacts) swarmAddrPools() (pools []string, fromExistingSwarm bool) {
+	if p.Config.Spec.MCR.Metadata != nil && len(p.Config.Spec.MCR.Metadata.SwarmDefaultAddrPool) > 0 {
+		return p.Config.Spec.MCR.Metadata.SwarmDefaultAddrPool, true
+	}
+
+	// docker swarm init accepts --default-addr-pool repeated, so keep every pool.
+	if configured := p.Config.Spec.MCR.SwarmInstallFlags.GetValues("--default-addr-pool"); len(configured) > 0 {
+		return configured, false
+	}
+
+	return []string{swarm.DefaultAddrPoolFallback}, false
+}
+
+// warnSwarmAddrPoolDivergence reports an mcr.swarmInstallFlags --default-addr-pool
+// setting that describes something other than the running cluster. The pool is
+// fixed when the swarm is created, so on an existing cluster the setting is inert
+// and the configuration quietly stops matching the infrastructure.
+//
+// Nothing is reported unless a pool is both explicitly configured and known to
+// differ from the live one, so the common case of a cluster that never set the
+// flag stays silent.
+func (p *ValidateFacts) warnSwarmAddrPoolDivergence() {
+	if p.Config.Spec.MCR.Metadata == nil || len(p.Config.Spec.MCR.Metadata.SwarmDefaultAddrPool) == 0 {
+		return
+	}
+
+	configured := p.Config.Spec.MCR.SwarmInstallFlags.GetValues("--default-addr-pool")
+	if len(configured) == 0 {
+		return
+	}
+
+	live := p.Config.Spec.MCR.Metadata.SwarmDefaultAddrPool
+	if slices.Equal(configured, live) {
+		return
+	}
+
+	log.Warnf(
+		"mcr.swarmInstallFlags sets --default-addr-pool %s but the existing swarm allocates overlay networks from %s. "+
+			"A swarm's address pool is fixed when the swarm is created and cannot be changed on a running cluster, so this "+
+			"setting has no effect here and the cluster no longer matches its configuration. Changing the pool requires "+
+			"dissolving and re-creating the swarm, which destroys every overlay network and service",
+		strings.Join(configured, ","), strings.Join(live, ","),
+	)
+}
+
+// validatePodCIDR checks that --pod-cidr in mke.installFlags does not overlap the
+// Swarm overlay address pool. Overlapping CIDRs cause the Docker daemon to restart
+// into a broken network state during MKE bootstrap, which silently drops the SSH
+// connection and produces a connection timeout after 20+ minutes.
+//
+// The conflict is fatal only while it is still avoidable, which means before the
+// swarm exists. On an existing swarm the pool cannot be changed, so the conflict
+// is reported and the run continues rather than blocking upgrades of clusters that
+// are already running this way. See PRODENG-3642.
 func (p *ValidateFacts) validatePodCIDR() error {
 	podCIDRStr := p.Config.Spec.MKE.InstallFlags.GetValue("--pod-cidr")
 	if podCIDRStr == "" {
@@ -224,28 +280,48 @@ func (p *ValidateFacts) validatePodCIDR() error {
 		return fmt.Errorf("%w: cannot parse --pod-cidr %q: %w", errInvalidPodCIDR, podCIDRStr, err)
 	}
 
-	// docker swarm init accepts --default-addr-pool repeated, so check every
-	// pool. Fall back to the compiled-in default when none is configured.
-	swarmPools := p.Config.Spec.MCR.SwarmInstallFlags.GetValues("--default-addr-pool")
-	if len(swarmPools) == 0 {
-		swarmPools = []string{swarmDefaultAddrPool}
-	}
+	swarmPools, fromExistingSwarm := p.swarmAddrPools()
+	overlapping := false
 
 	for _, swarmPoolStr := range swarmPools {
 		_, swarmNet, err := net.ParseCIDR(swarmPoolStr)
 		if err != nil {
+			if fromExistingSwarm {
+				// Reported by the daemon rather than written by the user, so
+				// there is nothing in the configuration to correct.
+				log.Warnf("cannot parse the overlay address pool %q reported by the existing swarm: %s", swarmPoolStr, err.Error())
+				continue
+			}
+
 			return fmt.Errorf("%w: cannot parse Swarm address pool %q: %w", errInvalidPodCIDR, swarmPoolStr, err)
 		}
 
-		if swarmNet.Contains(podNet.IP) || podNet.Contains(swarmNet.IP) {
+		if !swarmNet.Contains(podNet.IP) && !podNet.Contains(swarmNet.IP) {
+			continue
+		}
+
+		if !fromExistingSwarm {
 			return fmt.Errorf(
 				"%w: --pod-cidr %s overlaps with the Swarm overlay address pool %s; "+
 					"choose a non-overlapping range or set mcr.swarmInstallFlags --default-addr-pool to a non-conflicting pool",
 				errInvalidPodCIDR, podCIDRStr, swarmPoolStr,
 			)
 		}
+
+		overlapping = true
+
+		log.Warnf(
+			"--pod-cidr %s overlaps the overlay address pool %s of the existing swarm, which can leave the container "+
+				"runtime with a broken network configuration during MKE bootstrap. The pool is fixed when a swarm is "+
+				"created, so mcr.swarmInstallFlags cannot resolve this on a running cluster: either choose a "+
+				"non-overlapping --pod-cidr, or dissolve and re-create the swarm with a non-overlapping pool",
+			podCIDRStr, swarmPoolStr,
+		)
 	}
 
-	log.Debugf("pod CIDR %s does not overlap with any Swarm pool %v", podCIDRStr, swarmPools)
+	if !overlapping {
+		log.Debugf("pod CIDR %s does not overlap with any Swarm pool %v", podCIDRStr, swarmPools)
+	}
+
 	return nil
 }

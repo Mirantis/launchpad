@@ -60,6 +60,17 @@ func (p *GatherFacts) Run() error {
 			log.Infof("%s: MKE is not installed", swarmLeader)
 		}
 		p.Config.Spec.MKE.Metadata.ClusterID = swarm.ClusterID(swarmLeader)
+
+		// The overlay address pool of an existing swarm is needed by
+		// ValidateFacts, which runs before MCR is installed and so cannot read
+		// it from a host itself. A read failure is not fatal: validation falls
+		// back to the configured pool.
+		pools, err := swarm.DefaultAddrPool(swarmLeader)
+		if err != nil {
+			log.Warnf("%s: failed to read the swarm overlay address pool: %s", swarmLeader, err.Error())
+		} else if p.Config.Spec.MCR.Metadata != nil {
+			p.Config.Spec.MCR.Metadata.SwarmDefaultAddrPool = pools
+		}
 	}
 	if p.Config.Spec.ContainsMSR() {
 		// If we intend to configure msr as well, gather facts for msr

@@ -45,7 +45,12 @@ func (p *InitSwarm) Run() error {
 	} else {
 		log.Infof("%s: swarm already initialized", swarmLeader)
 		if len(p.Config.Spec.MCR.SwarmInstallFlags) > 0 {
-			log.Warnf("%s: swarm install flags ignored due to swarm cluster already existing", swarmLeader)
+			// Naming the flags matters: these are settings the operator believes
+			// are in force, and several of them (--default-addr-pool in
+			// particular) cannot be applied to a swarm after it exists.
+			// See PRODENG-3642.
+			log.Warnf("%s: swarm install flags only apply when a swarm is created, so %q has no effect on this cluster",
+				swarmLeader, p.Config.Spec.MCR.SwarmInstallFlags.Join())
 		}
 	}
 

@@ -2,6 +2,7 @@ package swarm
 
 import (
 	"fmt"
+	"strings"
 
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	log "github.com/sirupsen/logrus"
@@ -40,4 +41,50 @@ func ClusterID(h *mkeconfig.Host) string {
 	}
 
 	return output
+}
+
+// DefaultAddrPoolFallback is the overlay address pool Docker uses when a swarm
+// was created without --default-addr-pool. Docker does not report a pool in that
+// case, so this value is what such a cluster is actually running with.
+const DefaultAddrPoolFallback = "10.0.0.0/8"
+
+// DefaultAddrPool returns the overlay address pools in effect for the swarm the
+// given host belongs to, or nil when the host is not part of a swarm.
+//
+// The pool is fixed when the swarm is created and cannot be changed afterwards:
+// --default-addr-pool is a field of docker's swarm InitRequest but not of the
+// Spec that "docker swarm update" mutates. Changing it requires dissolving and
+// re-creating the swarm, which destroys every overlay network and service.
+//
+// A swarm created without the flag reports an empty pool list, in which case
+// DefaultAddrPoolFallback is returned, so a non-empty result means "this host is
+// in a swarm and these are the pools it allocates overlay networks from".
+func DefaultAddrPool(h *mkeconfig.Host) ([]string, error) {
+	out, err := h.ExecOutput(h.Configurer.DockerCommandf(defaultAddrPoolCmd))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get swarm overlay address pool: %w", err)
+	}
+
+	return parseDefaultAddrPool(out), nil
+}
+
+// defaultAddrPoolCmd reports the swarm state alongside the pools, so that "not in
+// a swarm" stays distinguishable from "in a swarm with no explicit pool". Cluster
+// is nil outside a swarm and dereferencing it fails the whole template, hence the
+// guard.
+const defaultAddrPoolCmd = `info --format "{{.Swarm.LocalNodeState}}|{{if .Swarm.Cluster}}{{range .Swarm.Cluster.DefaultAddrPool}}{{.}} {{end}}{{end}}"`
+
+// parseDefaultAddrPool turns the output of defaultAddrPoolCmd into the pools in
+// effect, or nil when the host is not in a swarm.
+func parseDefaultAddrPool(out string) []string {
+	state, pools, _ := strings.Cut(out, "|")
+	if strings.TrimSpace(state) != "active" {
+		return nil
+	}
+
+	if configured := strings.Fields(pools); len(configured) > 0 {
+		return configured
+	}
+
+	return []string{DefaultAddrPoolFallback}
 }
