@@ -298,8 +298,7 @@ func (p *RemoveNodes) getReplicaIDFromHostname(config *mkeconfig.ClusterConfig, 
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	// mkeURL from cluster config (trusted source)
-	resp, err := client.Do(req) // #nosec G704
+	resp, err := client.Do(req) // #nosec G107 G704 -- mkeURL from cluster config (trusted source)
 	if err != nil {
 		return "", fmt.Errorf("%w: failed to get containers from MKE: %w", errGetReplicaID, err)
 	}

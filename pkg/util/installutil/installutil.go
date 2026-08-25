@@ -9,7 +9,7 @@ import (
 // SetupLicenseFile reads the license file and returns a license string command
 // flag to be used with MSR and MKE installers.
 func SetupLicenseFile(licenseFilePath string) (string, error) {
-	license, err := os.ReadFile(licenseFilePath)
+	license, err := os.ReadFile(licenseFilePath) // #nosec G304 G703 -- path is user-provided by design (CLI flag)
 	if err != nil {
 		return "", fmt.Errorf("failed to read license file: %w", err)
 	}

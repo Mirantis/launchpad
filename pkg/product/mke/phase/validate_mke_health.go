@@ -108,8 +108,7 @@ func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, passwo
 		return fmt.Errorf("failed to create request for %s: %w", mkeURL.String(), err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	// mkeURL from cluster config (trusted source)
-	resp, err := client.Do(req) // #nosec G704
+	resp, err := client.Do(req) // #nosec G107 G704 -- mkeURL from cluster config (trusted source)
 	if err != nil {
 		log.Debugf("Failed to get response from %s (%d): %v", mkeURL.String(), resp.StatusCode, err)
 		return fmt.Errorf("failed to get response from %s: %w", mkeURL.String(), err)
