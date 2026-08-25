@@ -33,7 +33,7 @@ type KubeClient struct {
 func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
 	f := filepath.Join(bundleDir, constant.KubeConfigFile)
 
-	configBytes, err := os.ReadFile(f)
+	configBytes, err := os.ReadFile(f) // #nosec G304 G703 -- f is joined from a caller-supplied trusted bundle dir
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %q: %w", f, err)
 	}

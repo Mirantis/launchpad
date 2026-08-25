@@ -14,7 +14,7 @@ var LoadExternalFile = func(path string) ([]byte, error) {
 		return []byte{}, fmt.Errorf("failed to expand home dir: %w", err)
 	}
 
-	filedata, err := os.ReadFile(realpath)
+	filedata, err := os.ReadFile(realpath) // #nosec G304 G703 -- path is user-provided by design (CLI/config file reference)
 	if err != nil {
 		return []byte{}, fmt.Errorf("failed to read %q: %w", realpath, err)
 	}

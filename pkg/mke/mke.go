@@ -102,7 +102,7 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	resp, err := client.Do(req) // #nosec G704 -- URL is from cluster config/trusted MKE API
+	resp, err := client.Do(req) // #nosec G107 G704 -- URL is from cluster config/trusted MKE API
 	if err != nil {
 		log.Debugf("Failed to get bundle: %v", err)
 		return nil, fmt.Errorf("failed to request client bundle: %w", err)

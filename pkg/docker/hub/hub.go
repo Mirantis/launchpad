@@ -35,8 +35,7 @@ func LatestTag(org, image string, pre bool) (string, error) {
 	}
 
 	req.Header.Set("Accept", "application/json")
-	// url is from config / Docker Hub API (trusted source)
-	res, err := client.Do(req) // #nosec G704
+	res, err := client.Do(req) // #nosec G107 G704 -- url is from config / Docker Hub API (trusted source)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errQueryFailed, err)
 	}
