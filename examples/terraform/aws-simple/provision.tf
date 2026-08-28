@@ -7,6 +7,7 @@ locals {
 # PROVISION MACHINES/NETWORK
 module "provision" {
   source = "terraform-mirantis-modules/provision-aws/mirantis"
+  version = ">= 0.1.7"
 
   name        = var.name
   common_tags = local.tags

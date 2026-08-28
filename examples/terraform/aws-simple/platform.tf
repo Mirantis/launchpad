@@ -44,6 +44,7 @@ locals {
 module "platform" {
   count  = length(local.upstream_platform_keys)
   source = "terraform-mirantis-modules/provision-aws/mirantis//modules/platform"
+  version = ">= 0.1.7"
 
   platform_key     = local.upstream_platform_keys[count.index]
   windows_password = var.windows_password
