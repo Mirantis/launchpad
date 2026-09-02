@@ -23,5 +23,6 @@ var (
 	_ HostConfigurer = ubuntu.FocalConfigurer{}
 	_ HostConfigurer = ubuntu.JammyConfigurer{}
 	_ HostConfigurer = ubuntu.NobleConfigurer{}
+	_ HostConfigurer = ubuntu.ResoluteConfigurer{}
 	_ HostConfigurer = ubuntu.XenialConfigurer{}
 )
