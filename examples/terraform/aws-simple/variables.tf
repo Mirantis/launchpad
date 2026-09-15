@@ -52,7 +52,13 @@ variable "nodegroups" {
     count       = optional(number, 1)
     volume_size = optional(number, 100)
     public      = optional(bool, true)
-    user_data   = optional(string, "")
+    // Takes precedence over the platform's own coded-default user_data
+    // (see provision.tf: nodegroups_wplatform), with one exception: winrm
+    // platforms have a fixed requirement -- an Administrator password
+    // reset and WinRM-over-HTTPS listener setup -- that launchpad cannot
+    // connect without, so on those platforms this is appended after that
+    // required setup rather than replacing it.
+    user_data = optional(string, "")
   }))
 }
 
