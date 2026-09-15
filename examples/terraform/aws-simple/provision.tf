@@ -1,7 +1,23 @@
 // locals calculated before the provision run
 locals {
-  // combine the nodegroup definition with the platform data
-  nodegroups_wplatform = { for k, ngd in var.nodegroups : k => merge(ngd, local.platforms_with_ami[ngd.platform]) }
+  // Combine the nodegroup definition with the platform data. The platform
+  // data wins on every key except user_data: a caller-supplied
+  // ngd.user_data (e.g. the firewall-cmd/ufw rules in
+  // terraform.tfvars.template) takes precedence over the platform's coded
+  // default user_data, EXCEPT for winrm platforms, where the platform's
+  // default is not merely a convenience default but a fixed requirement --
+  // it resets the local Administrator password and stands up the WinRM
+  // HTTPS listener launchpad needs in order to connect at all. For those
+  // platforms the caller's user_data is appended after the required setup
+  // instead of replacing it, so a custom user_data on a Windows nodegroup
+  // can't accidentally disable WinRM connectivity.
+  nodegroups_wplatform = { for k, ngd in var.nodegroups : k => merge(ngd, local.platforms_with_ami[ngd.platform], {
+    user_data = (
+      local.platforms_with_ami[ngd.platform].connection == "winrm"
+      ? join("\n", compact([local.platforms_with_ami[ngd.platform].user_data, ngd.user_data]))
+      : (ngd.user_data != "" ? ngd.user_data : local.platforms_with_ami[ngd.platform].user_data)
+    )
+  }) }
 }
 
 # PROVISION MACHINES/NETWORK

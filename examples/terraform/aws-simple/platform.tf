@@ -6,7 +6,7 @@ locals {
   // platforms defined in the upstream module
   upstream_platform_keys = [for p in local.unique_used_platforms : p if !contains(keys(local.lib_local_platform_definitions), p)]
   // platforms defined locally (not in upstream module)
-  local_platform_keys    = [for p in local.unique_used_platforms : p if contains(keys(local.lib_local_platform_definitions), p)]
+  local_platform_keys = [for p in local.unique_used_platforms : p if contains(keys(local.lib_local_platform_definitions), p)]
 
   // local platform AMI definitions (supplements upstream module)
   lib_local_platform_definitions = {
@@ -71,6 +71,12 @@ locals {
   // rule for port 5986, unlike windows_2025 below. Apply the same
   // userdata_windows.tpl here for any winrm-connection platform so every
   // Windows worker actually configures WinRM over HTTPS on 5986.
+  //
+  // This is the platform's fixed/required default -- for winrm platforms it
+  // is not optional (without it launchpad cannot connect at all), so it is
+  // always present here. provision.tf composes it with any caller-supplied
+  // nodegroup user_data (see nodegroups_wplatform) rather than this file
+  // deciding precedence.
   upstream_platforms_with_ami = {
     for k, p in local.upstream_platform_keys : p => merge(module.platform[k].platform, {
       user_data = module.platform[k].platform.connection == "winrm" ? templatefile("${path.module}/userdata_windows.tpl", {
