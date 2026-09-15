@@ -73,9 +73,19 @@ data "aws_ami" "local" {
 
 // variables calculated after ami data is pulled
 locals {
-  // upstream platforms: build map from upstream module outputs
+  // upstream platforms: build map from upstream module outputs. The
+  // upstream modules/platform submodule declares windows_password but never
+  // uses it -- it does not generate any user_data, so windows_2019/2022
+  // (sourced from here) boot with no WinRM HTTPS listener and no firewall
+  // rule for port 5986, unlike windows_2025 below. Apply the same
+  // userdata_windows.tpl here for any winrm-connection platform so every
+  // Windows worker actually configures WinRM over HTTPS on 5986.
   upstream_platforms_with_ami = {
-    for k, p in local.upstream_platform_keys : p => module.platform[k].platform
+    for k, p in local.upstream_platform_keys : p => merge(module.platform[k].platform, {
+      user_data = module.platform[k].platform.connection == "winrm" ? templatefile("${path.module}/userdata_windows.tpl", {
+        windows_administrator_password = var.windows_password
+      }) : ""
+    })
   }
 
   // local platforms: build map matching the shape upstream module produces
