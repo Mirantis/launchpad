@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Mirantis/launchpad/pkg/product/mke"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,18 +58,23 @@ func TestProductFromYAMLPreservesPlainPassword(t *testing.T) {
 
 func TestProductFromYAMLStillSubstitutesSetEnvironmentVariables(t *testing.T) {
 	// Legitimate use of the feature -- referencing a set environment
-	// variable -- must keep working.
+	// variable -- must keep working, and must resolve to the actual value.
 	t.Setenv("LAUNCHPAD_TEST_MKE_PASSWORD", "s3cr3t")
 	p, err := ProductFromYAML(baseConfig(`${LAUNCHPAD_TEST_MKE_PASSWORD}`))
 	require.NoError(t, err)
-	require.NotNil(t, p)
+	m, ok := p.(*mke.MKE)
+	require.True(t, ok)
+	require.Equal(t, "s3cr3t", m.ClusterConfig.Spec.MKE.AdminPassword)
 }
 
 func TestProductFromYAMLAllowsEscapedDollar(t *testing.T) {
 	// A literal "$" can still be produced by escaping it as "$$", per
-	// envsubst's own escaping convention.
+	// envsubst's own escaping convention, and must resolve to the intended
+	// literal password rather than some other value.
 	require.Empty(t, os.Getenv("yAzL"))
 	p, err := ProductFromYAML(baseConfig(`Qr0!@dGo7ukgWC0$$yAzL`))
 	require.NoError(t, err)
-	require.NotNil(t, p)
+	m, ok := p.(*mke.MKE)
+	require.True(t, ok)
+	require.Equal(t, `Qr0!@dGo7ukgWC0$yAzL`, m.ClusterConfig.Spec.MKE.AdminPassword)
 }
