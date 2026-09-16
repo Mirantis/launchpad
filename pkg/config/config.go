@@ -65,7 +65,16 @@ func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
 		return nil, fmt.Errorf("failed to marshal configuration: %w", err)
 	}
 
-	plain, err := envsubst.Bytes(data)
+	// noUnset: fail loudly instead of silently substituting an empty string
+	// when a literal, unescaped "$word" in the config (e.g. a generated
+	// password) happens to look like an environment variable reference but
+	// isn't one -- prior to this, such values were silently truncated at
+	// the "$", producing a corrupted credential with no indication of why.
+	// noDigit: "$" followed by a digit (e.g. a password containing "$5986")
+	// can never be a valid environment variable name, so leave it as
+	// literal text rather than treating it as a reference.
+	// A literal "$" can still be produced by escaping it as "$$".
+	plain, err := envsubst.BytesRestrictedNoDigit(data, true, false, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to substitute environment variables: %w", err)
 	}
