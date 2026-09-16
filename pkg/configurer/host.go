@@ -11,6 +11,10 @@ import (
 // types, which embed rig.CompositeConfig and *rig.Client).
 type Host interface {
 	cmd.SimpleRunner
+	// ContextRunner is needed by configurers that must bound an exec call
+	// with an explicit deadline (see pkg/configurer/windows.go's
+	// windowsExecTimeout) rather than rig's default context.Background().
+	cmd.ContextRunner
 	Sudo() *rig.Client
 	FS() remotefs.FS
 }

@@ -208,3 +208,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/k0sproject/rig/v2 => github.com/james-nesbitt/rig/v2 v2.0.0-alpha.2.0.20260916132849-b534cbe07c9f

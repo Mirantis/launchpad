@@ -1,8 +1,10 @@
 package configurer
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -54,4 +56,22 @@ func TestIsExitCode3010(t *testing.T) {
 			require.Equal(t, tt.want, isExitCode3010(tt.err))
 		})
 	}
+}
+
+// TestExecCtxIsBoundedAndCancelable pins the two properties the MCR
+// install/uninstall/restart lifecycle relies on: execCtx() actually carries
+// a deadline (unlike context.Background(), which never times out and so
+// can't bound a command.Wait() call, see k0sproject/rig#472) and calling the
+// returned cancel func actually cancels it rather than being a no-op.
+func TestExecCtxIsBoundedAndCancelable(t *testing.T) {
+	ctx, cancel := execCtx()
+	defer cancel()
+
+	deadline, ok := ctx.Deadline()
+	require.True(t, ok, "execCtx() context must carry a deadline")
+	require.WithinDuration(t, time.Now().Add(windowsExecTimeout), deadline, time.Second)
+
+	require.NoError(t, ctx.Err())
+	cancel()
+	require.ErrorIs(t, ctx.Err(), context.Canceled)
 }

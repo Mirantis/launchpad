@@ -314,10 +314,19 @@ func (h *Host) Exec(cmd string, opts ...cmd.ExecOption) error {
 	return h.runner(cmd).Exec(cmd, opts...) //nolint:wrapcheck
 }
 
-// ExecOutput runs a command on the host and returns its output, applying the
-// same SudoDocker routing as Exec.
-func (h *Host) ExecOutput(cmd string, opts ...cmd.ExecOption) (string, error) {
-	return h.runner(cmd).ExecOutput(cmd, opts...) //nolint:wrapcheck
+// ExecContext runs a command on the host, bound by ctx. It applies the same
+// sudo/SudoDocker routing as Exec; use it in place of Exec where the caller
+// needs to bound the wait for completion (see cmd.ContextRunner and
+// k0sproject/rig#472 -- Exec/ExecOutput use context.Background() and so
+// cannot be bounded at all).
+func (h *Host) ExecContext(ctx context.Context, cmd string, opts ...cmd.ExecOption) error {
+	return h.runner(cmd).ExecContext(ctx, cmd, opts...) //nolint:wrapcheck
+}
+
+// ExecOutputContext runs a command on the host, bound by ctx, and returns its
+// output. It applies the same sudo/SudoDocker routing as ExecOutput.
+func (h *Host) ExecOutputContext(ctx context.Context, cmd string, opts ...cmd.ExecOption) (string, error) {
+	return h.runner(cmd).ExecOutputContext(ctx, cmd, opts...) //nolint:wrapcheck
 }
 
 // ExecInteractive runs a command (or an interactive shell when cmd is empty)

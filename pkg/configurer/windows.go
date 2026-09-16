@@ -2,6 +2,7 @@ package configurer
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io/fs"
 	"path"
@@ -25,7 +26,25 @@ import (
 const (
 	// WindowsDockerLicenseFile filename for the docker license file on Windows machines.
 	WindowsDockerLicenseFile = "docker.lic"
+
+	// windowsExecTimeout bounds individual exec calls in the MCR
+	// install/uninstall/restart lifecycle. These commands run immediately
+	// around host reboots, where a WinRM session that has silently died
+	// (the host rebooted but the old shell was never actually torn down on
+	// this end) can otherwise hang the calling Exec/ExecOutput forever:
+	// rig's command.Wait() only honours a context deadline if one is
+	// actually supplied, and plain Exec/ExecOutput use context.Background().
+	// See k0sproject/rig#472. 15 minutes is generous enough for legitimate
+	// slow installs and image pulls, not a tight operational SLA.
+	windowsExecTimeout = 15 * time.Minute
 )
+
+// execCtx returns a context bounded by windowsExecTimeout, for use with
+// ExecContext/ExecOutputContext in the MCR install/uninstall/restart
+// lifecycle. Callers must invoke the returned cancel func.
+func execCtx() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), windowsExecTimeout)
+}
 
 // WindowsConfigurer is a generic windows host configurer.
 type WindowsConfigurer struct {
@@ -93,7 +112,9 @@ func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfi
 
 	log.Infof("%s: running installer", h)
 
-	output, err := h.ExecOutput(installCommand)
+	installCtx, installCancel := execCtx()
+	output, err := h.ExecOutputContext(installCtx, installCommand)
+	installCancel()
 
 	needsReboot := false
 	if err != nil {
@@ -119,9 +140,11 @@ func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfi
 		}
 		// Machine is back up. Delete the ONSTART scheduled task so it does not
 		// trigger another reboot on subsequent startups.
-		if err := h.Exec(`schtasks /delete /tn "LaunchpadReboot" /f`); err != nil {
+		cleanupCtx, cleanupCancel := execCtx()
+		if err := h.ExecContext(cleanupCtx, `schtasks /delete /tn "LaunchpadReboot" /f`); err != nil {
 			log.Warnf("%s: failed to clean up LaunchpadReboot task: %s", h, err)
 		}
+		cleanupCancel()
 		return nil
 	}
 
@@ -198,7 +221,10 @@ func (c WindowsConfigurer) UninstallMCR(h Host, engineConfig commonconfig.MCRCon
 		defer c.CleanupLingeringMCR(h, info)
 	}
 	if getDockerError == nil {
-		if err := h.Exec(c.DockerCommandf("system prune --volumes --all -f")); err != nil {
+		pruneCtx, pruneCancel := execCtx()
+		err := h.ExecContext(pruneCtx, c.DockerCommandf("system prune --volumes --all -f"))
+		pruneCancel()
+		if err != nil {
 			return fmt.Errorf("prune docker: %w", err)
 		}
 
@@ -220,7 +246,10 @@ func (c WindowsConfigurer) UninstallMCR(h Host, engineConfig commonconfig.MCRCon
 		}()
 
 		uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", ps.DoubleQuote(uninstaller))
-		if err := h.Exec(uninstallCommand); err != nil {
+		uninstallCtx, uninstallCancel := execCtx()
+		err = h.ExecContext(uninstallCtx, uninstallCommand)
+		uninstallCancel()
+		if err != nil {
 			return fmt.Errorf("run MCR uninstaller: %w", err)
 		}
 	}
@@ -230,11 +259,17 @@ func (c WindowsConfigurer) UninstallMCR(h Host, engineConfig commonconfig.MCRCon
 
 // RestartMCR restarts Docker EE engine.
 func (c WindowsConfigurer) RestartMCR(h Host) error {
-	_ = h.Exec("net stop com.docker.service")
-	_ = h.Exec("net start com.docker.service")
+	stopCtx, stopCancel := execCtx()
+	_ = h.ExecContext(stopCtx, "net stop com.docker.service")
+	stopCancel()
+	startCtx, startCancel := execCtx()
+	_ = h.ExecContext(startCtx, "net start com.docker.service")
+	startCancel()
 	err := retry.Do(
 		func() error {
-			if err := h.Exec(c.DockerCommandf("ps")); err != nil {
+			psCtx, psCancel := execCtx()
+			defer psCancel()
+			if err := h.ExecContext(psCtx, c.DockerCommandf("ps")); err != nil {
 				return fmt.Errorf("failed to run docker ps after restart: %w", err)
 			}
 			return nil
