@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -127,10 +128,26 @@ func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfi
 	return nil
 }
 
+// exitCodePattern extracts a numeric exit code following the phrase "exit
+// code" from a command execution error, regardless of the surrounding
+// wording. Different rig transports format the underlying error
+// differently -- e.g. rig v1: "...non-zero exit code: 3010"; rig v2 WinRM:
+// "...command exited with a non-zero exit code: exit code 3010" -- so
+// isExitCode3010 cannot rely on one exact phrase.
+var exitCodePattern = regexp.MustCompile(`(?i)exit code:?\s*(\d+)`)
+
 // isExitCode3010 checks if the error is a command failure with Windows exit
 // code 3010 (ERROR_SUCCESS_REBOOT_REQUIRED).
 func isExitCode3010(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "non-zero exit code: 3010")
+	if err == nil {
+		return false
+	}
+	for _, m := range exitCodePattern.FindAllStringSubmatch(err.Error(), -1) {
+		if code, convErr := strconv.Atoi(m[1]); convErr == nil && code == 3010 {
+			return true
+		}
+	}
+	return false
 }
 
 // Reboot triggers an immediate forced restart by scheduling a SYSTEM-context
