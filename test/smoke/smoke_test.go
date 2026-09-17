@@ -211,8 +211,8 @@ func TestCuttingEdgeCluster(t *testing.T) {
 		// "-mke-kube" (9 chars), capping len(Name) at 11. Hence "cuttingedge"
 		// rather than "cutting-edge" (12 chars).
 		Name:            "cuttingedge",
-		MCRChannel:      "stable-29.4",
-		MKEVersion:      "3.9.2",
+		MCRChannel:      "stable-29.6.1",
+		MKEVersion:      "3.9.6",
 		MSRVersion:      "3.1.18",
 		SSHKeyAlgorithm: "ed25519",
 		Nodegroups: map[string]interface{}{
