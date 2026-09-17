@@ -2,6 +2,7 @@ package phase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,11 @@ import (
 	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
+
+// errNodeIDNotReady indicates a host's own docker engine has not yet
+// reported a swarm NodeID for itself after joining -- see the comment on
+// the confirmation retry in Run.
+var errNodeIDNotReady = errors.New("host has not reported its swarm node id yet")
 
 // JoinWorkers phase implementation.
 type JoinWorkers struct {
@@ -60,6 +66,33 @@ func (p *JoinWorkers) Run() error {
 				return fmt.Errorf("retry count exceeded: %w", err)
 			}
 			log.Infof("%s: reconnected", h)
+		}
+
+		// `docker swarm join` returning success only means the join command
+		// itself completed; it does not guarantee this host's own docker
+		// engine has finished updating its local view of swarm state
+		// (particularly right after the reconnect above, since joining
+		// swarm on Windows tears down and re-establishes the connection).
+		// Without this, a later phase's "docker info"/"docker node update"
+		// can race this and see/use an empty NodeID -- observed in practice
+		// as LabelNodes failing with `"docker node update" requires exactly
+		// 1 argument` for a node whose NodeID query still came back empty.
+		err = retry.Do(
+			func() error {
+				nodeID, nodeIDErr := swarm.NodeID(h)
+				if nodeIDErr != nil {
+					return fmt.Errorf("%s: %w", h, nodeIDErr)
+				}
+				if nodeID == "" {
+					return fmt.Errorf("%s: %w", h, errNodeIDNotReady)
+				}
+				return nil
+			},
+			retry.Delay(time.Second*3),
+			retry.Attempts(20),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to confirm swarm membership for %s: %w", h, err)
 		}
 	}
 	return nil
