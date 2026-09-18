@@ -1,12 +1,15 @@
 module github.com/Mirantis/launchpad
 
-go 1.26.7
+go 1.27.1
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/a8m/envsubst v1.4.3
 	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/aws/aws-sdk-go-v2 v1.42.1
+	github.com/aws/aws-sdk-go-v2/config v1.32.30
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.316.1
 	github.com/creasty/defaults v1.8.0
 	github.com/denisbrodbeck/machineid v1.0.1
 	github.com/gammazero/workerpool v1.2.1
@@ -32,12 +35,6 @@ require (
 	k8s.io/apimachinery v0.36.2
 	k8s.io/client-go v0.36.2
 	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
-)
-
-require (
-	github.com/aws/aws-sdk-go-v2 v1.42.1
-	github.com/aws/aws-sdk-go-v2/config v1.32.30
-	github.com/aws/aws-sdk-go-v2/service/ec2 v1.316.1
 )
 
 require (
