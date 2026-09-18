@@ -17,9 +17,6 @@ on:
       - "test/**"
       - "examples/**"
       - ".github/workflows/**"
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
 
 jobs:
   lint:
