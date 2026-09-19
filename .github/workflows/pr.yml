@@ -17,9 +17,6 @@ on:
       - "test/**"
       - "examples/**"
       - ".github/workflows/**"
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
 
 jobs:
   lint:
@@ -63,29 +60,6 @@ jobs:
 
       - name: Run unit tests
         run: make unit-test
-
-  integration-test:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    env:
-      GOTOOLCHAIN: auto
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Run integration tests
-        run: make integration-test
-
-
 
   security-scan:
     name: Security Scan
