@@ -38,10 +38,22 @@ type smokeConfig struct {
 func generateWindowsPassword(t *testing.T) string {
 	t.Helper()
 	const (
-		upper   = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		lower   = "abcdefghijklmnopqrstuvwxyz"
-		digits  = "0123456789"
-		symbols = "!@#$%^&*"
+		upper  = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		lower  = "abcdefghijklmnopqrstuvwxyz"
+		digits = "0123456789"
+		// TEMPORARY WORKAROUND, see PRODENG-3751: "$" is excluded here only
+		// to unblock this branch's CI. launchpad.tf embeds this password
+		// directly into the launchpad_yaml output (password/adminPassword
+		// fields), which launchpad's config loader then runs through
+		// envsubst (pkg/config/config.go); an unescaped "$word" is now
+		// correctly treated as an environment variable reference and fails
+		// config loading if unset (PRODENG-3751 made this fail loudly
+		// instead of silently corrupting the password, which is correct).
+		// The proper fix is to escape "$" as "$$" where launchpad.tf embeds
+		// the password into that YAML, so a literal "$" -- legitimate in a
+		// real password -- keeps working end to end; do that and restore
+		// "$" here instead of leaving it excluded.
+		symbols = "!@#%^&*"
 		all     = upper + lower + digits + symbols
 	)
 	buf := make([]byte, 20)

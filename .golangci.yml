@@ -55,6 +55,7 @@ linters:
         - wg sync.WaitGroup
         - h Host
         - h os.Host
+        - h configurer.Host
         - h mkeconfig.Host
         - h *mkeconfig.Host
         - ok bool

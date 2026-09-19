@@ -17,7 +17,7 @@ import (
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
-	"github.com/k0sproject/rig/exec"
+	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -238,7 +238,7 @@ func (p *RemoveNodes) removemsrNode(config *mkeconfig.ClusterConfig, replicaID s
 
 	removeCmd := msrLeader.Configurer.DockerCommandf("run %s %s remove %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, removeFlags.Join())
 	log.Debugf("%s: Removing MSR replica %s from cluster", msrLeader, replicaID)
-	err := msrLeader.Exec(removeCmd, exec.StreamOutput())
+	err := msrLeader.Exec(removeCmd, cmd.StreamOutput())
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MSR remove: %w", msrLeader, err)
 	}

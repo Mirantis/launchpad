@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"io/fs"
 
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
@@ -54,13 +55,13 @@ func (p *InstallMKECerts) installCertificates(config *mkeconfig.ClusterConfig) e
 		}
 
 		log.Infof("%s: installing certificate files to %s", h, dir)
-		if err := h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "ca.pem"), config.Spec.MKE.CACertData, "0600"); err != nil {
+		if err := h.Sudo().FS().WriteFile(h.FS().Join(dir, "ca.pem"), []byte(config.Spec.MKE.CACertData), fs.FileMode(0o600)); err != nil {
 			return fmt.Errorf("write ca.pem: %w", err)
 		}
-		if err := h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "cert.pem"), config.Spec.MKE.CertData, "0600"); err != nil {
+		if err := h.Sudo().FS().WriteFile(h.FS().Join(dir, "cert.pem"), []byte(config.Spec.MKE.CertData), fs.FileMode(0o600)); err != nil {
 			return fmt.Errorf("write cert.pem: %w", err)
 		}
-		if err := h.Configurer.WriteFile(h, h.Configurer.JoinPath(dir, "key.pem"), config.Spec.MKE.KeyData, "0600"); err != nil {
+		if err := h.Sudo().FS().WriteFile(h.FS().Join(dir, "key.pem"), []byte(config.Spec.MKE.KeyData), fs.FileMode(0o600)); err != nil {
 			return fmt.Errorf("write key.pem: %w", err)
 		}
 

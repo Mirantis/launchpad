@@ -1,8 +1,8 @@
 package enterpriselinux
 
 import (
-	"github.com/k0sproject/rig"
-	"github.com/k0sproject/rig/os/registry"
+	"github.com/Mirantis/launchpad/pkg/configurer"
+	rigos "github.com/k0sproject/rig/v2/os"
 )
 
 // RockyLinux support.
@@ -11,9 +11,9 @@ type RockyLinux struct {
 }
 
 func init() {
-	registry.RegisterOSModule(
-		func(os rig.OSVersion) bool {
-			return os.ID == "rocky"
+	configurer.RegisterOSModule(
+		func(r *rigos.Release) bool {
+			return r.ID == "rocky"
 		},
 		func() any {
 			return RockyLinux{}

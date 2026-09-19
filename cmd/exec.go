@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Mirantis/launchpad/pkg/config"
-	"github.com/kballard/go-shellquote"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	"github.com/urfave/cli/v2"
 )
 
@@ -63,7 +63,7 @@ func NewExecCommand() *cli.Command {
 
 			args := ctx.Args().Slice()
 
-			err = product.Exec(ctx.StringSlice("target"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.Bool("all"), ctx.Bool("parallel"), ctx.String("role"), ctx.String("os"), shellquote.Join(args...))
+			err = product.Exec(ctx.StringSlice("target"), ctx.Bool("interactive"), ctx.Bool("first"), ctx.Bool("all"), ctx.Bool("parallel"), ctx.String("role"), ctx.String("os"), shellescape.Join(args...))
 			if err != nil {
 				return fmt.Errorf("failed to execute command: %w", err)
 			}
