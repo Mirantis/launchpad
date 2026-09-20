@@ -45,7 +45,7 @@ func (hosts *Hosts) Filter(filter func(h *Host) bool) Hosts {
 func (hosts *Hosts) Find(filter func(h *Host) bool) *Host {
 	for _, h := range *hosts {
 		if filter(h) {
-			return (h)
+			return h
 		}
 	}
 	return nil
@@ -55,7 +55,7 @@ func (hosts *Hosts) Find(filter func(h *Host) bool) *Host {
 func (hosts *Hosts) Index(filter func(h *Host) bool) int {
 	for i, h := range *hosts {
 		if filter(h) {
-			return (i)
+			return i
 		}
 	}
 	return -1
