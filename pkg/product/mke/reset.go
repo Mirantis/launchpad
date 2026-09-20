@@ -11,6 +11,7 @@ import (
 // Reset uninstalls a Docker Enterprise cluster.
 func (p *MKE) Reset() error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
+	phaseManager.Deadline = p.Timeout
 
 	phaseManager.AddPhases(
 		&common.Connect{},

@@ -54,6 +54,11 @@ func NewApplyCommand() *cli.Command {
 				Usage: "force upgrade to run on compatible components, even if it doesn't look necessary",
 				Value: false,
 			},
+			&cli.DurationFlag{
+				Name:  "timeout",
+				Usage: "Overall deadline for apply; fails naming the in-progress phase if exceeded instead of blocking forever (0 disables)",
+				Value: 90 * time.Minute,
+			},
 		}...),
 		Before: actions(initLogger, startUpgradeCheck, initAnalytics, checkLicense, initExec),
 		After:  actions(closeAnalytics, upgradeCheckResult),
@@ -71,6 +76,8 @@ func NewApplyCommand() *cli.Command {
 			if err != nil {
 				return fmt.Errorf("failed to load product config: %w", err)
 			}
+
+			product.SetTimeout(ctx.Duration("timeout"))
 
 			defer func() {
 				if err != nil && logFile != nil {

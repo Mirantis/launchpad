@@ -28,6 +28,11 @@ func NewResetCommand() *cli.Command {
 				Usage:   "Don't ask for confirmation",
 				Aliases: []string{"f"},
 			},
+			&cli.DurationFlag{
+				Name:  "timeout",
+				Usage: "Overall deadline for reset; fails naming the in-progress phase if exceeded instead of blocking forever (0 disables)",
+				Value: 90 * time.Minute,
+			},
 		}...),
 		Before: actions(initLogger, initAnalytics, checkLicense, initExec, requireForce),
 		After:  actions(closeAnalytics),
@@ -38,6 +43,8 @@ func NewResetCommand() *cli.Command {
 			if err != nil {
 				return fmt.Errorf("failed to load product config: %w", err)
 			}
+
+			product.SetTimeout(ctx.Duration("timeout"))
 
 			err = product.Reset()
 			if err != nil {
