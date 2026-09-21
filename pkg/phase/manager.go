@@ -38,6 +38,13 @@ type Manager struct {
 	config       interface{}
 	IgnoreErrors bool
 	SkipCleanup  bool
+	// Deadline bounds the total wall-clock time Run may spend across all
+	// phases. Zero means no deadline. A phase that is still running when the
+	// deadline elapses is abandoned (its goroutine is not force-stopped) and
+	// Run returns an error naming that phase; the caller is expected to be a
+	// short-lived CLI process that exits shortly after, taking the abandoned
+	// goroutine down with it.
+	Deadline time.Duration
 }
 
 // NewManager constructs new phase manager.
@@ -59,8 +66,16 @@ func (m *Manager) AddPhase(p phase) {
 	m.phases = append(m.phases, p)
 }
 
-// Run executes all the added Phases in order.
+// Run executes all the added Phases in order. If Deadline is set, the total
+// time spent across all phases is bounded; a phase still running when the
+// deadline elapses causes Run to return an error naming that phase instead
+// of blocking forever.
 func (m *Manager) Run() error {
+	var deadlineAt time.Time
+	if m.Deadline > 0 {
+		deadlineAt = time.Now().Add(m.Deadline)
+	}
+
 	for _, phase := range m.phases {
 		title := phase.Title()
 
@@ -89,7 +104,10 @@ func (m *Manager) Run() error {
 		log.Infof(text, title)
 		start := time.Now()
 
-		result := phase.Run()
+		timedOut, result := m.runPhase(phase, title, deadlineAt)
+		if timedOut {
+			return fmt.Errorf("exceeded overall deadline of %s while running phase %q", m.Deadline, title)
+		}
 
 		duration := time.Since(start)
 		log.Debugf("phase '%s' took %s", title, duration.Truncate(time.Minute))
@@ -125,4 +143,43 @@ func (m *Manager) Run() error {
 	}
 
 	return nil
+}
+
+// runPhase runs a single phase, optionally racing it against deadlineAt. It
+// returns the phase's error and whether the deadline elapsed first. On
+// timeout the phase's goroutine is left running; the caller (a short-lived
+// CLI process) is expected to exit shortly after, which reclaims it. Cleanup
+// hooks are not invoked on timeout since the phase never signaled it stopped
+// touching shared state.
+func (m *Manager) runPhase(target phase, title string, deadlineAt time.Time) (timedOut bool, result error) {
+	if deadlineAt.IsZero() {
+		if err := target.Run(); err != nil {
+			return false, fmt.Errorf("%w", err)
+		}
+		return false, nil
+	}
+
+	remaining := time.Until(deadlineAt)
+	if remaining <= 0 {
+		return true, nil
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- target.Run()
+	}()
+
+	timer := time.NewTimer(remaining)
+	defer timer.Stop()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			return false, fmt.Errorf("%w", err)
+		}
+		return false, nil
+	case <-timer.C:
+		log.Errorf("phase '%s' exceeded the overall deadline of %s", title, m.Deadline)
+		return true, nil
+	}
 }

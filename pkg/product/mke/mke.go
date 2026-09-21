@@ -2,6 +2,7 @@ package mke
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"gopkg.in/yaml.v2"
@@ -10,6 +11,15 @@ import (
 // MKE is the product.
 type MKE struct {
 	ClusterConfig config.ClusterConfig
+	// Timeout bounds the total wall-clock time Apply or Reset may spend
+	// across all phases. Zero (the default) means no deadline. Set via
+	// SetTimeout.
+	Timeout time.Duration
+}
+
+// SetTimeout sets the overall deadline for Apply and Reset.
+func (p *MKE) SetTimeout(timeout time.Duration) {
+	p.Timeout = timeout
 }
 
 // ClusterName returns the cluster name.

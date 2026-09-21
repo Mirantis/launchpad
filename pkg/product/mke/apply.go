@@ -15,6 +15,7 @@ import (
 func (p *MKE) Apply(disableCleanup, force bool, concurrency int, forceUpgrade bool) error {
 	phaseManager := phase.NewManager(&p.ClusterConfig)
 	phaseManager.SkipCleanup = disableCleanup
+	phaseManager.Deadline = p.Timeout
 
 	phaseManager.AddPhases(
 		&mke.UpgradeCheck{},

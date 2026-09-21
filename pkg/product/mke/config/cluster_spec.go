@@ -277,6 +277,9 @@ func pingHost(host *Host, address string, waitgroup *sync.WaitGroup, errCh chan<
 			}
 			return nil
 		},
+		retry.OnRetry(func(n uint, err error) {
+			log.Errorf("%s: MKE health check attempt %d of 10 failed: %s", host, n+1, err.Error())
+		}),
 		retry.MaxJitter(time.Second*3),
 		retry.Delay(time.Second*30),
 		retry.DelayType(retry.FixedDelay),
