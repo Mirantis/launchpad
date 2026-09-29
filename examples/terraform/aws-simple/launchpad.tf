@@ -14,9 +14,10 @@ variable "launchpad" {
   type = object({
     drain = bool
 
-    mcr_channel = string
-    mke_version = string
-    msr_version = string // unused if you have no MSR hosts
+    mcr_channel  = string
+    mcr_repo_url = optional(string, "https://repos.mirantis.com")
+    mke_version  = string
+    msr_version  = string // unused if you have no MSR hosts
 
     mke_connect = object({
       username = string
@@ -166,7 +167,7 @@ spec:
 %{~endfor}
   mcr:
     channel: ${var.launchpad.mcr_channel}
-    repoURL: https://repos.mirantis.com
+    repoURL: ${var.launchpad.mcr_repo_url}
     installURLWindows: https://get.mirantis.com/install.ps1
     prune: true
   mke:

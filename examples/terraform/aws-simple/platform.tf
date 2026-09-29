@@ -18,6 +18,14 @@ locals {
       ssh_user   = "ubuntu"
       ssh_port   = 22
     }
+    "ubuntu_26.04" = {
+      ami_name   = "ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-*"
+      owner      = "099720109477"
+      interface  = "eth0"
+      connection = "ssh"
+      ssh_user   = "ubuntu"
+      ssh_port   = 22
+    }
     // TODO: remove once terraform-mirantis-modules/terraform-mirantis-provision-aws v0.1.6
     // is picked up by the Terraform Registry and the module source is updated to >= v0.1.6.
     // ubuntu_22.04_fips was added upstream in PR #21 (released in v0.1.6).
