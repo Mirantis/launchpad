@@ -28,6 +28,7 @@ type smokeConfig struct {
 	Name            string
 	Nodegroups      map[string]interface{}
 	MCRChannel      string
+	MCRRepoURL      string // optional; empty uses launchpad.tf's public-repo default
 	MKEVersion      string
 	MSRVersion      string
 	SSHKeyAlgorithm string
@@ -96,6 +97,9 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		"mke_version": cfg.MKEVersion,
 		"msr_version": cfg.MSRVersion,
 		"mke_connect": mkeConnect,
+	}
+	if cfg.MCRRepoURL != "" {
+		launchpad["mcr_repo_url"] = cfg.MCRRepoURL
 	}
 
 	// Build subnet nodegroup list from nodegroup keys.
@@ -258,6 +262,24 @@ func TestFIPSCluster(t *testing.T) {
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
 			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
+		},
+	})
+}
+
+// TestCuttingEdgeCluster exercises a single ubuntu_26.04 (Resolute) manager
+// against repos-internal.mirantis.com's test-29 channel, the only place
+// Ubuntu 26.04 MCR packages exist as of 2026-09-29 (repos.mirantis.com has
+// none yet). Validates PRODENG-3593's ResoluteConfigurer end-to-end.
+func TestCuttingEdgeCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		Name:            "edge",
+		MCRChannel:      "test-29",
+		MCRRepoURL:      "https://repos-internal.mirantis.com",
+		MKEVersion:      "3.9.2",
+		MSRVersion:      "3.1.18",
+		SSHKeyAlgorithm: "ed25519",
+		Nodegroups: map[string]interface{}{
+			"MngrUbuntu26": test.Platforms["Ubuntu26"].GetManager(),
 		},
 	})
 }
