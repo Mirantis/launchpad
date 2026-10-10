@@ -44,7 +44,7 @@ jobs:
 
   unit-test:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set-mirantis-public
     env:
       GOTOOLCHAIN: auto
 
@@ -65,7 +65,7 @@ jobs:
 
   security-scan:
     name: Security Scan
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set-mirantis-public
     env:
       GOTOOLCHAIN: auto
 
