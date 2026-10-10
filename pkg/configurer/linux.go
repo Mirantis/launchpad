@@ -240,7 +240,14 @@ func (c LinuxConfigurer) EnableMCR(h Host, _ commonconfig.MCRConfig) error {
 		return fmt.Errorf("init manager could not enable docker-ee, %w", err)
 	}
 	if err := c.StartService(h, "docker"); err != nil {
-		return fmt.Errorf("init manager could not start docker-ee, %w", err)
+		// rig's StartService discards systemctl's own stderr, so the actual
+		// failure reason is otherwise invisible -- seen in practice on
+		// RHEL10/Rocky10 (PR #642), where this returned only a generic
+		// "exit status 1" with no way to tell why. journalctl has the real
+		// reason; best-effort include it (ignore its own error, since a
+		// failure fetching diagnostics should not mask the original one).
+		diag, _ := h.Sudo().ExecOutput("journalctl -xeu docker --no-pager -n 40")
+		return fmt.Errorf("init manager could not start docker-ee, %w\n%s", err, diag)
 	}
 
 	return nil
