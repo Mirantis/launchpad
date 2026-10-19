@@ -10,7 +10,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/byteutil"
-	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -99,7 +98,7 @@ func (p *LoadImages) Run() error {
 			}
 
 			log.Infof("%s: loading image %d/%d : %s", h, idx+1, len(h.Metadata.ImagesToUpload), base)
-			err = h.Exec(h.Configurer.DockerCommandf("load -i %s", shellescape.Quote(base)))
+			err = h.Exec(h.Configurer.DockerCmd().Raw("load -i").Arg(base).String())
 			if err != nil {
 				return fmt.Errorf("failed to load image %s: %w", base, err)
 			}

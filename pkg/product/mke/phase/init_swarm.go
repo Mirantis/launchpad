@@ -26,7 +26,7 @@ func (p *InitSwarm) Run() error {
 
 	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader)
-		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("swarm init --advertise-addr=%s %s", swarmLeader.SwarmAddress(), p.Config.Spec.MCR.SwarmInstallFlags.Join()), cmd.Redact(`--token \S+`))
+		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCmd().Raw("swarm init").Arg(fmt.Sprintf("--advertise-addr=%s", swarmLeader.SwarmAddress())).Raw(p.Config.Spec.MCR.SwarmInstallFlags.Join()).String(), cmd.Redact(`--token \S+`))
 		if err != nil {
 			return fmt.Errorf("failed to initialize swarm: %w", err)
 		}
@@ -35,7 +35,7 @@ func (p *InitSwarm) Run() error {
 		// things like setting cert-expiry which cannot be done at the
 		// time of swarm install.
 		for _, swarmCmd := range p.Config.Spec.MCR.SwarmUpdateCommands {
-			err := swarmLeader.Exec(swarmLeader.Configurer.DockerCommandf("%s", swarmCmd))
+			err := swarmLeader.Exec(swarmLeader.Configurer.DockerCmd().Raw(swarmCmd).String())
 			if err != nil {
 				return fmt.Errorf("post swarm init command (%s) failed: %w", swarmCmd, err)
 			}

@@ -27,6 +27,8 @@ const (
 	LinuxDockerLicenseFile = "docker.lic"
 	// SbinPath is for adding sbin directories to current $PATH.
 	SbinPath = `PATH=/usr/local/sbin:/usr/sbin:/sbin:$PATH`
+	// dockerBinaryLinux is the docker cli path used for remote commands.
+	dockerBinaryLinux = "/usr/bin/docker"
 )
 
 // mcrPackage is the Mirantis Container Runtime package name. It is identical
@@ -291,8 +293,18 @@ func (c LinuxConfigurer) ResolveInternalIP(h Host, privateInterface, publicIP st
 
 // DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host.
+//
+// The result is executed by a login shell on the host, so every non-constant
+// argument must already be quoted by the caller. Prefer DockerCmd, which
+// quotes by construction.
 func (c LinuxConfigurer) DockerCommandf(template string, args ...any) string {
-	return fmt.Sprintf("/usr/bin/docker %s", fmt.Sprintf(template, args...))
+	return fmt.Sprintf("%s %s", dockerBinaryLinux, fmt.Sprintf(template, args...))
+}
+
+// DockerCmd starts a docker command line for this host with arguments quoted
+// for a POSIX shell.
+func (c LinuxConfigurer) DockerCmd() *DockerCmd {
+	return newDockerCmd(dockerBinaryLinux, shQuote)
 }
 
 // ValidateLocalhost returns an error if "localhost" is not a local address.
@@ -367,7 +379,17 @@ func (c LinuxConfigurer) AuthorizeDocker(h Host) error {
 
 // AuthenticateDocker performs a docker login on the host.
 func (c LinuxConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo string) error {
-	if err := h.Exec(c.DockerCommandf("login -u %s --password-stdin %s", shellescape.Quote(user), imageRepo), cmd.StdinString(pass), cmd.Redact(user), cmd.Redact(pass)); err != nil {
+	dc := c.DockerCmd()
+	loginCmd := dc.Raw("login -u").Arg(user).Raw("--password-stdin").Arg(imageRepo).String()
+	// The username reaches the command line quoted; the password only goes in
+	// over stdin. Patterns are built from both forms so redaction matches
+	// whichever one is logged.
+	if err := h.Exec(loginCmd,
+		cmd.StdinString(pass),
+		cmd.Redact(regexp.QuoteMeta(dc.Quote(user))),
+		cmd.Redact(regexp.QuoteMeta(user)),
+		cmd.Redact(regexp.QuoteMeta(pass)),
+	); err != nil {
 		return fmt.Errorf("failed to login to the docker registry: %w", err)
 	}
 	return nil

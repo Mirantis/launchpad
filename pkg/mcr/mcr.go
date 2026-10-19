@@ -29,7 +29,7 @@ func DrainNode(lead *mkeconfig.Host, h *mkeconfig.Host) error {
 		return nil
 	}
 
-	drainCmd := lead.Configurer.DockerCommandf("node update --availability drain %s", nodeID)
+	drainCmd := lead.Configurer.DockerCmd().Raw("node update --availability drain").Arg(nodeID).String()
 	if err := lead.Exec(drainCmd); err != nil {
 		return fmt.Errorf("%s: failed to drain node %s: %w", lead, nodeID, err)
 	}

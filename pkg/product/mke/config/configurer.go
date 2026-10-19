@@ -18,7 +18,12 @@ type HostConfigurer interface {
 	InstallMCRLicense(configurer.Host, string) error
 	InstallMCR(configurer.Host, common.MCRConfig) error
 	UninstallMCR(configurer.Host, common.MCRConfig) error
+	// DockerCommandf builds a docker command from a constant template. Any
+	// non-constant value must be quoted by the caller; prefer DockerCmd.
 	DockerCommandf(template string, args ...any) string
+	// DockerCmd starts a docker command line that quotes interpolated
+	// arguments by construction.
+	DockerCmd() *configurer.DockerCmd
 	RestartMCR(configurer.Host) error
 	AuthenticateDocker(h configurer.Host, user, pass, repo string) error
 	LocalAddresses(configurer.Host) ([]string, error)

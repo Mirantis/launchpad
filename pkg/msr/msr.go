@@ -23,11 +23,11 @@ func CollectFacts(h *mkeconfig.Host) (*mkeconfig.MSRMetadata, error) {
 		return &mkeconfig.MSRMetadata{Installed: false}, nil
 	}
 
-	version, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.version"}}'`, rethinkdbContainerID))
+	version, err := h.ExecOutput(h.Configurer.DockerCmd().Raw("inspect").Arg(rethinkdbContainerID).Raw(`--format '{{ index .Config.Labels "com.docker.dtr.version"}}'`).String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MSR version: %w", err)
 	}
-	replicaID, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`, rethinkdbContainerID))
+	replicaID, err := h.ExecOutput(h.Configurer.DockerCmd().Raw("inspect").Arg(rethinkdbContainerID).Raw(`--format '{{ index .Config.Labels "com.docker.dtr.replica"}}'`).String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get MSR replicaID: %w", err)
 	}
@@ -35,7 +35,7 @@ func CollectFacts(h *mkeconfig.Host) (*mkeconfig.MSRMetadata, error) {
 		// If we failed to obtain either label then this MSR version does not
 		// support the version Config.Labels or something else may have gone
 		// wrong, attempt to pull these details with the old method
-		output, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ index .Config.Labels "com.docker.compose.project"}}'`, rethinkdbContainerID))
+		output, err := h.ExecOutput(h.Configurer.DockerCmd().Raw("inspect").Arg(rethinkdbContainerID).Raw(`--format '{{ index .Config.Labels "com.docker.compose.project"}}'`).String())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get MSR rethink container labels: %w", err)
 		}
@@ -49,7 +49,7 @@ func CollectFacts(h *mkeconfig.Host) (*mkeconfig.MSRMetadata, error) {
 	}
 
 	var bootstrapimage string
-	imagename, err := h.ExecOutput(h.Configurer.DockerCommandf(`inspect %s --format '{{ .Config.Image }}'`, rethinkdbContainerID))
+	imagename, err := h.ExecOutput(h.Configurer.DockerCmd().Raw("inspect").Arg(rethinkdbContainerID).Raw(`--format '{{ .Config.Image }}'`).String())
 	if err == nil {
 		repo := imagename[:strings.LastIndexByte(imagename, '/')]
 		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
@@ -151,8 +151,16 @@ func mkeURLHost(config *mkeconfig.ClusterConfig) string {
 // installer if it fails.
 func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
-	cmd := fmt.Sprintf("run -it --rm mirantis/dtr:%s destroy --ucp-insecure-tls --ucp-url %s --ucp-username %s --ucp-password %s --replica-id %s", h.MSRMetadata.InstalledVersion, mkeFlags.GetValue("--ucp-url"), mkeFlags.GetValue("--ucp-username"), mkeFlags.GetValue("--ucp-password"), h.MSRMetadata.ReplicaID)
-	if err := h.Exec(h.Configurer.DockerCommandf(cmd)); err != nil {
+	destroyCmd := h.Configurer.DockerCmd().
+		Raw("run -it --rm").
+		Arg(fmt.Sprintf("mirantis/dtr:%s", h.MSRMetadata.InstalledVersion)).
+		Raw("destroy --ucp-insecure-tls").
+		Raw("--ucp-url").Arg(mkeFlags.GetValue("--ucp-url")).
+		Raw("--ucp-username").Arg(mkeFlags.GetValue("--ucp-username")).
+		Raw("--ucp-password").Arg(mkeFlags.GetValue("--ucp-password")).
+		Raw("--replica-id").Arg(h.MSRMetadata.ReplicaID).
+		String()
+	if err := h.Exec(destroyCmd); err != nil {
 		return fmt.Errorf("failed to run MSR destroy: %w", err)
 	}
 	// Remove containers
@@ -164,8 +172,7 @@ func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	if strings.TrimSpace(containersToRemove) == "" {
 		log.Debugf("No MSR containers to remove")
 	} else {
-		containersToRemove = strings.Join(strings.Fields(containersToRemove), " ")
-		if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+		if err := h.Exec(h.Configurer.DockerCmd().Raw("rm -f").Args(strings.Fields(containersToRemove)...).String()); err != nil {
 			return fmt.Errorf("failed to remove MSR containers: %w", err)
 		}
 	}
@@ -192,8 +199,7 @@ func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 			log.Debugf("No MSR volumes to remove")
 			return nil
 		}
-		volumes := strings.Join(volumesToRemove, " ")
-		err = h.Exec(h.Configurer.DockerCommandf("volume rm -f %s", volumes))
+		err = h.Exec(h.Configurer.DockerCmd().Raw("volume rm -f").Args(volumesToRemove...).String())
 		if err != nil {
 			return fmt.Errorf("failed to remove MSR volumes: %w", err)
 		}

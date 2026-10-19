@@ -56,7 +56,7 @@ func (i *Image) Pull(h *mkeconfig.Host) error {
 				log.Infof("%s: already exists: %s", h, i)
 				return nil
 			}
-			output, err := h.ExecOutput(h.Configurer.DockerCommandf("pull %s", i))
+			output, err := h.ExecOutput(h.Configurer.DockerCmd().Raw("pull").Arg(i.String()).String())
 			if err != nil {
 				return fmt.Errorf("%s: failed to pull image: %s: %w", h, output, err)
 			}
@@ -81,7 +81,7 @@ func (i *Image) Pull(h *mkeconfig.Host) error {
 // Retag retags image A to image B.
 func (i *Image) Retag(h *mkeconfig.Host, a, b *Image) error {
 	log.Debugf("%s: retag %s --> %s", h, a, b)
-	if err := h.Exec(h.Configurer.DockerCommandf("tag %s %s", a, b)); err != nil {
+	if err := h.Exec(h.Configurer.DockerCmd().Raw("tag").Arg(a.String()).Arg(b.String()).String()); err != nil {
 		return fmt.Errorf("%s: failed to retag image %s --> %s: %w", h, a, b, err)
 	}
 	return nil
@@ -89,7 +89,7 @@ func (i *Image) Retag(h *mkeconfig.Host, a, b *Image) error {
 
 // Exist returns true if a docker image exists on the host.
 func (i *Image) Exist(h *mkeconfig.Host) bool {
-	return h.Exec(h.Configurer.DockerCommandf("image inspect %s --format '{{.ID}}'", i)) == nil
+	return h.Exec(h.Configurer.DockerCmd().Raw("image inspect").Arg(i.String()).Raw(`--format '{{.ID}}'`).String()) == nil
 }
 
 // PullImages pulls multiple images parallelly by using a worker pool.

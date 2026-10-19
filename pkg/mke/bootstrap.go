@@ -38,7 +38,7 @@ func Bootstrap(operation string, config mkeconfig.ClusterConfig, bootoptions Boo
 		runFlags.Add("--security-opt label=disable")
 	}
 
-	cmd := leader.Configurer.DockerCommandf("run %s %s %s %s", runFlags.Join(), image, operation, bootoptions.OperationFlags.Join())
+	cmd := leader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(image).Arg(operation).Raw(bootoptions.OperationFlags.Join()).String()
 	buf := cmdbuffer.NewBuffer() // an io.Reader which .Read() doesn't eof until .eof() is run. On eof is blocks the .Read
 
 	if wait, err := leader.ExecStreams(cmd, nil, buf, buf, bootoptions.ExecOptions...); err != nil {

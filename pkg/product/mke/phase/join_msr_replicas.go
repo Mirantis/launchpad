@@ -92,7 +92,7 @@ func (p *JoinMSRReplicas) Run() error {
 			log.Infof("%s: joining MSR replica to cluster", h)
 		}
 
-		joinCmd := msrLeader.Configurer.DockerCommandf("run %s %s join %s", runFlags.Join(), msrLeader.MSRMetadata.InstalledBootstrapImage, joinFlags.Join())
+		joinCmd := msrLeader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(msrLeader.MSRMetadata.InstalledBootstrapImage).Raw("join").Raw(joinFlags.Join()).String()
 		execOpts := make([]cmd.ExecOption, 0, 1+len(redacts))
 		execOpts = append(execOpts, cmd.StreamOutput())
 		for _, r := range redacts {

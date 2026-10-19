@@ -53,7 +53,7 @@ func (p *InstallMKE) Run() error {
 
 	if p.Config.Spec.MKE.ConfigData != "" {
 		defer func() {
-			err := p.leader.Exec(p.leader.Configurer.DockerCommandf("config rm %s", configName))
+			err := p.leader.Exec(p.leader.Configurer.DockerCmd().Raw("config rm").Arg(configName).String())
 			if err != nil {
 				log.Warnf("Failed to remove the temporary MKE installer configuration %s : %s", configName, err)
 			}
@@ -61,7 +61,7 @@ func (p *InstallMKE) Run() error {
 
 		installFlags.AddUnlessExist("--existing-config")
 		log.Info("Creating MKE configuration")
-		configCmd := p.leader.Configurer.DockerCommandf("config create %s -", configName)
+		configCmd := p.leader.Configurer.DockerCmd().Raw("config create").Arg(configName).Raw("-").String()
 		err := p.leader.Exec(configCmd, cmd.StdinString(p.Config.Spec.MKE.ConfigData))
 		if err != nil {
 			return fmt.Errorf("%s: failed to create MKE configuration: %w", p.leader, err)
@@ -170,8 +170,7 @@ func cleanupmke(h *mkeconfig.Host) error {
 		log.Debugf("No containers to remove")
 		return nil
 	}
-	containersToRemove = strings.ReplaceAll(containersToRemove, "\n", " ")
-	if err := h.Exec(h.Configurer.DockerCommandf("rm -f %s", containersToRemove)); err != nil {
+	if err := h.Exec(h.Configurer.DockerCmd().Raw("rm -f").Args(strings.Fields(containersToRemove)...).String()); err != nil {
 		return fmt.Errorf("%s: failed to remove mke containers: %w", h, err)
 	}
 
