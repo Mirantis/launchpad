@@ -1,6 +1,7 @@
 package configurer
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -81,5 +82,50 @@ func TestDockerCmdSkipsEmptyRaw(t *testing.T) {
 	got := c.DockerCmd().Raw("run").Raw("").Arg("image").String()
 	if strings.Contains(got, "  ") {
 		t.Fatalf("empty Raw produced a double space: %q", got)
+	}
+}
+
+// TestQuotedCredentialsAreRedactable pins the property AuthenticateDocker
+// depends on. cmd.Redact patterns are matched against the command line, which
+// holds the quoted form of each argument, so a pattern built from the quoted
+// form must always match. On Windows the quoting is interleaved
+// (hello&world -> ^"hello^&world^"), so a pattern built from the raw value
+// does not match and redacting only the raw value would leak the secret.
+func TestQuotedCredentialsAreRedactable(t *testing.T) {
+	t.Parallel()
+
+	const secret = `hello&world`
+
+	for _, tc := range []struct {
+		name           string
+		command        string
+		quoted         string
+		rawFormMatches bool
+	}{
+		{
+			name:           "windows interleaves escapes so the raw value no longer matches",
+			command:        WindowsConfigurer{}.DockerCmd().Raw("login -p").Arg(secret).String(),
+			quoted:         WindowsConfigurer{}.DockerCmd().Quote(secret),
+			rawFormMatches: false,
+		},
+		{
+			name:           "linux wraps the value so the raw form still matches",
+			command:        LinuxConfigurer{}.DockerCmd().Raw("login -p").Arg(secret).String(),
+			quoted:         LinuxConfigurer{}.DockerCmd().Quote(secret),
+			rawFormMatches: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			if !regexp.MustCompile(regexp.QuoteMeta(tc.quoted)).MatchString(tc.command) {
+				t.Fatalf("pattern from the quoted secret does not match %q", tc.command)
+			}
+
+			got := regexp.MustCompile(regexp.QuoteMeta(secret)).MatchString(tc.command)
+			if got != tc.rawFormMatches {
+				t.Fatalf("raw-value pattern match on %q = %v, want %v", tc.command, got, tc.rawFormMatches)
+			}
+		})
 	}
 }

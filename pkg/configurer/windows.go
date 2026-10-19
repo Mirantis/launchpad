@@ -375,8 +375,18 @@ func (c WindowsConfigurer) CheckPrivilege(h Host) error {
 // AuthenticateDocker performs a docker login on the host.
 func (c WindowsConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	loginCmd := c.DockerCmd().Raw("login -u").Arg(user).Raw("-p").Arg(pass).Arg(imageRepo).String()
-	if err := h.Exec(loginCmd, cmd.Redact(user), cmd.Redact(pass), cmd.AllowWinStderr()); err != nil {
+	dc := c.DockerCmd()
+	loginCmd := dc.Raw("login -u").Arg(user).Raw("-p").Arg(pass).Arg(imageRepo).String()
+	// The command line holds the quoted forms, so patterns built from the raw
+	// values would not match once quoting alters them.
+	redactions := []cmd.ExecOption{
+		cmd.Redact(regexp.QuoteMeta(dc.Quote(pass))),
+		cmd.Redact(regexp.QuoteMeta(dc.Quote(user))),
+		cmd.Redact(regexp.QuoteMeta(pass)),
+		cmd.Redact(regexp.QuoteMeta(user)),
+		cmd.AllowWinStderr(),
+	}
+	if err := h.Exec(loginCmd, redactions...); err != nil {
 		return fmt.Errorf("failed to login to docker registry: %w", err)
 	}
 	return nil

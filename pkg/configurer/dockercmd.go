@@ -51,6 +51,14 @@ func (d *DockerCmd) String() string {
 	return strings.Join(d.parts, " ")
 }
 
+// Quote returns the value as Arg would place it on the command line. Callers
+// that redact a value out of command logging need this: the command string
+// holds the quoted form, so a pattern built from the raw value does not match
+// once quoting alters it.
+func (d *DockerCmd) Quote(value string) string {
+	return d.quote(value)
+}
+
 // newDockerCmd starts a command line with the docker executable path and the
 // quoting function of the target shell.
 func newDockerCmd(exe string, quote func(string) string) *DockerCmd {
