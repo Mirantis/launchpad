@@ -64,7 +64,7 @@ func CollectFacts(swarmLeader *mkeconfig.Host, mkeMeta *mkeconfig.MKEMetadata) e
 
 	if calicoContainer != "" && err != nil {
 		log.Debugf("%s: calico container found: %s", swarmLeader, calicoContainer)
-		cmd := swarmLeader.Configurer.DockerCommandf(`inspect %s --format {{.Config.Env}}`, calicoContainer)
+		cmd := swarmLeader.Configurer.DockerCmd().Raw("inspect").Arg(calicoContainer).Raw("--format {{.Config.Env}}").String()
 		err := swarmLeader.Exec(fmt.Sprintf("%s | tr ' ' '\n' | grep FELIX_VXLAN= | grep -q true", cmd))
 		if err != nil {
 			mkeMeta.VXLAN = true
@@ -159,7 +159,7 @@ func GetTLSConfigFrom(manager *mkeconfig.Host, imageRepo, mkeVersion string) (*t
 	if manager.Configurer.SELinuxEnabled(manager) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	output, err := manager.ExecOutput(manager.Configurer.DockerCommandf(`run %s %s/ucp:%s dump-certs --ca`, runFlags.Join(), imageRepo, mkeVersion), rigcmd.Redact(`[A-Za-z0-9+/=_\-]{64}`))
+	output, err := manager.ExecOutput(manager.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(fmt.Sprintf("%s/ucp:%s", imageRepo, mkeVersion)).Raw("dump-certs --ca").String(), rigcmd.Redact(`[A-Za-z0-9+/=_\-]{64}`))
 	if err != nil {
 		return nil, fmt.Errorf("%w: error while exec-ing into the container: %w", errGetTLSConfig, err)
 	}

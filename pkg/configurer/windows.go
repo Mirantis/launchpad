@@ -27,6 +27,9 @@ const (
 	// WindowsDockerLicenseFile filename for the docker license file on Windows machines.
 	WindowsDockerLicenseFile = "docker.lic"
 
+	// dockerBinaryWindows is the docker cli used for remote commands.
+	dockerBinaryWindows = "docker.exe"
+
 	// windowsExecTimeout bounds individual exec calls in the MCR
 	// install/uninstall/restart lifecycle. These commands run immediately
 	// around host reboots, where a WinRM session that has silently died
@@ -320,8 +323,18 @@ func (c WindowsConfigurer) interfaceIP(h Host, iface string) (string, error) {
 
 // DockerCommandf accepts a printf-like template string and arguments
 // and builds a command string for running the docker cli on the host.
+//
+// The result is executed by cmd.exe, so every non-constant argument must
+// already be quoted by the caller. Prefer DockerCmd, which quotes by
+// construction.
 func (c WindowsConfigurer) DockerCommandf(template string, args ...interface{}) string {
-	return fmt.Sprintf("docker.exe %s", fmt.Sprintf(template, args...))
+	return fmt.Sprintf("%s %s", dockerBinaryWindows, fmt.Sprintf(template, args...))
+}
+
+// DockerCmd starts a docker command line for this host with arguments quoted
+// for cmd.exe.
+func (c WindowsConfigurer) DockerCmd() *DockerCmd {
+	return newDockerCmd(dockerBinaryWindows, cmdQuote)
 }
 
 // ValidateLocalhost returns an error if "localhost" is not local on the host.
@@ -362,7 +375,8 @@ func (c WindowsConfigurer) CheckPrivilege(h Host) error {
 // AuthenticateDocker performs a docker login on the host.
 func (c WindowsConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	if err := h.Exec(c.DockerCommandf("login -u %s -p %s %s", user, pass, imageRepo), cmd.Redact(user), cmd.Redact(pass), cmd.AllowWinStderr()); err != nil {
+	loginCmd := c.DockerCmd().Raw("login -u").Arg(user).Raw("-p").Arg(pass).Arg(imageRepo).String()
+	if err := h.Exec(loginCmd, cmd.Redact(user), cmd.Redact(pass), cmd.AllowWinStderr()); err != nil {
 		return fmt.Errorf("failed to login to docker registry: %w", err)
 	}
 	return nil

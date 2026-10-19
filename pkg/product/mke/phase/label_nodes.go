@@ -51,7 +51,7 @@ func (p *LabelNodes) labelCurrentNodes(config *mkeconfig.ClusterConfig, swarmLea
 		}
 		log.Infof("%s: labeling node", h)
 		if h.Role == "manager" && len(sanList) > 0 {
-			sanLabelCmd := swarmLeader.Configurer.DockerCommandf("node update --label-add com.docker.ucp.SANs=%s %s", sanList, nodeID)
+			sanLabelCmd := swarmLeader.Configurer.DockerCmd().Raw("node update --label-add").Arg(fmt.Sprintf("com.docker.ucp.SANs=%s", sanList)).Arg(nodeID).String()
 			err = swarmLeader.Exec(sanLabelCmd)
 			if err != nil {
 				return fmt.Errorf("failed to add SANs label for node %s: %w", h, err)
@@ -59,13 +59,13 @@ func (p *LabelNodes) labelCurrentNodes(config *mkeconfig.ClusterConfig, swarmLea
 		}
 		if h.Role == "msr" {
 			// Add the MSR label in addition to the managed label
-			msrLabelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedMSRLabelCmd, nodeID)
+			msrLabelCmd := swarmLeader.Configurer.DockerCmd().Raw(constant.ManagedMSRLabelCmd).Arg(nodeID).String()
 			err = swarmLeader.Exec(msrLabelCmd)
 			if err != nil {
 				return fmt.Errorf("failed to label node %s as MSR (%s): %w", h, nodeID, err)
 			}
 		}
-		labelCmd := swarmLeader.Configurer.DockerCommandf("%s %s", constant.ManagedLabelCmd, nodeID)
+		labelCmd := swarmLeader.Configurer.DockerCmd().Raw(constant.ManagedLabelCmd).Arg(nodeID).String()
 		err = swarmLeader.Exec(labelCmd)
 		if err != nil {
 			return fmt.Errorf("failed to label node %s (%s): %w", h, nodeID, err)

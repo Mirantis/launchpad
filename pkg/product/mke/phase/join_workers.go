@@ -40,7 +40,7 @@ func (p *JoinWorkers) Run() error {
 			log.Infof("%s: already a swarm node", h)
 			continue
 		}
-		joinCmd := h.Configurer.DockerCommandf("swarm join --advertise-addr=%s --token %s %s", h.SwarmAddress(), p.Config.Spec.MCR.Metadata.WorkerJoinToken, swarmLeader.SwarmAddress())
+		joinCmd := h.Configurer.DockerCmd().Raw("swarm join").Arg(fmt.Sprintf("--advertise-addr=%s", h.SwarmAddress())).Raw("--token").Arg(p.Config.Spec.MCR.Metadata.WorkerJoinToken).Arg(swarmLeader.SwarmAddress()).String()
 		log.Debugf("%s: joining as worker", h)
 		err := h.Exec(joinCmd, cmd.Redact(p.Config.Spec.MCR.Metadata.WorkerJoinToken))
 		if err != nil {

@@ -106,7 +106,7 @@ func dissolveSwarm(leader *mkeconfig.Host, hosts mkeconfig.Hosts) error {
 	// Step 1: remove the stuck uninstall-agent services (best-effort).
 	for _, svc := range []string{"ucp-uninstall-agent", "ucp-uninstall-agent-win"} {
 		log.Infof("%s: removing stuck service %s", leader, svc)
-		if err := leader.Exec(leader.Configurer.DockerCommandf("service rm %s", svc)); err != nil {
+		if err := leader.Exec(leader.Configurer.DockerCmd().Raw("service rm").Arg(svc).String()); err != nil {
 			log.Debugf("%s: service rm %s: %v (may already be removed)", leader, svc, err)
 		}
 	}
