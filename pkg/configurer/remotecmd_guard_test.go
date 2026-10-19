@@ -64,9 +64,10 @@ func TestRemoteCommandsAreNotBuiltByRawSprintf(t *testing.T) {
 			if _, guarded := guardedBuilders[sel.Sel.Name]; !guarded {
 				return true
 			}
-			// Only the interpolated arguments matter; the template itself is
-			// written in the source.
-			for _, arg := range call.Args[1:] {
+			// Every argument is checked, the template included: a runtime
+			// template such as DockerCommandf(preformattedCommand) carries the
+			// same injection as a runtime parameter.
+			for _, arg := range call.Args {
 				if isConstantExpr(arg, consts) {
 					continue
 				}
@@ -112,20 +113,24 @@ func constIdents(file *ast.File) map[string]struct{} {
 	return names
 }
 
-// isConstantExpr reports whether an expression is a literal, a local constant
-// or a concatenation of those.
+// isConstantExpr reports whether an expression is a string literal, a constant
+// declared in the same file, or a concatenation of those.
+//
+// Anything the guard cannot resolve to a constant declaration is treated as
+// runtime data. In particular a selector such as pkg.Name or value.Field is
+// rejected: without type resolution a package constant and a package-level
+// variable or a struct field read at runtime are indistinguishable, and a
+// false negative here is an unquoted command argument on a remote host. The
+// cost is that a genuine cross-package constant has to be bound to a local
+// const or moved into a DockerCmd().Raw(...) call.
 func isConstantExpr(expr ast.Expr, consts map[string]struct{}) bool {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
-		return true
+		return e.Kind == token.STRING
 	case *ast.Ident:
 		_, ok := consts[e.Name]
 
 		return ok
-	case *ast.SelectorExpr:
-		// Package-level constants from another package, e.g. constant.ManagedLabelCmd.
-		// Those are source-controlled; host data never arrives this way.
-		return isExportedConstRef(e)
 	case *ast.BinaryExpr:
 		return isConstantExpr(e.X, consts) && isConstantExpr(e.Y, consts)
 	case *ast.ParenExpr:
@@ -133,19 +138,6 @@ func isConstantExpr(expr ast.Expr, consts map[string]struct{}) bool {
 	default:
 		return false
 	}
-}
-
-// isExportedConstRef reports whether a selector looks like pkg.Name, which the
-// guard treats as a source constant rather than runtime data. Method calls and
-// field accesses on values are not selectors of this shape in practice because
-// those appear as CallExpr or have a non-ident receiver chain.
-func isExportedConstRef(sel *ast.SelectorExpr) bool {
-	ident, ok := sel.X.(*ast.Ident)
-	if !ok {
-		return false
-	}
-
-	return ident.Obj == nil && strings.ToUpper(sel.Sel.Name[:1]) == sel.Sel.Name[:1]
 }
 
 func repoRoot(t *testing.T) string {
@@ -164,5 +156,60 @@ func repoRoot(t *testing.T) string {
 			t.Fatal("go.mod not found above the test directory")
 		}
 		dir = parent
+	}
+}
+
+// TestIsConstantExprRejectsRuntimeExpressions pins the inputs the guard must
+// treat as runtime data. A false positive here silently disarms the guard.
+func TestIsConstantExprRejectsRuntimeExpressions(t *testing.T) {
+	t.Parallel()
+
+	const src = `package p
+
+const localConst = "node ls"
+
+var pkgVar = struct{ Field string }{}
+
+func f(runtimeCommand string) {
+	_ = localConst
+	_ = pkgVar
+	_ = runtimeCommand
+}
+`
+
+	fset := token.NewFileSet()
+
+	file, err := parser.ParseFile(fset, "p.go", src, 0)
+	if err != nil {
+		t.Fatalf("parsing fixture: %v", err)
+	}
+
+	consts := constIdents(file)
+
+	for _, tc := range []struct {
+		name      string
+		expr      string
+		wantConst bool
+	}{
+		{name: "string literal", expr: `"node ls"`, wantConst: true},
+		{name: "file-local constant", expr: "localConst", wantConst: true},
+		{name: "concatenated literals", expr: `"node " + "ls"`, wantConst: true},
+		{name: "runtime parameter", expr: "runtimeCommand", wantConst: false},
+		{name: "imported selector", expr: "os.Args", wantConst: false},
+		{name: "field on a package variable", expr: "pkgVar.Field", wantConst: false},
+		{name: "call result", expr: "fmt.Sprintf(\"rm %s\", nodeID)", wantConst: false},
+		{name: "concatenation with runtime value", expr: `"rm " + nodeID`, wantConst: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			expr, err := parser.ParseExpr(tc.expr)
+			if err != nil {
+				t.Fatalf("parsing %q: %v", tc.expr, err)
+			}
+			if got := isConstantExpr(expr, consts); got != tc.wantConst {
+				t.Fatalf("isConstantExpr(%q) = %v, want %v", tc.expr, got, tc.wantConst)
+			}
+		})
 	}
 }
