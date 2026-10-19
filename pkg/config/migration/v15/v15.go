@@ -25,33 +25,33 @@ func Migrate(plain map[string]any) error {
 				channels = constant.MCRChannel
 			}
 
-			versions, ok := version.(string)
-			if !ok { // handle some frustrating yaml parsing issues for version v`alues
-				if versionf, ok := version.(float64); ok { // version: 25.0  : produces`` a float64
-					versions = fmt.Sprintf("%.1f", versionf)
-				} else if versioni, ok := version.(int); ok { // version: 25  : produces an integer
-					versions = fmt.Sprintf("%d.0", versioni)
-				} else {
-					log.Warnf("unclear version for migration: %+v (%T)", version, version)
-				}
-			}
-
-			// channel might already be `stable-25.0` but a version was passed, so we overrid it with a version passed
-			if channelsParts := strings.Split(channels, "-"); len(channelsParts) > 1 {
-				log.Warnf("when migrating to v1.6, a version (%s) and a channel (%s) were passed, but we combined them to use: %s-%s", version, channel, channels, versions)
-				channels = channelsParts[0]
+			var versions string
+			switch typed := version.(type) {
+			case nil: // no version: the channel is migrated as-is, including an already pinned one such as stable-25.0
+			case string:
+				versions = typed
+			case float64: // version: 25.0  : produces a float64
+				versions = fmt.Sprintf("%.1f", typed)
+			case int: // version: 25  : produces an integer
+				versions = fmt.Sprintf("%d.0", typed)
+			default:
+				log.Warnf("unclear version for migration: %+v (%T)", version, version)
 			}
 
 			if versions != "" {
-				mcr["channel"] = fmt.Sprintf("%s-%s", channels, versions)
-			} else {
-				mcr["channel"] = channels
+				// channel might already be pinned (stable-25.0); an explicit version takes precedence over the pin
+				if base, _, pinned := strings.Cut(channels, "-"); pinned {
+					log.Warnf("when migrating to v1.6, both a version (%s) and a pinned channel (%s) were set; using channel %s-%s", versions, channels, base, versions)
+					channels = base
+				}
+				channels = fmt.Sprintf("%s-%s", channels, versions)
 			}
+			mcr["channel"] = channels
 			delete(mcr, "version")
 		}
 	}
 
-	log.Debugf("migrated configuration from launchpad.mirantis.com/v1.4 to launchpad.mirantis.com/mke/v1.5")
+	log.Debugf("migrated configuration from launchpad.mirantis.com/mke/v1.5 to launchpad.mirantis.com/mke/v1.6")
 	log.Infof("Note: The configuration has been migrated from a previous version")
 	log.Infof("      to see the migrated configuration use: launchpad describe config")
 	return nil

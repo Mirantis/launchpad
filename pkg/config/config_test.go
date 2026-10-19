@@ -78,3 +78,55 @@ func TestProductFromYAMLAllowsEscapedDollar(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, `Qr0!@dGo7ukgWC0$yAzL`, m.ClusterConfig.Spec.MKE.AdminPassword)
 }
+
+// The migrators register themselves from init(), so these tests go through
+// ProductFromYAML without importing any migrator directly: a migrator that
+// pkg/config does not import leaves old configs unmigrated and fails here.
+func TestProductFromYAMLMigratesV15Config(t *testing.T) {
+	p, err := ProductFromYAML([]byte(`---
+apiVersion: launchpad.mirantis.com/mke/v1.5
+kind: mke
+spec:
+  hosts:
+  - role: manager
+    ssh:
+      address: 10.0.0.1
+      user: root
+  mcr:
+    channel: stable
+    version: 25.0.14
+  mke:
+    version: "3.8.6"
+`))
+	require.NoError(t, err)
+	m, ok := p.(*mke.MKE)
+	require.True(t, ok)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", m.ClusterConfig.APIVersion)
+	require.Equal(t, "stable-25.0.14", m.ClusterConfig.Spec.MCR.Channel)
+}
+
+func TestProductFromYAMLMigratesV14Config(t *testing.T) {
+	p, err := ProductFromYAML([]byte(`---
+apiVersion: launchpad.mirantis.com/mke/v1.4
+kind: mke
+spec:
+  hosts:
+  - role: manager
+    ssh:
+      address: 10.0.0.1
+      user: root
+  mcr:
+    channel: stable
+    version: "25.0"
+  mke:
+    version: "3.8.6"
+    swarmInstallFlags:
+    - --default-addr-pool=172.20.0.0/14
+`))
+	require.NoError(t, err)
+	m, ok := p.(*mke.MKE)
+	require.True(t, ok)
+	require.Equal(t, "launchpad.mirantis.com/mke/v1.6", m.ClusterConfig.APIVersion)
+	require.Equal(t, "stable-25.0", m.ClusterConfig.Spec.MCR.Channel)
+	require.Equal(t, []string{"--default-addr-pool=172.20.0.0/14"}, []string(m.ClusterConfig.Spec.MCR.SwarmInstallFlags))
+}
