@@ -1,7 +1,9 @@
 package swarm
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
@@ -23,12 +25,34 @@ func IsSwarmNode(h *mkeconfig.Host) bool {
 	return true
 }
 
+// swarmNodeIDRegexp matches a docker swarm node ID. Docker generates these as
+// lowercase base36 strings; nothing else is a legitimate node ID.
+var swarmNodeIDRegexp = regexp.MustCompile(`^[a-z0-9]+$`)
+
+// errInvalidNodeID is returned when a host reports a node ID that is not a
+// plain base36 identifier.
+var errInvalidNodeID = errors.New("invalid swarm node id")
+
 // NodeID returns the hosts node id in swarm cluster.
+//
+// The value is read from the host's own docker daemon and is later
+// interpolated into commands run on the swarm leader, so it is rejected here
+// unless it is a plain identifier.
 func NodeID(h *mkeconfig.Host) (string, error) {
 	out, err := h.ExecOutput(h.Configurer.DockerCommandf(`info --format "{{.Swarm.NodeID}}"`))
 	if err != nil {
 		return "", fmt.Errorf("failed to get host's swarm node id: %w", err)
 	}
+
+	out = strings.TrimSpace(out)
+	if out == "" {
+		return "", nil
+	}
+
+	if !swarmNodeIDRegexp.MatchString(out) {
+		return "", fmt.Errorf("%w: %s reported %q", errInvalidNodeID, h, out)
+	}
+
 	return out, nil
 }
 

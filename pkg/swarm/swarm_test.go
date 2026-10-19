@@ -3,6 +3,7 @@ package swarm
 import (
 	"testing"
 
+	"github.com/Mirantis/launchpad/pkg/configurer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,4 +69,37 @@ func TestParseDefaultAddrPool(t *testing.T) {
 			require.Equal(t, tc.want, parseDefaultAddrPool(tc.out))
 		})
 	}
+}
+
+// A node ID is read from each host's own docker daemon and is later
+// interpolated into commands run on the swarm leader, so anything that is not
+// a plain base36 identifier is rejected at the source.
+func TestSwarmNodeIDRegexpRejectsShellMetacharacters(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		input string
+		valid bool
+	}{
+		{name: "generated id", input: "qwertyuiop1234567890asdf", valid: true},
+		{name: "command substitution", input: "$(touch /tmp/pwned)", valid: false},
+		{name: "command separator", input: "abc; touch /tmp/pwned", valid: false},
+		{name: "backtick", input: "abc`id`", valid: false},
+		{name: "embedded space", input: "abc def", valid: false},
+		{name: "uppercase", input: "ABC", valid: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.valid, swarmNodeIDRegexp.MatchString(tc.input))
+		})
+	}
+}
+
+// Even if a node ID reached a sink without validation, the command built for
+// the leader must not execute it.
+func TestNodeIDSinkQuotesMetacharacters(t *testing.T) {
+	var c configurer.LinuxConfigurer
+
+	require.Equal(t,
+		`/usr/bin/docker node update --availability drain 'abc; touch /tmp/pwned'`,
+		c.DockerCmd().Raw("node update --availability drain").Arg("abc; touch /tmp/pwned").String(),
+	)
 }
