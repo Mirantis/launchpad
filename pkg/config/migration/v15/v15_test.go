@@ -108,3 +108,33 @@ spec:
 	require.NoError(t, err)
 	require.Equal(t, string(v16), string(out))
 }
+
+func TestVersionMigrationPinnedChannelWithoutVersionKeepsPin(t *testing.T) {
+	in := make(map[string]any)
+	require.NoError(t, yaml.Unmarshal([]byte(`---
+apiVersion: launchpad.mirantis.com/mke/v1.5
+kind: mke
+spec:
+  mcr:
+    channel: stable-25.0
+`), in))
+	require.NoError(t, Migrate(in))
+	mcr := in["spec"].(map[any]any)["mcr"].(map[any]any)
+	require.Equal(t, "stable-25.0", mcr["channel"])
+}
+
+func TestVersionMigrationVersionOverridesPinnedChannel(t *testing.T) {
+	in := make(map[string]any)
+	require.NoError(t, yaml.Unmarshal([]byte(`---
+apiVersion: launchpad.mirantis.com/mke/v1.5
+kind: mke
+spec:
+  mcr:
+    channel: stable-25.0
+    version: 25.0.14
+`), in))
+	require.NoError(t, Migrate(in))
+	mcr := in["spec"].(map[any]any)["mcr"].(map[any]any)
+	require.Equal(t, "stable-25.0.14", mcr["channel"])
+	require.NotContains(t, mcr, "version")
+}
