@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
+	"regexp"
 
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/centos"
@@ -100,7 +101,15 @@ func (p *GatherFacts) Run() error {
 	return nil
 }
 
-var errInvalidIP = errors.New("invalid IP address")
+var (
+	errInvalidIP       = errors.New("invalid IP address")
+	errInvalidHostname = errors.New("invalid hostname")
+)
+
+// validHostnameRegexp matches a RFC 1123 hostname: letters, digits, hyphens
+// and dots only. The value is host-reported and is later interpolated into
+// MSR bootstrapper flags, so anything looser is an injection vector.
+var validHostnameRegexp = regexp.MustCompile(`^[a-zA-Z0-9.-]+$`)
 
 func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h)
@@ -133,7 +142,11 @@ func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterCon
 
 	h.Metadata.MCRVersion = version
 
-	h.Metadata.Hostname, _ = h.FS().Hostname()
+	hostname, err := h.FS().Hostname()
+	if err == nil && hostname != "" && !validHostnameRegexp.MatchString(hostname) {
+		return fmt.Errorf("%s: %w: %q", h, errInvalidHostname, hostname)
+	}
+	h.Metadata.Hostname = hostname
 	h.Metadata.LongHostname, _ = h.FS().LongHostname()
 
 	if h.PrivateInterface == "" {

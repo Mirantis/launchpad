@@ -18,6 +18,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/swarm"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/k0sproject/rig/v2/cmd"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -228,8 +229,8 @@ func (p *RemoveNodes) removemsrNode(config *mkeconfig.ClusterConfig, replicaID s
 	}
 
 	removeFlags := commonconfig.Flags{
-		fmt.Sprintf("--replica-ids %s", replicaID),
-		fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID),
+		fmt.Sprintf("--replica-ids %s", shellescape.Quote(replicaID)),
+		fmt.Sprintf("--existing-replica-id %s", shellescape.Quote(msrLeader.MSRMetadata.ReplicaID)),
 	}
 	removeFlags.MergeOverwrite(mkeFlags)
 	for _, f := range msr.PluckSharedInstallFlags(config.Spec.MSR.InstallFlags, msr.SharedInstallRemoveFlags) {

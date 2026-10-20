@@ -50,7 +50,7 @@ func (p *InstallMSR) Run() error {
 	mkeFlags := msr.BuildMKEFlags(p.Config)
 	// Conduct the install passing the --ucp-node flag for the host provided in
 	// msrLeader.
-	mkeFlags.AddOrReplace(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
+	mkeFlags.AddOrReplace(fmt.Sprintf("--ucp-node %s", shellescape.Quote(h.Metadata.Hostname)))
 
 	installFlags.Merge(mkeFlags)
 
@@ -80,7 +80,7 @@ func (p *InstallMSR) Run() error {
 
 	if h.MSRMetadata.ReplicaID != "" {
 		log.Infof("%s: installing MSR with replica id %s", h, h.MSRMetadata.ReplicaID)
-		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
+		installFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", shellescape.Quote(h.MSRMetadata.ReplicaID)))
 	} else {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}
