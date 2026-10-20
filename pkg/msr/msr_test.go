@@ -3,10 +3,13 @@ package msr
 import (
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
+	"github.com/Mirantis/launchpad/pkg/configurer"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,12 +66,12 @@ func TestBuildMKEFlags(t *testing.T) {
 		},
 	}
 
-	t.Run("MKE flags are built when --san is provided", func(t *testing.T) {
+	t.Run("MKE flags are built shell-quoted when --san is provided", func(t *testing.T) {
 		actual := BuildMKEFlags(config)
 		expected := commonconfig.Flags{
-			"--ucp-url=\"ucp.acme.com\"",
-			"--ucp-username=\"admin\"",
-			"--ucp-password=\"password1234\"",
+			"--ucp-url ucp.acme.com",
+			"--ucp-username admin",
+			"--ucp-password password1234",
 		}
 		sort.Strings(actual)
 		sort.Strings(expected)
@@ -76,6 +79,63 @@ func TestBuildMKEFlags(t *testing.T) {
 			t.Fatalf("expected is not equal to actual\nexpected: %s\nactual: %s", expected, actual)
 		}
 	})
+}
+
+// TestBuildMKEFlagsQuotesCredentials pins the property every MSR bootstrapper
+// phase depends on: the flag values are single shell-safe words, so a
+// password containing $(...), backticks or $VAR cannot execute when the flag
+// list is joined and run through the remote shell.
+func TestBuildMKEFlagsQuotesCredentials(t *testing.T) {
+	t.Parallel()
+
+	config := &mkeconfig.ClusterConfig{Spec: &mkeconfig.ClusterSpec{}}
+	config.Spec.MKE = mkeconfig.MKEConfig{
+		AdminUsername: `ad'min"$(touch /tmp/pwned)`,
+		AdminPassword: "p$(touch /tmp/pwned)`id`$HOME",
+	}
+	config.Spec.MSR = &mkeconfig.MSRConfig{
+		InstallFlags: commonconfig.Flags{"--ucp-url 10.0.0.1"},
+	}
+	flags := BuildMKEFlags(config)
+
+	for _, flag := range []string{"--ucp-username", "--ucp-password"} {
+		value := flags.GetValue(flag)
+		require.Equal(t, value, strings.TrimSpace(value), "%s value is a single word: %q", flag, value)
+	}
+
+	require.Equal(t,
+		`ad'min"$(touch /tmp/pwned)`,
+		mustUnquote(t, flags.GetValue("--ucp-username")),
+	)
+	require.Equal(t,
+		"p$(touch /tmp/pwned)`id`$HOME",
+		mustUnquote(t, flags.GetValue("--ucp-password")),
+	)
+}
+
+// TestDestroyQuotesCredentials pins the single-word property the remote
+// shell depends on: DockerCmd quoting of a metacharacter payload must
+// survive shellescape.Unquote unchanged and stay wrapped, so the shell sees
+// one literal argument instead of expanding it.
+func TestDestroyQuotesCredentials(t *testing.T) {
+	t.Parallel()
+
+	var c configurer.LinuxConfigurer
+	const pass = "p`id`$HOME"
+
+	quotedPass := c.DockerCmd().Quote(pass)
+
+	require.Contains(t, quotedPass, `'`, "quoting must wrap the value")
+	require.Equal(t, pass, mustUnquote(t, quotedPass), "quoting must be reversible without payload loss")
+}
+
+func mustUnquote(t *testing.T, s string) string {
+	t.Helper()
+
+	unquoted, err := shellescape.Unquote(s)
+	require.NoError(t, err)
+
+	return unquoted
 }
 
 func TestFormatReplicaID(t *testing.T) {
