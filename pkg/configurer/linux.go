@@ -557,14 +557,23 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.Doc
 	if err != nil {
 		log.Debugf("%s: failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
 	}
-
+	// dockerConfig.Root/ExecRoot come from a host-controlled daemon.json;
+	// anything that is not a clean absolute path would be executed via the
+	// sudo'd rm/umount below.
 	if dockerConfig.Root != "" {
-		dockerRootDir = dockerConfig.Root
+		if !isSafeRemotePath(dockerConfig.Root) {
+			log.Warnf("%s: ignoring unsafe docker root path from daemon config: %q", h, dockerConfig.Root)
+		} else {
+			dockerRootDir = dockerConfig.Root
+		}
 	}
 	if dockerConfig.ExecRoot != "" {
-		dockerExecRootDir = dockerConfig.ExecRoot
+		if !isSafeRemotePath(dockerConfig.ExecRoot) {
+			log.Warnf("%s: ignoring unsafe docker exec root path from daemon config: %q", h, dockerConfig.ExecRoot)
+		} else {
+			dockerExecRootDir = dockerConfig.ExecRoot
+		}
 	}
-
 	// /var/lib/ Root folder
 	c.attemptPathSudoDelete(h, dockerRootDir)
 	if idx := strings.LastIndex(dockerRootDir, "/"); idx != -1 {
@@ -576,7 +585,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.Doc
 
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
-	if err := h.Sudo().Exec(fmt.Sprintf("umount %s", execRootNetnsUnmount)); err != nil {
+	if err := h.Sudo().Exec(sh.Command("umount", execRootNetnsUnmount)); err != nil {
 		log.Debugf("%s: failed to umount %s: %s", h, execRootNetnsUnmount, err)
 	}
 
@@ -585,12 +594,32 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.Doc
 		dockerExecRootDir = dockerExecRootDir[:idx]
 	}
 	c.attemptPathSudoDelete(h, path.Join(dockerExecRootDir, "cri-dockerd-mke.sock"))
+
 	c.attemptPathSudoDelete(h, path.Join(dockerExecRootDir, "docker.sock"))
 	c.attemptPathSudoDelete(h, constant.LinuxDefaultDockerExecRoot)
 
 	// /lib/systemd/system/ folder
 	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.service")
 	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.socket")
+}
+
+// safeRemotePathRegexp matches an absolute path with no shell metacharacters,
+// no spaces and no traversal segments. Values that reach sudo'd rm/umount
+// commands are host-reported and must satisfy it.
+var safeRemotePathRegexp = regexp.MustCompile(`^/[a-zA-Z0-9._/-]*$`)
+
+// isSafeRemotePath reports whether a host-reported path is a plain absolute
+// path that can be used safely in a remote command.
+func isSafeRemotePath(p string) bool {
+	if !safeRemotePathRegexp.MatchString(p) ||
+		strings.Contains(p, "//") ||
+		strings.Contains(p, "/../") ||
+		strings.HasSuffix(p, "/..") ||
+		p == "/" {
+		return false
+	}
+
+	return true
 }
 
 func (c LinuxConfigurer) attemptPathSudoDelete(h Host, path string) {
@@ -605,9 +634,9 @@ func (c LinuxConfigurer) attemptPathSudoDelete(h Host, path string) {
 		return
 	}
 
-	command := fmt.Sprintf("rm %s", path)
+	command := sh.Command("rm", path)
 	if fileInfo.IsDir() {
-		command = fmt.Sprintf("rm -rf %s", path)
+		command = sh.Command("rm", "-rf", path)
 	}
 
 	if err := h.Sudo().Exec(command); err != nil {

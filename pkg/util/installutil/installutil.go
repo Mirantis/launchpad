@@ -3,6 +3,9 @@ package installutil
 import (
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 )
 
 // Shared install utility between install phases for different products
@@ -13,6 +16,10 @@ func SetupLicenseFile(licenseFilePath string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read license file: %w", err)
 	}
-	licenseFlag := fmt.Sprintf("--license '%s'", string(license))
+
+	// The license is embedded in a command line that a remote login shell
+	// executes; the whole flag value must survive as a single shell word.
+	licenseFlag := fmt.Sprintf("--license %s", shellescape.Quote(strings.TrimSpace(string(license))))
+
 	return licenseFlag, nil
 }
