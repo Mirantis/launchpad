@@ -10,6 +10,7 @@ import (
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/avast/retry-go"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -134,9 +135,9 @@ func BuildMKEFlags(config *mkeconfig.ClusterConfig) commonconfig.Flags {
 	}
 
 	return commonconfig.Flags{
-		fmt.Sprintf("--ucp-url=\"%s\"", mkeURLHost(config)),
-		fmt.Sprintf("--ucp-username=\"%s\"", mkeUser),
-		fmt.Sprintf("--ucp-password=\"%s\"", mkePass),
+		fmt.Sprintf("--ucp-url %s", shellescape.Quote(mkeURLHost(config))),
+		fmt.Sprintf("--ucp-username %s", shellescape.Quote(mkeUser)),
+		fmt.Sprintf("--ucp-password %s", shellescape.Quote(mkePass)),
 	}
 }
 
@@ -151,13 +152,22 @@ func mkeURLHost(config *mkeconfig.ClusterConfig) string {
 // installer if it fails.
 func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
+	// BuildMKEFlags returns shell-quoted flag values. Recover the raw values
+	// before handing them to DockerCmd, which applies its own quoting.
+	unquote := func(flag string) string {
+		if raw, err := shellescape.Unquote(mkeFlags.GetValue(flag)); err == nil {
+			return raw
+		}
+
+		return mkeFlags.GetValue(flag)
+	}
 	destroyCmd := h.Configurer.DockerCmd().
 		Raw("run -it --rm").
 		Arg(fmt.Sprintf("mirantis/dtr:%s", h.MSRMetadata.InstalledVersion)).
 		Raw("destroy --ucp-insecure-tls").
-		Raw("--ucp-url").Arg(mkeFlags.GetValue("--ucp-url")).
-		Raw("--ucp-username").Arg(mkeFlags.GetValue("--ucp-username")).
-		Raw("--ucp-password").Arg(mkeFlags.GetValue("--ucp-password")).
+		Raw("--ucp-url").Arg(unquote("--ucp-url")).
+		Raw("--ucp-username").Arg(unquote("--ucp-username")).
+		Raw("--ucp-password").Arg(unquote("--ucp-password")).
 		Raw("--replica-id").Arg(h.MSRMetadata.ReplicaID).
 		String()
 	if err := h.Exec(destroyCmd); err != nil {
