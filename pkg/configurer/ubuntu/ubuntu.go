@@ -3,9 +3,11 @@ package ubuntu
 import (
 	"fmt"
 	"io/fs"
+	"net/url"
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	"github.com/k0sproject/rig/v2/sh"
 )
 
 // Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
@@ -53,7 +55,12 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 	// https://docs.mirantis.com/mcr/25.0/install/mcr-linux/ubuntu.html instructions
 
 	// 2. import the mirantis gpg key
-	if err := h.Sudo().Exec(fmt.Sprintf("gpg --batch --yes --output /usr/share/keyrings/mirantis-archive-keyring.gpg --dearmor <<< $(curl -fsSL %s)", gpgURL)); err != nil {
+	// engineConfig.RepoURL is user-supplied config; reject anything that is
+	// not a plain http(s) URL before it reaches a sudo'd command line.
+	if _, err := url.ParseRequestURI(gpgURL); err != nil {
+		return fmt.Errorf("invalid MCR repo URL %q: %w", gpgURL, err)
+	}
+	if err := h.Sudo().Exec(sh.Command("bash", "-c", fmt.Sprintf("gpg --batch --yes --output /usr/share/keyrings/mirantis-archive-keyring.gpg --dearmor <<< \"$(curl -fsSL %s)\"", gpgURL))); err != nil {
 		return fmt.Errorf("could not install the Mirantis Ubuntu GPG signing key")
 	}
 

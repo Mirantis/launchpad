@@ -38,8 +38,11 @@ func (c DockerConfigurer) GetDockerInfo(h Host) (commonconfig.DockerInfo, error)
 var errConfigEmpty = errors.New("the docker daemon config is empty")
 
 // GetDockerDaemonConfig parses docker daemon json string and populate DockerDaemonConfig struct.
+//
+// Callers that pass the result into commands (CleanupLingeringMCR) must
+// quote the returned path values; they are read from a host-controlled file.
 func (c DockerConfigurer) GetDockerDaemonConfig(dockerDaemon string) (commonconfig.DockerDaemonConfig, error) {
-	if dockerDaemon != "" {
+	if dockerDaemon == "" {
 		return commonconfig.DockerDaemonConfig{}, errConfigEmpty
 	}
 
