@@ -13,6 +13,7 @@ import (
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
 	"github.com/k0sproject/rig/v2/cmd"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -94,10 +95,10 @@ func (p *InstallMKE) Run() error {
 	}
 
 	if p.Config.Spec.MKE.AdminUsername != "" {
-		installFlags.AddUnlessExist(fmt.Sprintf("--admin-username='%s'", p.Config.Spec.MKE.AdminUsername))
+		installFlags.AddUnlessExist(fmt.Sprintf("--admin-username %s", shellescape.Quote(p.Config.Spec.MKE.AdminUsername)))
 	}
 	if p.Config.Spec.MKE.AdminPassword != "" {
-		installFlags.AddUnlessExist(fmt.Sprintf("--admin-password='%s'", p.Config.Spec.MKE.AdminPassword))
+		installFlags.AddUnlessExist(fmt.Sprintf("--admin-password %s", shellescape.Quote(p.Config.Spec.MKE.AdminPassword)))
 	}
 
 	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
