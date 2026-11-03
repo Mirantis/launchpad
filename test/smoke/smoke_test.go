@@ -207,19 +207,20 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
-// TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu26 managers and workers
-// with sles16 as an additional worker, using the latest MCR and MKE versions.
-// The rhel_10/rocky_10 platform keys are available in
-// terraform-mirantis-provision-aws >= v0.1.7 (pinned in examples/terraform/aws-simple).
+// TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu26 managers and
+// workers, using the latest MCR and MKE versions. The rhel_10/rocky_10
+// platform keys are available in terraform-mirantis-provision-aws >= v0.1.7
+// (pinned to 0.1.8 in examples/terraform/aws-simple).
 //
-// NOTE: as of 2026-07-22, MCR has not published Docker EE packages for either
-// SLES 16 (repos.mirantis.com/sles/ only has 12/12.3/15 - no 16 directory) or
-// Ubuntu 26.04 "resolute" (repos.mirantis.com/ubuntu/dists/ only has
-// trusty/xenial/bionic/focal/jammy/noble - no resolute directory). Both nodes
-// are expected to fail at the Install MCR phase until MCR ships support; see
-// also the RHEL10/Rocky10 MCR-daemon-start gap (missing xt_* kernel modules
-// break iptables, and MCR's nftables backend is incompatible with swarm mode)
-// tracked separately.
+// MCR package availability, checked 2026-11-03:
+//   - rhel/10 (also used by rocky10): stable-29.2 through stable-29.8.0
+//   - ubuntu resolute: stable-29.8.0 and test-29.8.0 only, hence the channel
+//   - sles/16: no directory under repos.mirantis.com/sles/ (12, 12.3, 15
+//     only), so a sles16 worker cannot install MCR and is not in the matrix
+//
+// Separately tracked: the RHEL10/Rocky10 MCR-daemon-start gap (missing xt_*
+// kernel modules break iptables, and MCR's nftables backend is incompatible
+// with swarm mode).
 func TestCuttingEdgeCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		// AWS LB/target-group names are capped at 32 chars: the stack name is
@@ -227,8 +228,8 @@ func TestCuttingEdgeCluster(t *testing.T) {
 		// "-mke-kube" (9 chars), capping len(Name) at 11. Hence "cuttingedge"
 		// rather than "cutting-edge" (12 chars).
 		Name:            "cuttingedge",
-		MCRChannel:      "stable-29.6.1",
-		MKEVersion:      "3.9.6",
+		MCRChannel:      "stable-29.8.0",
+		MKEVersion:      "3.9.7",
 		MSRVersion:      "3.1.18",
 		SSHKeyAlgorithm: "ed25519",
 		Nodegroups: map[string]interface{}{
@@ -237,7 +238,6 @@ func TestCuttingEdgeCluster(t *testing.T) {
 			"MngrUbuntu26": test.Platforms["Ubuntu26"].GetManager(),
 			"WrkRhel10":    test.Platforms["Rhel10"].GetWorker(),
 			"WrkRocky10":   test.Platforms["Rocky10"].GetWorker(),
-			"WrkSles16":    test.Platforms["Sles16"].GetWorker(),
 			"WrkUbuntu26":  test.Platforms["Ubuntu26"].GetWorker(),
 		},
 	})
@@ -298,24 +298,6 @@ func TestFIPSCluster(t *testing.T) {
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
 			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
-		},
-	})
-}
-
-// TestCuttingEdgeCluster exercises a single ubuntu_26.04 (Resolute) manager
-// against repos-internal.mirantis.com's test-29 channel, the only place
-// Ubuntu 26.04 MCR packages exist as of 2026-09-29 (repos.mirantis.com has
-// none yet). Validates PRODENG-3593's ResoluteConfigurer end-to-end.
-func TestCuttingEdgeCluster(t *testing.T) {
-	runSmokeTest(t, smokeConfig{
-		Name:            "edge",
-		MCRChannel:      "test-29",
-		MCRRepoURL:      "https://repos-internal.mirantis.com",
-		MKEVersion:      "3.9.2",
-		MSRVersion:      "3.1.18",
-		SSHKeyAlgorithm: "ed25519",
-		Nodegroups: map[string]interface{}{
-			"MngrUbuntu26": test.Platforms["Ubuntu26"].GetManager(),
 		},
 	})
 }
