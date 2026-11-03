@@ -6,7 +6,8 @@ locals {
 
 # PROVISION MACHINES/NETWORK
 module "provision" {
-  source = "terraform-mirantis-modules/provision-aws/mirantis"
+  source  = "terraform-mirantis-modules/provision-aws/mirantis"
+  version = "0.1.8"
 
   name    = var.name
   network = var.network
