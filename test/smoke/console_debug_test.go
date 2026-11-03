@@ -30,7 +30,7 @@ func dumpConsoleOutputOnFailure(t *testing.T, stackName string) {
 	}
 
 	ctx := context.Background()
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(smokeRegion))
 	if err != nil {
 		t.Logf("DEBUG: console output capture skipped: could not load AWS config: %v", err)
 		return

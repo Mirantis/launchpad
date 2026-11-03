@@ -14,8 +14,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// smokeRegion is the AWS region every smoke stack is provisioned in, and the
+// region console-output capture queries. us-east-1 was abandoned because the
+// provision module derives AZs as slice(available_azs, 0, len(subnets)) and
+// the tests declare one subnet, so every stack landed in us-east-1a, where
+// c6a.xlarge capacity repeatedly ran out (runs 39792899324, 39793016128,
+// 39793337401).
+const smokeRegion = "us-west-2"
+
 var awsConfig = map[string]interface{}{
-	"region": "us-east-1",
+	"region": smokeRegion,
 }
 
 var networkConfig = map[string]interface{}{
