@@ -56,14 +56,13 @@ type Options struct {
 	// signature is checked against Keyring before the chart is loaded.
 	//
 	// It defaults to false, deliberately.  Nothing in this repository ships
-	// or references a keyring, and the charts these options are used with are
-	// pulled from OCI registries and repositories that publish no .prov
-	// files, so defaulting Verify to true would fail every chart resolution
-	// on a missing provenance file or a missing keyring rather than make any
-	// chart more trustworthy.  A caller that has a signed chart and the
-	// signer's public keyring opts in by setting Verify and Keyring together;
-	// setting Verify without Keyring is rejected rather than silently
-	// verifying against nothing.
+	// or references a keyring, and the chart repositories these options are
+	// used with publish no .prov files, so defaulting Verify to true would
+	// fail every chart resolution on a missing provenance file or a missing
+	// keyring rather than make any chart more trustworthy.  A caller that has
+	// a signed chart and the signer's public keyring opts in by setting
+	// Verify and Keyring together; setting Verify without Keyring is rejected
+	// rather than silently verifying against nothing.
 	Verify bool
 	// Keyring is the path to the public keyring used for provenance
 	// verification.  It is only consulted when Verify is true.
@@ -145,14 +144,6 @@ func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]inter
 
 	installAction.Namespace = settings.Namespace()
 	installAction.ReleaseName = opts.ReleaseName
-	// Keep the install action's chart source consistent with the options the
-	// chart was actually resolved with in Upgrade.  The chart handed to
-	// RunWithContext below is already loaded, so these values do not select
-	// it a second time; they must be correct at LocateChart, which is where
-	// Upgrade applies them.
-	if err := applyChartPathOptions(&installAction.ChartPathOptions, opts); err != nil {
-		return nil, err
-	}
 	installAction.Atomic = opts.Atomic
 	installAction.Wait = opts.Wait
 
@@ -181,8 +172,11 @@ func getChart(chartPathOptions action.ChartPathOptions, chartName string, settin
 // applyChartPathOptions pins the chart resolution options on an action's
 // ChartPathOptions.  The fields are assigned individually rather than by
 // replacing the struct: action.NewInstall and action.NewUpgrade populate an
-// unexported registry client on ChartPathOptions, and overwriting it would
-// break resolution of oci:// charts.
+// unexported registry client on ChartPathOptions.  That client is only ever
+// set by the test helper in this package -- NewFromBundle leaves
+// action.Configuration.RegistryClient nil, so oci:// names are rejected by
+// LocateChart on the bundle path -- but overwriting the struct would break
+// oci:// resolution for any caller that does set one.
 func applyChartPathOptions(chartPathOptions *action.ChartPathOptions, opts *Options) error {
 	if opts.Verify && opts.Keyring == "" {
 		return errVerifyWithoutKeyring
