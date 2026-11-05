@@ -11,7 +11,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/test"
-	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"
 )
@@ -66,19 +65,24 @@ func TestMain(m *testing.M) {
 
 	MKE_CONNECT["password"] = test.GenerateRandomAlphaNumericString(12)
 
-	options := terraform.Options{
+	options := test.TerraformOptions(
+		t,
 		// The path to where the Terraform tf chart is located
-		TerraformDir: "../../examples/terraform/aws-simple",
-		Vars: map[string]any{
+		"../../examples/terraform/aws-simple",
+		map[string]any{
 			"name":            name,
 			"aws":             AWS,
-			"launchpad":       LAUNCHPAD,
 			"network":         NETWORK,
 			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,
 			"nodegroups":      nodegroups,
 		},
-	}
+		// LAUNCHPAD nests the MKE admin password, so it travels by TF_VAR_*
+		// rather than as a "-var" argument. See test.TerraformOptions.
+		map[string]any{
+			"launchpad": LAUNCHPAD,
+		},
+	)
 
 	sp := test.GetInstance()
 	sp.Setup(t, options)
@@ -107,8 +111,7 @@ func TestMKEClientConfig(t *testing.T) {
 	home, err := homedir.Dir()
 	assert.NoError(t, err)
 
-	t.Logf("Terraform Options: %v", sp.TerraformOptions)
-	mkeConnectOut := terraform.OutputJson(t, sp.TerraformOptions, "mke_connect")
+	mkeConnectOut := test.OutputSecretJSON(t, sp.TerraformOptions, "mke_connect")
 
 	product.ClientConfig()
 	var m struct {
