@@ -113,6 +113,50 @@ spec:
 	require.Contains(t, got, "provider: azure", "the provider name is not a credential")
 }
 
+// Environment variable names are a free-form user surface and the canonical
+// place registry and proxy credentials are set, so they are matched by
+// fragment rather than by an exact key.
+func TestYAMLMasksCredentialEnvironmentVariables(t *testing.T) {
+	doc := []byte(`
+spec:
+  hosts:
+  - role: manager
+    environment:
+      DOCKER_USERNAME: admin
+      DOCKER_PASSWORD: env-docker-secret
+      REGISTRY_TOKEN: env-registry-token
+      MY_API_SECRET: env-api-secret
+      SIGNING_KEY: env-signing-secret
+      HTTP_PROXY: http://proxy.example.com:3128
+      NO_PROXY: 10.0.0.0/8
+      LANG: en_GB.UTF-8
+`)
+
+	out, err := redact.YAML(doc)
+	require.NoError(t, err)
+
+	got := string(out)
+	for _, secret := range []string{"env-docker-secret", "env-registry-token", "env-api-secret", "env-signing-secret"} {
+		require.NotContainsf(t, got, secret, "describe config leaked %q:\n%s", secret, got)
+	}
+
+	// Operational variables stay readable: masking them would cost the
+	// report its value without protecting anything.
+	require.Contains(t, got, "http://proxy.example.com:3128")
+	require.Contains(t, got, "10.0.0.0/8")
+	require.Contains(t, got, "en_GB.UTF-8")
+}
+
+// The looser environment matching must not leak into the rest of the
+// document, where it would mask unrelated fields by name alone.
+func TestEnvFragmentMatchingIsScopedToEnvironment(t *testing.T) {
+	out, err := redact.YAML([]byte("spec:\n  mke:\n    tokenSigner: rsa\n    secretStore: vault\n"))
+	require.NoError(t, err)
+
+	require.Contains(t, string(out), "tokenSigner: rsa")
+	require.Contains(t, string(out), "secretStore: vault")
+}
+
 // A flag and its value may be two separate list elements, in which case the
 // value carries no flag name of its own.
 func TestYAMLMasksTwoElementFlagArgument(t *testing.T) {

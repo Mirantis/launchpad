@@ -11,6 +11,33 @@
 // owned by the rig dependency, which launchpad cannot give a masking
 // MarshalYAML. Redacting the encoded document instead of the Go types is what
 // lets those fields be covered at all.
+//
+// Contract and known limits:
+//
+//   - One document per call. yaml.Unmarshal decodes the first document and
+//     drops the rest, so a multi-document stream would be truncated rather
+//     than partially redacted. Every caller today encodes a single
+//     ClusterConfig.
+//   - An unparseable document is an error, not degraded output. A caller that
+//     must still print something (a debug dump of a broken config, say) has to
+//     decide that for itself.
+//   - Sequence items that are not strings are walked but not masked by flag
+//     name, because a flag argument is only recognisable as text. Mapping
+//     values of any scalar type are masked. common.Flags coerces its elements
+//     to strings, so the two cannot disagree for a marshalled ClusterConfig.
+//   - Shell command fields (hooks, swarmUpdateCommands) are not redacted.
+//     Credentials there sit behind single-letter flags whose meaning is
+//     command specific: "-p" is a password to docker login and a port
+//     publication to docker run. Guessing would corrupt working commands, so
+//     this is a documented blind spot rather than a heuristic.
+//   - Values that embed credentials inside a larger string, such as a proxy
+//     URL carrying userinfo before the host, are masked only when their own
+//     key is sensitive.
+//
+// Usernames are masked here, while the MKE login error at pkg/mke keeps the
+// username: a report dumps the whole configuration to a terminal or a ticket,
+// where the pair is the thing worth withholding, whereas an error needs to
+// identify which login failed to be actionable.
 package redact
 
 import (
@@ -58,6 +85,42 @@ var sensitiveFlags = map[string]struct{}{
 	"--password":       {},
 	"--dtr-key":        {},
 	"--token":          {},
+}
+
+// envKey is the mapping key whose children are environment variables.
+const envKey = "environment"
+
+// envSecretFragments appear in the names of environment variables that hold a
+// credential. Environment names are a free-form user surface, like the flag
+// lists, so an exact key set cannot work: launchpad's own convention builds
+// prefixed names such as <PREFIX>PASSWORD (pkg/docker/envauth.go), and
+// REGISTRY_TOKEN or DOCKER_PASSWORD would never match a fixed set.
+//
+// The looser matching is applied only under the environment key. Widening the
+// global key set the same way would start masking unrelated fields whose
+// names happen to contain these words.
+var envSecretFragments = []string{
+	"PASSWORD",
+	"PASSWD",
+	"SECRET",
+	"TOKEN",
+	"CREDENTIAL",
+	"APIKEY",
+	"_KEY",
+}
+
+// IsSensitiveEnvName reports whether an environment variable's name marks its
+// value as a credential. HTTP_PROXY, NO_PROXY and the rest stay visible.
+func IsSensitiveEnvName(name string) bool {
+	upper := strings.ToUpper(name)
+
+	for _, fragment := range envSecretFragments {
+		if strings.Contains(upper, fragment) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // IsSensitiveKey reports whether a YAML mapping key holds a credential.
@@ -110,7 +173,32 @@ func redactMapping(mapping yaml.MapSlice) yaml.MapSlice {
 
 	for i, item := range mapping {
 		key, isString := item.Key.(string)
-		if isString && IsSensitiveKey(key) && !isEmpty(item.Value) {
+
+		switch {
+		case isString && IsSensitiveKey(key) && !isEmpty(item.Value):
+			out[i] = yaml.MapItem{Key: item.Key, Value: Placeholder}
+		case isString && strings.EqualFold(key, envKey):
+			out[i] = yaml.MapItem{Key: item.Key, Value: redactEnvironment(item.Value)}
+		default:
+			out[i] = yaml.MapItem{Key: item.Key, Value: redactValue(item.Value)}
+		}
+	}
+
+	return out
+}
+
+// redactEnvironment masks the variables of a host environment block by name.
+func redactEnvironment(value interface{}) interface{} {
+	env, isMapping := value.(yaml.MapSlice)
+	if !isMapping {
+		return redactValue(value)
+	}
+
+	out := make(yaml.MapSlice, len(env))
+
+	for i, item := range env {
+		name, isString := item.Key.(string)
+		if isString && IsSensitiveEnvName(name) && !isEmpty(item.Value) {
 			out[i] = yaml.MapItem{Key: item.Key, Value: Placeholder}
 
 			continue

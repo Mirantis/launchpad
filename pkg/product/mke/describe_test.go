@@ -3,6 +3,7 @@ package mke
 import (
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	common "github.com/Mirantis/launchpad/pkg/product/common/config"
@@ -78,6 +79,24 @@ func productWithCredentials() *MKE {
 	}}
 }
 
+// Output larger than the 64 KiB pipe buffer must not wedge the report or the
+// harness capturing it. caCertData is unmasked by design, so a realistic CA
+// bundle is exactly how a config gets there.
+func TestDescribeConfigHandlesLargeOutput(t *testing.T) {
+	product := productWithCredentials()
+	product.ClusterConfig.Spec.MKE.CACertData = strings.Repeat("ca-bundle-line\n", 10000)
+
+	out := captureStdout(t, func() {
+		require.NoError(t, product.Describe("config"))
+	})
+
+	require.Greater(t, len(out), 64*1024)
+	require.NotContains(t, out, "fake-admin-password")
+}
+
+// captureStdout drains the pipe while fn writes to it. Reading only after fn
+// returns deadlocks once the output exceeds the 64 KiB pipe buffer, which a
+// config carrying realistic certificate or configData blobs does.
 func captureStdout(t *testing.T, fn func()) string {
 	t.Helper()
 
@@ -91,11 +110,15 @@ func captureStdout(t *testing.T, fn func()) string {
 		os.Stdout = orig
 	}()
 
+	captured := make(chan []byte, 1)
+
+	go func() {
+		out, _ := io.ReadAll(read)
+		captured <- out
+	}()
+
 	fn()
 	require.NoError(t, write.Close())
 
-	out, err := io.ReadAll(read)
-	require.NoError(t, err)
-
-	return string(out)
+	return string(<-captured)
 }
