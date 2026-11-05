@@ -23,6 +23,11 @@ Launchpad provides several core commands, each implemented as an entry point in 
 - **Description**: Executes a command or opens a shell on a set of hosts defined in the configuration.
 - **Usage**: Useful for running manual troubleshooting commands across the cluster.
 
+### `describe` (`cmd/describe.go`)
+
+- **Description**: Reports cluster state: `hosts`, `mke`, `msr`, or `config`.
+- **`describe config`**: Prints the fully migrated and defaulted cluster configuration. Credential-bearing values are replaced with `[REDACTED]`: the MKE admin username and password, host connection passwords, inline certificate and key data, and the arguments of credential-carrying install/upgrade flags such as `--admin-password` and `--ucp-password`. Pass `--disable-redact` to print them verbatim.
+
 ### `help`
 
 - **Description**: Provides detailed usage information for any command or sub-command.
