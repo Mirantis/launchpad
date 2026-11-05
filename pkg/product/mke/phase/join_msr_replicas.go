@@ -71,7 +71,7 @@ func (p *JoinMSRReplicas) Run() error {
 			runFlags.Add("--security-opt label=disable")
 		}
 		joinFlags := commonconfig.Flags{}
-		redacts := []string{}
+
 		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
 		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))
 		joinFlags.MergeOverwrite(mkeFlags)
@@ -99,11 +99,9 @@ func (p *JoinMSRReplicas) Run() error {
 		}
 
 		joinCmd := msrLeader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(msrLeader.MSRMetadata.InstalledBootstrapImage).Raw("join").Raw(joinFlags.Join()).String()
-		execOpts := make([]cmd.ExecOption, 0, 1+len(redacts))
-		execOpts = append(execOpts, cmd.StreamOutput())
-		for _, r := range redacts {
-			execOpts = append(execOpts, cmd.Redact(r))
-		}
+		// No redactions are needed: the credentials are staged as
+		// environment values, so nothing secret is in the command string.
+		execOpts := []cmd.ExecOption{cmd.StreamOutput()}
 
 		err = msrLeader.Exec(strings.TrimSpace(secrets.Assignments()+" "+joinCmd), execOpts...)
 

@@ -62,7 +62,9 @@ type Vars struct {
 // path including failures: a staged secret left behind outlives the run.
 //
 // Staging stops at the first failure and removes whatever was already
-// written, so a partial failure leaves nothing behind.
+// written. The caller gets no handle back in that case, so a failure to clean
+// up is reported alongside the staging failure rather than dropped: it means
+// a credential is sitting on the host that nothing will remove.
 func Stage(host Host, values map[string]string) (*Vars, error) {
 	vars := &Vars{host: host, paths: make(map[string]string, len(values))}
 
@@ -71,18 +73,14 @@ func Stage(host Host, values map[string]string) (*Vars, error) {
 		// and pointed at something else between naming and writing.
 		path, err := host.FS().CreateTemp("", filePrefix)
 		if err != nil {
-			_ = vars.Remove()
-
-			return nil, fmt.Errorf("failed to create a file for %s: %w", name, err)
+			return nil, errors.Join(fmt.Errorf("failed to create a file for %s: %w", name, err), vars.Remove())
 		}
 
 		vars.names = append(vars.names, name)
 		vars.paths[name] = path
 
 		if err := host.FS().WriteFile(path, []byte(values[name]), fileMode); err != nil {
-			_ = vars.Remove()
-
-			return nil, fmt.Errorf("failed to write the value of %s: %w", name, err)
+			return nil, errors.Join(fmt.Errorf("failed to write the value of %s: %w", name, err), vars.Remove())
 		}
 	}
 
@@ -156,18 +154,47 @@ func (v *Vars) Remove() error {
 // remain. envByFlag maps a flag name to the environment variable the
 // bootstrapper reads it from.
 //
+// Flags.Join concatenates the list with spaces before it reaches a shell, so
+// a credential can be written either inline ("--admin-password secret",
+// "--admin-password=secret") or as a bare flag whose value is the next
+// element. Both forms are consumed; missing the second would leave the
+// credential in argv.
+//
 // A flag with an empty value is left alone: it carries no secret, and
 // removing it would change what the bootstrapper is asked to do.
+//
+// The one case this cannot reach: a bare credential flag whose value is the
+// next element and itself begins with "-", which is indistinguishable from
+// the next flag. Such a value stays in the command line, silently. The rest
+// of the codebase shares the assumption -- Flags.Index and Flags.GetValue
+// read one flag and its value per element -- so a value of that shape has
+// never worked through this list anyway.
 func Extract(flags []string, envByFlag map[string]string) (map[string]string, []string) {
 	values := map[string]string{}
 	kept := make([]string, 0, len(flags))
 
-	for _, flag := range flags {
-		name, value, found := splitFlag(flag)
+	for i := 0; i < len(flags); i++ {
+		name, value, hasValue := splitFlag(flags[i])
 
 		env, isSecret := envByFlag[name]
-		if !found || !isSecret || value == "" {
-			kept = append(kept, flag)
+		if !isSecret {
+			kept = append(kept, flags[i])
+
+			continue
+		}
+
+		// A bare credential flag takes the next element as its value.
+		if !hasValue && i+1 < len(flags) {
+			if _, _, nextHasValue := splitFlag(flags[i+1]); !nextHasValue && !strings.HasPrefix(flags[i+1], "-") {
+				values[env] = unquote(flags[i+1])
+				i++
+
+				continue
+			}
+		}
+
+		if value == "" {
+			kept = append(kept, flags[i])
 
 			continue
 		}
@@ -178,27 +205,87 @@ func Extract(flags []string, envByFlag map[string]string) (map[string]string, []
 	return values, kept
 }
 
-// splitFlag separates "--flag=value" or "--flag value" into its name and
-// value, unquoting the value. Single quotes are handled here because
-// strconv.Unquote, which config.FlagValue uses, does not treat a
-// single-quoted string as a string.
-func splitFlag(flag string) (name, value string, found bool) {
+// splitFlag separates "--flag=value" or "--flag value" into its name and its
+// shell-decoded value.
+func splitFlag(flag string) (name, value string, hasValue bool) {
 	idx := strings.IndexAny(flag, "= ")
 	if idx < 0 {
 		return flag, "", false
 	}
 
-	name = flag[:idx]
-	value = strings.TrimSpace(flag[idx+1:])
+	return flag[:idx], unquote(strings.TrimSpace(flag[idx+1:])), true
+}
 
-	if len(value) > 1 {
-		first, last := value[0], value[len(value)-1]
-		if first == last && (first == '\'' || first == '"') {
-			value = value[1 : len(value)-1]
+// unquote decodes one shell word as a POSIX shell would, without performing
+// any expansion. A flag list is written by hand and then joined into a shell
+// command, so a value may be single quoted, double quoted, backslash escaped
+// or a concatenation of those: --registry-password="pa\$word" reached the
+// registry as pa$word before these values were taken out of the command
+// line, and must still do so now.
+//
+// Expansions are deliberately not performed: $(...) and $VAR were expanded by
+// the shell before, and reproducing that here would execute host-supplied
+// text in launchpad. They are left as written, which is the safe difference.
+func unquote(value string) string {
+	var out strings.Builder
+
+	for pos := 0; pos < len(value); {
+		switch char := value[pos]; char {
+		case '\'':
+			end := strings.IndexByte(value[pos+1:], '\'')
+			if end < 0 {
+				out.WriteString(value[pos+1:])
+
+				return out.String()
+			}
+
+			out.WriteString(value[pos+1 : pos+1+end])
+			pos += end + 2
+		case '"':
+			consumed := writeDoubleQuoted(&out, value[pos+1:])
+			pos += consumed + 1
+		case '\\':
+			if pos+1 < len(value) {
+				out.WriteByte(value[pos+1])
+				pos += 2
+
+				continue
+			}
+
+			pos++
+		default:
+			out.WriteByte(char)
+			pos++
 		}
 	}
 
-	return name, value, true
+	return out.String()
+}
+
+// writeDoubleQuoted writes the contents of a double-quoted section and
+// returns how many bytes of it were consumed, including the closing quote
+// when there is one. Inside double quotes a backslash escapes only ", \, $
+// and a backtick; anywhere else it is literal.
+func writeDoubleQuoted(out *strings.Builder, value string) int {
+	for pos := 0; pos < len(value); pos++ {
+		switch value[pos] {
+		case '"':
+			return pos + 1
+		case '\\':
+			if pos+1 < len(value) && strings.IndexByte(`"\$`+"`", value[pos+1]) >= 0 {
+				out.WriteByte(value[pos+1])
+				pos++
+
+				continue
+			}
+
+			out.WriteByte('\\')
+		default:
+			out.WriteByte(value[pos])
+		}
+	}
+
+	return len(value)
 }
 
 func sortedNames(values map[string]string) []string {

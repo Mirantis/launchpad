@@ -269,14 +269,24 @@ func (h *Host) IsLocal() bool {
 // a command, including values written as "$(cat -- '/path')". Secrets are
 // delivered to the bootstrappers that way (see pkg/util/secretenv) so that
 // they never appear in the remote process' arguments.
+//
+// This is a prefix matcher, not a shell-quoting parser: the double-quoted
+// alternative ends at the first embedded double quote, and a value quoted by
+// shellescape.Quote around a single quote ('"'"') would not match either.
+// The assignments it must skip are built by secretenv from the host's
+// temporary directory and a fixed launchpad-env- prefix, so the values hold
+// no quotes or spaces unless the host's TMPDIR does. If one ever did, this
+// would fail to skip the assignment, the command would not match the docker
+// binary, and a sudodocker host would silently stop using sudo -- so widen
+// the pattern rather than the inputs if that assumption changes.
 var envAssignmentPrefix = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=("[^"]*"|'[^']*'|[^'"\s]*)\s+`)
 
 // IsSudoCommand is a particluar string command supposed to use Sudo.
 //
 // The docker binary is matched after any leading environment assignments:
 // sudo routing must not depend on whether a command needed secrets staged,
-// and rig wraps the whole string in a root shell, so the assignments still
-// apply to the command that runs.
+// and rig wraps the whole string in a root shell (sudo/sudo.go:10), so the
+// assignments still apply to the command that runs.
 func (h *Host) IsSudoCommand(cmd string) bool {
 	if !h.SudoDocker {
 		return false

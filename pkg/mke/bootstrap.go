@@ -60,14 +60,20 @@ func Bootstrap(operation string, config mkeconfig.ClusterConfig, bootoptions Boo
 
 	// Secrets are staged in mode-0600 files on the host and read back into
 	// the environment when the command runs, so they never enter argv.
-	fromFlags, operationFlags := secretenv.Extract(bootoptions.OperationFlags, secretEnvByFlag)
+	//
+	// A value extracted from the flags wins over one the phase supplied.
+	// Those flags are what the user wrote in spec.mke.installFlags, and the
+	// phases used AddUnlessExist, which left an explicit flag in place; a
+	// configured --license must still beat the one read from
+	// spec.mke.licenseFilePath.
+	values, operationFlags := secretenv.Extract(bootoptions.OperationFlags, secretEnvByFlag)
 	for name, value := range bootoptions.SecretEnv {
-		if value != "" {
-			fromFlags[name] = value
+		if _, fromFlag := values[name]; !fromFlag && value != "" {
+			values[name] = value
 		}
 	}
 
-	secrets, err := secretenv.Stage(leader, fromFlags)
+	secrets, err := secretenv.Stage(leader, values)
 	if err != nil {
 		return output, fmt.Errorf("mke bootstrap secret staging error: %w", err)
 	}

@@ -84,3 +84,23 @@ func TestStageSecretsKeepsCredentialsOutOfTheCommand(t *testing.T) {
 	require.NoError(t, staged.Remove())
 	require.Empty(t, host.fs.written, "a staged credential outlived the command")
 }
+
+// An explicit flag used to survive AddUnlessExist, so a credential the user
+// configured must still beat one the phase derived from elsewhere.
+func TestStageSecretsPrefersTheConfiguredFlag(t *testing.T) {
+	host := stagingHost{fs: &stagingFS{written: map[string]string{}}}
+
+	staged, _, err := msr.StageSecrets(host,
+		commonconfig.Flags{"--ucp-ca=\"configured-ca\""},
+		map[string]string{"UCP_CA": "derived-ca"},
+	)
+	require.NoError(t, err)
+
+	var values []string
+	for _, data := range host.fs.written {
+		values = append(values, data)
+	}
+
+	require.Equal(t, []string{"configured-ca"}, values)
+	require.Equal(t, []string{"UCP_CA"}, staged.Names())
+}

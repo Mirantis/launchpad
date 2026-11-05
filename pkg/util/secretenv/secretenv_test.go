@@ -153,8 +153,9 @@ func TestRemoveDeletesEveryStagedFile(t *testing.T) {
 	require.Empty(t, host.fs.live(), "a staged secret outlived the command")
 }
 
-// A failure part way through staging must not leave the values that were
-// already written behind.
+// A failed write must leave nothing behind. The file is created before the
+// write and is already recorded, so the cleanup path has something to remove
+// even when the first value is the one that fails.
 func TestStageCleansUpAfterAFailedWrite(t *testing.T) {
 	host := fakeHost{fs: newFakeFS()}
 	host.fs.writeErr = errors.New("disk full")
@@ -221,4 +222,67 @@ func TestExtractLeavesValuelessAndUnknownFlags(t *testing.T) {
 
 	require.Empty(t, values)
 	require.Equal(t, []string{"--admin-password", "--admin-password=", "--force-minimums", "--license-file /tmp/x"}, kept)
+}
+
+// Flags.Join concatenates the list before a shell sees it, so a bare flag
+// followed by its value is a working command and must not leave the
+// credential in argv.
+func TestExtractConsumesATwoElementFlag(t *testing.T) {
+	values, kept := secretenv.Extract(
+		[]string{"--registry-password", "fake-registry-password", "--san", "mke.example.com"},
+		map[string]string{"--registry-password": "REGISTRY_PASSWORD"},
+	)
+
+	require.Equal(t, map[string]string{"REGISTRY_PASSWORD": "fake-registry-password"}, values)
+	require.Equal(t, []string{"--san", "mke.example.com"}, kept)
+}
+
+// The value reached the registry through a shell before it was taken out of
+// the command line, so it has to arrive with the same bytes now.
+func TestExtractDecodesShellQuoting(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		flag string
+		want string
+	}{
+		{"double quoted escape", `--registry-password="pa\$word"`, "pa$word"},
+		{"single quotes are literal", `--registry-password='pa\$word'`, `pa\$word`},
+		{"bare backslash escape", `--registry-password=pa\$word`, "pa$word"},
+		{"concatenated quoting", `--registry-password="pa"'$word'`, "pa$word"},
+		{"escaped quote inside quotes", `--registry-password="pa\"word"`, `pa"word`},
+		{"backslash not before a special stays", `--registry-password="pa\word"`, `pa\word`},
+		{"spaces inside quotes", `--registry-password="pass word"`, "pass word"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			values, kept := secretenv.Extract([]string{tc.flag}, map[string]string{"--registry-password": "REGISTRY_PASSWORD"})
+
+			require.Equal(t, tc.want, values["REGISTRY_PASSWORD"])
+			require.Empty(t, kept)
+		})
+	}
+}
+
+// An expansion was performed by the shell before and is not reproduced here:
+// running host-supplied text inside launchpad would be a worse bug than
+// passing it through unexpanded.
+func TestExtractDoesNotExpand(t *testing.T) {
+	values, _ := secretenv.Extract(
+		[]string{"--registry-password=$(id)"},
+		map[string]string{"--registry-password": "REGISTRY_PASSWORD"},
+	)
+
+	require.Equal(t, "$(id)", values["REGISTRY_PASSWORD"])
+}
+
+// The caller gets no handle back from a failed Stage, so a file it could not
+// clean up must be named in the error rather than left silently on the host.
+func TestStageReportsCleanupFailureAlongsideTheStagingFailure(t *testing.T) {
+	host := fakeHost{fs: newFakeFS()}
+	host.fs.writeErr = errors.New("disk full")
+	host.fs.removeErr = errors.New("permission denied")
+
+	_, err := secretenv.Stage(host, map[string]string{"UCP_ADMIN_PASSWORD": "fake-admin-password"})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "disk full")
+	require.Contains(t, err.Error(), "permission denied")
 }

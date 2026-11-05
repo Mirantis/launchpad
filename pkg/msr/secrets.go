@@ -37,8 +37,11 @@ var secretEnvByFlag = map[string]string{
 func StageSecrets(host secretenv.Host, flags commonconfig.Flags, extra map[string]string) (*secretenv.Vars, commonconfig.Flags, error) {
 	values, kept := secretenv.Extract(flags, secretEnvByFlag)
 
+	// A value taken from the flags wins over one the caller supplied: the
+	// flags are what the user wrote in spec.msr.installFlags, and the
+	// phases previously left an explicit flag in place.
 	for name, value := range extra {
-		if value != "" {
+		if _, fromFlag := values[name]; !fromFlag && value != "" {
 			values[name] = value
 		}
 	}
