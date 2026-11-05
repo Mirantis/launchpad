@@ -63,7 +63,14 @@ func TestMain(m *testing.M) {
 
 	name := fmt.Sprintf("smoke-%s", uTestId)
 
-	MKE_CONNECT["password"] = test.GenerateRandomAlphaNumericString(12)
+	mkePassword := test.GenerateRandomAlphaNumericString(12)
+	MKE_CONNECT["password"] = mkePassword
+
+	// The generated YAML refers to the MKE password by environment variable
+	// rather than inlining it; launchpad resolves it through envsubst when
+	// sp.Setup loads the config. This stack has no Windows nodes, so no WinRM
+	// reference is generated.
+	test.ExportGeneratedCredentials(t, mkePassword, "")
 
 	options := test.TerraformOptions(
 		t,
@@ -72,6 +79,7 @@ func TestMain(m *testing.M) {
 		map[string]any{
 			"name":            name,
 			"aws":             AWS,
+			"admin_cidrs":     test.AdminCIDRs(t),
 			"network":         NETWORK,
 			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,

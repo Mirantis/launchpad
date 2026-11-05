@@ -158,9 +158,10 @@ func provisionSwarmPoolStack(t *testing.T, cfg smokeConfig) string {
 	}
 
 	vars := map[string]interface{}{
-		"name":    name,
-		"aws":     awsConfig,
-		"network": networkConfig,
+		"name":        name,
+		"aws":         awsConfig,
+		"admin_cidrs": test.AdminCIDRs(t),
+		"network":     networkConfig,
 		"subnets": map[string]interface{}{
 			"main": map[string]interface{}{
 				"cidr":       "172.31.0.0/17",
@@ -177,6 +178,8 @@ func provisionSwarmPoolStack(t *testing.T, cfg smokeConfig) string {
 		},
 	}
 
+	mkePassword := test.GenerateRandomAlphaNumericString(12)
+
 	// launchpad nests the MKE admin password, so it travels by TF_VAR_* rather
 	// than as a "-var" argument. See test.TerraformOptions.
 	secretVars := map[string]interface{}{
@@ -187,11 +190,16 @@ func provisionSwarmPoolStack(t *testing.T, cfg smokeConfig) string {
 			"msr_version": cfg.MSRVersion,
 			"mke_connect": map[string]interface{}{
 				"username": "admin",
-				"password": test.GenerateRandomAlphaNumericString(12),
+				"password": mkePassword,
 				"insecure": true,
 			},
 		},
 	}
+
+	// The generated YAML refers to the MKE password by environment variable
+	// rather than inlining it; launchpad resolves it through envsubst at load.
+	// This stack has no Windows nodes, so no WinRM reference is generated.
+	test.ExportGeneratedCredentials(t, mkePassword, "")
 
 	options := test.TerraformOptions(t, "../../examples/terraform/aws-simple", vars, secretVars)
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
