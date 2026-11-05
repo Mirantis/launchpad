@@ -21,6 +21,16 @@ import (
 // terratest puts EnvVars on the child process environment and never logs them.
 // Values that are not strings are JSON encoded, which terraform parses as the
 // HCL expression for the variable's complex type.
+//
+// Because a non-string value is parsed as an HCL expression rather than taken
+// literally, a credential inside one must not contain "${" or "%{": terraform
+// reads those as template interpolation sequences and fails with "Invalid
+// expression" or "Unexpected end of template" before the variable is ever
+// used. No generated credential contains them today -- the MKE password is
+// alphanumeric and the Windows charset excludes "$" -- but smoke_test.go
+// carries a TODO to restore "$" to that charset (PRODENG-3751), which would
+// put the first half of "${" back in play. A string secret is passed verbatim
+// and is not affected.
 func TerraformOptions(t *testing.T, terraformDir string, vars map[string]any, secretVars map[string]any) terraform.Options {
 	t.Helper()
 
@@ -33,6 +43,10 @@ func TerraformOptions(t *testing.T, terraformDir string, vars map[string]any, se
 			continue
 		}
 
+		// json.Marshal cannot fail for the values these suites pass, which
+		// are maps of strings, bools and numbers; the branch exists so an
+		// unmarshalable value is reported rather than silently dropping the
+		// variable.
 		encoded, err := json.Marshal(value)
 		if err != nil {
 			t.Fatalf("TerraformOptions: encoding secret variable %q failed: %v", name, err)
