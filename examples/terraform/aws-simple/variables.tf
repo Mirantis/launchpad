@@ -84,10 +84,30 @@ variable "admin_cidrs" {
 }
 
 variable "windows_password" {
-  description = "Password to use with windows & winrm"
+  description = <<-EOT
+    Password set on the local Administrator account of Windows nodes and used
+    by launchpad for WinRM.  Required when any nodegroup runs a Windows
+    platform; leave unset for Linux-only stacks.
+
+    The validation below references var.nodegroups, which Terraform supports
+    from 1.9 onwards.
+  EOT
   type        = string
   sensitive   = true
-  default     = ""
+  default     = null
+
+  // Without this, a stack with Windows nodegroups and no windows_password
+  // generated a launchpad.yaml carrying "password:" with an empty value, and
+  // launchpad then authenticated as Administrator with no password. Failing
+  // here names the variable at plan time instead.
+  validation {
+    condition = (
+      var.windows_password == null
+      ? !anytrue([for ng in var.nodegroups : startswith(ng.platform, "windows_")])
+      : length(var.windows_password) > 0
+    )
+    error_message = "windows_password must be set to a non-empty value when any nodegroup uses a windows_ platform: it is the local Administrator password the nodes are configured with and the credential launchpad uses for WinRM. Leave it unset only for Linux-only stacks."
+  }
 }
 
 variable "ssh_pk_location" {

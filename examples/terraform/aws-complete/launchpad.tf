@@ -110,7 +110,7 @@ locals {
 
     winrm_address : ngn.public_ip
     winrm_user : ng.winrm_user
-    winrm_password : var.windows_password
+    winrm_password : local.windows_password
     winrm_useHTTPS : ng.winrm_useHTTPS
     winrm_insecure : ng.winrm_insecure
   } if contains(local.launchpad_roles, ng.role) && ng.connection == "winrm" }]...)

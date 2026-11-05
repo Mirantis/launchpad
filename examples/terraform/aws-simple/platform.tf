@@ -1,5 +1,11 @@
 // variables calculated before ami data is retrieved
 locals {
+  // var.windows_password is null on Linux-only stacks, where no Windows node
+  // exists to carry it; the consumers below take a string.  Its validation
+  // rejects null when a windows_ platform is in use, so reaching here with
+  // null means no Windows node is being provisioned.
+  windows_password = var.windows_password == null ? "" : var.windows_password
+
   // find the unique platforms actually used in the node_group_definitions
   unique_used_platforms = distinct([for ngd in var.nodegroups : ngd.platform])
 
@@ -46,7 +52,7 @@ module "platform" {
   version = "0.1.8"
 
   platform_key     = local.upstream_platform_keys[count.index]
-  windows_password = var.windows_password
+  windows_password = local.windows_password
 }
 
 data "aws_ami" "local" {
@@ -89,7 +95,7 @@ locals {
   upstream_platforms_with_ami = {
     for k, p in local.upstream_platform_keys : p => merge(module.platform[k].platform, {
       user_data = module.platform[k].platform.connection == "winrm" ? templatefile("${path.module}/userdata_windows.tpl", {
-        windows_administrator_password = var.windows_password
+        windows_administrator_password = local.windows_password
       }) : ""
     })
   }
@@ -100,7 +106,7 @@ locals {
       ami              = data.aws_ami.local[p].id
       root_device_name = data.aws_ami.local[p].root_device_name
       user_data = def.connection == "winrm" ? templatefile("${path.module}/userdata_windows.tpl", {
-        windows_administrator_password = var.windows_password
+        windows_administrator_password = local.windows_password
       }) : ""
     }) if contains(local.local_platform_keys, p)
   }
