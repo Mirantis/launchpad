@@ -28,6 +28,8 @@ import (
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta3"
 	"github.com/Mirantis/launchpad/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
+	logrustest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )
@@ -508,6 +510,136 @@ spec:
 		require.NoError(t, c.Validate())
 	})
 
+}
+
+func TestInsecureWinRMWarning(t *testing.T) {
+	// An obviously fake value: the point of the assertions below is that this
+	// string never reaches the log, so it must be recognisable if it ever does.
+	const fakePassword = "NOT-A-REAL-PASSWORD"
+
+	configWithWinRM := func(settings string) string {
+		return `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+      winRM:
+        address: 10.0.0.1
+        user: Administrator
+` + settings
+	}
+
+	tests := []struct {
+		name     string
+		settings string
+		wantWarn bool
+	}{
+		{
+			name:     "insecure https with an inline password warns",
+			settings: "        useHTTPS: true\n        insecure: true\n        password: " + fakePassword + "\n",
+			wantWarn: true,
+		},
+		{
+			name:     "insecure https without a password does not warn",
+			settings: "        useHTTPS: true\n        insecure: true\n",
+			wantWarn: false,
+		},
+		{
+			name:     "verified https with an inline password does not warn",
+			settings: "        useHTTPS: true\n        insecure: false\n        password: " + fakePassword + "\n",
+			wantWarn: false,
+		},
+		{
+			name:     "insecure without https does not warn",
+			settings: "        useHTTPS: false\n        insecure: true\n        password: " + fakePassword + "\n",
+			wantWarn: false,
+		},
+		{
+			name:     "plain winrm host does not warn",
+			settings: "",
+			wantWarn: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hook := logrustest.NewGlobal()
+			defer hook.Reset()
+
+			c := loadYaml(t, configWithWinRM(tt.settings))
+			require.NoError(t, c.Validate())
+
+			var warnings []string
+			for _, entry := range hook.AllEntries() {
+				require.NotContains(t, entry.Message, fakePassword, "the warning must never print the password")
+				if entry.Level == logrus.WarnLevel {
+					warnings = append(warnings, entry.Message)
+				}
+			}
+
+			if !tt.wantWarn {
+				require.Empty(t, warnings)
+				return
+			}
+
+			require.Len(t, warnings, 1)
+			require.Contains(t, warnings[0], "10.0.0.1")
+			require.Contains(t, warnings[0], "winRM.insecure")
+			require.Contains(t, warnings[0], "winRM.password")
+		})
+	}
+}
+
+func TestInsecureWinRMWarningIsPerHost(t *testing.T) {
+	hook := logrustest.NewGlobal()
+	defer hook.Reset()
+
+	data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+      winRM:
+        address: 10.0.0.1
+        user: Administrator
+        useHTTPS: true
+        insecure: true
+        password: NOT-A-REAL-PASSWORD
+    - role: worker
+      winRM:
+        address: 10.0.0.2
+        user: Administrator
+        useHTTPS: true
+        insecure: true
+        password: ALSO-NOT-REAL
+    - role: worker
+      winRM:
+        address: 10.0.0.3
+        user: Administrator
+`
+	c := loadYaml(t, data)
+	require.NoError(t, c.Validate())
+
+	var warnings []string
+	for _, entry := range hook.AllEntries() {
+		if entry.Level == logrus.WarnLevel {
+			warnings = append(warnings, entry.Message)
+		}
+	}
+
+	require.Len(t, warnings, 2)
+	require.Contains(t, warnings[0], "10.0.0.1")
+	require.Contains(t, warnings[1], "10.0.0.2")
 }
 
 // Just a small helper to load the config struct from yaml to get defaults etc. in place.
