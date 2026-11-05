@@ -31,16 +31,28 @@ type KubeClient struct {
 // NewFromBundle returns a new instance of KubeClient from a
 // given bundle directory and defaulting to the provided namespace.
 func NewFromBundle(bundleDir, namespace string) (*KubeClient, error) {
-	f := filepath.Join(bundleDir, constant.KubeConfigFile)
+	kubeConfigPath := filepath.Join(bundleDir, constant.KubeConfigFile)
 
-	configBytes, err := os.ReadFile(f) // #nosec G304 G703 -- f is joined from a caller-supplied trusted bundle dir
+	configBytes, err := os.ReadFile(kubeConfigPath) // #nosec G304 G703 -- kubeConfigPath is joined from a caller-supplied trusted bundle dir
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %q: %w", f, err)
+		return nil, fmt.Errorf("failed to read %q: %w", kubeConfigPath, err)
 	}
 
 	config, err := clientcmd.RESTConfigFromKubeConfig(configBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse kubeconfig: %w", err)
+	}
+
+	// The kubeconfig is produced by MKE and downloaded over the network as
+	// part of the client bundle, so it is remote-controlled data.  An exec
+	// credential plugin in it would make this process run a local binary of
+	// the bundle's choosing, with this process's privileges, on the first API
+	// call.  MKE client bundles authenticate with the client certificate and
+	// key shipped alongside kube.yml, so an exec block is never needed here
+	// and is only ever attack surface: drop it.
+	if config.ExecProvider != nil {
+		log.Warnf("ignoring exec credential plugin %q in client bundle kubeconfig %q", config.ExecProvider.Command, kubeConfigPath)
+		config.ExecProvider = nil
 	}
 
 	return New(config, namespace)

@@ -3,6 +3,7 @@ package installutil
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 // Shared install utility between install phases for different products.
@@ -17,5 +18,10 @@ func ReadLicense(licenseFilePath string) (string, error) {
 		return "", fmt.Errorf("failed to read license file: %w", err)
 	}
 
-	return string(license), nil
+	// TrimSpace rather than shell quoting: the licence no longer reaches a
+	// command line, so there is nothing for a shell to parse, but the
+	// documented form "--license $(cat license.lic)" had its surrounding
+	// whitespace removed by the shell and the value delivered here should
+	// match it. PRODENG-3920 added the trim; this keeps it.
+	return strings.TrimSpace(string(license)), nil
 }
