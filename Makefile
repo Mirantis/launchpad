@@ -50,7 +50,7 @@ TEST_FLAGS?=
 # those need provisioned infrastructure.
 .PHONY: unit-test
 unit-test:
-	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/... ./test
+	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/... ./test ./version/...
 
 .PHONY: functional-test
 functional-test:
