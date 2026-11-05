@@ -554,3 +554,64 @@ func getAllErrorFields(err error) []string {
 
 	return fields
 }
+
+// TestImageRepoRejectsShellMetacharacters covers AC-3. spec.*.imageRepo is
+// expanded by envsubst and interpolated into image references that become
+// docker command arguments on every host, so control of one CI environment
+// variable reaches a root-equivalent sink. Every sink quotes today; this is
+// the layer that does not depend on every future sink remembering to.
+func TestImageRepoRejectsShellMetacharacters(t *testing.T) {
+	configWithRepo := func(product, repo string) string {
+		spec := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+`
+		if product == "mke" {
+			spec += "    imageRepo: " + repo + "\n"
+		}
+		spec += `  hosts:
+    - role: manager
+      ssh:
+        address: 10.0.0.1
+`
+		return spec
+	}
+
+	tests := []struct {
+		name    string
+		repo    string
+		wantErr bool
+	}{
+		{name: "launchpad default repo", repo: `"docker.io/mirantis"`, wantErr: false},
+		{name: "registry with port", repo: `"registry.example.com:5000/mirantis"`, wantErr: false},
+		{name: "deep path", repo: `"registry.example.com/a/b/c"`, wantErr: false},
+
+		{name: "semicolon", repo: `"docker.io/mirantis;id"`, wantErr: true},
+		{name: "command substitution", repo: `"docker.io/$(id)"`, wantErr: true},
+		{name: "backtick", repo: "\"docker.io/`id`\"", wantErr: true},
+		{name: "pipe", repo: `"docker.io/a|id"`, wantErr: true},
+		{name: "ampersand", repo: `"docker.io/a&id"`, wantErr: true},
+		{name: "redirect", repo: `"docker.io/a>/tmp/pwned"`, wantErr: true},
+		{name: "space", repo: `"docker.io/a b"`, wantErr: true},
+		{name: "single quote", repo: `"docker.io/a'b"`, wantErr: true},
+		{name: "parent traversal", repo: `"docker.io/../etc"`, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := loadYaml(t, configWithRepo("mke", tt.repo))
+			err := c.Validate()
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			validateErrorField(t, err, "ImageRepo")
+		})
+	}
+}
