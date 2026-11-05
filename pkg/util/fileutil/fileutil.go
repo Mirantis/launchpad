@@ -46,3 +46,20 @@ func ExpandHomeDir(path string) (string, error) {
 
 	return filepath.Join(dir, path[1:]), nil
 }
+
+// MkdirPrivate creates dir and every missing parent, then narrows dir itself
+// to 0700 even when it already existed.
+//
+// os.MkdirAll applies its mode only to the directories it creates, so without
+// the explicit Chmod an upgrade over a tree created by an earlier release
+// keeps that tree's permissions and a tightened mode never reaches an existing
+// installation.
+func MkdirPrivate(dir string) error {
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return fmt.Errorf("failed to create directory %q: %w", dir, err)
+	}
+	if err := os.Chmod(dir, 0o700); err != nil {
+		return fmt.Errorf("failed to restrict directory %q: %w", dir, err)
+	}
+	return nil
+}

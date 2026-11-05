@@ -23,6 +23,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/docker"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/hashicorp/go-version"
 	rigcmd "github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
@@ -288,11 +289,44 @@ func safePath(base, rel string) (string, error) {
 	return abs, nil
 }
 
+// writePrivateFile writes data to path at 0600, narrowing the file even when
+// it already existed. os.WriteFile applies its mode only when it creates the
+// file, so refreshing a bundle over one extracted by an earlier release would
+// otherwise leave kube.yml and the certificates at 0644. The mode is set
+// before any data is written, so the contents are never briefly present under
+// the old permissions.
+func writePrivateFile(path string, data []byte) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) // #nosec G304 -- path validated by safePath and re-checked at the call site
+	if err != nil {
+		return fmt.Errorf("open: %w", err)
+	}
+	defer file.Close()
+
+	if err := file.Chmod(0o600); err != nil {
+		return fmt.Errorf("restrict permissions: %w", err)
+	}
+	if _, err := file.Write(data); err != nil {
+		return fmt.Errorf("write: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close: %w", err)
+	}
+	return nil
+}
+
 func writeBundle(bundleDir string, bundle *zip.Reader) error {
 	// The bundle is credential material issued to a single admin user: the
 	// directory and every member in it are private to that user.
-	if err := os.MkdirAll(bundleDir, 0o700); err != nil {
-		return fmt.Errorf("error while creating directory: %w", err)
+	if err := fileutil.MkdirPrivate(bundleDir); err != nil {
+		return fmt.Errorf("error while creating bundle directory: %w", err)
+	}
+	// Absolutised once and reused by the barrier below. safePath returns an
+	// absolute path, so comparing it against a merely cleaned bundleDir would
+	// reject every member whenever bundleDir is relative -- the same
+	// absolute-versus-raw mismatch this change removed from safePath itself.
+	absBundleDir, err := filepath.Abs(bundleDir)
+	if err != nil {
+		return fmt.Errorf("error while getting absolute bundle path: %w", err)
 	}
 	log.Debugf("Writing out bundle to %s", bundleDir)
 	for _, zipFile := range bundle.File {
@@ -321,18 +355,18 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 		// The destination is re-tested against the cleaned bundle directory
 		// immediately before it reaches the filesystem, so a future change
 		// to safePath cannot silently remove the only guard.
-		if !strings.HasPrefix(outFile, filepath.Clean(bundleDir)+string(os.PathSeparator)) {
+		if !strings.HasPrefix(outFile, absBundleDir+string(os.PathSeparator)) {
 			return fmt.Errorf("%w: zip slip detected", errInvalidBundle)
 		}
 
 		// The bundle contains directories as well as files. Creating the
 		// parent of the already-validated destination covers both, and
 		// avoids validating the member name twice by two different routes.
-		if err := os.MkdirAll(filepath.Dir(outFile), 0o700); err != nil {
-			return fmt.Errorf("error while creating directory: %w", err)
+		if err := fileutil.MkdirPrivate(filepath.Dir(outFile)); err != nil {
+			return fmt.Errorf("error while creating directory for %s: %w", zipFile.Name, err)
 		}
 
-		if err := os.WriteFile(outFile, data, 0o600); err != nil {
+		if err := writePrivateFile(outFile, data); err != nil {
 			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
 		}
 	}

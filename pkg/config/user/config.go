@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
 )
@@ -55,8 +56,9 @@ func SaveConfig(config *Config) error {
 	}
 	configDir := filepath.Dir(configFile)
 	// The config file itself is written 0600 below; the directory holding it
-	// is per-user state and needs no group or other access.
-	if err = os.MkdirAll(configDir, 0o700); err != nil {
+	// is per-user state and needs no group or other access. MkdirPrivate also
+	// narrows a directory left 0777 by an earlier release.
+	if err = fileutil.MkdirPrivate(configDir); err != nil {
 		return fmt.Errorf("failed to ensure config dir: %w", err)
 	}
 	d, err := yaml.Marshal(&config)

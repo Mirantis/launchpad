@@ -128,3 +128,65 @@ func TestWriteBundleRejectsEscapingMember(t *testing.T) {
 	_, statErr := os.Stat(filepath.Join(base, "bundle", "adminX"))
 	require.ErrorIs(t, statErr, os.ErrNotExist, "escaping member must not create a sibling directory")
 }
+
+// TestWriteBundleNarrowsExistingPermissions covers the upgrade path: a bundle
+// extracted by an earlier release leaves a 0777 directory and 0644 members
+// behind. os.MkdirAll and os.WriteFile both apply their mode only when they
+// create something, so re-running an apply over that tree has to actively
+// narrow it or the fix never reaches an existing installation.
+func TestWriteBundleNarrowsExistingPermissions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX permission bits are not meaningful on Windows")
+	}
+
+	names := []string{"key.pem", "kube.yml", "certs/extra.pem"}
+	bundleDir := filepath.Join(t.TempDir(), "bundle", "admin")
+
+	// Lay down the world-readable tree an earlier release would have left.
+	require.NoError(t, os.MkdirAll(filepath.Join(bundleDir, "certs"), 0o777))
+	require.NoError(t, os.Chmod(bundleDir, 0o777))
+	require.NoError(t, os.Chmod(filepath.Join(bundleDir, "certs"), 0o777))
+	for _, name := range names {
+		require.NoError(t, os.WriteFile(filepath.Join(bundleDir, name), []byte("stale"), 0o644))
+		require.NoError(t, os.Chmod(filepath.Join(bundleDir, name), 0o644))
+	}
+
+	require.NoError(t, writeBundle(bundleDir, buildBundle(t, names)))
+
+	for _, dir := range []string{bundleDir, filepath.Join(bundleDir, "certs")} {
+		fi, err := os.Stat(dir)
+		require.NoError(t, err)
+		require.Equal(t, os.FileMode(0o700), fi.Mode().Perm(),
+			"%s was left permissive by an earlier release and must be narrowed", dir)
+	}
+
+	for _, name := range names {
+		path := filepath.Join(bundleDir, name)
+		fi, err := os.Stat(path)
+		require.NoError(t, err)
+		require.Equal(t, os.FileMode(0o600), fi.Mode().Perm(),
+			"%s was left 0644 by an earlier release and must be narrowed", name)
+
+		// The refreshed content must actually have replaced the stale file.
+		content, err := os.ReadFile(path) // #nosec G304 -- test-controlled path
+		require.NoError(t, err)
+		require.Equal(t, "contents of "+name, string(content))
+	}
+}
+
+// TestWriteBundleAcceptsRelativeBundleDir covers the absolute-versus-raw
+// mismatch: safePath returns an absolute path, so a point-of-use barrier built
+// from an unabsolutised bundleDir rejects every member whenever the caller
+// passes a relative directory. getBundleDir always returns an absolute path
+// today, so this fails closed rather than open, but the same mismatch was the
+// original defect in safePath and must not reappear.
+func TestWriteBundleAcceptsRelativeBundleDir(t *testing.T) {
+	t.Chdir(t.TempDir())
+
+	relDir := filepath.Join("bundle", "admin")
+	require.NoError(t, writeBundle(relDir, buildBundle(t, []string{"kube.yml"})))
+
+	content, err := os.ReadFile(filepath.Join(relDir, "kube.yml")) // #nosec G304 -- test-controlled path
+	require.NoError(t, err)
+	require.Equal(t, "contents of kube.yml", string(content))
+}

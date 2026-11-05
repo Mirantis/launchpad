@@ -11,6 +11,7 @@ import (
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/product/mke/phase"
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/Mirantis/launchpad/version"
 	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/mitchellh/go-homedir"
@@ -180,7 +181,8 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 
 	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
 	// Logs can contain cluster detail and the directory is per-user state.
-	if err := os.MkdirAll(clusterDir, 0o700); err != nil {
+	// MkdirPrivate also narrows a directory left 0777 by an earlier release.
+	if err := fileutil.MkdirPrivate(clusterDir); err != nil {
 		return nil, fmt.Errorf("error while creating directory for logs: %w", err)
 	}
 	logFileName := path.Join(clusterDir, filename)
