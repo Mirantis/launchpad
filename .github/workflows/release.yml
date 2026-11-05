@@ -175,51 +175,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout code
-        # The release notes are assembled from .changes/ in the repository, so
-        # this job needs the tree as well as the built artifacts.
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
       - name: Download binaries
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: launchpad-release-binaries
           path: dist/
 
-      - name: Assemble release notes
-        run: |
-          set -euo pipefail
-          notes="$RUNNER_TEMP/release-notes.md"
-          printf '## Release notes\n\n' > "$notes"
-          count=0
-          for fragment in .changes/PRODENG-*.md; do
-            [ -e "$fragment" ] || continue
-            # Emitted verbatim rather than prefixed with a list marker: a note
-            # may run to several paragraphs, and continuation lines under a
-            # bullet would need indenting to stay in the list. The fragment
-            # owns its own markdown.
-            cat "$fragment" >> "$notes"
-            printf '\n' >> "$notes"
-            count=$((count + 1))
-          done
-          if [ "$count" -eq 0 ]; then
-            # Stated rather than left blank. An empty section reads as "nothing
-            # notable changed"; this release may instead be one where nobody
-            # wrote a fragment. The two must not look the same.
-            printf '_No release notes were recorded for this release._\n' >> "$notes"
-          fi
-          echo "Assembled $count fragment(s):"
-          cat "$notes"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: dist/*
-          # The assembled fragments become the body; GitHub's generated notes
-          # (commits and contributors) are appended below them.
-          body_path: ${{ runner.temp }}/release-notes.md
           generate_release_notes: true
           draft: true
         env:

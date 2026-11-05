@@ -1,1 +1,0 @@
-`metadata.name` now rejects names containing `/`, `\`, `.`, `..` or leading/trailing whitespace. Configs using such a name stop applying on upgrade. Rejection was chosen over silent rewriting because a rewritten name silently relocates Launchpad's internal storage paths.
