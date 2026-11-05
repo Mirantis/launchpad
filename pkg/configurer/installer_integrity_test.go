@@ -71,7 +71,7 @@ func TestGetInstallerRejectsChecksumMismatch(t *testing.T) {
 
 	path := writeTempScript(t, fakeScript)
 
-	_, err := GetInstaller("file://"+path, "0000000000000000000000000000000000000000000000000000000000000000")
+	_, err := GetInstaller(path, "0000000000000000000000000000000000000000000000000000000000000000")
 
 	require.ErrorIs(t, err, ErrInstallerDownloadFailed)
 	require.ErrorContains(t, err, "checksum")
@@ -84,7 +84,7 @@ func TestGetInstallerAcceptsMatchingChecksum(t *testing.T) {
 	path := writeTempScript(t, fakeScript)
 	sum := sha256.Sum256([]byte(fakeScript))
 
-	staged, err := GetInstaller("file://"+path, hex.EncodeToString(sum[:]))
+	staged, err := GetInstaller(path, hex.EncodeToString(sum[:]))
 	require.NoError(t, err)
 
 	got, err := os.ReadFile(staged) //nolint:gosec // path produced by the code under test
@@ -99,15 +99,19 @@ func TestGetInstallerCacheIsKeyedByChecksum(t *testing.T) {
 	clearInstallerCache(t)
 
 	path := writeTempScript(t, fakeScript)
-	source := "file://" + path
 
-	_, err := GetInstaller(source, "")
+	_, err := GetInstaller(path, "")
 	require.NoError(t, err)
 
-	_, err = GetInstaller(source, "0000000000000000000000000000000000000000000000000000000000000000")
+	_, err = GetInstaller(path, "0000000000000000000000000000000000000000000000000000000000000000")
 	require.ErrorIs(t, err, ErrInstallerDownloadFailed)
 }
 
+// writeTempScript returns a bare local path, not a file:// URL. parseURL
+// treats a string without "://" as a local file, which is the spelling that
+// works on both platforms: on Windows "file://C:\..." fails to parse at all
+// ("invalid port" after the drive letter), so a test using it would exercise
+// the URL parser rather than the verification being tested.
 func writeTempScript(t *testing.T, content string) string {
 	t.Helper()
 

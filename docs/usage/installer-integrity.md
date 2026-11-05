@@ -15,9 +15,11 @@ Three checks apply:
 
 - **Scheme.** Only `https://` URLs and local files are accepted. A
   `http://` URL is rejected rather than fetched, because plain HTTP cannot
-  authenticate the server that supplies the script. A local path or a
-  `file://` URL remains the supported way to supply a script on an
-  air-gapped install.
+  authenticate the server that supplies the script. A local path is how an
+  air-gapped install supplies its own script; write it as a plain path
+  (`C:\mcr\install.ps1`, `/opt/mcr/install.ps1`) rather than a `file://`
+  URL, because a `file://` URL carrying a Windows drive letter does not
+  parse.
 - **Status.** A non-200 response aborts. Previously the body of an error
   response was stored as the install script and uploaded to the hosts.
 - **Checksum, when configured.** `spec.mcr.installURLWindowsChecksum` pins
