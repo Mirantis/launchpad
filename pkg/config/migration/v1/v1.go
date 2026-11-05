@@ -108,7 +108,7 @@ func Migrate(plain map[string]interface{}) error { //nolint:maintidx
 				for idx, val := range installFlags {
 					valStr, ok := val.(string)
 					if ok && strings.HasPrefix(valStr, "--ucp-username") {
-						user := valStr[strings.IndexAny(valStr, `=" `):]
+						user := valStr[strings.IndexAny(valStr, `=" `)+1:]
 						user = strings.TrimSpace(user)
 						user = strings.Trim(user, `"`)
 						if user != "" {
