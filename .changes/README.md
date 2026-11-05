@@ -16,9 +16,16 @@ product match its existing documentation.
 
 ## Format
 
-Name the file after the ticket, `PRODENG-NNNN.md`. Write the note as plain
-markdown — one or two sentences, no heading. Fragments are emitted in filename
-order.
+Name the file after the ticket, `PRODENG-NNNN.md`. Fragments are emitted into
+the release body **verbatim**, in filename order, separated by a blank line.
+The fragment owns its own markdown: no list marker or heading is added around
+it.
+
+A short note can be a single paragraph. A note that needs more — what breaks,
+what to do about it — may run to several paragraphs; start it with a bold
+one-line summary so the release body is scannable. Avoid headings (`#`), which
+would compete with the `## Release notes` heading and with GitHub's generated
+sections below it.
 
 State what changed, what it breaks, and **why it was done that way**. The reason
 is the part that stops an operator trying to work around the change.
@@ -28,6 +35,14 @@ is the part that stops an operator trying to work around the change.
 leading/trailing whitespace. Configs using such a name stop applying on
 upgrade. Rejection was chosen over silent rewriting because a rewritten name
 silently relocates Launchpad's internal storage paths.
+```
+
+```markdown
+**Breaking: one-line summary of what changed.**
+
+What now fails, with the exact error text an operator will see.
+
+Why this shape was chosen over the alternative.
 ```
 
 ## After a release

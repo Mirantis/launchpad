@@ -196,7 +196,10 @@ jobs:
           count=0
           for fragment in .changes/PRODENG-*.md; do
             [ -e "$fragment" ] || continue
-            printf -- '- ' >> "$notes"
+            # Emitted verbatim rather than prefixed with a list marker: a note
+            # may run to several paragraphs, and continuation lines under a
+            # bullet would need indenting to stay in the list. The fragment
+            # owns its own markdown.
             cat "$fragment" >> "$notes"
             printf '\n' >> "$notes"
             count=$((count + 1))
