@@ -88,16 +88,22 @@ jobs:
           printf '%s' "$SM_CLIENT_PKC12_CERT" | base64 --decode > "$cert_path"
           echo "SM_CLIENT_CERT_FILE=$cert_path" >> "$GITHUB_ENV"
 
-      - name: Stage Windows and macOS binaries for signing
+      - name: Stage Windows binaries for signing
         run: |
           set -euo pipefail
-          # Only these two platforms carry a meaningful code signature. The
-          # linux and freebsd binaries are left untouched.
+          # Windows executables only. `simple-signing-mode` supports the
+          # Authenticode file types, of which .exe is one; it does not support
+          # Mach-O or extension-less binaries, so the macOS, linux and freebsd
+          # builds cannot be signed this way and are left untouched. See
+          # https://docs.digicert.com/en/software-trust-manager/client-tools/signing-tools/files-supported-for-signing.html
+          # Passing an unsupported file would either fail the release or be
+          # skipped silently, and a skipped signature is indistinguishable from
+          # a successful one in the job log.
           mkdir -p sign
-          cp dist/launchpad_windows_* dist/launchpad_darwin_* sign/
+          cp dist/launchpad_windows_*.exe sign/
           ls -1 sign/
 
-      - name: Sign binaries with DigiCert Software Trust Manager
+      - name: Sign Windows binaries with DigiCert Software Trust Manager
         uses: digicert/code-signing-software-trust-action@fae23a455ba4bde62b64fd7cb2f81ade788f5a95 # v1
         with:
           simple-signing-mode: true
