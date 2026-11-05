@@ -36,24 +36,29 @@ jobs:
   cleanup:
     name: Delete stale VPCs (${{ matrix.region }})
     runs-on: arc-runner-set-mirantis-public
-    # A scheduled run sweeps every region in the matrix. A manual run sweeps
-    # only the region given in the input, so the other legs are skipped rather
-    # than repeating the same region twice.
-    if: >-
-      github.event_name != 'workflow_dispatch' ||
-      github.event.inputs.region == matrix.region
     strategy:
       # One region failing must not cancel or hide the other: a sweep that
       # covered only half the regions and reported success is the failure this
       # matrix exists to prevent.
       fail-fast: false
       matrix:
-        region:
-          # us-west-2 holds the smoke stacks since #681. us-east-1 is still
-          # provisioned by test/integration and is the default in both shipped
-          # terraform examples, so it accumulates leaks and must stay swept.
-          - us-east-1
-          - us-west-2
+        # A scheduled run sweeps both regions. A manual run sweeps only the
+        # region given in the input, so selecting it here keeps a dispatch from
+        # running two legs against the same region.
+        #
+        # The selection is made in the matrix rather than in a job-level `if`
+        # because the `matrix` context is not available there: GitHub evaluates
+        # `jobs.<job_id>.if` before expanding the matrix, and referencing
+        # `matrix` in it makes the workflow invalid. `jobs.<job_id>.strategy`
+        # does have access to `github` and `inputs`.
+        #
+        # us-west-2 holds the smoke stacks since #681. us-east-1 is still
+        # provisioned by test/integration and is the default in both shipped
+        # terraform examples, so it accumulates leaks and must stay swept.
+        region: >-
+          ${{ github.event_name == 'workflow_dispatch'
+              && fromJSON(format('["{0}"]', github.event.inputs.region || 'us-west-2'))
+              || fromJSON('["us-east-1", "us-west-2"]') }}
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
