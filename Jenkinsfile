@@ -5,6 +5,12 @@ pipeline {
         trim: true
     )
   }
+
+  environment {
+    // TAG_NAME reaches the shell through the environment and is never spliced
+    // into a Groovy string. Validated by the 'Validate tag' stage below.
+    TAG_NAME = params.TAG_NAME
+  }
   agent {
     kubernetes {
       yaml """\
@@ -80,18 +86,37 @@ spec:
   }
 
   stages {
+    stage('Validate tag') {
+      steps {
+        script {
+          // Single-quoted Groovy string, so nothing here is interpolated and
+          // there is no slashy-string '$/' ambiguity. ==~ is a full match, so
+          // a trailing newline cannot smuggle a second line past the anchors.
+          if (!((params.TAG_NAME ?: '') ==~ '^v[0-9][0-9A-Za-z.\\-+]*$')) {
+            // The rejected value is deliberately not echoed: it is attacker
+            // controlled, and interpolating it here would reintroduce the exact
+            // Groovy interpolation this pipeline must not contain.
+            error 'TAG_NAME must match ^v[0-9][0-9A-Za-z.\\-+]*$ (e.g. v1.5.19, v1.5.19-tp2)'
+          }
+        }
+      }
+    }
     stage('Release') {
       steps {
         container("goreleaser") {
           withCredentials([
             string(credentialsId: 'tools-segment--launchpad-production-token--secret-text', variable: 'SEGMENT_TOKEN'),
           ]) {
+            // Single-quoted script: Groovy passes it through verbatim and the
+            // shell dereferences $TAG_NAME from the environment. SEGMENT_TOKEN
+            // is already exported into this step by withCredentials above, so
+            // make inherits it without it appearing in the script text or argv.
             sh (
-              label: "build clean release",
-              script: """
-                git checkout \$(git rev-parse --verify ${params.TAG_NAME})
-                GORELEASER_CURRENT_TAG=${params.TAG_NAME} SEGMENT_TOKEN=${env.SEGMENT_TOKEN} make build-release
-              """
+              label: 'build clean release',
+              script: '''
+                git checkout "$(git rev-parse --verify "$TAG_NAME")"
+                GORELEASER_CURRENT_TAG="$TAG_NAME" make build-release
+              '''
             )
           }
         }
@@ -102,10 +127,10 @@ spec:
             string(credentialsId: 'common-digicert--auth-pkcs12-passphrase--secret-text', variable: 'SM_CLIENT_CERT_PASSWORD'),
           ]) {
             sh (
-              label: "signing release binaries (in digicert container)",
-              script: """
+              label: 'signing release binaries (in digicert container)',
+              script: '''
                 make SIGN=./sign sign-release
-              """
+              '''
             )
           }
         }
@@ -124,13 +149,13 @@ spec:
             ),
           ]) {
             sh (
-              label: "creating release",
-              script: """
+              label: 'creating release',
+              script: '''
                 make create-checksum
                 make verify-checksum
                 ./release.sh
                 ./upload_s3.sh
-              """
+              '''
             )
           }
         }
