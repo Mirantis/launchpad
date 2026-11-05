@@ -13,10 +13,12 @@
 # corruption and cannot detect an asset replaced at rest.
 #
 # What this does and does not prove: checksums.sha256 is itself an unsigned
-# release asset, so an attacker able to replace a binary could replace the
-# checksum record too. This is build-time provenance, not cryptographic
-# authentication. Authenticating a release requires signed artifacts or build
-# attestations.
+# release asset, stored and served from the same mutable location as the
+# binaries it describes, so an attacker able to replace a binary could replace
+# the checksum record too. It binds nothing to the build that produced it.
+# Checking against it is strictly better than checking against .digest, which
+# can never detect replacement, but it is not a complete answer.
+# Authenticating a release requires signed artifacts or build attestations.
 #
 # Exit status is 0 only when at least one asset was verified and every asset
 # verified successfully. "Nothing could be verified" is a failure, not a pass.
@@ -52,9 +54,22 @@ asset_url() {
 
 # Binary assets are everything that is not itself a checksum record. This also
 # excludes checksums.sha256, which ends in .sha256.
-mapfile -t ASSETS < <(echo "$RELEASE_JSON" | jq -r '.assets[].name' | grep -v '\.sha256$' || true)
+#
+# Built with a read loop rather than `mapfile`, which needs bash 4: macOS
+# ships /bin/bash 3.2, and this is a tool a maintainer may well run there.
+# ASSET_COUNT is tracked separately because under `set -u` bash 3.2 treats
+# ${#ASSETS[@]} on an empty array as an unbound variable. After the guard
+# below the array is non-empty, so later expansions of it are safe.
+ASSETS=()
+ASSET_COUNT=0
+while IFS= read -r asset_name; do
+    if [ -n "$asset_name" ]; then
+        ASSETS+=("$asset_name")
+        ASSET_COUNT=$((ASSET_COUNT + 1))
+    fi
+done < <(echo "$RELEASE_JSON" | jq -r '.assets[].name' | grep -v '\.sha256$' || true)
 
-if [ ${#ASSETS[@]} -eq 0 ]; then
+if [ "$ASSET_COUNT" -eq 0 ]; then
     echo "FAILED: release $TAG publishes no verifiable assets"
     exit 1
 fi
@@ -66,7 +81,7 @@ if [ -z "$CHECKSUMS_URL" ]; then
     sidecars=$(echo "$RELEASE_JSON" | jq '[.assets[].name | select(endswith(".sha256"))] | length')
     echo "FAILED: release $TAG publishes no checksums.sha256, so there is no"
     echo "        build-time checksum record to verify its assets against."
-    echo "        Found ${#ASSETS[@]} binary asset(s) and ${sidecars} .sha256 file(s)."
+    echo "        Found ${ASSET_COUNT} binary asset(s) and ${sidecars} .sha256 file(s)."
     if [ "$sidecars" -gt 0 ]; then
         echo "        Releases published before the move to GitHub Actions carry one"
         echo "        <name>.sha256 sidecar per binary rather than a single"
@@ -79,8 +94,13 @@ fi
 echo "### Checksum source: checksums.sha256"
 curl -sSfL -o checksums.sha256 "$CHECKSUMS_URL"
 
-# The expected hash for an asset, from the build-time record. Fails if the
+# The expected hash for an asset, from the checksum record. Fails if the
 # record has no usable entry for it.
+#
+# `$2 == want` matches the two-space text format `sha256sum` emits by default,
+# which is what release.yml generates. A record written in binary mode would
+# prefix names with `*` and every asset would be reported as having no entry:
+# a loud, closed failure rather than a silent pass.
 expected_hash() {
     local want="$1" hash
     hash=$(awk -v want="$want" '$2 == want { print $1 }' checksums.sha256)
@@ -90,7 +110,7 @@ expected_hash() {
     echo "$hash" | tr '[:upper:]' '[:lower:]'
 }
 
-echo "### Verifying ${#ASSETS[@]} asset(s) for $TAG..."
+echo "### Verifying $ASSET_COUNT asset(s) for $TAG..."
 verified=0
 failed=0
 
@@ -127,7 +147,7 @@ for name in "${ASSETS[@]}"; do
     fi
 done
 
-echo "### $verified verified, $failed failed, of ${#ASSETS[@]} asset(s)"
+echo "### $verified verified, $failed failed, of $ASSET_COUNT asset(s)"
 
 if [ "$failed" -gt 0 ]; then
     exit 1
