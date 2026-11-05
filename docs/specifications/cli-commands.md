@@ -26,7 +26,7 @@ Launchpad provides several core commands, each implemented as an entry point in 
 ### `describe` (`cmd/describe.go`)
 
 - **Description**: Reports cluster state: `hosts`, `mke`, `msr`, or `config`.
-- **`describe config`**: Prints the fully migrated and defaulted cluster configuration. Credential-bearing values are replaced with `[REDACTED]`: the MKE admin username and password, host connection passwords, inline certificate and key data, and the arguments of credential-carrying install/upgrade flags such as `--admin-password` and `--ucp-password`. Pass `--disable-redact` to print them verbatim.
+- **`describe config`**: Prints the fully migrated and defaulted cluster configuration. Credential-bearing values are replaced with `[REDACTED]`: the MKE admin username and password, host connection passwords, inline certificate and key data, the MCR license content, and the arguments of credential-carrying install/upgrade flags such as `--admin-password` and `--ucp-password`. `caCertData` is not masked, being public trust material. Pass `--disable-redact` to print everything verbatim.
 
 ### `help`
 

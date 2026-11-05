@@ -25,20 +25,24 @@ spec:
       -----BEGIN PRIVATE KEY-----
       key-secret
     caCertData: public-ca-material
+  mcr:
+    channel: stable-29.4
+    license: license-secret
 `)
 
 	out, err := redact.YAML(doc)
 	require.NoError(t, err)
 
 	got := string(out)
-	for _, secret := range []string{"host-secret", "mke-secret", "admin-name", "key-secret"} {
+	for _, secret := range []string{"host-secret", "mke-secret", "admin-name", "key-secret", "license-secret"} {
 		require.NotContainsf(t, got, secret, "redacted output still contains %q:\n%s", secret, got)
 	}
 
 	require.Contains(t, got, "public-ca-material", "caCertData is public trust material and must survive")
 	require.Contains(t, got, "Administrator", "the connection user is not a credential")
 	require.Contains(t, got, "10.0.0.1")
-	require.Equal(t, 4, strings.Count(got, redact.Placeholder))
+	require.Contains(t, got, "stable-29.4")
+	require.Equal(t, 5, strings.Count(got, redact.Placeholder))
 }
 
 func TestYAMLMasksFlagArguments(t *testing.T) {

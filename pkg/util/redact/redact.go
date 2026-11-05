@@ -28,8 +28,10 @@ const Placeholder = "[REDACTED]"
 // (adminPassword) and the lowercase rig connection keys (password).
 //
 // certData and keyData hold the client certificate and its private key as
-// inline PEM. caCertData is deliberately absent: a CA bundle is public trust
-// material and is useful when reading a dumped configuration.
+// inline PEM. license holds MCR license content, which the installer writes
+// to docker.lic at mode 0400 (pkg/configurer/linux.go). caCertData is
+// deliberately absent: a CA bundle is public trust material and is useful
+// when reading a dumped configuration.
 var sensitiveKeys = map[string]struct{}{
 	"password":      {},
 	"adminpassword": {},
@@ -37,6 +39,7 @@ var sensitiveKeys = map[string]struct{}{
 	"username":      {},
 	"certdata":      {},
 	"keydata":       {},
+	"license":       {},
 }
 
 // sensitiveFlags are command line flags whose argument is a credential. MKE
