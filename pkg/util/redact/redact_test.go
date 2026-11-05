@@ -46,21 +46,36 @@ spec:
 }
 
 func TestYAMLMasksFlagArguments(t *testing.T) {
+	const mask = redact.Placeholder
+
 	for _, tt := range []struct {
 		name string
 		flag string
 		want string
 	}{
-		{"equals form", "--admin-password=secret", "--admin-password=" + redact.Placeholder},
-		{"quoted equals form", "--admin-password='secret'", "--admin-password=" + redact.Placeholder},
-		{"space form", "--ucp-password secret", "--ucp-password " + redact.Placeholder},
-		{"username flag", "--ucp-username=secret", "--ucp-username=" + redact.Placeholder},
+		{"equals form", "--admin-password=secret", "--admin-password=" + mask},
+		{"quoted equals form", "--admin-password='secret'", "--admin-password=" + mask},
+		{"space form", "--ucp-password secret", "--ucp-password " + mask},
+		{"username flag", "--ucp-username=secret", "--ucp-username=" + mask},
 		{"unknown flag untouched", "--san=mke.example.com", "--san=mke.example.com"},
 		{"valueless flag untouched", "--force-minimums", "--force-minimums"},
 		{"bare sensitive flag untouched", "--admin-password", "--admin-password"},
+		// Flags.Join() concatenates the list into one shell fragment, so
+		// several flags in one element are legal and effective.
+		{"grouped flags", "--ucp-insecure-tls --ucp-password=secret", "--ucp-insecure-tls --ucp-password=" + mask},
+		{"grouped flags, credential first", "--admin-password=secret --debug", "--admin-password=" + mask + " --debug"},
+		{"leading whitespace", " --admin-password=secret", " --admin-password=" + mask},
+		{"tab separator", "--admin-password\tsecret", "--admin-password\t" + mask},
+		{"repeated spacing preserved", "--san=a  --admin-password=b   --debug", "--san=a  --admin-password=" + mask + "   --debug"},
+		{"quoted value containing spaces", "--admin-password='my secret'", "--admin-password=" + mask},
+		{"quoted value in space form", "--admin-password 'my secret'", "--admin-password " + mask},
+		{"value is not mistaken for a flag", "--san=--admin-password=x", "--san=--admin-password=x"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			out, err := redact.YAML([]byte("installFlags:\n- " + tt.flag + "\n"))
+			doc, err := yaml.Marshal(map[string][]string{"installFlags": {tt.flag}})
+			require.NoError(t, err)
+
+			out, err := redact.YAML(doc)
 			require.NoError(t, err)
 
 			var parsed struct {
@@ -68,8 +83,34 @@ func TestYAMLMasksFlagArguments(t *testing.T) {
 			}
 			require.NoError(t, yaml.Unmarshal(out, &parsed))
 			require.Equal(t, []string{tt.want}, parsed.InstallFlags)
+			require.NotContains(t, string(out), "secret")
 		})
 	}
+}
+
+// MKEConfig.UnmarshalYAML loads spec.mke.configFile and
+// spec.mke.cloud.configFile into configData, so a credential can reach the
+// dump even when the original YAML only referenced a file path.
+func TestYAMLMasksConfigData(t *testing.T) {
+	doc := []byte(`
+spec:
+  mke:
+    configData: |
+      [auth.ldap]
+      reader_dn_password = "ldap-secret"
+    cloud:
+      provider: azure
+      configData: |
+        {"aadClientSecret": "cloud-secret"}
+`)
+
+	out, err := redact.YAML(doc)
+	require.NoError(t, err)
+
+	got := string(out)
+	require.NotContains(t, got, "ldap-secret")
+	require.NotContains(t, got, "cloud-secret")
+	require.Contains(t, got, "provider: azure", "the provider name is not a credential")
 }
 
 // A flag and its value may be two separate list elements, in which case the
