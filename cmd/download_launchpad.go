@@ -57,8 +57,15 @@ func isAssetHost(host string) bool {
 	return false
 }
 
-// assetClient follows redirects only while they stay on GitHub's release
-// hosts, so a redirect cannot move the download to an arbitrary server.
+// assetClient follows redirects only while they stay on https and on
+// GitHub's release hosts, so a redirect can move the download neither to an
+// arbitrary server nor onto a transport that cannot authenticate the one it
+// names.
+//
+// The scheme check matters as much as the host check: both the binary and
+// the checksums file are fetched through this client, so a downgrade that
+// applied to both would let an on-path attacker substitute the binary and
+// the digest it is compared against, and the verification would pass.
 var assetClient = &http.Client{
 	Timeout: 10 * time.Minute,
 	CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -66,8 +73,8 @@ var assetClient = &http.Client{
 			return errors.New("stopped after 10 redirects")
 		}
 
-		if !isAssetHost(req.URL.Hostname()) {
-			return fmt.Errorf("%w: redirected to %s", errUntrustedAssetHost, req.URL.Hostname())
+		if req.URL.Scheme != "https" || !isAssetHost(req.URL.Hostname()) {
+			return fmt.Errorf("%w: redirected to %s", errUntrustedAssetHost, req.URL.Redacted())
 		}
 
 		return nil

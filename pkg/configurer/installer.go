@@ -174,11 +174,41 @@ func getScript(uri string) (string, error) {
 // it and execution was the 10-byte length check.
 var errInstallerHTTPStatus = errors.New("unexpected HTTP status fetching container runtime install script")
 
+// installerClient refuses to follow a redirect off https.
+//
+// Validating only the configured URL is not enough: the server it names
+// chooses where the request goes next, and the default client follows an
+// https-to-http redirect without complaint. The final response would carry
+// a 200 and the script would run on every Windows host having crossed a
+// transport that cannot authenticate the server, which is the thing the
+// scheme check exists to prevent. It is a variable so tests can supply a
+// client that trusts httptest's CA.
+var installerClient = &http.Client{
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+
+		if req.URL.Scheme != "https" {
+			return fmt.Errorf("%w: redirected to %s", errInsecureInstallerURL, req.URL.Redacted())
+		}
+
+		return nil
+	},
+}
+
 func downloadFile(url string) (string, error) {
 	log.Infof("downloading container runtime install script from %s", url)
+
 	// The URL is operator-supplied by design (spec.mcr.installURLWindows);
-	// getScript has already rejected every scheme but https.
-	resp, err := http.Get(url) //nolint:gosec // G107: taint is inherent to the feature; scheme is validated in getScript
+	// getScript rejects every scheme but https, and installerClient rejects
+	// a redirect that leaves it.
+	req, err := http.NewRequest(http.MethodGet, url, nil) //nolint:noctx // no context is threaded through this call path
+	if err != nil {
+		return "", fmt.Errorf("failed to build the install script request: %w", err)
+	}
+
+	resp, err := installerClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to download container runtime install script: %w", err)
 	}

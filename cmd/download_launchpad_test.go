@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -101,9 +102,50 @@ func TestDownloadVerifiedWritesVerifiedAsset(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, body, got)
 
-	info, err := os.Stat(dest)
+	// Windows has no POSIX permission bits: os.Stat reports 0666 or 0444
+	// there and os.Chmod cannot set the executable bit, so this assertion
+	// would fail on a correct implementation.
+	if runtime.GOOS != "windows" {
+		info, err := os.Stat(dest)
+		require.NoError(t, err)
+		require.NotZero(t, info.Mode().Perm()&0o100, "the downloaded binary must be executable")
+	}
+}
+
+// A redirect is chosen by the server, not by the caller, so validating only
+// the initial URL leaves the transport to whoever answers. Both the binary
+// and the checksums file go through this client: a downgrade applying to
+// both would let an attacker replace the binary and the digest it is
+// checked against together, and the verification would still pass.
+func TestDownloadVerifiedRejectsDowngradeRedirect(t *testing.T) {
+	plain := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("attacker binary"))
+	}))
+	t.Cleanup(plain.Close)
+
+	secure := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, plain.URL, http.StatusFound)
+	}))
+	t.Cleanup(secure.Close)
+
+	secureHost, err := url.Parse(secure.URL)
 	require.NoError(t, err)
-	require.NotZero(t, info.Mode().Perm()&0o100, "the downloaded binary must be executable")
+	plainHost, err := url.Parse(plain.URL)
+	require.NoError(t, err)
+
+	originalHosts, originalClient := assetHosts, assetClient
+	// Both hosts are allowlisted, so only the scheme check can stop this.
+	assetHosts = []string{secureHost.Hostname(), plainHost.Hostname()}
+	assetClient = secure.Client()
+	assetClient.CheckRedirect = originalClient.CheckRedirect
+
+	t.Cleanup(func() { assetHosts, assetClient = originalHosts, originalClient })
+
+	dest := filepath.Join(t.TempDir(), "launchpad")
+	err = downloadVerified(&version.Asset{Name: "launchpad", URL: secure.URL}, digestOf([]byte("attacker binary")), dest)
+
+	require.ErrorIs(t, err, errUntrustedAssetHost)
+	require.NoFileExists(t, dest)
 }
 
 // The defect O_TRUNC hid: overwriting a longer existing binary with a
