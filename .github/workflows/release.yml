@@ -29,9 +29,15 @@ jobs:
           go-version-file: go.mod
 
       - name: Build binaries
+        # VERSION reaches the shell through the environment, never spliced into
+        # the script text. A tag name is chosen by whoever pushes the tag, and
+        # git permits `$`, backticks, `;`, `&`, `|` and parentheses in a ref,
+        # so expanding it here would let a pushed tag run commands in the job
+        # that builds the released binaries.
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
           mkdir -p dist
-          VERSION=${{ github.ref_name }}
           platforms=("linux/amd64" "linux/arm64" "windows/amd64" "windows/arm64" "darwin/amd64" "darwin/arm64" "freebsd/amd64" "freebsd/arm64")
           for platform in "${platforms[@]}"; do
             GOOS=${platform%/*}
