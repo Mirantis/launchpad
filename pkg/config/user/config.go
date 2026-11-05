@@ -54,7 +54,9 @@ func SaveConfig(config *Config) error {
 		return fmt.Errorf("failed to expand config file path: %w", err)
 	}
 	configDir := filepath.Dir(configFile)
-	if err = os.MkdirAll(configDir, os.ModePerm); err != nil {
+	// The config file itself is written 0600 below; the directory holding it
+	// is per-user state and needs no group or other access.
+	if err = os.MkdirAll(configDir, 0o700); err != nil {
 		return fmt.Errorf("failed to ensure config dir: %w", err)
 	}
 	d, err := yaml.Marshal(&config)

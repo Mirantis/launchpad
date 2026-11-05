@@ -265,19 +265,33 @@ func getBundleDir(config *mkeconfig.ClusterConfig) (string, error) {
 
 var errInvalidBundle = fmt.Errorf("invalid bundle")
 
+// safePath resolves a bundle member name against the bundle directory and
+// rejects anything that escapes it.
+//
+// The prefix comparison is separator-terminated: a bare strings.HasPrefix lets
+// a member named "../adminX/evil" through when the base is ".../bundle/admin",
+// because the sibling directory's name starts with the base's name. The base is
+// made absolute as well, so the two sides of the comparison cannot differ in
+// form.
 func safePath(base, rel string) (string, error) {
-	abs, err := filepath.Abs(filepath.Join(base, rel))
+	absBase, err := filepath.Abs(base)
+	if err != nil {
+		return "", fmt.Errorf("%w: error while getting absolute base path: %w", errInvalidBundle, err)
+	}
+	abs, err := filepath.Abs(filepath.Join(absBase, rel))
 	if err != nil {
 		return "", fmt.Errorf("%w: error while getting absolute path: %w", errInvalidBundle, err)
 	}
-	if !strings.HasPrefix(abs, base) {
+	if abs != absBase && !strings.HasPrefix(abs, absBase+string(os.PathSeparator)) {
 		return "", fmt.Errorf("%w: zip slip detected", errInvalidBundle)
 	}
 	return abs, nil
 }
 
 func writeBundle(bundleDir string, bundle *zip.Reader) error {
-	if err := os.MkdirAll(bundleDir, os.ModePerm); err != nil {
+	// The bundle is credential material issued to a single admin user: the
+	// directory and every member in it are private to that user.
+	if err := os.MkdirAll(bundleDir, 0o700); err != nil {
 		return fmt.Errorf("error while creating directory: %w", err)
 	}
 	log.Debugf("Writing out bundle to %s", bundleDir)
@@ -292,10 +306,12 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 		if err != nil {
 			return fmt.Errorf("error while reading file %s: %w", zipFile.Name, err)
 		}
-		mode := uint32(0o644)
-		if strings.Contains(zipFile.Name, "key.pem") {
-			mode = 0o600
-		}
+		// Every member is 0600, not just key.pem. kube.yml embeds
+		// client-key-data, so it is private-key material under another name,
+		// and no member of the bundle has a legitimate reader other than the
+		// admin user it was issued to. Matching on names instead would fail
+		// open the moment MKE adds a member, which is how key.pem came to be
+		// the only protected file.
 
 		// mke bundle will contain folders as well as files, if folder exists fd will not be empty
 		if dir := filepath.Dir(zipFile.Name); dir != "" && dir != "." {
@@ -313,7 +329,7 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 			return err
 		}
 
-		err = os.WriteFile(outFile, data, os.FileMode(mode)) // #nosec G703 -- outFile from safePath
+		err = os.WriteFile(outFile, data, 0o600) // #nosec G703 -- outFile from safePath
 		if err != nil {
 			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
 		}

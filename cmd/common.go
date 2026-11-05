@@ -179,7 +179,8 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 	}
 
 	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
-	if err := os.MkdirAll(clusterDir, os.ModePerm); err != nil {
+	// Logs can contain cluster detail and the directory is per-user state.
+	if err := os.MkdirAll(clusterDir, 0o700); err != nil {
 		return nil, fmt.Errorf("error while creating directory for logs: %w", err)
 	}
 	logFileName := path.Join(clusterDir, filename)
