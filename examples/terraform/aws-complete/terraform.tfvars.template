@@ -1,6 +1,11 @@
 // used to name infrastructure (CHANGE THIS)
 //name = "test"
 
+// CIDRs allowed to reach the cluster from outside it (SSH, WinRM over HTTPS,
+// MKE and the Kubernetes API). Required: there is no default, so that the
+// previous allow-everything rules cannot come back silently.
+admin_cidrs = ["203.0.113.4/32"]
+
 aws = {
   region = "us-east-2"
 }

@@ -32,12 +32,12 @@ locals {
       tags        = local.common_tags
       ingress_ipv4 = [
         {
-          description : "Allow ssh traffic from anywhere"
+          description : "Allow ssh traffic from the administrative CIDRs"
           from_port : 22
           to_port : 22
           protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : var.admin_cidrs
         },
       ]
     }
@@ -48,12 +48,14 @@ locals {
       tags        = local.common_tags
       ingress_ipv4 = [
         {
-          description : "Allow winrm traffic from anywhere"
-          from_port : 5985
+          // 5985 is WinRM over cleartext HTTP and is deliberately absent:
+          // these nodes serve WinRM over HTTPS on 5986.
+          description : "Allow winrm HTTPS traffic from the administrative CIDRs"
+          from_port : 5986
           to_port : 5986
           protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : var.admin_cidrs
         },
       ]
     }

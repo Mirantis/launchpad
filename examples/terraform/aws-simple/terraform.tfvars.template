@@ -1,6 +1,12 @@
 // used to name infrastructure (CHANGE THIS)
 //name = ""
 
+// CIDRs allowed to reach the cluster from outside it (SSH, WinRM over HTTPS,
+// MKE/MSR and the Kubernetes API). Required: there is no default, so that the
+// previous allow-everything rule cannot come back silently. Narrow this to the
+// machine running launchpad and the operators who need the UI.
+admin_cidrs = ["203.0.113.4/32"]
+
 aws = {
   region = "us-east-2"
 }

@@ -26,7 +26,7 @@ module "provision" {
     role : ngd.role
     public : ngd.public
     user_data : ngd.user_data
-    instance_profile_name : aws_iam_instance_profile.common_profile.name
+    instance_profile_name : ngd.role == "manager" ? aws_iam_instance_profile.manager_profile.name : aws_iam_instance_profile.worker_profile.name
     tags : local.tags
   } }
 

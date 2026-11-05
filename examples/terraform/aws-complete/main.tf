@@ -24,12 +24,17 @@ locals {
 
 
 module "aws_ccm" {
-  source        = "./modules/aws-ccm"
-  iam_role_name = aws_iam_role.common_role.name
-  cluster_name  = var.name
+  source = "./modules/aws-ccm"
+  // The control-plane policy goes to managers only; the worker policy, which
+  // is ECR pull access, is needed by every node that runs containers.
+  control_plane_role_name = aws_iam_role.manager_role.name
+  worker_role_names       = [aws_iam_role.manager_role.name, aws_iam_role.worker_role.name]
+  cluster_name            = var.name
 }
 
 module "aws_ebs_csi_driver" {
-  source        = "./modules/ebs-csi-driver"
-  iam_role_name = aws_iam_role.common_role.name
+  source = "./modules/ebs-csi-driver"
+  // Attached to both roles, as it was to the single role before: the CSI
+  // controller runs on a manager and the node plugin runs everywhere.
+  iam_role_names = [aws_iam_role.manager_role.name, aws_iam_role.worker_role.name]
 }

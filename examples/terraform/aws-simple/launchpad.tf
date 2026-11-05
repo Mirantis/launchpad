@@ -62,14 +62,26 @@ locals {
     }
   }
 
-  // standard MCR/MKE/MSR firewall rules [here we just leave it open until we can figure this out]
+  // MCR/MKE/MSR firewall rules.
+  //
+  // Node-to-node traffic inside the group stays unrestricted: MKE, swarm and
+  // the kubelet use a wide and version-dependent port range between cluster
+  // members, and every member is in this security group.
+  //
+  // Everything arriving from outside the group is restricted to the ports the
+  // cluster actually serves, from the CIDRs the operator names in
+  // var.admin_cidrs.  The two load-balanced ports additionally accept the VPC
+  // CIDR, because the MKE and MSR load balancers defined in
+  // local.launchpad_ingresses above reach the nodes from inside the VPC
+  // rather than from an administrator's address, and their health checks
+  // would fail if only var.admin_cidrs were allowed.
   launchpad_securitygroups = {
     "permissive" = {
       description = "Common SG for all cluster machines"
       nodegroups  = [for n, ng in var.nodegroups : n]
       ingress_ipv4 = [
         {
-          description : "Permissive internal traffic [BAD RULE]"
+          description : "Cluster-internal traffic between members of this group"
           from_port : 0
           to_port : 0
           protocol : "-1"
@@ -77,12 +89,36 @@ locals {
           cidr_blocks : []
         },
         {
-          description : "Permissive external traffic [BAD RULE]"
-          from_port : 0
-          to_port : 0
-          protocol : "-1"
+          description : "SSH for launchpad host configuration"
+          from_port : 22
+          to_port : 22
+          protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : var.admin_cidrs
+        },
+        {
+          description : "WinRM over HTTPS for launchpad host configuration"
+          from_port : 5986
+          to_port : 5986
+          protocol : "tcp"
+          self : false
+          cidr_blocks : var.admin_cidrs
+        },
+        {
+          description : "MKE and MSR web/API, from administrators and from the load balancers"
+          from_port : 443
+          to_port : 443
+          protocol : "tcp"
+          self : false
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
+        },
+        {
+          description : "Kubernetes API, from administrators and from the load balancer"
+          from_port : 6443
+          to_port : 6443
+          protocol : "tcp"
+          self : false
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
         }
       ]
       egress_ipv4 = [
@@ -136,7 +172,17 @@ locals {
 }
 
 // ------- Ye old launchpad yaml (just for debugging)
-
+//
+// The credentials are referenced by environment variable rather than written
+// into the document.  launchpad expands these through envsubst when it loads
+// the config (pkg/config), and docs/usage/getting-started.md tells users to
+// source credentials from the environment; a generated file that inlines them
+// contradicts that and leaves the password in every copy of the YAML, in
+// terraform state, and in anything that prints either.  The consumer exports
+// LAUNCHPAD_MKE_ADMIN_PASSWORD and, for Windows stacks,
+// LAUNCHPAD_WINRM_PASSWORD before running launchpad; an unset variable fails
+// config loading loudly rather than silently installing with an empty
+// password (PRODENG-3751).
 locals {
   launchpad_yaml = <<-EOT
 apiVersion: launchpad.mirantis.com/mke/v1.6
@@ -161,7 +207,7 @@ spec:
     winRM:
       address: ${h.winrm_address}
       user: ${h.winrm_user}
-      password: ${h.winrm_password}
+      password: $${LAUNCHPAD_WINRM_PASSWORD}
       useHTTPS: ${h.winrm_useHTTPS}
       insecure: ${h.winrm_insecure}
 %{~endfor}
@@ -174,7 +220,7 @@ spec:
     version: ${var.launchpad.mke_version}
     imageRepo: docker.io/mirantis
     adminUsername: ${var.launchpad.mke_connect.username}
-    adminPassword: ${var.launchpad.mke_connect.password}
+    adminPassword: $${LAUNCHPAD_MKE_ADMIN_PASSWORD}
     installFlags: 
     - "--san=${local.MKE_URL}"
     - "--default-node-orchestrator=kubernetes"

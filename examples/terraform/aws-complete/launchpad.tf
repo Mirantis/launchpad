@@ -52,7 +52,10 @@ locals {
     }
   }
 
-  // standard MCR/MKE/MSR firewall rules [here we just leave it open until we can figure this out]
+  // MCR/MKE/MSR firewall rules.  The load-balanced ports accept the VPC CIDR
+  // as well as var.admin_cidrs, because the ingress load balancers reach the
+  // manager nodes from inside the VPC rather than from an administrator's
+  // address, and their health checks would fail without it.
   launchpad_securitygroups = {
     "manager" = {
       description = "Common security group for manager nodes"
@@ -60,20 +63,20 @@ locals {
       tags        = local.common_tags
       ingress_ipv4 = [
         {
-          description : "Allow https traffic from anywhere"
+          description : "Allow https traffic from administrators and the load balancers"
           from_port : 443
           to_port : 443
           protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
         },
         {
-          description : "Allow https traffic from anywhere for kube api server"
+          description : "Allow kube api server traffic from administrators and the load balancer"
           from_port : 6443
           to_port : 6443
           protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
         },
       ]
     }
@@ -182,6 +185,12 @@ resource "launchpad_config" "cluster" {
 }
 
 // ------- Ye old launchpad yaml (just for debugging)
+//
+// Credentials are referenced by environment variable rather than inlined:
+// launchpad expands them through envsubst when it loads the config, and
+// docs/usage/getting-started.md tells users to source credentials from the
+// environment.  Export LAUNCHPAD_MKE_ADMIN_PASSWORD, and
+// LAUNCHPAD_WINRM_PASSWORD for Windows stacks, before running launchpad.
 output "launchpad_yaml" {
   description = "launchpad config file yaml (for debugging)"
   sensitive   = true
@@ -208,7 +217,7 @@ spec:
     winRM:
       address: ${h.winrm_address}
       user: ${h.winrm_user}
-      password: ${h.winrm_password}
+      password: $${LAUNCHPAD_WINRM_PASSWORD}
       useHTTPS: ${h.winrm_useHTTPS}
       insecure: ${h.winrm_insecure}
 %{~endfor}
@@ -216,7 +225,7 @@ spec:
     version: ${var.launchpad.mke_version}
     imageRepo: docker.io/mirantis
     adminUsername: ${var.launchpad.mke_connect.username}
-    adminPassword: ${var.launchpad.mke_connect.password}
+    adminPassword: $${LAUNCHPAD_MKE_ADMIN_PASSWORD}
     installFlags: 
     - "--san=${local.MKE_URL}"
     - "--nodeport-range=32768-35535"

@@ -62,8 +62,23 @@ variable "extra_tags" {
   default     = {}
 }
 
+variable "admin_cidrs" {
+  description = <<-EOT
+    CIDRs allowed to reach the cluster from outside it: SSH, WinRM over HTTPS,
+    and the MKE and Kubernetes API ports.  Required and intentionally without
+    a default: the previous rule set accepted those ports from 0.0.0.0/0, and
+    a default would reintroduce that silently.
+  EOT
+  type        = list(string)
+  validation {
+    condition     = length(var.admin_cidrs) > 0
+    error_message = "admin_cidrs must list at least one CIDR."
+  }
+}
+
 variable "windows_password" {
   description = "Password to use with windows & winrm"
   type        = string
+  sensitive   = true
   default     = ""
 }
