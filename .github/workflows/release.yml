@@ -93,7 +93,11 @@ jobs:
             # bullet would need indenting to stay in the list. The fragment
             # owns its own markdown.
             cat "$fragment" >> "$notes"
-            printf '\n' >> "$notes"
+            # Two newlines, not one: a fragment that does not end with a
+            # newline would otherwise run into the next one and Markdown would
+            # render the pair as a single paragraph. A fragment ending with a
+            # newline gains a blank line, which Markdown collapses.
+            printf '\n\n' >> "$notes"
             count=$((count + 1))
           done
           if [ "$count" -eq 0 ]; then

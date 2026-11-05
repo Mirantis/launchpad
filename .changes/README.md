@@ -19,7 +19,8 @@ product match its existing documentation.
 Name the file after the ticket, `PRODENG-NNNN.md`. Fragments are emitted into
 the release body **verbatim**, in filename order, separated by a blank line.
 The fragment owns its own markdown: no list marker or heading is added around
-it.
+it. A trailing newline is not required: the workflow emits the separating
+blank line whether or not the file ends with one.
 
 A short note can be a single paragraph. A note that needs more — what breaks,
 what to do about it — may run to several paragraphs; start it with a bold
@@ -31,11 +32,16 @@ State what changed, what it breaks, and **why it was done that way**. The reason
 is the part that stops an operator trying to work around the change.
 
 ```markdown
-`metadata.name` now rejects names containing `/`, `\`, `.`, `..` or
-leading/trailing whitespace. Configs using such a name stop applying on
-upgrade. Rejection was chosen over silent rewriting because a rewritten name
-silently relocates Launchpad's internal storage paths.
+`metadata.name` now rejects names that contain `/` or `\`, names that are
+exactly `.` or `..`, and names with leading or trailing whitespace. Dotted
+names such as `prod.eu` are unaffected. Configs using a rejected name stop
+applying on upgrade. Rejection was chosen over silent rewriting because a
+rewritten name silently relocates Launchpad's internal storage paths.
 ```
+
+State the rule precisely. "Names containing `.`" and "names that are exactly
+`.`" are different claims, and the broader one tells operators their working
+configuration is about to break when it is not.
 
 ```markdown
 **Breaking: one-line summary of what changed.**
