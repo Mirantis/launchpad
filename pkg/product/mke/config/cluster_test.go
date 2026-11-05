@@ -513,10 +513,18 @@ spec:
 
 }
 
-func TestInsecureWinRMWarning(t *testing.T) {
+func TestWinRMPasswordExposureWarning(t *testing.T) {
 	// An obviously fake value: the point of the assertions below is that this
 	// string never reaches the log, so it must be recognisable if it ever does.
 	const fakePassword = "NOT-A-REAL-PASSWORD"
+
+	// Markers that tell the two warnings apart. A reader must be able to see
+	// which failure applies, so the tests assert on the distinguishing phrase
+	// rather than on "a warning happened".
+	const (
+		cleartextMarker = "sent in clear"
+		unverifiedCert  = "winRM.caCertPath"
+	)
 
 	configWithWinRM := func(settings string) string {
 		return `
@@ -538,12 +546,14 @@ spec:
 	tests := []struct {
 		name     string
 		settings string
-		wantWarn bool
+		// want is the phrase the single warning must contain, or "" when no
+		// warning may be emitted at all.
+		want string
 	}{
 		{
-			name:     "insecure https with an inline password warns",
+			name:     "insecure https with a password warns about the certificate",
 			settings: "        useHTTPS: true\n        insecure: true\n        password: " + fakePassword + "\n",
-			wantWarn: true,
+			want:     unverifiedCert,
 		},
 		{
 			// port 5986 implies TLS without an explicit useHTTPS: rig's
@@ -552,29 +562,45 @@ spec:
 			// flag is already true by the time Validate runs. This case
 			// locks that in: the warning must not depend on the user
 			// having spelled useHTTPS out.
-			name:     "insecure with implicit https via port 5986 warns",
+			name:     "insecure with implicit https via port 5986 warns about the certificate",
 			settings: "        port: 5986\n        insecure: true\n        password: " + fakePassword + "\n",
-			wantWarn: true,
+			want:     unverifiedCert,
+		},
+		{
+			// Added by user ruling, beyond the ticket's two named findings.
+			// rig installs no transport decorator for plain HTTP without
+			// NTLM, so go-winrm falls back to SetBasicAuth and the password
+			// crosses the network with no encryption.
+			name:     "plain http with a password warns about cleartext",
+			settings: "        useHTTPS: false\n        password: " + fakePassword + "\n",
+			want:     cleartextMarker,
+		},
+		{
+			name:     "plain http with a password and insecure warns about cleartext, not the certificate",
+			settings: "        useHTTPS: false\n        insecure: true\n        password: " + fakePassword + "\n",
+			want:     cleartextMarker,
+		},
+		{
+			// NTLM negotiates its own message-level encryption, so the
+			// password is not cleartext even over plain HTTP.
+			name:     "plain http with ntlm does not warn",
+			settings: "        useHTTPS: false\n        useNTLM: true\n        password: " + fakePassword + "\n",
+			want:     "",
 		},
 		{
 			name:     "insecure https without a password does not warn",
 			settings: "        useHTTPS: true\n        insecure: true\n",
-			wantWarn: false,
+			want:     "",
 		},
 		{
-			name:     "verified https with an inline password does not warn",
+			name:     "verified https with a password does not warn",
 			settings: "        useHTTPS: true\n        insecure: false\n        password: " + fakePassword + "\n",
-			wantWarn: false,
+			want:     "",
 		},
 		{
-			name:     "insecure without https does not warn",
-			settings: "        useHTTPS: false\n        insecure: true\n        password: " + fakePassword + "\n",
-			wantWarn: false,
-		},
-		{
-			name:     "plain winrm host does not warn",
+			name:     "host with no password does not warn",
 			settings: "",
-			wantWarn: false,
+			want:     "",
 		},
 	}
 
@@ -598,20 +624,28 @@ spec:
 				}
 			}
 
-			if !tt.wantWarn {
+			if tt.want == "" {
 				require.Empty(t, warnings)
 				return
 			}
 
 			require.Len(t, warnings, 1)
 			require.Contains(t, warnings[0], "10.0.0.1")
-			require.Contains(t, warnings[0], "winRM.insecure")
-			require.Contains(t, warnings[0], "winRM.caCertPath")
+			require.Contains(t, warnings[0], tt.want)
+
+			// The two warnings must stay distinguishable: a host is told
+			// either that its password crosses the wire unencrypted, or that
+			// its peer is unauthenticated, never a blend of the two.
+			other := cleartextMarker
+			if tt.want == cleartextMarker {
+				other = unverifiedCert
+			}
+			require.NotContains(t, warnings[0], other)
 		})
 	}
 }
 
-func TestInsecureWinRMWarningIsPerHost(t *testing.T) {
+func TestWinRMPasswordExposureWarningIsPerHost(t *testing.T) {
 	hook := logrustest.NewGlobal()
 	defer hook.Reset()
 
@@ -635,8 +669,7 @@ spec:
       winRM:
         address: 10.0.0.2
         user: Administrator
-        useHTTPS: true
-        insecure: true
+        useHTTPS: false
         password: ALSO-NOT-REAL
     - role: worker
       winRM:
@@ -653,9 +686,14 @@ spec:
 		}
 	}
 
+	// One warning per affected host, each diagnosing that host's own
+	// transport: 10.0.0.1 has an unverified certificate, 10.0.0.2 sends the
+	// password in clear, and 10.0.0.3 has no password so is not reported.
 	require.Len(t, warnings, 2)
 	require.Contains(t, warnings[0], "10.0.0.1")
+	require.Contains(t, warnings[0], "winRM.caCertPath")
 	require.Contains(t, warnings[1], "10.0.0.2")
+	require.Contains(t, warnings[1], "sent in clear")
 }
 
 // Just a small helper to load the config struct from yaml to get defaults etc. in place.

@@ -98,17 +98,24 @@ but it is not a way to smuggle arbitrary bytes past the parser.
 
 ### WinRM over TLS
 
-`winRM.insecure: true` tells Launchpad to accept any certificate the host
-presents. The channel is then encrypted but the peer is not authenticated, so
-an attacker on the network path can impersonate the host, capture the password
-and read every command sent to it — `useHTTPS: true` does not protect you on
-its own.
+Launchpad warns at config load for every host whose WinRM password is exposed
+by the transport it is configured to use. There are two separate failures.
 
-Launchpad logs a warning at config load for every host that combines
-`winRM.insecure: true` with a `winRM.password`. Treat it as a finding:
-install a certificate the client trusts (pin it with `winRM.caCertPath`) and
-drop `winRM.insecure`. Leaving `insecure` set is only defensible on a trusted
-network you control, and never with a password you would mind losing.
+**`winRM.useHTTPS: false` with a password sends it in clear.** Without TLS,
+and without `winRM.useNTLM: true`, the password is placed in an HTTP
+`Authorization` header as base64 — an encoding, not encryption. Anyone on the
+network path reads the password and every command sent to the host. This is
+the default transport: `useHTTPS` defaults to `false`.
+
+**`winRM.insecure: true` accepts any certificate the host presents.** The
+channel is encrypted but the peer is not authenticated, so an attacker on the
+network path can impersonate the host, capture the password and read every
+command sent to it. `useHTTPS: true` does not protect you on its own.
+
+Treat either warning as a finding. Set `winRM.useHTTPS: true`, install a
+certificate the client trusts, pin it with `winRM.caCertPath`, and leave
+`winRM.insecure` unset. Leaving `insecure` set is only defensible on a
+trusted network you control, and never with a password you would mind losing.
 
 ## Running Launchpad
 

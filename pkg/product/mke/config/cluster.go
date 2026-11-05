@@ -45,7 +45,7 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 // Validate validates that everything in the config makes sense
 // Currently we do only very "static" validation using https://github.com/go-playground/validator
 func (c *ClusterConfig) Validate() error {
-	c.warnInsecureWinRM()
+	c.warnWinRMPasswordExposure()
 
 	validator := validator.New(validator.WithRequiredStructEnabled())
 	validator.RegisterStructValidation(roleChecks, ClusterSpec{})
@@ -55,15 +55,24 @@ func (c *ClusterConfig) Validate() error {
 	return nil
 }
 
-// warnInsecureWinRM warns about every host that combines winRM.insecure with a
-// password written into the configuration file. winRM.insecure makes rig accept
-// any server certificate, so the channel is encrypted but the peer is never
-// authenticated: an on-path attacker can terminate the TLS session, recover the
-// password and read every command issued to that host. This is deliberately a
-// warning and not an error, because an operator may have accepted that risk
-// knowingly and must still be able to apply. The message names the host and the
-// settings only -- never the credential, nor its length or any digest of it.
-func (c *ClusterConfig) warnInsecureWinRM() {
+// warnWinRMPasswordExposure warns about every host whose WinRM password is
+// exposed by the transport it is configured to use. Two distinct failures are
+// reported separately, because the remedy differs:
+//
+//   - plain HTTP with a password. rig installs a transport decorator only for
+//     NTLM, or for HTTPS with a loaded client certificate
+//     (protocol/winrm/connection.go:242-250). With neither, go-winrm's default
+//     transport calls req.SetBasicAuth (masterzen/winrm/http.go:96), so the
+//     password crosses the network base64-encoded in an Authorization header
+//     with no encryption at all.
+//   - HTTPS with winRM.insecure. The channel is encrypted but the peer is
+//     never authenticated, so an on-path attacker can impersonate the host,
+//     recover the password and read every command issued to it.
+//
+// Both are warnings rather than errors: an operator may have accepted either
+// risk knowingly and must still be able to apply. The messages name the host
+// and the settings only -- never the credential, nor its length or any digest.
+func (c *ClusterConfig) warnWinRMPasswordExposure() {
 	if c.Spec == nil {
 		return
 	}
@@ -73,7 +82,22 @@ func (c *ClusterConfig) warnInsecureWinRM() {
 			continue
 		}
 		wrm := h.WinRM
-		if !wrm.UseHTTPS || !wrm.Insecure || wrm.Password == "" {
+		if wrm.Password == "" {
+			continue
+		}
+
+		// No message-level protection either: NTLM negotiates its own
+		// encryption, so it is not cleartext even over plain HTTP.
+		if !wrm.UseHTTPS && !wrm.UseNTLM {
+			log.Warnf(
+				"%s: winRM.useHTTPS is false, so the WinRM password is sent in clear. "+
+					"It is base64-encoded in an HTTP Authorization header, which is encoding, not encryption, "+
+					"and anyone on the network path can read it along with every command sent to this host. "+
+					"Set winRM.useHTTPS and give the host a certificate your client trusts "+
+					"(see docs/usage/getting-started.md, \"WinRM over TLS\").",
+				wrm.Address,
+			)
+
 			continue
 		}
 
@@ -84,14 +108,16 @@ func (c *ClusterConfig) warnInsecureWinRM() {
 		// certificate problem, which is always actionable, and mentions
 		// sourcing the password from the environment as secondary advice
 		// rather than implying the user has inlined it.
-		log.Warnf(
-			"%s: winRM.insecure is true, so the host's TLS certificate is not verified. "+
-				"An on-path attacker can impersonate this host, capture the WinRM password and read every command sent to it. "+
-				"Remove winRM.insecure once the host presents a trusted certificate (pin it with winRM.caCertPath), "+
-				"and source the password from the environment rather than inlining it "+
-				"(see docs/usage/getting-started.md, \"Keeping credentials out of launchpad.yaml\").",
-			wrm.Address,
-		)
+		if wrm.UseHTTPS && wrm.Insecure {
+			log.Warnf(
+				"%s: winRM.insecure is true, so the host's TLS certificate is not verified. "+
+					"An on-path attacker can impersonate this host, capture the WinRM password and read every command sent to it. "+
+					"Remove winRM.insecure once the host presents a trusted certificate (pin it with winRM.caCertPath), "+
+					"and source the password from the environment rather than inlining it "+
+					"(see docs/usage/getting-started.md, \"Keeping credentials out of launchpad.yaml\").",
+				wrm.Address,
+			)
+		}
 	}
 }
 
