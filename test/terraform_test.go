@@ -37,10 +37,24 @@ func (c *captureLogger) Logf(_ terratesting.TestingT, format string, args ...any
 }
 
 func (c *captureLogger) String() string {
+	return c.since(0)
+}
+
+// lineCount returns how many lines have been captured so far, so a caller can
+// assert on what a later command logged rather than on the whole log.
+func (c *captureLogger) lineCount() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return strings.Join(c.lines, "\n")
+	return len(c.lines)
+}
+
+// since returns the lines captured after the first n lines.
+func (c *captureLogger) since(n int) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return strings.Join(c.lines[n:], "\n")
 }
 
 // fixtureVars returns the variable split the smoke and integration suites use:
@@ -147,9 +161,17 @@ func TestSecretVarsRoundTripThroughTerraform(t *testing.T) {
 	assert.NotContains(t, captured.String(), mkePassword, "OutputSecret must not log the value it fetched")
 	assert.NotContains(t, captured.String(), windowsPassword, "OutputSecret must not log the value it fetched")
 
+	// The log already contains "roundtrip-check" from the apply command line,
+	// so only what this call appends can show the caller's logger still works.
+	beforeOrdinaryOutput := captured.lineCount()
+
 	assert.Equal(t, "roundtrip-check", terraform.Output(t, &options, "name_echo"))
-	assert.Contains(t, captured.String(), "roundtrip-check",
+
+	ordinaryOutputLog := captured.since(beforeOrdinaryOutput)
+	assert.Contains(t, ordinaryOutputLog, "Running command terraform with args [output",
 		"discarding the logger for secret outputs must not disable logging for the others")
+	assert.Contains(t, ordinaryOutputLog, "roundtrip-check",
+		"a non-credential output must still have its value logged")
 }
 
 // copyFixture copies a fixture module into a temporary directory, so terraform
