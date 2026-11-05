@@ -545,6 +545,17 @@ spec:
 			wantWarn: true,
 		},
 		{
+			// port 5986 implies TLS without an explicit useHTTPS: rig's
+			// winrm.Config.SetDefaults flips UseHTTPS for that port, and
+			// creasty/defaults invokes it from Host.UnmarshalYAML, so the
+			// flag is already true by the time Validate runs. This case
+			// locks that in: the warning must not depend on the user
+			// having spelled useHTTPS out.
+			name:     "insecure with implicit https via port 5986 warns",
+			settings: "        port: 5986\n        insecure: true\n        password: " + fakePassword + "\n",
+			wantWarn: true,
+		},
+		{
 			name:     "insecure https without a password does not warn",
 			settings: "        useHTTPS: true\n        insecure: true\n",
 			wantWarn: false,

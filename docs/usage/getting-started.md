@@ -73,10 +73,28 @@ they bite in exactly this situation:
   reference. This applies to any value in the file, not just passwords.
 - **`$` followed by a digit is left alone.** `$5986` is never a valid
   variable name, so it stays literal and needs no escaping.
+- **The substituted value is parsed as YAML afterwards.** Substitution
+  rewrites the file's text and the result is then re-parsed, so YAML
+  metacharacters inside the value are interpreted rather than taken
+  literally. A password of `abc #def` is truncated to `abc`, because
+  everything from the unquoted `#` is a comment; a password of `abc: def`
+  aborts the load with `yaml: line 11: mapping values are not allowed in
+  this context`. Quoting the placeholder in your own file does not help:
+  the configuration is re-marshalled before substitution, which discards
+  that quoting.
 
-Escaping is why sourcing the credential from the environment is safer than
-inlining it even when the file is private: the value of `$WINRM_PASSWORD` is
-substituted verbatim and is never re-scanned for `$`.
+A value containing `#`, `:`, `"`, `'`, a leading `{`, `[`, `*`, `&` or `%`,
+or a trailing space therefore needs care. Two ways to stay safe:
+
+- Prefer generated passwords restricted to alphanumerics and `-`, `_`, `.`,
+  which have no YAML meaning in any position.
+- If the value is outside your control, pass it base64-encoded and decode it
+  when you set the variable, so the text that reaches the configuration file
+  is always inert.
+
+Sourcing the credential from the environment is still better than inlining
+it, because the value lives in the process environment rather than on disk —
+but it is not a way to smuggle arbitrary bytes past the parser.
 
 ### WinRM over TLS
 
