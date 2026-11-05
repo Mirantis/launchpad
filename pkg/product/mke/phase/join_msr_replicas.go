@@ -9,6 +9,7 @@ import (
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig/v2/cmd"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -72,8 +73,8 @@ func (p *JoinMSRReplicas) Run() error {
 		}
 		joinFlags := commonconfig.Flags{}
 
-		joinFlags.Add(fmt.Sprintf("--ucp-node %s", h.Metadata.Hostname))
-		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", msrLeader.MSRMetadata.ReplicaID))
+		joinFlags.Add(fmt.Sprintf("--ucp-node %s", shellescape.Quote(h.Metadata.Hostname)))
+		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", shellescape.Quote(msrLeader.MSRMetadata.ReplicaID)))
 		joinFlags.MergeOverwrite(mkeFlags)
 		// We can't just append the installFlags to joinFlags because they
 		// differ, so we have to selectively pluck the ones that are shared
@@ -82,7 +83,7 @@ func (p *JoinMSRReplicas) Run() error {
 		}
 		if h.MSRMetadata != nil && h.MSRMetadata.ReplicaID != "" {
 			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSRMetadata.ReplicaID)
-			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
+			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", shellescape.Quote(h.MSRMetadata.ReplicaID)))
 		} else {
 			log.Infof("%s: joining MSR replica to cluster", h)
 		}
