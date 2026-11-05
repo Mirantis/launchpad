@@ -190,6 +190,15 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log file at %s: %w", logFileName, err)
 	}
+	// OpenFile applies its mode only when it creates the file, so a log left
+	// 0644 by an earlier release would be refilled with cluster detail at
+	// 0644. Chmod explicitly rather than routing through
+	// fileutil.WritePrivateFile, which owns its descriptor and cannot return
+	// the O_RDWR handle the log hook needs.
+	if err := logFile.Chmod(0o600); err != nil {
+		logFile.Close()
+		return nil, fmt.Errorf("failed to restrict log file at %s: %w", logFileName, err)
+	}
 
 	// Send all logs to named file, this ensures we always have debug logs also available when needed.
 	log.AddHook(mcclog.NewFileHook(logFile))

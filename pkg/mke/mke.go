@@ -289,31 +289,6 @@ func safePath(base, rel string) (string, error) {
 	return abs, nil
 }
 
-// writePrivateFile writes data to path at 0600, narrowing the file even when
-// it already existed. os.WriteFile applies its mode only when it creates the
-// file, so refreshing a bundle over one extracted by an earlier release would
-// otherwise leave kube.yml and the certificates at 0644. The mode is set
-// before any data is written, so the contents are never briefly present under
-// the old permissions.
-func writePrivateFile(path string, data []byte) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600) // #nosec G304 -- path validated by safePath and re-checked at the call site
-	if err != nil {
-		return fmt.Errorf("open: %w", err)
-	}
-	defer file.Close()
-
-	if err := file.Chmod(0o600); err != nil {
-		return fmt.Errorf("restrict permissions: %w", err)
-	}
-	if _, err := file.Write(data); err != nil {
-		return fmt.Errorf("write: %w", err)
-	}
-	if err := file.Close(); err != nil {
-		return fmt.Errorf("close: %w", err)
-	}
-	return nil
-}
-
 func writeBundle(bundleDir string, bundle *zip.Reader) error {
 	// The bundle is credential material issued to a single admin user: the
 	// directory and every member in it are private to that user.
@@ -366,7 +341,7 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 			return fmt.Errorf("error while creating directory for %s: %w", zipFile.Name, err)
 		}
 
-		if err := writePrivateFile(outFile, data); err != nil {
+		if err := fileutil.WritePrivateFile(outFile, data); err != nil {
 			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
 		}
 	}

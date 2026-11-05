@@ -65,8 +65,10 @@ func SaveConfig(config *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	err = os.WriteFile(configFile, d, 0o600)
-	if err != nil {
+	// WritePrivateFile rather than os.WriteFile: the latter applies its mode
+	// only when it creates the file, so a user.yaml left 0644 by an earlier
+	// release would keep 0644 on every subsequent save.
+	if err := fileutil.WritePrivateFile(configFile, d); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 	return nil
