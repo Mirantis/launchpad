@@ -9,7 +9,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     host                   = resource.mke_clientbundle.admin.kube_host
     client_certificate     = resource.mke_clientbundle.admin.client_cert
     client_key             = resource.mke_clientbundle.admin.private_key

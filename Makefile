@@ -40,9 +40,17 @@ security-scan:
 
 # TEST_FLAGS can be set in CI to e.g. -short to skip tests that need network/OCI
 TEST_FLAGS?=
+# ./test holds the helpers the smoke and integration suites share. Its tests
+# are hermetic (no AWS, no network) and run here so the credential handling in
+# test/terraform.go is exercised by CI: the argv check runs on every leg, while
+# the terraform round-trip check skips wherever no terraform binary is
+# installed, which is every unit-test job today -- hashicorp/setup-terraform is
+# only used by smoke-tests.yaml. Installing terraform for these jobs is tracked
+# with the workflow work. The subdirectories under test/ are not included:
+# those need provisioned infrastructure.
 .PHONY: unit-test
 unit-test:
-	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/... ./version/...
+	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/... ./test ./version/...
 
 .PHONY: functional-test
 functional-test:

@@ -12,6 +12,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	"helm.sh/helm/v3/pkg/release"
+	"k8s.io/client-go/rest"
 )
 
 type ReleaseNotFoundError struct {
@@ -48,9 +49,16 @@ func NewFromBundle(bundleDir, namespace string) (*Helm, error) {
 
 	kubeConfig := filepath.Join(bundleDir, constant.KubeConfigFile)
 
+	restClientGetter := kube.GetConfig(kubeConfig, "", namespace)
+	// Every rest.Config this getter hands to Helm goes through its
+	// WrapConfigFn, including the ones built for the discovery client and the
+	// REST mapper, so this is the single place where the exec credential
+	// plugin can be dropped for all of them.  See stripExecProvider.
+	restClientGetter.WrapConfigFn = stripExecProvider
+
 	cfg := action.Configuration{}
 	if err := cfg.Init(
-		kube.GetConfig(kubeConfig, "", namespace),
+		restClientGetter,
 		namespace,
 		os.Getenv("HELM_DRIVER"),
 		log.Debugf,
@@ -62,6 +70,28 @@ func NewFromBundle(bundleDir, namespace string) (*Helm, error) {
 		config:   cfg,
 		settings: *settings,
 	}, nil
+}
+
+// stripExecProvider removes any exec credential plugin from a rest.Config
+// built from the MKE client bundle's kubeconfig.
+//
+// The bundle is produced by MKE and downloaded over the network, so it is
+// remote-controlled data.  An exec block in it would make this process run a
+// local binary of the bundle's choosing, with this process's privileges, on
+// the first API call.  MKE client bundles authenticate with the client
+// certificate and key shipped alongside kube.yml, so an exec plugin is never
+// needed here and is only ever attack surface.
+func stripExecProvider(config *rest.Config) *rest.Config {
+	if config == nil {
+		return nil
+	}
+
+	if config.ExecProvider != nil {
+		log.Warnf("ignoring exec credential plugin %q in client bundle kubeconfig", config.ExecProvider.Command)
+		config.ExecProvider = nil
+	}
+
+	return config
 }
 
 // ChartNeedsUpgrade returns true if the chart version of the release is

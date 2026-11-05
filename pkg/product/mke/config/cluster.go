@@ -17,6 +17,14 @@ type ClusterMeta struct {
 }
 
 // ClusterConfig describes launchpad.yaml configuration.
+//
+// It marshals plainly: AdminPassword, host connection passwords, inline key
+// material and the free-form flag lists are all ordinary marshalable values
+// with no masking MarshalYAML, because the host credentials live on rig's
+// types and cannot be given one here. Anything that encodes this struct for
+// output must therefore pass the result through
+// github.com/Mirantis/launchpad/pkg/util/redact. Today the only such path is
+// MKE.Describe.
 type ClusterConfig struct {
 	APIVersion string       `yaml:"apiVersion" validate:"eq=launchpad.mirantis.com/mke/v1.6"`
 	Kind       string       `yaml:"kind" validate:"oneof=mke mke+msr"`
