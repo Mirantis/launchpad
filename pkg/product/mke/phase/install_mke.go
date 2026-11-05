@@ -13,6 +13,7 @@ import (
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
 	"github.com/k0sproject/rig/v2/cmd"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,6 +31,40 @@ type InstallMKE struct {
 // Title prints the phase title.
 func (p *InstallMKE) Title() string {
 	return "Install MKE components"
+}
+
+// adminCredentialFlags renders the MKE admin credential install flags. The
+// values are shell-quoted because they are placed on a remote command line.
+// adminCredentialRedactions must be kept in step with the quoting done here.
+func adminCredentialFlags(username, password string) []string {
+	var flags []string
+	if username != "" {
+		flags = append(flags, "--admin-username "+shellescape.Quote(username))
+	}
+	if password != "" {
+		flags = append(flags, "--admin-password "+shellescape.Quote(password))
+	}
+	return flags
+}
+
+// adminCredentialRedactions returns regex patterns covering every form the
+// admin credentials take in the rendered command: the raw value and the
+// shell-quoted value produced by adminCredentialFlags. Redacting only the raw
+// value leaks the quoted one: shell-quoting a value that contains a single
+// quote rewrites it, so the raw pattern no longer matches what is logged.
+// Empty values are skipped, because an empty pattern matches everywhere.
+func adminCredentialRedactions(username, password string) []string {
+	var patterns []string
+	for _, value := range []string{username, password} {
+		if value == "" {
+			continue
+		}
+		patterns = append(patterns, regexp.QuoteMeta(value))
+		if quoted := shellescape.Quote(value); quoted != value {
+			patterns = append(patterns, regexp.QuoteMeta(quoted))
+		}
+	}
+	return patterns
 }
 
 // Run the installer container.
@@ -93,15 +128,17 @@ func (p *InstallMKE) Run() error {
 		installFlags.AddUnlessExist("--pull never")
 	}
 
-	if p.Config.Spec.MKE.AdminUsername != "" {
-		installFlags.AddUnlessExist(fmt.Sprintf("--admin-username='%s'", p.Config.Spec.MKE.AdminUsername))
+	for _, flag := range adminCredentialFlags(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword) {
+		installFlags.AddUnlessExist(flag)
 	}
-	if p.Config.Spec.MKE.AdminPassword != "" {
-		installFlags.AddUnlessExist(fmt.Sprintf("--admin-password='%s'", p.Config.Spec.MKE.AdminPassword))
+
+	execOpts := []cmd.ExecOption{cmd.StreamOutput()}
+	for _, pattern := range adminCredentialRedactions(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword) {
+		execOpts = append(execOpts, cmd.Redact(pattern))
 	}
 
 	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
-	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []cmd.ExecOption{cmd.StreamOutput(), cmd.Redact(p.Config.Spec.MKE.AdminUsername), cmd.Redact(p.Config.Spec.MKE.AdminPassword)}})
+	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: execOpts})
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
 	}

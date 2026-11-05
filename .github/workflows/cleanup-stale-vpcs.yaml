@@ -27,7 +27,7 @@ on:
       region:
         description: "AWS region to clean"
         type: string
-        default: "us-east-1"
+        default: "us-west-2"
 
 permissions:
   contents: read
@@ -48,7 +48,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           # Scheduled runs delete for real; manual runs default to a dry run so
           # the button is safe to press.
-          AWS_REGION: ${{ github.event.inputs.region || 'us-east-1' }}
+          AWS_REGION: ${{ github.event.inputs.region || 'us-west-2' }}
           MAX_AGE_HOURS: ${{ github.event.inputs.max_age_hours || '24' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
         run: ./.github/scripts/cleanup-stale-vpcs.sh

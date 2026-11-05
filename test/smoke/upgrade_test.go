@@ -89,7 +89,6 @@ func runUpgradeTest(t *testing.T, cfg upgradeConfig) {
 	vars := map[string]interface{}{
 		"name":              name,
 		"aws":               awsConfig,
-		"launchpad":         launchpad,
 		"network":           networkConfig,
 		"subnets":           subnets,
 		"ssh_pk_location":   tempSSHKeyPathDir,
@@ -101,10 +100,13 @@ func runUpgradeTest(t *testing.T, cfg upgradeConfig) {
 		},
 	}
 
-	options := terraform.Options{
-		TerraformDir: "../../examples/terraform/aws-simple",
-		Vars:         vars,
+	// launchpad nests the MKE admin password, so it travels by TF_VAR_* rather
+	// than as a "-var" argument. See test.TerraformOptions.
+	secretVars := map[string]interface{}{
+		"launchpad": launchpad,
 	}
+
+	options := test.TerraformOptions(t, "../../examples/terraform/aws-simple", vars, secretVars)
 
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
 	defer terraform.Destroy(t, terraformOptions)
@@ -113,7 +115,7 @@ func runUpgradeTest(t *testing.T, cfg upgradeConfig) {
 		t.Fatal(err)
 	}
 
-	baseYAML := terraform.Output(t, terraformOptions, "launchpad_yaml")
+	baseYAML := test.OutputSecret(t, terraformOptions, "launchpad_yaml")
 
 	// ── Step 1: install at base versions ─────────────────────────────────────
 	t.Logf("installing base: MCR %s / MKE %s", cfg.Base.MCRChannel, cfg.Base.MKEVersion)

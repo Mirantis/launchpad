@@ -14,8 +14,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// smokeRegion is the AWS region every smoke stack is provisioned in, and the
+// region console-output capture queries. us-east-1 was abandoned because the
+// provision module derives AZs as slice(available_azs, 0, len(subnets)) and
+// the tests declare one subnet, so every stack landed in us-east-1a, where
+// c6a.xlarge capacity repeatedly ran out (runs 39792899324, 39793016128,
+// 39793337401).
+const smokeRegion = "us-west-2"
+
 var awsConfig = map[string]interface{}{
-	"region": "us-east-1",
+	"region": smokeRegion,
 }
 
 var networkConfig = map[string]interface{}{
@@ -121,7 +129,6 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 	vars := map[string]interface{}{
 		"name":              name,
 		"aws":               awsConfig,
-		"launchpad":         launchpad,
 		"network":           networkConfig,
 		"subnets":           subnets,
 		"ssh_pk_location":   tempSSHKeyPathDir,
@@ -131,6 +138,12 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 			"launchpad-smoke-test":      "true",
 			"launchpad-smoke-test-name": cfg.Name,
 		},
+	}
+
+	// launchpad nests the MKE admin password, so it travels by TF_VAR_* rather
+	// than as a "-var" argument. See test.TerraformOptions.
+	secretVars := map[string]interface{}{
+		"launchpad": launchpad,
 	}
 
 	// Detect windows nodegroups; pass windows_password if any present.
@@ -147,13 +160,10 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		}
 	}
 	if hasWindows {
-		vars["windows_password"] = generateWindowsPassword(t)
+		secretVars["windows_password"] = generateWindowsPassword(t)
 	}
 
-	options := terraform.Options{
-		TerraformDir: "../../examples/terraform/aws-simple",
-		Vars:         vars,
-	}
+	options := test.TerraformOptions(t, "../../examples/terraform/aws-simple", vars, secretVars)
 
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
 	// Register destroy before apply so it runs even if apply partially succeeds
@@ -167,7 +177,7 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		t.Fatal(err)
 	}
 
-	mkeClusterConfig := terraform.Output(t, terraformOptions, "launchpad_yaml")
+	mkeClusterConfig := test.OutputSecret(t, terraformOptions, "launchpad_yaml")
 
 	product, err := config.ProductFromYAML([]byte(mkeClusterConfig))
 	assert.NoError(t, err)

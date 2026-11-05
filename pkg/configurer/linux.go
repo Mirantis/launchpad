@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -221,19 +220,51 @@ func (c LinuxConfigurer) MCRConfigPath() string {
 
 // InstallMCRLicense installs the MCR license file.
 func (c LinuxConfigurer) InstallMCRLicense(h Host, lic string) error {
-	// Use default docker root dir if not specified in docker info
-	dockerRootDir := constant.LinuxDefaultDockerRoot
-
-	// set the docker root dir from docker info if it exists
-	if info, err := c.GetDockerInfo(h); err == nil && info != (commonconfig.DockerInfo{}) {
-		dockerRootDir = info.DockerRootDir
+	var reportedRoot string
+	if info, err := c.GetDockerInfo(h); err == nil {
+		reportedRoot = info.DockerRootDir
 	}
 
-	licPath := filepath.Join(dockerRootDir, LinuxDockerLicenseFile)
+	// Rootless detection has to run here too, not just in CleanupLingeringMCR:
+	// MCR reads its subscription from its own data-root, so on a rootless host
+	// the license has to follow the home data-root. Writing it to the default
+	// root there would not merely relocate the file, it would leave the daemon
+	// unlicensed. The resolution is shared so the two sites cannot drift.
+	_, extraPrefixes := c.resolveDockerDaemonPath(h)
+
+	licPath, trusted := licenseFilePath(reportedRoot, extraPrefixes)
+	if !trusted && reportedRoot != "" {
+		log.Warnf("%s: ignoring unsafe docker root path reported by the host: %q, writing the license to %s", h, reportedRoot, licPath)
+	}
+
 	if err := h.Sudo().FS().WriteFile(licPath, []byte(lic), fs.FileMode(0o400)); err != nil {
 		return fmt.Errorf("license write (linux); %w", err)
 	}
 	return nil
+}
+
+// licenseFilePath resolves where the MCR license is written for a
+// host-reported docker root, reporting whether that root was trusted.
+//
+// The root is reported by the host's docker daemon and the license is written
+// into it as root, so it is validated first: an empty value would write to a
+// relative path in the remote working directory, and a host-chosen one would
+// drop a root-owned file anywhere on the filesystem. extraPrefixes carries the
+// rootless home tree when rootless was detected, so a rootless data-root is
+// honoured rather than rejected.
+//
+// The join is path.Join, not filepath.Join: this path is written on the
+// managed Linux host, so it must use POSIX separators whatever the control
+// machine runs. filepath.Join on Windows would both produce
+// "\var\lib\docker\docker.lic" -- a relative filename on the target, where
+// the write still succeeds and leaves the daemon unlicensed -- and Clean the
+// value with separator semantics isSafeRemotePath never applied.
+func licenseFilePath(reportedRoot string, extraPrefixes []string) (string, bool) {
+	if isSafeRemotePath(reportedRoot, extraPrefixes...) {
+		return path.Join(reportedRoot, LinuxDockerLicenseFile), true
+	}
+
+	return path.Join(constant.LinuxDefaultDockerRoot, LinuxDockerLicenseFile), false
 }
 
 // EnableMCR enables and starts the Docker EE engine on Linux, assuming that you already have the repos setup.
@@ -522,30 +553,64 @@ func (c LinuxConfigurer) HTTPStatus(h Host, url string) (int, error) {
 	return status, nil
 }
 
+// resolveDockerDaemonPath returns the docker daemon config file to read and
+// any extra allowlist prefixes that host-reported paths may legitimately use.
+//
+// The extra prefixes are populated only when a rootless installation is
+// actually detected: a rootless data-root lives under the user's home tree,
+// which must not be writable or deletable on a rootful host. When the home
+// tree cannot be resolved the allowlist stays rootful-only, because degrading
+// to "rootless paths ignored" beats guessing a home directory.
+func (c LinuxConfigurer) resolveDockerDaemonPath(h Host) (string, []string) {
+	// https://docs.docker.com/config/daemon/
+	if h.Sudo().FS().FileExist(constant.LinuxDefaultDockerDaemonPath) {
+		return constant.LinuxDefaultDockerDaemonPath, nil
+	}
+
+	// Check if the default Rootless Docker daemon config file exists
+	log.Debugf("%s: attempting to detect Rootless docker installation", h)
+	// Extract the value from the xdgConfigHome environment variable
+	xdgConfigHome, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
+	xdgConfigHome = strings.TrimSpace(xdgConfigHome)
+	if err != nil || xdgConfigHome == "" {
+		log.Debugf("%s: XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, constant.LinuxDefaultRootlessDockerDaemonPath)
+		return constant.LinuxDefaultRootlessDockerDaemonPath, nil
+	}
+
+	log.Debugf("%s: XDG_CONFIG_HOME set to %s", h, xdgConfigHome)
+	daemonPath := path.Join(xdgConfigHome, "docker", "daemon.json")
+
+	// A rootless data-root normally sits at $HOME/.local/share/docker, a
+	// sibling of $XDG_CONFIG_HOME rather than a child, so the home tree is
+	// what has to be admitted.
+	home := rootlessHomeTree(xdgConfigHome)
+	if home == "" {
+		log.Debugf("%s: no rootless home tree resolved from %q, host-reported rootless paths will be ignored", h, xdgConfigHome)
+		return daemonPath, nil
+	}
+
+	return daemonPath, []string{home}
+}
+
 // CleanupLingeringMCR removes left over MCR files after Launchpad reset.
 func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.DockerInfo) {
 	// Use default docker root dir if not specified in docker info
 	dockerRootDir := constant.LinuxDefaultDockerRoot
 	dockerExecRootDir := constant.LinuxDefaultDockerExecRoot
-	dockerDaemonPath := constant.LinuxDefaultDockerDaemonPath
 
-	// set the docker root dir from docker info if it exists
+	dockerDaemonPath, extraPrefixes := c.resolveDockerDaemonPath(h)
+
+	// dockerInfo.DockerRootDir is reported by the host's docker daemon and
+	// flows into the sudo'd rm -rf below, so it gets the same validation as the
+	// daemon.json values rather than being trusted. Keeping the default on an
+	// empty value also matters without an attacker: "" would make the
+	// path.Join calls below produce relative paths such as "cri-dockerd",
+	// deleting from the remote working directory.
 	if dockerInfo != (commonconfig.DockerInfo{}) {
-		dockerRootDir = dockerInfo.DockerRootDir
-	}
-
-	// https://docs.docker.com/config/daemon/
-	if !h.Sudo().FS().FileExist(dockerDaemonPath) {
-		// Check if the default Rootless Docker daemon config file exists
-		log.Debugf("%s: attempting to detect Rootless docker installation", h)
-		// Extract the value from the xdgConfigHome environment variable
-		xdgConfigHome, err := h.ExecOutput("echo $XDG_CONFIG_HOME")
-		if xdgConfigHome != "" && err == nil {
-			log.Debugf("%s: XDG_CONFIG_HOME set to %s", h, xdgConfigHome)
-			dockerDaemonPath = path.Join(strings.TrimSpace(xdgConfigHome), "docker", "daemon.json")
+		if isSafeRemotePath(dockerInfo.DockerRootDir, extraPrefixes...) {
+			dockerRootDir = dockerInfo.DockerRootDir
 		} else {
-			dockerDaemonPath = constant.LinuxDefaultRootlessDockerDaemonPath
-			log.Debugf("%s: XDG_CONFIG_HOME not set, using default rootless daemon path %s", h, dockerDaemonPath)
+			log.Warnf("%s: ignoring unsafe docker root path reported by the host: %q", h, dockerInfo.DockerRootDir)
 		}
 	}
 
@@ -557,14 +622,23 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.Doc
 	if err != nil {
 		log.Debugf("%s: failed to create DockerDaemon config %s: %s", h, dockerConfig, err)
 	}
-
+	// dockerConfig.Root/ExecRoot come from a host-controlled daemon.json;
+	// anything that is not a clean absolute path in an expected location would
+	// be executed via the sudo'd rm/umount below.
 	if dockerConfig.Root != "" {
-		dockerRootDir = dockerConfig.Root
+		if !isSafeRemotePath(dockerConfig.Root, extraPrefixes...) {
+			log.Warnf("%s: ignoring unsafe docker root path from daemon config: %q", h, dockerConfig.Root)
+		} else {
+			dockerRootDir = dockerConfig.Root
+		}
 	}
 	if dockerConfig.ExecRoot != "" {
-		dockerExecRootDir = dockerConfig.ExecRoot
+		if !isSafeRemotePath(dockerConfig.ExecRoot, extraPrefixes...) {
+			log.Warnf("%s: ignoring unsafe docker exec root path from daemon config: %q", h, dockerConfig.ExecRoot)
+		} else {
+			dockerExecRootDir = dockerConfig.ExecRoot
+		}
 	}
-
 	// /var/lib/ Root folder
 	c.attemptPathSudoDelete(h, dockerRootDir)
 	if idx := strings.LastIndex(dockerRootDir, "/"); idx != -1 {
@@ -576,7 +650,7 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.Doc
 
 	// /var/run/ Exec-root folder
 	execRootNetnsUnmount := path.Join(dockerExecRootDir, "netns/default")
-	if err := h.Sudo().Exec(fmt.Sprintf("umount %s", execRootNetnsUnmount)); err != nil {
+	if err := h.Sudo().Exec(sh.Command("umount", execRootNetnsUnmount)); err != nil {
 		log.Debugf("%s: failed to umount %s: %s", h, execRootNetnsUnmount, err)
 	}
 
@@ -585,12 +659,87 @@ func (c LinuxConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.Doc
 		dockerExecRootDir = dockerExecRootDir[:idx]
 	}
 	c.attemptPathSudoDelete(h, path.Join(dockerExecRootDir, "cri-dockerd-mke.sock"))
+
 	c.attemptPathSudoDelete(h, path.Join(dockerExecRootDir, "docker.sock"))
 	c.attemptPathSudoDelete(h, constant.LinuxDefaultDockerExecRoot)
 
 	// /lib/systemd/system/ folder
 	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.service")
 	c.attemptPathSudoDelete(h, "/lib/systemd/system/cri-dockerd-mke.socket")
+}
+
+// safeRemotePathPrefixes are the locations a host-reported docker root or
+// exec-root may legitimately live in on a rootful host. Syntax validation is
+// not sufficient: "/etc" is a syntactically perfect absolute path, so a host
+// reporting it as its data-root would otherwise earn a sudo rm -rf /etc.
+var safeRemotePathPrefixes = []string{"/var/lib/", "/var/run/", "/run/"}
+
+// safeRemotePathRegexp matches an absolute path with no shell metacharacters
+// and no spaces. Values that reach sudo'd rm/umount commands are host-reported
+// and must satisfy it.
+var safeRemotePathRegexp = regexp.MustCompile(`^/[a-zA-Z0-9._/-]*$`)
+
+// isSafeRemotePath reports whether a host-reported path is a plain absolute
+// path in an expected location, and so may be used in a sudo'd remote command.
+//
+// extraPrefixes admits additional locations - in practice the rootless home
+// tree - and must only be supplied when rootless was actually detected.
+func isSafeRemotePath(remotePath string, extraPrefixes ...string) bool {
+	if remotePath == "" || !safeRemotePathRegexp.MatchString(remotePath) {
+		return false
+	}
+
+	// Non-canonical input is rejected rather than normalised: normalising would
+	// make the guard's output depend on a transformation applied after
+	// validation, so the value that was validated is not the value that gets
+	// used. Rejecting covers "//", "/..", "/." and trailing slashes in one
+	// check and makes the strings.LastIndex parent derivation in
+	// CleanupLingeringMCR safe by construction: "/var/run/docker/" would
+	// otherwise derive the parent "/var/run/docker" and delete the socket
+	// inside the directory instead of beside it.
+	if path.Clean(remotePath) != remotePath {
+		return false
+	}
+
+	for _, prefix := range safeRemotePathPrefixes {
+		if hasPathPrefix(remotePath, prefix) {
+			return true
+		}
+	}
+	for _, prefix := range extraPrefixes {
+		if hasPathPrefix(remotePath, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// hasPathPrefix reports whether p lies strictly inside dir, comparing whole
+// path segments so that "/var/libfoo" does not satisfy a "/var/lib" prefix and
+// dir itself is never treated as deletable.
+func hasPathPrefix(p, dir string) bool {
+	return strings.HasPrefix(p, strings.TrimSuffix(dir, "/")+"/")
+}
+
+// rootlessHomeTree derives the user home tree that a rootless data-root may
+// live under from a host-reported XDG_CONFIG_HOME, returning "" when the value
+// is not a plausible home config directory. XDG_CONFIG_HOME is host-controlled,
+// so admitting its parent unchecked would let a host nominate any directory as
+// deletable: "/etc/x" would yield "/etc".
+func rootlessHomeTree(xdgConfigHome string) string {
+	if xdgConfigHome == "" ||
+		!safeRemotePathRegexp.MatchString(xdgConfigHome) ||
+		path.Clean(xdgConfigHome) != xdgConfigHome {
+		return ""
+	}
+
+	home := path.Dir(xdgConfigHome)
+	if home == "/root" || path.Dir(home) == "/home" {
+		return home
+	}
+
+	return ""
 }
 
 func (c LinuxConfigurer) attemptPathSudoDelete(h Host, path string) {
@@ -605,9 +754,9 @@ func (c LinuxConfigurer) attemptPathSudoDelete(h Host, path string) {
 		return
 	}
 
-	command := fmt.Sprintf("rm %s", path)
+	command := sh.Command("rm", path)
 	if fileInfo.IsDir() {
-		command = fmt.Sprintf("rm -rf %s", path)
+		command = sh.Command("rm", "-rf", path)
 	}
 
 	if err := h.Sudo().Exec(command); err != nil {

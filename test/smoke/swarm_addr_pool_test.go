@@ -158,19 +158,8 @@ func provisionSwarmPoolStack(t *testing.T, cfg smokeConfig) string {
 	}
 
 	vars := map[string]interface{}{
-		"name": name,
-		"aws":  awsConfig,
-		"launchpad": map[string]interface{}{
-			"drain":       false,
-			"mcr_channel": cfg.MCRChannel,
-			"mke_version": cfg.MKEVersion,
-			"msr_version": cfg.MSRVersion,
-			"mke_connect": map[string]interface{}{
-				"username": "admin",
-				"password": test.GenerateRandomAlphaNumericString(12),
-				"insecure": true,
-			},
-		},
+		"name":    name,
+		"aws":     awsConfig,
 		"network": networkConfig,
 		"subnets": map[string]interface{}{
 			"main": map[string]interface{}{
@@ -188,10 +177,23 @@ func provisionSwarmPoolStack(t *testing.T, cfg smokeConfig) string {
 		},
 	}
 
-	options := terraform.Options{
-		TerraformDir: "../../examples/terraform/aws-simple",
-		Vars:         vars,
+	// launchpad nests the MKE admin password, so it travels by TF_VAR_* rather
+	// than as a "-var" argument. See test.TerraformOptions.
+	secretVars := map[string]interface{}{
+		"launchpad": map[string]interface{}{
+			"drain":       false,
+			"mcr_channel": cfg.MCRChannel,
+			"mke_version": cfg.MKEVersion,
+			"msr_version": cfg.MSRVersion,
+			"mke_connect": map[string]interface{}{
+				"username": "admin",
+				"password": test.GenerateRandomAlphaNumericString(12),
+				"insecure": true,
+			},
+		},
 	}
+
+	options := test.TerraformOptions(t, "../../examples/terraform/aws-simple", vars, secretVars)
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
 
 	// Registered before apply so a partial apply is still torn down, and via
@@ -205,7 +207,7 @@ func provisionSwarmPoolStack(t *testing.T, cfg smokeConfig) string {
 		t.Fatal(err)
 	}
 
-	return terraform.Output(t, terraformOptions, "launchpad_yaml")
+	return test.OutputSecret(t, terraformOptions, "launchpad_yaml")
 }
 
 // setSwarmPoolAndPodCIDR rewrites spec.mcr.swarmInstallFlags and

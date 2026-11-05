@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -85,7 +84,7 @@ func (c WindowsConfigurer) InstallMCRLicense(h Host, lic string) error {
 		dockerRootDir = info.DockerRootDir
 	}
 
-	licPath := filepath.Join(dockerRootDir, WindowsDockerLicenseFile)
+	licPath := windowsLicenseFilePath(dockerRootDir)
 	if err := h.FS().WriteFile(licPath, []byte(lic), fs.FileMode(0o400)); err != nil {
 		return fmt.Errorf("license write; %w", err)
 	}
@@ -97,6 +96,29 @@ func (c WindowsConfigurer) InstallMCRLicense(h Host, lic string) error {
 func windowsMCRInstallCommand(installer, repoURL, channel string) string {
 	return fmt.Sprintf(`powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -DownloadUrl %s -Channel %s -Verbose`,
 		cmdQuote(installer), cmdQuote(repoURL), cmdQuote(channel))
+}
+
+// windowsLicenseFilePath joins the license filename onto a host-reported
+// docker root with the target's separator.
+//
+// filepath.Join cannot: it uses the control machine's separator, so from
+// Linux it yields "C:\ProgramData\Docker/docker.lic". rig normalises that at
+// the boundary -- every WinFS write quotes the path through
+// powershell.DoubleQuotePath, which calls ToWindowsPath -- so the mixed form
+// reaches the host correctly today. The Linux mirror of this (licenseFilePath
+// in linux.go) has no such net, because a backslash is a legal filename
+// character on Linux, which is why that one was a silent misplaced write and
+// this one is not.
+//
+// An empty reported root keeps the previous behaviour's intent rather than
+// writing to the drive root.
+func windowsLicenseFilePath(dockerRootDir string) string {
+	root := strings.TrimRight(dockerRootDir, `\/`)
+	if root == "" {
+		root = constant.WindowsDefaultDockerRoot
+	}
+
+	return root + `\` + WindowsDockerLicenseFile
 }
 
 // InstallMCR install MCR on Windows.
