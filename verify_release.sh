@@ -103,8 +103,20 @@ for name in "${ASSETS[@]}"; do
         continue
     fi
 
-    curl -sSfL -o "$name" "$(asset_url "$name")"
-    actual=$(sha256sum "$name" | cut -d' ' -f1)
+    # A download or digest error is this asset's failure, not grounds to
+    # abandon the run: under `set -e` an unguarded failure here would skip
+    # every remaining asset and the summary with them.
+    if ! curl -sSfL -o "$name" "$(asset_url "$name")"; then
+        echo "FAILED: $name (download failed)"
+        failed=$((failed + 1))
+        continue
+    fi
+
+    if ! actual=$(sha256sum "$name" | cut -d' ' -f1); then
+        echo "FAILED: $name (could not compute checksum of the download)"
+        failed=$((failed + 1))
+        continue
+    fi
 
     if [ "$actual" = "$expected" ]; then
         echo "OK: $name"
