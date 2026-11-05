@@ -25,7 +25,7 @@ on:
         type: string
         default: "24"
       region:
-        description: "AWS region to clean"
+        description: "AWS region to clean. A manual run sweeps only this region."
         type: string
         default: "us-west-2"
 
@@ -34,21 +34,39 @@ permissions:
 
 jobs:
   cleanup:
-    name: Delete stale VPCs
+    name: Delete stale VPCs (${{ matrix.region }})
     runs-on: arc-runner-set-mirantis-public
+    # A scheduled run sweeps every region in the matrix. A manual run sweeps
+    # only the region given in the input, so the other legs are skipped rather
+    # than repeating the same region twice.
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.region == matrix.region
+    strategy:
+      # One region failing must not cancel or hide the other: a sweep that
+      # covered only half the regions and reported success is the failure this
+      # matrix exists to prevent.
+      fail-fast: false
+      matrix:
+        region:
+          # us-west-2 holds the smoke stacks since #681. us-east-1 is still
+          # provisioned by test/integration and is the default in both shipped
+          # terraform examples, so it accumulates leaks and must stay swept.
+          - us-east-1
+          - us-west-2
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
-      - name: Delete stale VPCs
+      - name: Delete stale VPCs in ${{ matrix.region }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           # Scheduled runs delete for real; manual runs default to a dry run so
           # the button is safe to press.
-          AWS_REGION: ${{ github.event.inputs.region || 'us-west-2' }}
+          AWS_REGION: ${{ matrix.region }}
           MAX_AGE_HOURS: ${{ github.event.inputs.max_age_hours || '24' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
         run: ./.github/scripts/cleanup-stale-vpcs.sh
