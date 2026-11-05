@@ -226,6 +226,12 @@ func splitFlag(flag string) (name, value string, hasValue bool) {
 // Expansions are deliberately not performed: $(...) and $VAR were expanded by
 // the shell before, and reproducing that here would execute host-supplied
 // text in launchpad. They are left as written, which is the safe difference.
+//
+// One deviation from a real shell: a word ending in an unescaped backslash
+// escapes the following space when the flag list is joined, so the shell
+// would merge the next flag into this value. That is not reachable from a
+// shellescape.Quote'd value, and the pre-existing behaviour was worse -- the
+// merged word went to the bootstrapper as one argument.
 func unquote(value string) string {
 	var out strings.Builder
 

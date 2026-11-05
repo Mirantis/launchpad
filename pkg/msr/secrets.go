@@ -37,11 +37,15 @@ var secretEnvByFlag = map[string]string{
 func StageSecrets(host secretenv.Host, flags commonconfig.Flags, extra map[string]string) (*secretenv.Vars, commonconfig.Flags, error) {
 	values, kept := secretenv.Extract(flags, secretEnvByFlag)
 
-	// A value taken from the flags wins over one the caller supplied: the
-	// flags are what the user wrote in spec.msr.installFlags, and the
-	// phases previously left an explicit flag in place.
+	// A value the caller supplies wins over one taken from the flags, which
+	// is the precedence the phases had: install_msr.go and
+	// join_msr_replicas.go added --dtr-ca, --dtr-cert, --dtr-key and
+	// --ucp-ca with AddOrReplace, so spec.msr.caCertData and friends
+	// overrode anything in spec.msr.installFlags. The MKE side is the
+	// opposite -- install_mke.go used AddUnlessExist -- and pkg/mke
+	// keeps that; do not make the two match without changing the phases.
 	for name, value := range extra {
-		if _, fromFlag := values[name]; !fromFlag && value != "" {
+		if value != "" {
 			values[name] = value
 		}
 	}

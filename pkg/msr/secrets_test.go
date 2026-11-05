@@ -85,14 +85,18 @@ func TestStageSecretsKeepsCredentialsOutOfTheCommand(t *testing.T) {
 	require.Empty(t, host.fs.written, "a staged credential outlived the command")
 }
 
-// An explicit flag used to survive AddUnlessExist, so a credential the user
-// configured must still beat one the phase derived from elsewhere.
-func TestStageSecretsPrefersTheConfiguredFlag(t *testing.T) {
+// install_msr.go and join_msr_replicas.go added --dtr-ca, --dtr-cert,
+// --dtr-key and --ucp-ca with AddOrReplace, so a value from the config
+// struct overrode one in spec.msr.installFlags. Those four are the only
+// keys any MSR caller passes as extra, so this is the precedence for every
+// live case. pkg/mke/bootstrap.go is deliberately the opposite, because
+// install_mke.go used AddUnlessExist.
+func TestStageSecretsPrefersTheCallerValue(t *testing.T) {
 	host := stagingHost{fs: &stagingFS{written: map[string]string{}}}
 
-	staged, _, err := msr.StageSecrets(host,
-		commonconfig.Flags{"--ucp-ca=\"configured-ca\""},
-		map[string]string{"UCP_CA": "derived-ca"},
+	staged, kept, err := msr.StageSecrets(host,
+		commonconfig.Flags{"--ucp-ca=\"flag-ca\""},
+		map[string]string{"UCP_CA": "config-ca"},
 	)
 	require.NoError(t, err)
 
@@ -101,6 +105,7 @@ func TestStageSecretsPrefersTheConfiguredFlag(t *testing.T) {
 		values = append(values, data)
 	}
 
-	require.Equal(t, []string{"configured-ca"}, values)
+	require.Equal(t, []string{"config-ca"}, values, "spec.mke.caCertData must still override an installFlags --ucp-ca")
 	require.Equal(t, []string{"UCP_CA"}, staged.Names())
+	require.Empty(t, kept)
 }
