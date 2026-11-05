@@ -313,24 +313,26 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 		// open the moment MKE adds a member, which is how key.pem came to be
 		// the only protected file.
 
-		// mke bundle will contain folders as well as files, if folder exists fd will not be empty
-		if dir := filepath.Dir(zipFile.Name); dir != "" && dir != "." {
-			safeDir, err := safePath(bundleDir, dir)
-			if err != nil {
-				return err
-			}
-			if err := os.MkdirAll(safeDir, 0o700); err != nil { // #nosec G703 -- safeDir from safePath
-				return fmt.Errorf("error while creating directory: %w", err)
-			}
-		}
-
 		outFile, err := safePath(bundleDir, zipFile.Name)
 		if err != nil {
 			return err
 		}
+		// Barrier at the point of use, in addition to safePath's own check.
+		// The destination is re-tested against the cleaned bundle directory
+		// immediately before it reaches the filesystem, so a future change
+		// to safePath cannot silently remove the only guard.
+		if !strings.HasPrefix(outFile, filepath.Clean(bundleDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("%w: zip slip detected", errInvalidBundle)
+		}
 
-		err = os.WriteFile(outFile, data, 0o600) // #nosec G703 -- outFile from safePath
-		if err != nil {
+		// The bundle contains directories as well as files. Creating the
+		// parent of the already-validated destination covers both, and
+		// avoids validating the member name twice by two different routes.
+		if err := os.MkdirAll(filepath.Dir(outFile), 0o700); err != nil {
+			return fmt.Errorf("error while creating directory: %w", err)
+		}
+
+		if err := os.WriteFile(outFile, data, 0o600); err != nil {
 			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
 		}
 	}
