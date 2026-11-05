@@ -23,7 +23,7 @@ locals {
 # PROVISION MACHINES/NETWORK
 module "provision" {
   source  = "terraform-mirantis-modules/provision-aws/mirantis"
-  version = "0.1.8"
+  version = "0.3.0"
 
   name    = var.name
   network = var.network

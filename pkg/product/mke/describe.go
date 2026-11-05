@@ -7,6 +7,8 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	common "github.com/Mirantis/launchpad/pkg/product/common/phase"
 	de "github.com/Mirantis/launchpad/pkg/product/mke/phase"
+	"github.com/Mirantis/launchpad/pkg/util/redact"
+	rigcmd "github.com/k0sproject/rig/v2/cmd"
 	"gopkg.in/yaml.v2"
 )
 
@@ -24,10 +26,25 @@ func (p *MKE) Describe(reportName string) error {
 	}
 
 	if reportName == "config" {
-		encoder := yaml.NewEncoder(os.Stdout)
-		if err := encoder.Encode(p.ClusterConfig); err != nil {
+		encoded, err := yaml.Marshal(p.ClusterConfig)
+		if err != nil {
 			return fmt.Errorf("failed to encode cluster config: %w", err)
 		}
+
+		// --disable-redact is the documented opt-out for hiding sensitive
+		// information in launchpad's output; the config debug dump honours
+		// it the same way.
+		if !rigcmd.DisableRedact {
+			encoded, err = redact.YAML(encoded)
+			if err != nil {
+				return fmt.Errorf("failed to redact cluster config: %w", err)
+			}
+		}
+
+		if _, err := os.Stdout.Write(encoded); err != nil {
+			return fmt.Errorf("failed to write cluster config: %w", err)
+		}
+
 		return nil
 	}
 

@@ -14,6 +14,19 @@ on:
   push:
     branches: [main]
 
+# Each `--add-label` call on a PR emits its own `pull_request: labeled`
+# event, so labelling three suites in a row starts three identical runs.
+# Each run can hold one VPC per suite against a default quota of 5 VPCs per
+# region, so stacked runs fail with VpcLimitExceeded during `terraform
+# apply` for reasons unrelated to the code under test.
+#
+# Queue duplicates instead of cancelling them: cancel-in-progress would kill
+# terratest between `terraform apply` and its deferred `terraform destroy`,
+# leaking a whole stack until the Cleanup stale VPCs workflow reclaims it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

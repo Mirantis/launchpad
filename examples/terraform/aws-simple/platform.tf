@@ -14,27 +14,12 @@ locals {
   // platforms defined locally (not in upstream module)
   local_platform_keys = [for p in local.unique_used_platforms : p if contains(keys(local.lib_local_platform_definitions), p)]
 
-  // local platform AMI definitions (supplements upstream module)
+  // local platform AMI definitions (supplements upstream module).
+  // ubuntu_24.04 and ubuntu_26.04 used to live here; both are in the
+  // upstream platform library as of provision-aws v0.3.0 and are resolved by
+  // modules/platform now. ubuntu_22.04_fips has no upstream definition (the
+  // library carries no FIPS images), so it stays local.
   lib_local_platform_definitions = {
-    "ubuntu_24.04" = {
-      ami_name   = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"
-      owner      = "099720109477"
-      interface  = "eth0"
-      connection = "ssh"
-      ssh_user   = "ubuntu"
-      ssh_port   = 22
-    }
-    "ubuntu_26.04" = {
-      ami_name   = "ubuntu/images/hvm-ssd-gp3/ubuntu-resolute-26.04-amd64-server-*"
-      owner      = "099720109477"
-      interface  = "eth0"
-      connection = "ssh"
-      ssh_user   = "ubuntu"
-      ssh_port   = 22
-    }
-    // TODO: remove once terraform-mirantis-modules/terraform-mirantis-provision-aws v0.1.6
-    // is picked up by the Terraform Registry and the module source is updated to >= v0.1.6.
-    // ubuntu_22.04_fips was added upstream in PR #21 (released in v0.1.6).
     "ubuntu_22.04_fips" = {
       ami_name   = "ubuntu-pro-fips-updates-server/images/hvm-ssd/ubuntu-jammy-22.04-amd64-pro-fips-updates-server-*"
       owner      = "099720109477"
@@ -49,7 +34,7 @@ locals {
 module "platform" {
   count   = length(local.upstream_platform_keys)
   source  = "terraform-mirantis-modules/provision-aws/mirantis//modules/platform"
-  version = "0.1.8"
+  version = "0.3.0"
 
   platform_key     = local.upstream_platform_keys[count.index]
   windows_password = local.windows_password
@@ -79,35 +64,26 @@ data "aws_ami" "local" {
 
 // variables calculated after ami data is pulled
 locals {
-  // upstream platforms: build map from upstream module outputs. The
-  // upstream modules/platform submodule declares windows_password but never
-  // uses it -- it does not generate any user_data, so windows_2019/2022
-  // (sourced from here) boot with no WinRM HTTPS listener and no firewall
-  // rule for port 5986, unlike windows_2025 below. Apply the same
-  // userdata_windows.tpl here for any winrm-connection platform so every
-  // Windows worker actually configures WinRM over HTTPS on 5986.
-  //
-  // This is the platform's fixed/required default -- for winrm platforms it
-  // is not optional (without it launchpad cannot connect at all), so it is
-  // always present here. provision.tf composes it with any caller-supplied
-  // nodegroup user_data (see nodegroups_wplatform) rather than this file
-  // deciding precedence.
+  // upstream platforms: build map from upstream module outputs. As of
+  // provision-aws v0.3.0 modules/platform generates the required WinRM
+  // user_data itself (Administrator password reset + WinRM-over-HTTPS
+  // listener) from the windows_password passed above, so the output is used
+  // as-is; launchpad no longer carries its own copy of that template.
+  // provision.tf composes this platform default with any caller-supplied
+  // nodegroup user_data (see nodegroups_wplatform).
   upstream_platforms_with_ami = {
-    for k, p in local.upstream_platform_keys : p => merge(module.platform[k].platform, {
-      user_data = module.platform[k].platform.connection == "winrm" ? templatefile("${path.module}/userdata_windows.tpl", {
-        windows_administrator_password = local.windows_password
-      }) : ""
-    })
+    for k, p in local.upstream_platform_keys : p => module.platform[k].platform
   }
 
-  // local platforms: build map matching the shape upstream module produces
+  // local platforms: build map matching the shape upstream module produces.
+  // All local definitions are ssh platforms, so there is no fixed platform
+  // user_data requirement -- provision.tf's caller-supplied nodegroup
+  // user_data is used directly.
   local_platforms_with_ami = {
     for p, def in local.lib_local_platform_definitions : p => merge(def, {
       ami              = data.aws_ami.local[p].id
       root_device_name = data.aws_ami.local[p].root_device_name
-      user_data = def.connection == "winrm" ? templatefile("${path.module}/userdata_windows.tpl", {
-        windows_administrator_password = local.windows_password
-      }) : ""
+      user_data        = ""
     }) if contains(local.local_platform_keys, p)
   }
 
