@@ -36,6 +36,9 @@ var injectionCases = []struct {
 	{name: "backticks", url: "https://example.invalid/`:>INJECTED`/ubuntu/gpg"},
 	{name: "command separator", url: "https://example.invalid/x; :>INJECTED"},
 	{name: "pipeline", url: "https://example.invalid/x | :>INJECTED"},
+	// Raised in review of #676: url.ParseRequestURI accepts this, so the
+	// validation is not what stops it -- the positional argument is.
+	{name: "IFS separated substitution", url: "https://example.invalid/$(:${IFS}>INJECTED)/ubuntu/gpg"},
 }
 
 const sentinel = "INJECTED"
