@@ -88,7 +88,7 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 	// Login and get a token for the user
 	token, err := GetToken(client, mkeURL, username, password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get token for (%s:%s): %w", username, password, err)
+		return nil, fmt.Errorf("failed to get token for user %q: %w", username, err)
 	}
 
 	mkeURL.Path = "/api/clientbundle"
