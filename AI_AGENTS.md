@@ -52,6 +52,6 @@ Documentation is organized to minimize context overhead for agents:
 
 - **Language**: Go (Golang).
 - **Core Library**: [k0sproject Rig](https://github.com/k0sproject/rig) for host management.
-- **Build System**: Goreleaser (invoked via `Makefile`).
+- **Build System**: `Makefile` for local builds; release builds run in GitHub Actions (`.github/workflows/release.yml`).
 - **Telemetry**: Maintain existing telemetry patterns for installation, upgrades, and errors.
 - **State**: Launchpad is stateless between runs; use phases for discovery.
