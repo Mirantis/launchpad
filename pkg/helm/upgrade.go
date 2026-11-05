@@ -36,6 +36,10 @@ type ReleaseDetails struct {
 	Installed bool `yaml:"installed,omitempty"`
 }
 
+// errVerifyWithoutKeyring is returned when provenance verification is
+// requested without a keyring to verify against.
+var errVerifyWithoutKeyring = errors.New("provenance verification requires a keyring: set Keyring to the path of the chart signer's public keyring")
+
 // Options to be used with Helm actions.
 type Options struct {
 	// ReleaseDetails contains details about a Helm chart release.
@@ -48,6 +52,22 @@ type Options struct {
 	Atomic bool
 	// Timeout is the timeout for upgrade.
 	Timeout *time.Duration
+	// Verify enables Helm provenance verification: the chart's .prov
+	// signature is checked against Keyring before the chart is loaded.
+	//
+	// It defaults to false, deliberately.  Nothing in this repository ships
+	// or references a keyring, and the charts these options are used with are
+	// pulled from OCI registries and repositories that publish no .prov
+	// files, so defaulting Verify to true would fail every chart resolution
+	// on a missing provenance file or a missing keyring rather than make any
+	// chart more trustworthy.  A caller that has a signed chart and the
+	// signer's public keyring opts in by setting Verify and Keyring together;
+	// setting Verify without Keyring is rejected rather than silently
+	// verifying against nothing.
+	Verify bool
+	// Keyring is the path to the public keyring used for provenance
+	// verification.  It is only consulted when Verify is true.
+	Keyring string
 }
 
 // Upgrade performs a `helm upgrade --install` with a subset of options.
@@ -65,6 +85,15 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	settings := h.settings
 
 	upgrade := action.NewUpgrade(&cfg)
+
+	// The chart is resolved and loaded exactly once, here, and the loaded
+	// chart is what both the upgrade and the install path hand to Helm.  Any
+	// value set on an action's ChartPathOptions after this point therefore
+	// has no bearing on which chart is used, so the pinning options have to
+	// be applied before LocateChart runs.
+	if err := applyChartPathOptions(&upgrade.ChartPathOptions, opts); err != nil {
+		return nil, err
+	}
 
 	chartToUpgrade, err := getChart(upgrade.ChartPathOptions, opts.ChartName, &settings)
 	if err != nil {
@@ -89,7 +118,6 @@ func (h *Helm) Upgrade(ctx context.Context, opts *Options) (rel *release.Release
 	upgrade.ReuseValues = opts.ReuseValues
 	upgrade.Wait = opts.Wait
 	upgrade.Atomic = opts.Atomic
-	upgrade.Version = opts.Version
 	if opts.Timeout != nil {
 		upgrade.Timeout = *opts.Timeout
 	}
@@ -117,7 +145,14 @@ func (h *Helm) install(ctx context.Context, opts *Options, vals map[string]inter
 
 	installAction.Namespace = settings.Namespace()
 	installAction.ReleaseName = opts.ReleaseName
-	installAction.Version = opts.Version
+	// Keep the install action's chart source consistent with the options the
+	// chart was actually resolved with in Upgrade.  The chart handed to
+	// RunWithContext below is already loaded, so these values do not select
+	// it a second time; they must be correct at LocateChart, which is where
+	// Upgrade applies them.
+	if err := applyChartPathOptions(&installAction.ChartPathOptions, opts); err != nil {
+		return nil, err
+	}
 	installAction.Atomic = opts.Atomic
 	installAction.Wait = opts.Wait
 
@@ -141,4 +176,22 @@ func getChart(chartPathOptions action.ChartPathOptions, chartName string, settin
 	}
 
 	return loadedChart, nil
+}
+
+// applyChartPathOptions pins the chart resolution options on an action's
+// ChartPathOptions.  The fields are assigned individually rather than by
+// replacing the struct: action.NewInstall and action.NewUpgrade populate an
+// unexported registry client on ChartPathOptions, and overwriting it would
+// break resolution of oci:// charts.
+func applyChartPathOptions(chartPathOptions *action.ChartPathOptions, opts *Options) error {
+	if opts.Verify && opts.Keyring == "" {
+		return errVerifyWithoutKeyring
+	}
+
+	chartPathOptions.Version = opts.Version
+	chartPathOptions.RepoURL = opts.RepoURL
+	chartPathOptions.Verify = opts.Verify
+	chartPathOptions.Keyring = opts.Keyring
+
+	return nil
 }
