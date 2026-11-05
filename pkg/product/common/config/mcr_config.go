@@ -53,6 +53,27 @@ type MCRConfig struct {
 	// equivalent concept, so this value is ignored on Windows hosts.
 	InstallRecommends bool `yaml:"installRecommends,omitempty"`
 
+	// InstallURLWindowsChecksum pins the SHA-256 of the Windows install
+	// script, hex encoded.
+	//
+	// It is unset by default because Mirantis publishes nothing to pin
+	// against: as measured for PRODENG-3924,
+	// https://get.mirantis.com/install.ps1 returns 200 while
+	// install.ps1.sha256, install.ps1.asc, install.ps1.sig and
+	// checksums.sha256 all return 404. There is no upstream checksum or
+	// signature, so launchpad cannot verify the default script and does not
+	// pretend to -- the protection for the default URL is the https
+	// transport.
+	//
+	// Operators who mirror the script themselves know its digest and can set
+	// this to have the fetch verified. A mismatch aborts the run; there is
+	// no override, because a pin that can be ignored is worse than no pin.
+	//
+	// Windows only, for the same reason as InstallRecommends: Linux hosts
+	// install MCR through their package manager, which does its own
+	// signature checking, and never fetch this script.
+	InstallURLWindowsChecksum string `yaml:"installURLWindowsChecksum,omitempty"`
+
 	Metadata *MCRMetadata `yaml:"-"`
 }
 

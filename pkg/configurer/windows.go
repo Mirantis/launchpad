@@ -116,7 +116,7 @@ func windowsLicenseFilePath(dockerRootDir string) string {
 
 // InstallMCR install MCR on Windows.
 func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfig) error {
-	installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
+	installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows, engineConfig.InstallURLWindowsChecksum)
 	if getInstallerErr != nil {
 		return fmt.Errorf("could not install MCR; %w", getInstallerErr)
 	}
@@ -253,7 +253,7 @@ func (c WindowsConfigurer) UninstallMCR(h Host, engineConfig commonconfig.MCRCon
 			return fmt.Errorf("prune docker: %w", err)
 		}
 
-		installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows)
+		installerPath, getInstallerErr := GetInstaller(engineConfig.InstallURLWindows, engineConfig.InstallURLWindowsChecksum)
 		if getInstallerErr != nil {
 			return fmt.Errorf("could not uninstall MCR; %w", getInstallerErr)
 		}
