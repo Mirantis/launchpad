@@ -1,4 +1,4 @@
-# goreleaser build path
+# build output path, written by `make local` and the release workflow
 dist/
 
 # Mac & VSCode files
