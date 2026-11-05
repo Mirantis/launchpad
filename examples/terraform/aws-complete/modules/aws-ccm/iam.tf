@@ -45,15 +45,13 @@ data "aws_iam_policy_document" "control_plane" {
   }
 
   // Creation. The resource does not exist when the call is made, so it cannot
-  // carry the cluster tag yet; the CCM tags what it creates immediately after.
+  // carry the cluster tag yet.
   statement {
     sid    = "CreateClusterResources"
     effect = "Allow"
     actions = [
       "ec2:CreateSecurityGroup",
-      "ec2:CreateTags",
       "ec2:CreateVolume",
-      "elasticloadbalancing:AddTags",
       "elasticloadbalancing:CreateListener",
       "elasticloadbalancing:CreateLoadBalancer",
       "elasticloadbalancing:CreateLoadBalancerListeners",
@@ -62,6 +60,41 @@ data "aws_iam_policy_document" "control_plane" {
       "iam:CreateServiceLinkedRole",
     ]
     resources = ["*"]
+  }
+
+  // Tagging, restricted to tags applied as part of a create call.
+  //
+  // An unrestricted ec2:CreateTags or elasticloadbalancing:AddTags would
+  // defeat the MutateClusterResources statement below: a holder of this role
+  // could tag an unrelated security group, volume or load balancer as owned
+  // by this cluster and then mutate or delete it under a condition that reads
+  // as constrained.  ec2:CreateAction and elasticloadbalancing:CreateAction
+  // restrict tagging to the resource-creating calls granted above, which is
+  // the same construction the AWS-managed AmazonEBSCSIDriverPolicy uses.
+  statement {
+    sid       = "TagOnCreateOnly"
+    effect    = "Allow"
+    actions   = ["ec2:CreateTags"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:CreateAction"
+      values   = ["CreateSecurityGroup", "CreateVolume"]
+    }
+  }
+
+  statement {
+    sid       = "TagLoadBalancersOnCreateOnly"
+    effect    = "Allow"
+    actions   = ["elasticloadbalancing:AddTags"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "elasticloadbalancing:CreateAction"
+      values   = ["CreateListener", "CreateLoadBalancer", "CreateTargetGroup"]
+    }
   }
 
   // Mutation of resources this cluster owns.
