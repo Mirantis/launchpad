@@ -42,7 +42,7 @@ security-scan:
 TEST_FLAGS?=
 .PHONY: unit-test
 unit-test:
-	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/...
+	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/... ./version/...
 
 .PHONY: functional-test
 functional-test:
