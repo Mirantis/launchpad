@@ -64,7 +64,8 @@ func (c *ClusterConfig) Validate() error {
 	return nil
 }
 
-// isValidImageRepo accepts only a well-formed Docker/OCI repository name.
+// isValidImageRepo accepts only a value that composes into a well-formed
+// Docker/OCI image reference.
 //
 // spec.*.imageRepo is expanded by envsubst and is interpolated into image
 // references that become arguments to docker pull, tag, inspect and login on
@@ -77,7 +78,7 @@ func (c *ClusterConfig) Validate() error {
 // bootstrapper stdout; it rejects "docker.io/mirantis", which launchpad ships
 // as its own default.
 func isValidImageRepo(fl validator.FieldLevel) bool {
-	return reference.IsValidRepository(fl.Field().String())
+	return reference.IsValidRepositoryPrefix(fl.Field().String())
 }
 
 func roleChecks(sl validator.StructLevel) {

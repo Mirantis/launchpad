@@ -615,3 +615,60 @@ spec:
 		})
 	}
 }
+
+// TestImageRepoAcceptsRegistryRootForBothProducts covers the regression found
+// in review: imageRepo is a prefix that the bootstrapper builders append
+// "/ucp" or "/dtr" to, so a registry root is a legitimate value. Validating
+// it as a complete repository name rejected configurations storing images at
+// the registry root, for both products.
+func TestImageRepoAcceptsRegistryRootForBothProducts(t *testing.T) {
+	repos := []string{
+		`"registry.example.com:5000"`,
+		`"[2001:db8::1]:5000"`,
+		`"registry.example.com"`,
+		`"docker.io/mirantis"`,
+	}
+
+	for _, repo := range repos {
+		t.Run("mke "+repo, func(t *testing.T) {
+			data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+    imageRepo: ` + repo + `
+  hosts:
+    - role: manager
+      ssh:
+        address: 10.0.0.1
+`
+			require.NoError(t, loadYaml(t, data).Validate())
+		})
+
+		t.Run("msr "+repo, func(t *testing.T) {
+			data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke+msr
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  msr:
+    version: 2.9.10
+    imageRepo: ` + repo + `
+  hosts:
+    - role: manager
+      ssh:
+        address: 10.0.0.1
+    - role: msr
+      ssh:
+        address: 10.0.0.2
+`
+			require.NoError(t, loadYaml(t, data).Validate())
+		})
+	}
+}

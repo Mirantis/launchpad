@@ -62,6 +62,28 @@ func IsValidRepository(s string) bool {
 	return s != "" && len(s) <= maxLength && nameRe.MatchString(s)
 }
 
+// IsValidRepositoryPrefix reports whether s is usable as the repository
+// prefix of an image reference -- the shape of spec.*.imageRepo.
+//
+// It is deliberately not IsValidRepository. imageRepo is a prefix, not a
+// complete name: the bootstrapper builders append "/ucp" and "/dtr" to it,
+// so a registry root such as "registry.example.com:5000" or
+// "[2001:db8::1]:5000" is a legitimate value whose assembled reference is
+// valid, while the value on its own is not a repository name -- a bare
+// host:port has no path component.
+//
+// Rather than describe that shape with a second, subtly different pattern,
+// the check appends a known-legal component and validates the result. The
+// property being asserted is exactly the one that matters: that this prefix
+// composes into a valid reference.
+func IsValidRepositoryPrefix(s string) bool {
+	return s != "" && len(s) <= maxLength && nameRe.MatchString(s+"/"+probeComponent)
+}
+
+// probeComponent is a minimal legal path component used only to compose a
+// prefix for validation. Its own value is irrelevant beyond being legal.
+const probeComponent = "x"
+
 // IsValidReference reports whether s is a well-formed image reference,
 // optionally carrying a tag and/or a digest.
 func IsValidReference(s string) bool {
