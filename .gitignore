@@ -9,9 +9,6 @@ dist/
 # or terraform directly to test.
 .tfstate
 
-# the gh releaser, downloaded in release.sh
-github-release
-
 # go mod vendor folder
 vendor
 
