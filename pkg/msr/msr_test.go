@@ -100,3 +100,116 @@ func TestSequentialReplicaIDs(t *testing.T) {
 	require.Equal(t, "00000000001f", config.Spec.Hosts[1].MSRMetadata.ReplicaID)
 	require.Equal(t, "000000000021", config.Spec.Hosts[2].MSRMetadata.ReplicaID)
 }
+
+// TestParseComposeProjectLabel covers the unchecked indexing of host output.
+// The previous code took outputFields[3] and outputFields[len-1] with no
+// length check, so a short or empty label panicked.
+func TestParseComposeProjectLabel(t *testing.T) {
+	tests := []struct {
+		name        string
+		output      string
+		wantVersion string
+		wantReplica string
+		wantErr     bool
+	}{
+		{
+			// The shape the existing code assumes: the version is the fourth
+			// whitespace-separated field and the replica ID is the last one
+			// with a trailing ")" stripped.
+			name:        "well formed label",
+			output:      "dtr compose project 2.9.10 abc123def)",
+			wantVersion: "2.9.10",
+			wantReplica: "abc123def",
+		},
+		{
+			name:    "empty output",
+			output:  "",
+			wantErr: true,
+		},
+		{
+			name:    "whitespace only",
+			output:  "   \t\n ",
+			wantErr: true,
+		},
+		{
+			name:    "one field",
+			output:  "dtr",
+			wantErr: true,
+		},
+		{
+			name:    "exactly three fields is one short",
+			output:  "dtr dtr 2.9.10",
+			wantErr: true,
+		},
+		{
+			name:        "four fields is the minimum",
+			output:      "a b c 2.9.10",
+			wantVersion: "2.9.10",
+			wantReplica: "2.9.10",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var (
+				gotVersion, gotReplica string
+				err                    error
+			)
+			require.NotPanics(t, func() {
+				gotVersion, gotReplica, err = parseComposeProjectLabel(tt.output)
+			})
+
+			if tt.wantErr {
+				require.ErrorIs(t, err, errUnexpectedLabel)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantVersion, gotVersion)
+			require.Equal(t, tt.wantReplica, gotReplica)
+		})
+	}
+}
+
+// TestBootstrapImageFor covers the negative slice index: LastIndexByte returns
+// -1 for an image name with no separator, which panicked.
+func TestBootstrapImageFor(t *testing.T) {
+	tests := []struct {
+		name      string
+		imagename string
+		version   string
+		want      string
+	}{
+		{
+			name:      "registry and namespace",
+			imagename: "registry.example.test/mirantis/rethinkdb:2.4",
+			version:   "2.9.10",
+			want:      "registry.example.test/mirantis/dtr:2.9.10",
+		},
+		{
+			name:      "namespace only",
+			imagename: "mirantis/rethinkdb:2.4",
+			version:   "2.9.10",
+			want:      "mirantis/dtr:2.9.10",
+		},
+		{
+			name:      "bare image name has no repository to derive from",
+			imagename: "rethinkdb:2.4",
+			version:   "2.9.10",
+			want:      "",
+		},
+		{
+			name:      "empty image name",
+			imagename: "",
+			version:   "2.9.10",
+			want:      "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got string
+			require.NotPanics(t, func() { got = bootstrapImageFor(tt.imagename, tt.version) })
+			require.Equal(t, tt.want, got)
+		})
+	}
+}

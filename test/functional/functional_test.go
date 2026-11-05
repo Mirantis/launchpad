@@ -11,17 +11,20 @@ import (
 
 	"github.com/Mirantis/launchpad/version"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLaunchpadDownloadGreaterThanLatest(t *testing.T) {
 	version.Version = "v10.5.0"
-	latest := version.GetLatest(time.Second * 20)
+	latest, err := version.GetLatest(time.Second * 20)
+	require.NoError(t, err)
 	assert.False(t, latest.IsNewer())
 }
 
 func TestLaunchpadDownloadLessThanLatest(t *testing.T) {
 	version.Version = "v1.5.0"
-	latest := version.GetLatest(time.Second * 20)
+	latest, err := version.GetLatest(time.Second * 20)
+	require.NoError(t, err)
 	assert.True(t, latest.IsNewer())
 
 	asset := latest.AssetForHost()
@@ -60,7 +63,8 @@ func TestLaunchpadDownloadLessThanLatest(t *testing.T) {
 }
 
 func TestLaunchpadDownloadEqualToLatest(t *testing.T) {
-	latest := version.GetLatest(time.Second * 20)
+	latest, err := version.GetLatest(time.Second * 20)
+	require.NoError(t, err)
 	version.Version = latest.TagName
 	assert.False(t, latest.IsNewer())
 }
