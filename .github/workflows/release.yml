@@ -103,6 +103,15 @@ jobs:
           cp dist/launchpad_windows_*.exe sign/
           ls -1 sign/
 
+      - name: Record pre-signing checksums
+        run: |
+          set -euo pipefail
+          # Compared after signing. Nothing else asserts that the action
+          # actually signed anything: it is trusted on its exit code, and
+          # whether that code aggregates per-file errors is undocumented.
+          sha256sum sign/* > "$RUNNER_TEMP/pre-sign.sha256"
+          cat "$RUNNER_TEMP/pre-sign.sha256"
+
       - name: Sign Windows binaries with DigiCert Software Trust Manager
         uses: digicert/code-signing-software-trust-action@fae23a455ba4bde62b64fd7cb2f81ade788f5a95 # v1
         with:
@@ -115,11 +124,38 @@ jobs:
           SM_CLIENT_CERT_FILE: ${{ env.SM_CLIENT_CERT_FILE }}
           SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
 
+      - name: Verify every staged binary was signed
+        run: |
+          set -euo pipefail
+          # Authenticode rewrites the PE, so an unchanged file was not signed.
+          # This is a necessary condition, not a sufficient one: it proves the
+          # bytes changed, not that the signature is valid or trusted.
+          unchanged=""
+          while read -r before name; do
+            after=$(sha256sum "$name" | cut -d' ' -f1)
+            if [ "$after" = "$before" ]; then
+              unchanged="$unchanged $name"
+            fi
+          done < "$RUNNER_TEMP/pre-sign.sha256"
+          if [ -n "$unchanged" ]; then
+            echo "::error::Signing reported success but left these files unchanged:$unchanged"
+            echo "They would otherwise be checksummed and published as signed."
+            exit 1
+          fi
+          echo "All staged binaries changed after signing."
+
       - name: Return signed binaries to dist/
         run: |
           set -euo pipefail
-          cp sign/* dist/
+          # Named glob rather than sign/*: anything else the signing step leaves
+          # in the input directory would become a release asset, since the
+          # release job publishes dist/* .
+          cp sign/launchpad_*.exe dist/
           rm -rf sign
+
+      - name: Remove decoded signing certificate
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sm_client_cert.p12"
 
       - name: Generate checksums
         run: |
