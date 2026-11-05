@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -253,12 +252,19 @@ func (c LinuxConfigurer) InstallMCRLicense(h Host, lic string) error {
 // drop a root-owned file anywhere on the filesystem. extraPrefixes carries the
 // rootless home tree when rootless was detected, so a rootless data-root is
 // honoured rather than rejected.
+//
+// The join is path.Join, not filepath.Join: this path is written on the
+// managed Linux host, so it must use POSIX separators whatever the control
+// machine runs. filepath.Join on Windows would both produce
+// "\var\lib\docker\docker.lic" -- a relative filename on the target, where
+// the write still succeeds and leaves the daemon unlicensed -- and Clean the
+// value with separator semantics isSafeRemotePath never applied.
 func licenseFilePath(reportedRoot string, extraPrefixes []string) (string, bool) {
 	if isSafeRemotePath(reportedRoot, extraPrefixes...) {
-		return filepath.Join(reportedRoot, LinuxDockerLicenseFile), true
+		return path.Join(reportedRoot, LinuxDockerLicenseFile), true
 	}
 
-	return filepath.Join(constant.LinuxDefaultDockerRoot, LinuxDockerLicenseFile), false
+	return path.Join(constant.LinuxDefaultDockerRoot, LinuxDockerLicenseFile), false
 }
 
 // EnableMCR enables and starts the Docker EE engine on Linux, assuming that you already have the repos setup.
