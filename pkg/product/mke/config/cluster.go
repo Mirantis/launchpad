@@ -77,10 +77,18 @@ func (c *ClusterConfig) warnInsecureWinRM() {
 			continue
 		}
 
+		// The message cannot tell whether the password was inlined or came
+		// from an environment variable: substitution happens at
+		// pkg/config/config.go:79, before the config is parsed, so the field
+		// is populated identically either way. It therefore leads with the
+		// certificate problem, which is always actionable, and mentions
+		// sourcing the password from the environment as secondary advice
+		// rather than implying the user has inlined it.
 		log.Warnf(
-			"%s: winRM.insecure is true, so the host's TLS certificate is not verified, and winRM.password is set in the configuration file. "+
-				"An on-path attacker can impersonate this host, capture the password and read every command sent to it. "+
-				"Remove winRM.insecure once the host presents a trusted certificate, and keep the password out of the file by using an environment variable "+
+			"%s: winRM.insecure is true, so the host's TLS certificate is not verified. "+
+				"An on-path attacker can impersonate this host, capture the WinRM password and read every command sent to it. "+
+				"Remove winRM.insecure once the host presents a trusted certificate (pin it with winRM.caCertPath), "+
+				"and source the password from the environment rather than inlining it "+
 				"(see docs/usage/getting-started.md, \"Keeping credentials out of launchpad.yaml\").",
 			wrm.Address,
 		)

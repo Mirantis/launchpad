@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -588,6 +589,10 @@ spec:
 			var warnings []string
 			for _, entry := range hook.AllEntries() {
 				require.NotContains(t, entry.Message, fakePassword, "the warning must never print the password")
+				// Structured fields are a separate leak route from the
+				// formatted message: a change that moved the value into a
+				// logrus field would otherwise go unnoticed here.
+				require.NotContains(t, fmt.Sprint(entry.Data), fakePassword, "the password must never reach a log field")
 				if entry.Level == logrus.WarnLevel {
 					warnings = append(warnings, entry.Message)
 				}
@@ -601,7 +606,7 @@ spec:
 			require.Len(t, warnings, 1)
 			require.Contains(t, warnings[0], "10.0.0.1")
 			require.Contains(t, warnings[0], "winRM.insecure")
-			require.Contains(t, warnings[0], "winRM.password")
+			require.Contains(t, warnings[0], "winRM.caCertPath")
 		})
 	}
 }
