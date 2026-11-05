@@ -3,9 +3,11 @@ package configurer
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
+	ps "github.com/k0sproject/rig/v2/powershell"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,4 +76,53 @@ func TestExecCtxIsBoundedAndCancelable(t *testing.T) {
 	require.NoError(t, ctx.Err())
 	cancel()
 	require.ErrorIs(t, ctx.Err(), context.Canceled)
+}
+
+// chainPayload is the shape PRODENG-3919's acceptance criteria name: a value
+// carrying a double quote and "&&", which on cmd.exe closes the current token
+// and runs a second command in the administrator WinRM session.
+const chainPayload = `stable" && whoami && "`
+
+// TestCmdQuoteNeutralisesCommandChaining pins the property the Windows sites
+// depend on. ps.DoubleQuote cannot do this job: it escapes a double quote as
+// backtick-quote, which is a PowerShell escape that cmd.exe does not honour,
+// so the quote stays live and the "&&" chains.
+func TestCmdQuoteNeutralisesCommandChaining(t *testing.T) {
+	got := cmdQuote(chainPayload)
+
+	// Every cmd.exe metacharacter must be caret-escaped. An "&" that is not
+	// preceded by a caret would chain.
+	for i, r := range got {
+		if r != '&' {
+			continue
+		}
+		if i == 0 || got[i-1] != '^' {
+			t.Fatalf("cmdQuote(%q) = %q: '&' at index %d is not caret-escaped", chainPayload, got, i)
+		}
+	}
+
+	// The payload's own quote must not survive as a token-closing quote.
+	if strings.Contains(got, "`\"") {
+		t.Errorf("cmdQuote(%q) = %q: contains a PowerShell backtick escape, which cmd.exe does not honour", chainPayload, got)
+	}
+
+	// The whole value must still be recoverable: quoting that dropped the
+	// payload would pass this test while breaking the install.
+	if !strings.Contains(got, "whoami") {
+		t.Errorf("cmdQuote(%q) = %q: value content was lost", chainPayload, got)
+	}
+}
+
+// TestPsDoubleQuoteIsUnsafeForCmdExe records why the Windows sites moved off
+// ps.DoubleQuote. It asserts the defect, so if rig ever changes the escape
+// this test fails and the reasoning in the call sites can be revisited.
+func TestPsDoubleQuoteIsUnsafeForCmdExe(t *testing.T) {
+	got := ps.DoubleQuote(chainPayload)
+
+	if !strings.Contains(got, "`\"") {
+		t.Skipf("ps.DoubleQuote no longer emits a backtick escape (%q); revisit the cmd.exe call sites", got)
+	}
+	if strings.Contains(got, "^&") {
+		t.Errorf("ps.DoubleQuote(%q) = %q: unexpectedly caret-escapes, which would make it cmd.exe-safe", chainPayload, got)
+	}
 }

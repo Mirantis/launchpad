@@ -54,10 +54,27 @@ func (c *ClusterConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (c *ClusterConfig) Validate() error {
 	validator := validator.New(validator.WithRequiredStructEnabled())
 	validator.RegisterStructValidation(roleChecks, ClusterSpec{})
+	// Defence in depth, not the control: the command sites quote. Validation
+	// makes a malformed value visible at config load instead of as a failed
+	// install on every host.
+	if err := validator.RegisterValidation("mcr_channel", isValidMCRChannel); err != nil {
+		return fmt.Errorf("register mcr channel validation: %w", err)
+	}
+	if err := validator.RegisterValidation("mcr_repo_url", isValidMCRRepoURL); err != nil {
+		return fmt.Errorf("register mcr repo url validation: %w", err)
+	}
 	if err := validator.Struct(c); err != nil {
 		return fmt.Errorf("cluster config validation failed: %w", err)
 	}
 	return nil
+}
+
+func isValidMCRChannel(fl validator.FieldLevel) bool {
+	return common.IsValidMCRChannel(fl.Field().String())
+}
+
+func isValidMCRRepoURL(fl validator.FieldLevel) bool {
+	return common.IsValidMCRRepoURL(fl.Field().String())
 }
 
 func roleChecks(sl validator.StructLevel) {
