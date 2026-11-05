@@ -52,6 +52,41 @@ func (c *ClusterConfig) Validate() error {
 	if err := validator.Struct(c); err != nil {
 		return fmt.Errorf("cluster config validation failed: %w", err)
 	}
+
+	if err := c.validateConnections(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateConnections runs rig's own connection validation for every host.
+//
+// rig already enforces that a password-authenticated connection has both a
+// user and a password (protocol/winrm/config.go:66-68 and the SSH
+// equivalent), but launchpad never reached that guard: it connects through
+// CompositeConfig.Connection(), which does not validate, so the check was
+// dead code on this path. Without it a password that is present in the file
+// but empty by the time it is parsed -- a value YAML-truncated to nothing,
+// for instance -- authenticated as the configured user with no password at
+// all, with no warning and no error.
+//
+// This also closes the gap in warnWinRMPasswordExposure, which fires where
+// the password survives and was silent where it vanished entirely.
+func (c *ClusterConfig) validateConnections() error {
+	if c.Spec == nil {
+		return nil
+	}
+
+	for _, h := range c.Spec.Hosts {
+		if h == nil {
+			continue
+		}
+		if err := h.Validate(); err != nil {
+			return fmt.Errorf("host connection configuration is invalid: %w", err)
+		}
+	}
+
 	return nil
 }
 

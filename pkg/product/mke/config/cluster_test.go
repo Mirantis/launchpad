@@ -447,9 +447,15 @@ spec:
       winRM:
         address: 10.0.0.1
         user: User
+        password: NOT-A-REAL-PASSWORD
 `
 	c := loadYaml(t, data)
 
+	// The password is here only so the host has a complete credential for
+	// Validate to accept. The assertions below are about default
+	// application, which is what this test is for; inverting it to expect a
+	// validation error would convert a defaults test into a validation test
+	// and drop that coverage.
 	require.NoError(t, c.Validate())
 
 	require.Equal(t, c.Spec.Hosts[0].WinRM.User, "User")
@@ -549,6 +555,11 @@ spec:
 		// want is the phrase the single warning must contain, or "" when no
 		// warning may be emitted at all.
 		want string
+		// wantRejected marks a host that Validate now refuses outright,
+		// because rig requires a user and a password together. Such a host
+		// must also emit no warning: the exposure warning describes a
+		// password that reaches the wire, and there is no password here.
+		wantRejected bool
 	}{
 		{
 			name:     "insecure https with a password warns about the certificate",
@@ -588,9 +599,10 @@ spec:
 			want:     "",
 		},
 		{
-			name:     "insecure https without a password does not warn",
-			settings: "        useHTTPS: true\n        insecure: true\n",
-			want:     "",
+			name:         "insecure https without a password is rejected and does not warn",
+			settings:     "        useHTTPS: true\n        insecure: true\n",
+			want:         "",
+			wantRejected: true,
 		},
 		{
 			name:     "verified https with a password does not warn",
@@ -598,9 +610,10 @@ spec:
 			want:     "",
 		},
 		{
-			name:     "host with no password does not warn",
-			settings: "",
-			want:     "",
+			name:         "host with no password is rejected and does not warn",
+			settings:     "",
+			want:         "",
+			wantRejected: true,
 		},
 	}
 
@@ -610,7 +623,12 @@ spec:
 			defer hook.Reset()
 
 			c := loadYaml(t, configWithWinRM(tt.settings))
-			require.NoError(t, c.Validate())
+			err := c.Validate()
+			if tt.wantRejected {
+				require.Error(t, err, "a host with a user and no password must not validate")
+			} else {
+				require.NoError(t, err)
+			}
 
 			var warnings []string
 			for _, entry := range hook.AllEntries() {
@@ -675,6 +693,8 @@ spec:
       winRM:
         address: 10.0.0.3
         user: Administrator
+        useHTTPS: true
+        password: SAFE-NOT-REAL
 `
 	c := loadYaml(t, data)
 	require.NoError(t, c.Validate())
@@ -688,7 +708,7 @@ spec:
 
 	// One warning per affected host, each diagnosing that host's own
 	// transport: 10.0.0.1 has an unverified certificate, 10.0.0.2 sends the
-	// password in clear, and 10.0.0.3 has no password so is not reported.
+	// password in clear, and 10.0.0.3 uses verified TLS so is not reported.
 	require.Len(t, warnings, 2)
 	require.Contains(t, warnings[0], "10.0.0.1")
 	require.Contains(t, warnings[0], "winRM.caCertPath")
@@ -739,4 +759,106 @@ func getAllErrorFields(err error) []string {
 	}
 
 	return fields
+}
+
+// TestEmptyWinRMPasswordIsRejected covers the defect the exposure warning
+// could not see. The warning fires where the password survives; it was silent
+// where the password vanished entirely, because an empty Password reads as
+// "no password configured". rig has the right guard but launchpad never
+// reached it, connecting through CompositeConfig.Connection() rather than
+// Validate(), so such a host authenticated as the configured user with no
+// password at all.
+func TestEmptyWinRMPasswordIsRejected(t *testing.T) {
+	tests := []struct {
+		name        string
+		host        string
+		wantErr     bool
+		wantWarning bool
+	}{
+		{
+			// The YAML-truncation shape: a password beginning with "#" is
+			// consumed as a comment during substitution, so the key parses
+			// as null and the field is empty by the time Validate runs.
+			name:    "password present in the file but empty after parsing",
+			host:    "        address: 10.0.0.1\n        user: Administrator\n        password:\n",
+			wantErr: true,
+		},
+		{
+			name:    "explicit empty string password",
+			host:    "        address: 10.0.0.1\n        user: Administrator\n        password: \"\"\n",
+			wantErr: true,
+		},
+		{
+			name:    "no winRM password key at all",
+			host:    "        address: 10.0.0.1\n        user: Administrator\n",
+			wantErr: true,
+		},
+		{
+			name:        "a real password still validates and still warns about cleartext",
+			host:        "        address: 10.0.0.1\n        user: Administrator\n        password: NOT-A-REAL-PASSWORD\n",
+			wantErr:     false,
+			wantWarning: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hook := logrustest.NewGlobal()
+			defer hook.Reset()
+
+			data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+      winRM:
+` + tt.host
+
+			c := loadYaml(t, data)
+			err := c.Validate()
+
+			if tt.wantErr {
+				require.Error(t, err, "an empty password must be rejected, not used to authenticate")
+				require.ErrorContains(t, err, "user and password must both be set")
+			} else {
+				require.NoError(t, err)
+			}
+
+			var warned bool
+			for _, entry := range hook.AllEntries() {
+				if entry.Level == logrus.WarnLevel {
+					warned = true
+				}
+			}
+			require.Equal(t, tt.wantWarning, warned,
+				"the warning describes a password that reaches the wire; an absent one has nothing to expose")
+		})
+	}
+}
+
+// TestHostWithNoProtocolIsRejected covers the other shape rig's validation
+// catches: a host entry with no connection block at all previously validated
+// and failed later at connect time.
+func TestHostWithNoProtocolIsRejected(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+`
+	c := loadYaml(t, data)
+	err := c.Validate()
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no protocol configuration")
 }
