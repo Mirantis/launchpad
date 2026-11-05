@@ -30,6 +30,7 @@ import (
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta3"
 	"github.com/Mirantis/launchpad/pkg/product"
 	"github.com/Mirantis/launchpad/pkg/product/mke"
+	"github.com/Mirantis/launchpad/pkg/util/redact"
 	"github.com/a8m/envsubst"
 	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
@@ -83,8 +84,7 @@ func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
 
 	cfg := string(plain)
 	if !cmd.DisableRedact {
-		re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
-		cfg = re.ReplaceAllString(cfg, "$1$2[REDACTED]")
+		cfg = redactConfigDump(plain)
 	}
 
 	log.Debugf("loaded configuration:\n%s", cfg)
@@ -103,6 +103,34 @@ func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
 	default:
 		return nil, fmt.Errorf("%w: %s", errUnknownConfigKind, kindStr)
 	}
+}
+
+// legacyRedactRegexp is the pre-PRODENG-3922 masking, kept only as a
+// fallback for configurations that cannot be parsed as YAML.
+//
+// It is case sensitive, so it never matched the schema's camelCase
+// adminPassword or adminUsername, and it does not cover keyData, certData,
+// configData or host environment variables. That is why it was replaced.
+var legacyRedactRegexp = regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
+
+// redactConfigDump masks credentials in the configuration before it is
+// written to the debug log, which persists to disk.
+//
+// A configuration that fails to parse still gets dumped, because a debug
+// dump of a broken configuration is exactly when the output is wanted. It
+// gets the old regex instead, and the log says so: that masking is
+// best-effort on text nothing could parse, it is not the key-based
+// redaction the parsed path gets, and an operator deciding whether to paste
+// the output into a ticket needs to know which one they are looking at.
+func redactConfigDump(plain []byte) string {
+	masked, err := redact.YAML(plain)
+	if err == nil {
+		return string(masked)
+	}
+
+	log.Warnf("configuration could not be parsed for redaction (%s); the dump below is masked on a best-effort basis only and may still contain credentials", err)
+
+	return legacyRedactRegexp.ReplaceAllString(string(plain), "$1$2[REDACTED]")
 }
 
 var errUnknownConfigKind = errors.New("unknown configuration kind")

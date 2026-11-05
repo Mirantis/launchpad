@@ -1,26 +1,35 @@
 package phase
 
 import (
-	"regexp"
 	"strings"
 	"testing"
 
+	rigcmd "github.com/k0sproject/rig/v2/cmd"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 	"github.com/stretchr/testify/require"
 )
 
-// redact applies the patterns the way cmd.Redact does, so the test exercises
-// the rendered command rather than the pattern strings in isolation.
-func redact(t *testing.T, patterns []string, rendered string) string {
+// redact applies the values the way rig does: cmd.Redact appends to a list
+// of literal matches, and each is removed with strings.ReplaceAll
+// (cmd/execoptions.go). The harness previously compiled each value as a
+// regular expression, which is what the production code assumed when it
+// wrapped them in regexp.QuoteMeta -- so both sides agreed with each other
+// and neither agreed with rig.
+func redact(t *testing.T, values []string, rendered string) string {
 	t.Helper()
 
-	for _, pattern := range patterns {
-		re, err := regexp.Compile(pattern)
-		require.NoError(t, err, "pattern %q does not compile", pattern)
-		rendered = re.ReplaceAllString(rendered, "[REDACTED]")
+	opts := rigcmd.Build(values2options(values)...)
+
+	return opts.RedactString(rendered)
+}
+
+func values2options(values []string) []rigcmd.ExecOption {
+	opts := make([]rigcmd.ExecOption, 0, len(values))
+	for _, value := range values {
+		opts = append(opts, rigcmd.Redact(value))
 	}
 
-	return rendered
+	return opts
 }
 
 // TestAdminCredentialRedactionsCoverRenderedFlags pins the contract between the
@@ -73,9 +82,8 @@ func TestAdminCredentialRedactionsMatchQuotedForm(t *testing.T) {
 	// shellescape closes the quote, emits an escaped quote, and reopens it.
 	require.Contains(t, rendered, `--admin-password 'p@ss'"'"'w0rd'`)
 
-	rawOnly := regexp.MustCompile(regexp.QuoteMeta(password))
-	require.False(t, rawOnly.MatchString(rendered),
-		"raw-value-only pattern unexpectedly matches %q; the regression this guards would not be detectable", rendered)
+	require.NotContains(t, rendered, password,
+		"the raw value unexpectedly appears in %q; the regression this guards would not be detectable", rendered)
 
 	require.NotContains(t, redact(t, adminCredentialRedactions("admin", password), rendered), "w0rd")
 }

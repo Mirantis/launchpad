@@ -397,15 +397,21 @@ func (c WindowsConfigurer) CheckPrivilege(h Host) error {
 // AuthenticateDocker performs a docker login on the host.
 func (c WindowsConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo string) error {
 	// the --pasword-stdin seems to hang in windows
-	dc := c.DockerCmd()
-	loginCmd := dc.Raw("login -u").Arg(user).Raw("-p").Arg(pass).Arg(imageRepo).String()
-	// The command line holds the quoted forms, so patterns built from the raw
-	// values would not match once quoting alters them.
+	dockerCmd := c.DockerCmd()
+	loginCmd := dockerCmd.Raw("login -u").Arg(user).Raw("-p").Arg(pass).Arg(imageRepo).String()
+	// The command line holds the quoted forms, so the raw values alone
+	// would not match once quoting alters them; both forms are listed.
+	// rig matches redactions literally (cmd/execoptions.go RedactString is
+	// strings.ReplaceAll), so each value must be the exact text that
+	// appears in the log. regexp.QuoteMeta must not be applied: it escapes
+	// the value into a spelling that never occurs, and because QuoteMeta is
+	// the identity function for alphanumerics the failure is invisible
+	// until a password contains a metacharacter.
 	redactions := []cmd.ExecOption{
-		cmd.Redact(regexp.QuoteMeta(dc.Quote(pass))),
-		cmd.Redact(regexp.QuoteMeta(dc.Quote(user))),
-		cmd.Redact(regexp.QuoteMeta(pass)),
-		cmd.Redact(regexp.QuoteMeta(user)),
+		cmd.Redact(dockerCmd.Quote(pass)),
+		cmd.Redact(dockerCmd.Quote(user)),
+		cmd.Redact(pass),
+		cmd.Redact(user),
 		cmd.AllowWinStderr(),
 	}
 	if err := h.Exec(loginCmd, redactions...); err != nil {

@@ -1,0 +1,5 @@
+**The log file no longer records Trace and Debug output unless you ask for it.** Launchpad writes a log for every run to `~/.mirantis-launchpad/cluster/<name>/*.log`. Until now that file received every record at every level, including Trace, whatever flags were passed. It now receives Info and above by default; pass `--debug` to include Debug records, or `--trace` to include both. Terminal output is unchanged.
+
+The reason for the change is what those records contained. Trace and Debug carry the commands launchpad runs on each host and their output, and several of those carried credentials that redaction was failing to mask — so the values were not merely shown once on a terminal, they were written to a file on every run and kept. The masking gaps are fixed alongside this, but a persistent file holding every Trace record is a standing exposure on its own, and nothing was asking for it.
+
+If you collect launchpad logs for support or for an incident review, add `--debug` to the run, or `--trace` for the fullest output.

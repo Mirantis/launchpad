@@ -7,6 +7,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
@@ -50,7 +51,16 @@ func (p *UpgradeMSR) Run() error {
 	}
 	upgradeFlags.MergeOverwrite(p.Config.Spec.MSR.UpgradeFlags)
 
-	if _, err := msr.Bootstrap("upgrade", *p.Config, msr.BootstrapOptions{OperationFlags: upgradeFlags, CleanupDisabled: p.CleanupDisabled()}); err != nil {
+	// BuildMKEFlags puts --ucp-username and --ucp-password on the command
+	// line, so the values are redacted out of the log in both the form
+	// BuildMKEFlags writes and the raw form. PRODENG-3923 removes them from
+	// the command line entirely, after which these are no-ops.
+	execOpts := make([]cmd.ExecOption, 0, len(msrCredentialRedactions(upgradeFlags)))
+	for _, value := range msrCredentialRedactions(upgradeFlags) {
+		execOpts = append(execOpts, cmd.Redact(value))
+	}
+
+	if _, err := msr.Bootstrap("upgrade", *p.Config, msr.BootstrapOptions{OperationFlags: upgradeFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: execOpts}); err != nil {
 		return fmt.Errorf("%s: failed to run MSR upgrader: %w", h, err)
 	}
 

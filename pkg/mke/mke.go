@@ -159,7 +159,13 @@ func GetTLSConfigFrom(manager *mkeconfig.Host, imageRepo, mkeVersion string) (*t
 	if manager.Configurer.SELinuxEnabled(manager) {
 		runFlags.Add("--security-opt label=disable")
 	}
-	output, err := manager.ExecOutput(manager.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(fmt.Sprintf("%s/ucp:%s", imageRepo, mkeVersion)).Raw("dump-certs --ca").String(), rigcmd.Redact(`[A-Za-z0-9+/=_\-]{64}`))
+	// The CA PEM is the command's output and is not known here, so it
+	// cannot be given to rigcmd.Redact, which matches literally. The
+	// previous `[A-Za-z0-9+/=_\-]{64}` was a regex handed to that literal
+	// matcher: it looked for that pattern as a literal string, matched
+	// nothing, and the certificate was logged in full. The output is
+	// returned to the caller, so hiding it from the log costs nothing.
+	output, err := manager.ExecOutput(manager.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(fmt.Sprintf("%s/ucp:%s", imageRepo, mkeVersion)).Raw("dump-certs --ca").String(), rigcmd.HideOutput())
 	if err != nil {
 		return nil, fmt.Errorf("%w: error while exec-ing into the container: %w", errGetTLSConfig, err)
 	}
