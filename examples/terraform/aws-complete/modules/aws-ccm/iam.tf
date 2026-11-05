@@ -46,6 +46,11 @@ data "aws_iam_policy_document" "control_plane" {
 
   // Creation. The resource does not exist when the call is made, so it cannot
   // carry the cluster tag yet.
+  //
+  // CreateLoadBalancerListeners and CreateLoadBalancerPolicy are NOT here:
+  // despite the names they operate on an existing Classic load balancer, so
+  // they belong with the mutations below and are constrained by the cluster
+  // tag like the rest of them.
   statement {
     sid    = "CreateClusterResources"
     effect = "Allow"
@@ -54,8 +59,6 @@ data "aws_iam_policy_document" "control_plane" {
       "ec2:CreateVolume",
       "elasticloadbalancing:CreateListener",
       "elasticloadbalancing:CreateLoadBalancer",
-      "elasticloadbalancing:CreateLoadBalancerListeners",
-      "elasticloadbalancing:CreateLoadBalancerPolicy",
       "elasticloadbalancing:CreateTargetGroup",
       "iam:CreateServiceLinkedRole",
     ]
@@ -84,8 +87,15 @@ data "aws_iam_policy_document" "control_plane" {
     }
   }
 
+  // elasticloadbalancing:AddTags is additionally allowed on load balancers
+  // this cluster already owns, because the cloud controller manager tags an
+  // existing ELB during reconciliation when a Service carries additional
+  // resource tags (addLoadBalancerTags in aws_loadbalancer.go), and that
+  // request carries no CreateAction. Requiring the cluster tag to be present
+  // already keeps the escalation closed: a resource that is not already this
+  // cluster's cannot be tagged into it.
   statement {
-    sid       = "TagLoadBalancersOnCreateOnly"
+    sid       = "TagLoadBalancers"
     effect    = "Allow"
     actions   = ["elasticloadbalancing:AddTags"]
     resources = ["*"]
@@ -94,6 +104,19 @@ data "aws_iam_policy_document" "control_plane" {
       test     = "StringEquals"
       variable = "elasticloadbalancing:CreateAction"
       values   = ["CreateListener", "CreateLoadBalancer", "CreateTargetGroup"]
+    }
+  }
+
+  statement {
+    sid       = "TagOwnedLoadBalancers"
+    effect    = "Allow"
+    actions   = ["elasticloadbalancing:AddTags"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = local.cluster_tag_key
+      values   = ["owned", "shared"]
     }
   }
 
@@ -115,6 +138,8 @@ data "aws_iam_policy_document" "control_plane" {
       "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
       "elasticloadbalancing:AttachLoadBalancerToSubnets",
       "elasticloadbalancing:ConfigureHealthCheck",
+      "elasticloadbalancing:CreateLoadBalancerListeners",
+      "elasticloadbalancing:CreateLoadBalancerPolicy",
       "elasticloadbalancing:DeleteListener",
       "elasticloadbalancing:DeleteLoadBalancer",
       "elasticloadbalancing:DeleteLoadBalancerListeners",

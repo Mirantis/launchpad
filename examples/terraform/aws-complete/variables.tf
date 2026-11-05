@@ -93,11 +93,14 @@ variable "windows_password" {
   // generated a launchpad.yaml carrying "password:" with an empty value, and
   // launchpad then authenticated as Administrator with no password. Failing
   // here names the variable at plan time instead.
+  //
+  // The whole requirement is gated on a Windows nodegroup being present, so a
+  // Linux-only stack may leave the variable unset or pass an empty string --
+  // neither reaches a host that would authenticate with it.
   validation {
     condition = (
-      var.windows_password == null
-      ? !anytrue([for ng in var.nodegroups : startswith(ng.platform, "windows_")])
-      : length(var.windows_password) > 0
+      !anytrue([for ng in var.nodegroups : startswith(ng.platform, "windows_")])
+      || (var.windows_password != null && length(var.windows_password) > 0)
     )
     error_message = "windows_password must be set to a non-empty value when any nodegroup uses a windows_ platform: it is the local Administrator password the nodes are configured with and the credential launchpad uses for WinRM. Leave it unset only for Linux-only stacks."
   }
