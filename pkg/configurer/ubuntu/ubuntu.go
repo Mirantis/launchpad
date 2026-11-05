@@ -106,8 +106,13 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 		return fmt.Errorf("package manager could not install docker-ee: %w", err)
 	}
 
+	// Not a package-install failure: the package is already installed by this
+	// point. Reporting it as one sent readers to the wrong subsystem, and
+	// discarding the error threw away the only description of what actually
+	// went wrong -- including the journalctl output EnableMCR collects for
+	// exactly this case.
 	if err := c.EnableMCR(h, engineConfig); err != nil {
-		return fmt.Errorf("package manager could not install docker-ee")
+		return fmt.Errorf("could not enable and start the MCR service: %w", err)
 	}
 	return nil
 }
