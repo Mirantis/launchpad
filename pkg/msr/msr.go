@@ -151,16 +151,33 @@ func mkeURLHost(config *mkeconfig.ClusterConfig) string {
 // installer if it fails.
 func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
+
+	// The MKE administrator credentials travel as staged environment
+	// values, not as arguments.
+	secrets, mkeFlags, err := StageSecrets(h, mkeFlags, nil)
+	if err != nil {
+		return fmt.Errorf("%s: %w", h, err)
+	}
+
+	defer func() {
+		if rmErr := secrets.Remove(); rmErr != nil {
+			log.Warnf("%s: %s", h, rmErr)
+		}
+	}()
+
+	runFlags := commonconfig.Flags{"-it", "--rm"}
+	for _, flag := range secrets.PassFlags() {
+		runFlags.Add(flag)
+	}
+
 	destroyCmd := h.Configurer.DockerCmd().
-		Raw("run -it --rm").
+		Raw("run").Raw(runFlags.Join()).
 		Arg(fmt.Sprintf("mirantis/dtr:%s", h.MSRMetadata.InstalledVersion)).
 		Raw("destroy --ucp-insecure-tls").
 		Raw("--ucp-url").Arg(mkeFlags.GetValue("--ucp-url")).
-		Raw("--ucp-username").Arg(mkeFlags.GetValue("--ucp-username")).
-		Raw("--ucp-password").Arg(mkeFlags.GetValue("--ucp-password")).
 		Raw("--replica-id").Arg(h.MSRMetadata.ReplicaID).
 		String()
-	if err := h.Exec(destroyCmd); err != nil {
+	if err := h.Exec(strings.TrimSpace(secrets.Assignments() + " " + destroyCmd)); err != nil {
 		return fmt.Errorf("failed to run MSR destroy: %w", err)
 	}
 	// Remove containers

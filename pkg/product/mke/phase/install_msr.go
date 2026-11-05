@@ -7,7 +7,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig/v2/cmd"
-	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -54,28 +53,15 @@ func (p *InstallMSR) Run() error {
 
 	installFlags.Merge(mkeFlags)
 
-	if p.Config.Spec.MSR.CACertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CACertData)
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", escaped))
-		redacts = append(redacts, escaped)
-	}
-
-	if p.Config.Spec.MSR.CertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CertData)
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", escaped))
-		redacts = append(redacts, escaped)
-	}
-
-	if p.Config.Spec.MSR.KeyData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.KeyData)
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", escaped))
-		redacts = append(redacts, escaped)
-	}
-
-	if p.Config.Spec.MKE.CACertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MKE.CACertData)
-		installFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
-		redacts = append(redacts, escaped)
+	// The TLS material is PEM, multi-line, and secret. It goes to the
+	// installer as environment values staged in mode-0600 files on the host
+	// by pkg/util/secretenv, never on the command line, so no shell quoting
+	// of a private key is needed and nothing records it.
+	secretEnv := map[string]string{
+		"MSR_CA":   p.Config.Spec.MSR.CACertData,
+		"MSR_CERT": p.Config.Spec.MSR.CertData,
+		"MSR_KEY":  p.Config.Spec.MSR.KeyData,
+		"UCP_CA":   p.Config.Spec.MKE.CACertData,
 	}
 
 	if h.MSRMetadata.ReplicaID != "" {
@@ -89,7 +75,7 @@ func (p *InstallMSR) Run() error {
 	for _, r := range redacts {
 		execOpts = append(execOpts, cmd.Redact(r))
 	}
-	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: execOpts}); err != nil {
+	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), SecretEnv: secretEnv, ExecOptions: execOpts}); err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %w", h, err)
 	}
 

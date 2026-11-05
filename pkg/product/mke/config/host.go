@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -264,12 +265,33 @@ func (h *Host) IsLocal() bool {
 	return h.Protocol() == "Local"
 }
 
+// envAssignmentPrefix matches the shell variable assignments that may precede
+// a command, including values written as "$(cat -- '/path')". Secrets are
+// delivered to the bootstrappers that way (see pkg/util/secretenv) so that
+// they never appear in the remote process' arguments.
+var envAssignmentPrefix = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=("[^"]*"|'[^']*'|[^'"\s]*)\s+`)
+
 // IsSudoCommand is a particluar string command supposed to use Sudo.
+//
+// The docker binary is matched after any leading environment assignments:
+// sudo routing must not depend on whether a command needed secrets staged,
+// and rig wraps the whole string in a root shell, so the assignments still
+// apply to the command that runs.
 func (h *Host) IsSudoCommand(cmd string) bool {
-	if h.SudoDocker && (strings.HasPrefix(cmd, "docker") || strings.HasPrefix(cmd, "/usr/bin/docker")) {
-		return true
+	if !h.SudoDocker {
+		return false
 	}
-	return false
+
+	for {
+		trimmed := envAssignmentPrefix.ReplaceAllString(cmd, "")
+		if trimmed == cmd {
+			break
+		}
+
+		cmd = trimmed
+	}
+
+	return strings.HasPrefix(cmd, "docker") || strings.HasPrefix(cmd, "/usr/bin/docker")
 }
 
 // runner returns the client used to execute cmd, using the sudo-decorated

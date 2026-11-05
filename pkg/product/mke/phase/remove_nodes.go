@@ -236,9 +236,25 @@ func (p *RemoveNodes) removemsrNode(config *mkeconfig.ClusterConfig, replicaID s
 		removeFlags.AddOrReplace(f)
 	}
 
+	// The MKE administrator credentials travel as staged environment
+	// values, not as arguments.
+	secrets, removeFlags, err := msr.StageSecrets(msrLeader, removeFlags, nil)
+	if err != nil {
+		return fmt.Errorf("%s: %w", msrLeader, err)
+	}
+
+	for _, flag := range secrets.PassFlags() {
+		runFlags.Add(flag)
+	}
+
 	removeCmd := msrLeader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(msrLeader.MSRMetadata.InstalledBootstrapImage).Raw("remove").Raw(removeFlags.Join()).String()
 	log.Debugf("%s: Removing MSR replica %s from cluster", msrLeader, replicaID)
-	err := msrLeader.Exec(removeCmd, cmd.StreamOutput())
+	err = msrLeader.Exec(strings.TrimSpace(secrets.Assignments()+" "+removeCmd), cmd.StreamOutput())
+
+	if rmErr := secrets.Remove(); rmErr != nil {
+		log.Warnf("%s: %s", msrLeader, rmErr)
+	}
+
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MSR remove: %w", msrLeader, err)
 	}

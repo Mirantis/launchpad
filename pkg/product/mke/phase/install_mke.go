@@ -68,13 +68,21 @@ func (p *InstallMKE) Run() error {
 		}
 	}
 
+	// Secrets go to the installer as environment values, staged in
+	// mode-0600 files on the host by pkg/util/secretenv, so they are absent
+	// from the remote command line and from everything that records it.
+	secretEnv := map[string]string{
+		"UCP_ADMIN_USER":     p.Config.Spec.MKE.AdminUsername,
+		"UCP_ADMIN_PASSWORD": p.Config.Spec.MKE.AdminPassword,
+	}
+
 	if licenseFilePath := p.Config.Spec.MKE.LicenseFilePath; licenseFilePath != "" {
 		log.Debugf("Installing MKE with LicenseFilePath: %s", licenseFilePath)
-		licenseFlag, err := installutil.SetupLicenseFile(p.Config.Spec.MKE.LicenseFilePath)
+		license, err := installutil.ReadLicense(licenseFilePath)
 		if err != nil {
 			return fmt.Errorf("error while reading license file %s: %w", licenseFilePath, err)
 		}
-		installFlags.AddUnlessExist(licenseFlag)
+		secretEnv["UCP_LICENSE"] = license
 	}
 
 	if p.Config.Spec.MKE.Cloud != nil {
@@ -93,20 +101,21 @@ func (p *InstallMKE) Run() error {
 		installFlags.AddUnlessExist("--pull never")
 	}
 
-	if p.Config.Spec.MKE.AdminUsername != "" {
-		installFlags.AddUnlessExist(fmt.Sprintf("--admin-username='%s'", p.Config.Spec.MKE.AdminUsername))
-	}
-	if p.Config.Spec.MKE.AdminPassword != "" {
-		installFlags.AddUnlessExist(fmt.Sprintf("--admin-password='%s'", p.Config.Spec.MKE.AdminPassword))
-	}
-
 	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
-	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: []cmd.ExecOption{cmd.StreamOutput(), cmd.Redact(p.Config.Spec.MKE.AdminUsername), cmd.Redact(p.Config.Spec.MKE.AdminPassword)}})
+	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{
+		OperationFlags:  installFlags,
+		CleanupDisabled: p.CleanupDisabled(),
+		SecretEnv:       secretEnv,
+		ExecOptions:     []cmd.ExecOption{cmd.StreamOutput(), cmd.Redact(p.Config.Spec.MKE.AdminUsername), cmd.Redact(p.Config.Spec.MKE.AdminPassword)},
+	})
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
 	}
 
-	if installFlags.GetValue("--admin-password") == "" {
+	// The configured password is the only source now that it no longer
+	// passes through the flag list: MKEConfig.UnmarshalYAML hoists an
+	// installFlags --admin-password into Spec.MKE.AdminPassword.
+	if p.Config.Spec.MKE.AdminPassword == "" {
 		re := regexp.MustCompile(`msg="Generated random admin password: (.+?)"`)
 		md := re.FindStringSubmatch(output)
 		if len(md) > 0 && md[1] != "" {

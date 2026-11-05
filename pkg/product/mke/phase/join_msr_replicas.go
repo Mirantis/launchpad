@@ -2,13 +2,13 @@ package phase
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/k0sproject/rig/v2/cmd"
-	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -80,16 +80,22 @@ func (p *JoinMSRReplicas) Run() error {
 		for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallJoinFlags) {
 			joinFlags.AddOrReplace(f)
 		}
-		if p.Config.Spec.MKE.CACertData != "" {
-			escaped := shellescape.Quote(p.Config.Spec.MKE.CACertData)
-			joinFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
-			redacts = append(redacts, escaped)
-		}
 		if h.MSRMetadata != nil && h.MSRMetadata.ReplicaID != "" {
 			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSRMetadata.ReplicaID)
 			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", h.MSRMetadata.ReplicaID))
 		} else {
 			log.Infof("%s: joining MSR replica to cluster", h)
+		}
+
+		// The MKE administrator password and the MKE CA travel as staged
+		// environment values, not as arguments.
+		secrets, joinFlags, err := msr.StageSecrets(msrLeader, joinFlags, map[string]string{"UCP_CA": p.Config.Spec.MKE.CACertData})
+		if err != nil {
+			return fmt.Errorf("%s: %w", h, err)
+		}
+
+		for _, flag := range secrets.PassFlags() {
+			runFlags.Add(flag)
 		}
 
 		joinCmd := msrLeader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(msrLeader.MSRMetadata.InstalledBootstrapImage).Raw("join").Raw(joinFlags.Join()).String()
@@ -98,7 +104,13 @@ func (p *JoinMSRReplicas) Run() error {
 		for _, r := range redacts {
 			execOpts = append(execOpts, cmd.Redact(r))
 		}
-		err := msrLeader.Exec(joinCmd, execOpts...)
+
+		err = msrLeader.Exec(strings.TrimSpace(secrets.Assignments()+" "+joinCmd), execOpts...)
+
+		if rmErr := secrets.Remove(); rmErr != nil {
+			log.Warnf("%s: %s", msrLeader, rmErr)
+		}
+
 		if err != nil {
 			return fmt.Errorf("%s: failed to run MSR join: %w", h, err)
 		}
