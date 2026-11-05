@@ -12,6 +12,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
+	"github.com/Mirantis/launchpad/pkg/util/redact"
 	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
@@ -59,7 +60,11 @@ func adminCredentialFlags(username, password string) []string {
 // invisibly, since QuoteMeta is the identity function for alphanumerics and
 // only a credential containing a regex metacharacter exposed it.
 //
-// Empty values are skipped, because an empty match would redact everywhere.
+// They are returned longest first. rig replaces each value in turn, so a
+// username that is a prefix of the password -- "admin" against
+// "admin!s3cr3t" -- would otherwise be substituted first and leave the
+// remainder of the password in the log. Empty values are dropped, because
+// an empty match would redact everywhere.
 func adminCredentialRedactions(username, password string) []string {
 	var patterns []string
 	for _, value := range []string{username, password} {
@@ -71,7 +76,7 @@ func adminCredentialRedactions(username, password string) []string {
 			patterns = append(patterns, quoted)
 		}
 	}
-	return patterns
+	return redact.ByLengthDesc(patterns...)
 }
 
 // Run the installer container.

@@ -15,7 +15,7 @@ import (
 // regular expression, which is what the production code assumed when it
 // wrapped them in regexp.QuoteMeta -- so both sides agreed with each other
 // and neither agreed with rig.
-func redact(t *testing.T, values []string, rendered string) string {
+func applyRedactions(t *testing.T, values []string, rendered string) string {
 	t.Helper()
 
 	opts := rigcmd.Build(values2options(values)...)
@@ -55,7 +55,7 @@ func TestAdminCredentialRedactionsCoverRenderedFlags(t *testing.T) {
 			t.Parallel()
 
 			rendered := strings.Join(adminCredentialFlags(tc.username, tc.password), " ")
-			redacted := redact(t, adminCredentialRedactions(tc.username, tc.password), rendered)
+			redacted := applyRedactions(t, adminCredentialRedactions(tc.username, tc.password), rendered)
 
 			if tc.username != "" {
 				require.NotContains(t, redacted, tc.username, "username survived redaction of %q", rendered)
@@ -85,7 +85,7 @@ func TestAdminCredentialRedactionsMatchQuotedForm(t *testing.T) {
 	require.NotContains(t, rendered, password,
 		"the raw value unexpectedly appears in %q; the regression this guards would not be detectable", rendered)
 
-	require.NotContains(t, redact(t, adminCredentialRedactions("admin", password), rendered), "w0rd")
+	require.NotContains(t, applyRedactions(t, adminCredentialRedactions("admin", password), rendered), "w0rd")
 }
 
 // TestAdminCredentialRedactionsSkipEmptyValues keeps an empty credential from

@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/config/migration"
@@ -105,32 +104,30 @@ func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
 	}
 }
 
-// legacyRedactRegexp is the pre-PRODENG-3922 masking, kept only as a
-// fallback for configurations that cannot be parsed as YAML.
-//
-// It is case sensitive, so it never matched the schema's camelCase
-// adminPassword or adminUsername, and it does not cover keyData, certData,
-// configData or host environment variables. That is why it was replaced.
-var legacyRedactRegexp = regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
-
 // redactConfigDump masks credentials in the configuration before it is
 // written to the debug log, which persists to disk.
 //
-// A configuration that fails to parse still gets dumped, because a debug
-// dump of a broken configuration is exactly when the output is wanted. It
-// gets the old regex instead, and the log says so: that masking is
-// best-effort on text nothing could parse, it is not the key-based
-// redaction the parsed path gets, and an operator deciding whether to paste
-// the output into a ticket needs to know which one they are looking at.
+// A configuration that fails to parse is still dumped, because a debug dump
+// of a broken configuration is exactly when the output is wanted. It gets
+// redact.Text instead of redact.YAML: the same key set and the same
+// environment-variable fragments, applied line by line rather than over a
+// parsed structure.
+//
+// The difference is stated in the log line rather than left for the reader
+// to infer. redact.Text cannot see a credential that is not on the same
+// line as its key -- a YAML block scalar holding a private key is the case
+// that matters -- so the output is masked on a best-effort basis and an
+// operator deciding whether to attach it to a ticket needs to know which of
+// the two they are looking at.
 func redactConfigDump(plain []byte) string {
 	masked, err := redact.YAML(plain)
 	if err == nil {
 		return string(masked)
 	}
 
-	log.Warnf("configuration could not be parsed for redaction (%s); the dump below is masked on a best-effort basis only and may still contain credentials", err)
+	log.Warnf("configuration could not be parsed for redaction (%s); the dump below is masked line by line on a best-effort basis and may still contain credentials that span lines", err)
 
-	return legacyRedactRegexp.ReplaceAllString(string(plain), "$1$2[REDACTED]")
+	return string(redact.Text(plain))
 }
 
 var errUnknownConfigKind = errors.New("unknown configuration kind")

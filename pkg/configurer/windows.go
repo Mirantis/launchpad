@@ -14,6 +14,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/constant"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
+	"github.com/Mirantis/launchpad/pkg/util/redact"
 	"github.com/avast/retry-go"
 	"github.com/hashicorp/go-version"
 	"github.com/k0sproject/rig/v2/cmd"
@@ -407,12 +408,16 @@ func (c WindowsConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo stri
 	// the value into a spelling that never occurs, and because QuoteMeta is
 	// the identity function for alphanumerics the failure is invisible
 	// until a password contains a metacharacter.
-	redactions := []cmd.ExecOption{
-		cmd.Redact(dockerCmd.Quote(pass)),
-		cmd.Redact(dockerCmd.Quote(user)),
-		cmd.Redact(pass),
-		cmd.Redact(user),
-		cmd.AllowWinStderr(),
+	//
+	// Longest first: rig replaces each value in turn, so a username that is
+	// a prefix of the password would otherwise be substituted first and
+	// leave the rest of the password in the log.
+	values := redact.ByLengthDesc(dockerCmd.Quote(pass), dockerCmd.Quote(user), pass, user)
+	redactions := make([]cmd.ExecOption, 0, len(values)+1)
+	redactions = append(redactions, cmd.AllowWinStderr())
+
+	for _, value := range values {
+		redactions = append(redactions, cmd.Redact(value))
 	}
 	if err := h.Exec(loginCmd, redactions...); err != nil {
 		return fmt.Errorf("failed to login to docker registry: %w", err)

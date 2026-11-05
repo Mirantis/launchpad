@@ -41,22 +41,28 @@ spec:
 
 // A configuration that cannot be parsed is still dumped, because a debug
 // dump of a broken configuration is exactly when the output is wanted. The
-// masking it gets is the old regex, which is best-effort: it is case
-// sensitive and knows only two key names.
+// masking it gets is line oriented rather than structural, but it covers
+// the same key set, so camelCase schema keys and credential-named
+// environment variables are masked there too.
 func TestRedactConfigDumpFallsBackOnUnparseableInput(t *testing.T) {
-	dump := redactConfigDump([]byte("spec:\n  hosts:\n - broken\n\tpassword: fake-host-password\n"))
+	dump := redactConfigDump([]byte(
+		"spec:\n  hosts:\n - broken\n\tpassword: fake-host-password\n" +
+			"\tadminPassword: fake-admin-password\n" +
+			"\tREGISTRY_TOKEN: fake-registry-token\n"))
 
-	require.NotContains(t, dump, "fake-host-password", "the fallback must still mask what it can match")
-	require.Contains(t, dump, "[REDACTED]")
+	for _, secret := range []string{"fake-host-password", "fake-admin-password", "fake-registry-token"} {
+		require.NotContainsf(t, dump, secret, "the fallback left %q in an unparseable config dump:\n%s", secret, dump)
+	}
 }
 
-// The fallback's weakness is the reason it is documented rather than
-// trusted: it matches lowercase username and password only, so a camelCase
-// key in an unparseable document is not masked. This pins the limit so that
-// nobody reads the fallback as equivalent to the parsed path.
-func TestRedactConfigDumpFallbackDoesNotCoverSchemaKeys(t *testing.T) {
-	dump := redactConfigDump([]byte("spec:\n  mke:\n - broken\n\tadminPassword: fake-admin-password\n"))
+// The fallback's real limit, and the reason the log line calls it
+// best-effort: it works a line at a time, so a credential in a block scalar
+// is not masked. The parsed path has no such gap. This pins the boundary so
+// that nobody reads the two as equivalent.
+func TestRedactConfigDumpFallbackCannotSeeBlockScalars(t *testing.T) {
+	dump := redactConfigDump([]byte(
+		"spec:\n  mke:\n - broken\n\tkeyData: |\n\t  fake-key-line-one\n\t  fake-key-line-two\n"))
 
-	require.Contains(t, dump, "fake-admin-password",
-		"if this now masks, the fallback improved and its documented limit should be updated")
+	require.Contains(t, dump, "fake-key-line-one",
+		"if this now masks, the fallback gained multi-line coverage and the log line's wording should be revisited")
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/constant"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/iputil"
+	"github.com/Mirantis/launchpad/pkg/util/redact"
 	"github.com/k0sproject/rig/v2/cmd"
 	rigos "github.com/k0sproject/rig/v2/os"
 	"github.com/k0sproject/rig/v2/remotefs"
@@ -419,12 +420,19 @@ func (c LinuxConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo string
 	// the quoting changes that text. regexp.QuoteMeta must not be applied:
 	// it escapes the value into a spelling that never occurs, which fails
 	// silently for any value containing a regex metacharacter.
-	if err := h.Exec(loginCmd,
-		cmd.StdinString(pass),
-		cmd.Redact(dockerCmd.Quote(user)),
-		cmd.Redact(user),
-		cmd.Redact(pass),
-	); err != nil {
+	//
+	// Longest first: rig replaces each value in turn, so a username that is
+	// a prefix of the password would otherwise be substituted first and
+	// leave the rest of the password in the log.
+	values := redact.ByLengthDesc(dockerCmd.Quote(user), user, pass)
+	opts := make([]cmd.ExecOption, 0, len(values)+1)
+	opts = append(opts, cmd.StdinString(pass))
+
+	for _, value := range values {
+		opts = append(opts, cmd.Redact(value))
+	}
+
+	if err := h.Exec(loginCmd, opts...); err != nil {
 		return fmt.Errorf("failed to login to the docker registry: %w", err)
 	}
 	return nil
