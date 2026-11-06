@@ -155,10 +155,11 @@ func TestWindowsMCRInstallCommand(t *testing.T) {
 		`C:\Users\Administrator\installer.ps1`,
 		"https://repos-internal.mirantis.com",
 		"test-29.9.2/fips",
+		false,
 	)
 
 	require.Equal(t,
-		`powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive`+
+		`powershell.exe -ExecutionPolicy AllSigned -NoProfile -NonInteractive`+
 			` -File ^"C:\Users\Administrator\installer.ps1^"`+
 			` -DownloadUrl ^"https://repos-internal.mirantis.com^"`+
 			` -Channel ^"test-29.9.2/fips^"`+
@@ -180,15 +181,35 @@ func TestWindowsMCRInstallCommandDoesNotChainCommands(t *testing.T) {
 		{name: "ampersand in repo URL query", repoURL: "https://mirror.example.com/?a=1&b=2", channel: "stable"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := windowsMCRInstallCommand(`C:\installer.ps1`, tc.repoURL, tc.channel)
+			got := windowsMCRInstallCommand(`C:\installer.ps1`, tc.repoURL, tc.channel, false)
 			require.Empty(t, unescapedCmdOperators(got), "cmd.exe would act on an operator in %q", got)
 		})
 	}
 }
 
 func TestWindowsMCRInstallCommandEscapesChannelQuote(t *testing.T) {
-	got := windowsMCRInstallCommand(`C:\installer.ps1`, "https://repos.mirantis.com", `x" && whoami`)
+	got := windowsMCRInstallCommand(`C:\installer.ps1`, "https://repos.mirantis.com", `x" && whoami`, false)
 	require.Contains(t, got, ` -Channel ^"x\^" ^&^& whoami^" -Verbose`)
+}
+
+// TestWindowsMCRInstallCommandRequiresASignedScript covers PRODENG-3924 AC-1:
+// the installer runs under AllSigned, so PowerShell verifies the script's
+// Authenticode signature, unless the operator opts out for a script of their
+// own that Mirantis did not sign.
+func TestWindowsMCRInstallCommandRequiresASignedScript(t *testing.T) {
+	signed := windowsMCRInstallCommand(`C:\installer.ps1`, "https://repos.mirantis.com", "stable", false)
+	require.Contains(t, signed, "-ExecutionPolicy AllSigned")
+	require.NotContains(t, signed, "Bypass",
+		"Bypass disables the signature check this ticket exists to restore")
+
+	optedOut := windowsMCRInstallCommand(`C:\installer.ps1`, "https://repos.mirantis.com", "stable", true)
+	require.Contains(t, optedOut, "-ExecutionPolicy Bypass",
+		"installURLWindowsAllowUnsigned must still permit an operator's own script")
+
+	// The opt-out changes the policy and nothing else.
+	require.Equal(t,
+		strings.Replace(signed, "-ExecutionPolicy AllSigned", "-ExecutionPolicy Bypass", 1),
+		optedOut)
 }
 
 // unescapedCmdOperators returns the &, |, < and > that cmd.exe would act on.
