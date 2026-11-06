@@ -11,7 +11,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/Mirantis/launchpad/pkg/mke"
 	"github.com/Mirantis/launchpad/test"
-	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,11 +37,27 @@ var LAUNCHPAD = map[string]any{
 var NETWORK = map[string]any{
 	"cidr": "172.31.0.0/16",
 }
+
+// One subnet per AZ, each nodegroup in exactly one of them. The provision
+// module derives AZs as slice(available_azs, 0, len(subnets)), so the subnet
+// count is the AZ count; a single subnet put every nodegroup in one AZ and
+// made the stack fail when that AZ ran out of the instance type. The CIDRs
+// subdivide the /17 the single subnet used, leaving the VPC's upper half free.
 var SUBNETS = map[string]any{
-	"main": map[string]any{
-		"cidr":       "172.31.0.0/17",
+	"main0": map[string]any{
+		"cidr":       "172.31.0.0/19",
 		"private":    false,
-		"nodegroups": []string{"MngrUbuntu22", "WrkUbuntu22", "WrkRhel9", "WrkSles15"},
+		"nodegroups": []string{"MngrUbuntu22", "WrkUbuntu22"},
+	},
+	"main1": map[string]any{
+		"cidr":       "172.31.32.0/19",
+		"private":    false,
+		"nodegroups": []string{"WrkRhel9"},
+	},
+	"main2": map[string]any{
+		"cidr":       "172.31.64.0/19",
+		"private":    false,
+		"nodegroups": []string{"WrkSles15"},
 	},
 }
 
@@ -66,19 +81,24 @@ func TestMain(m *testing.M) {
 
 	MKE_CONNECT["password"] = test.GenerateRandomAlphaNumericString(12)
 
-	options := terraform.Options{
+	options := test.TerraformOptions(
+		t,
 		// The path to where the Terraform tf chart is located
-		TerraformDir: "../../examples/terraform/aws-simple",
-		Vars: map[string]any{
+		"../../examples/terraform/aws-simple",
+		map[string]any{
 			"name":            name,
 			"aws":             AWS,
-			"launchpad":       LAUNCHPAD,
 			"network":         NETWORK,
 			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,
 			"nodegroups":      nodegroups,
 		},
-	}
+		// LAUNCHPAD nests the MKE admin password, so it travels by TF_VAR_*
+		// rather than as a "-var" argument. See test.TerraformOptions.
+		map[string]any{
+			"launchpad": LAUNCHPAD,
+		},
+	)
 
 	sp := test.GetInstance()
 	sp.Setup(t, options)
@@ -107,8 +127,7 @@ func TestMKEClientConfig(t *testing.T) {
 	home, err := homedir.Dir()
 	assert.NoError(t, err)
 
-	t.Logf("Terraform Options: %v", sp.TerraformOptions)
-	mkeConnectOut := terraform.OutputJson(t, sp.TerraformOptions, "mke_connect")
+	mkeConnectOut := test.OutputSecretJSON(t, sp.TerraformOptions, "mke_connect")
 
 	product.ClientConfig()
 	var m struct {

@@ -23,6 +23,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/docker"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/hashicorp/go-version"
 	rigcmd "github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
@@ -88,7 +89,7 @@ func GetClientBundle(mkeURL *url.URL, tlsConfig *tls.Config, username, password 
 	// Login and get a token for the user
 	token, err := GetToken(client, mkeURL, username, password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get token for (%s:%s): %w", username, password, err)
+		return nil, fmt.Errorf("failed to get token for user %q: %w", username, err)
 	}
 
 	mkeURL.Path = "/api/clientbundle"
@@ -265,20 +266,42 @@ func getBundleDir(config *mkeconfig.ClusterConfig) (string, error) {
 
 var errInvalidBundle = fmt.Errorf("invalid bundle")
 
+// safePath resolves a bundle member name against the bundle directory and
+// rejects anything that escapes it.
+//
+// The prefix comparison is separator-terminated: a bare strings.HasPrefix lets
+// a member named "../adminX/evil" through when the base is ".../bundle/admin",
+// because the sibling directory's name starts with the base's name. The base is
+// made absolute as well, so the two sides of the comparison cannot differ in
+// form.
 func safePath(base, rel string) (string, error) {
-	abs, err := filepath.Abs(filepath.Join(base, rel))
+	absBase, err := filepath.Abs(base)
+	if err != nil {
+		return "", fmt.Errorf("%w: error while getting absolute base path: %w", errInvalidBundle, err)
+	}
+	abs, err := filepath.Abs(filepath.Join(absBase, rel))
 	if err != nil {
 		return "", fmt.Errorf("%w: error while getting absolute path: %w", errInvalidBundle, err)
 	}
-	if !strings.HasPrefix(abs, base) {
+	if abs != absBase && !strings.HasPrefix(abs, absBase+string(os.PathSeparator)) {
 		return "", fmt.Errorf("%w: zip slip detected", errInvalidBundle)
 	}
 	return abs, nil
 }
 
 func writeBundle(bundleDir string, bundle *zip.Reader) error {
-	if err := os.MkdirAll(bundleDir, os.ModePerm); err != nil {
-		return fmt.Errorf("error while creating directory: %w", err)
+	// The bundle is credential material issued to a single admin user: the
+	// directory and every member in it are private to that user.
+	if err := fileutil.MkdirPrivate(bundleDir); err != nil {
+		return fmt.Errorf("error while creating bundle directory: %w", err)
+	}
+	// Absolutised once and reused by the barrier below. safePath returns an
+	// absolute path, so comparing it against a merely cleaned bundleDir would
+	// reject every member whenever bundleDir is relative -- the same
+	// absolute-versus-raw mismatch this change removed from safePath itself.
+	absBundleDir, err := filepath.Abs(bundleDir)
+	if err != nil {
+		return fmt.Errorf("error while getting absolute bundle path: %w", err)
 	}
 	log.Debugf("Writing out bundle to %s", bundleDir)
 	for _, zipFile := range bundle.File {
@@ -292,29 +315,33 @@ func writeBundle(bundleDir string, bundle *zip.Reader) error {
 		if err != nil {
 			return fmt.Errorf("error while reading file %s: %w", zipFile.Name, err)
 		}
-		mode := uint32(0o644)
-		if strings.Contains(zipFile.Name, "key.pem") {
-			mode = 0o600
-		}
-
-		// mke bundle will contain folders as well as files, if folder exists fd will not be empty
-		if dir := filepath.Dir(zipFile.Name); dir != "" && dir != "." {
-			safeDir, err := safePath(bundleDir, dir)
-			if err != nil {
-				return err
-			}
-			if err := os.MkdirAll(safeDir, 0o700); err != nil { // #nosec G703 -- safeDir from safePath
-				return fmt.Errorf("error while creating directory: %w", err)
-			}
-		}
+		// Every member is 0600, not just key.pem. kube.yml embeds
+		// client-key-data, so it is private-key material under another name,
+		// and no member of the bundle has a legitimate reader other than the
+		// admin user it was issued to. Matching on names instead would fail
+		// open the moment MKE adds a member, which is how key.pem came to be
+		// the only protected file.
 
 		outFile, err := safePath(bundleDir, zipFile.Name)
 		if err != nil {
 			return err
 		}
+		// Barrier at the point of use, in addition to safePath's own check.
+		// The destination is re-tested against the cleaned bundle directory
+		// immediately before it reaches the filesystem, so a future change
+		// to safePath cannot silently remove the only guard.
+		if !strings.HasPrefix(outFile, absBundleDir+string(os.PathSeparator)) {
+			return fmt.Errorf("%w: zip slip detected", errInvalidBundle)
+		}
 
-		err = os.WriteFile(outFile, data, os.FileMode(mode)) // #nosec G703 -- outFile from safePath
-		if err != nil {
+		// The bundle contains directories as well as files. Creating the
+		// parent of the already-validated destination covers both, and
+		// avoids validating the member name twice by two different routes.
+		if err := fileutil.MkdirPrivate(filepath.Dir(outFile)); err != nil {
+			return fmt.Errorf("error while creating directory for %s: %w", zipFile.Name, err)
+		}
+
+		if err := fileutil.WritePrivateFile(outFile, data); err != nil {
 			return fmt.Errorf("error while writing file %s: %w", zipFile.Name, err)
 		}
 	}
