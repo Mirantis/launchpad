@@ -14,7 +14,7 @@ import (
 // MSRConfig has all the bits needed to configure MSR during installation.
 type MSRConfig struct {
 	Version      string       `yaml:"version" validate:"required"`
-	ImageRepo    string       `yaml:"imageRepo,omitempty"`
+	ImageRepo    string       `yaml:"imageRepo,omitempty" validate:"omitempty,image_repo"`
 	InstallFlags common.Flags `yaml:"installFlags,flow,omitempty"`
 	UpgradeFlags common.Flags `yaml:"upgradeFlags,flow,omitempty"`
 	ReplicaIDs   string       `yaml:"replicaIDs,omitempty" default:"random"`

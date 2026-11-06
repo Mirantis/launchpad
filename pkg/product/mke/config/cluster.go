@@ -7,6 +7,7 @@ import (
 
 	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/Mirantis/launchpad/pkg/docker/hub"
+	"github.com/Mirantis/launchpad/pkg/docker/reference"
 	common "github.com/Mirantis/launchpad/pkg/product/common/config"
 	validator "github.com/go-playground/validator/v10"
 	rig "github.com/k0sproject/rig/v2"
@@ -72,6 +73,9 @@ func (c *ClusterConfig) Validate() error {
 	if err := validator.RegisterValidation("mcr_repo_url", isValidMCRRepoURL); err != nil {
 		return fmt.Errorf("register mcr repo url validation: %w", err)
 	}
+	if err := validator.RegisterValidation("image_repo", isValidImageRepo); err != nil {
+		return fmt.Errorf("register image repo validation: %w", err)
+	}
 	if err := validator.RegisterValidation("cluster_name", isPathSafeName); err != nil {
 		return fmt.Errorf("register cluster name validation: %w", err)
 	}
@@ -87,6 +91,23 @@ func isValidMCRChannel(fl validator.FieldLevel) bool {
 
 func isValidMCRRepoURL(fl validator.FieldLevel) bool {
 	return common.IsValidMCRRepoURL(fl.Field().String())
+}
+
+// isValidImageRepo accepts only a value that composes into a well-formed
+// Docker/OCI image reference.
+//
+// spec.*.imageRepo is expanded by envsubst and is interpolated into image
+// references that become arguments to docker pull, tag, inspect and login on
+// every host, so it is validated as an allowlist: anything the reference
+// grammar does not describe is rejected rather than anything known-bad being
+// denied. A denylist only blocks the metacharacters someone thought of.
+//
+// The grammar is pkg/docker/reference, not the regex at pkg/docker/image.go.
+// That one is line-anchored and requires a tag and a slash because it scrapes
+// bootstrapper stdout; it rejects "docker.io/mirantis", which launchpad ships
+// as its own default.
+func isValidImageRepo(fl validator.FieldLevel) bool {
+	return reference.IsValidRepositoryPrefix(fl.Field().String())
 }
 
 // isPathSafeName accepts only values usable as a single filesystem path
