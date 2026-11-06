@@ -1,5 +1,11 @@
 // variables calculated before ami data is retrieved
 locals {
+  // var.windows_password is null on Linux-only stacks, where no Windows node
+  // exists to carry it; the consumers below take a string.  Its validation
+  // rejects null when a windows_ platform is in use, so reaching here with
+  // null means no Windows node is being provisioned.
+  windows_password = var.windows_password == null ? "" : var.windows_password
+
   // find the unique platforms actually used in the node_group_definitions
   unique_used_platforms = distinct([for ngd in var.nodegroups : ngd.platform])
 
@@ -31,7 +37,7 @@ module "platform" {
   version = "0.3.0"
 
   platform_key     = local.upstream_platform_keys[count.index]
-  windows_password = var.windows_password
+  windows_password = local.windows_password
 }
 
 data "aws_ami" "local" {
