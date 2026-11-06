@@ -25,6 +25,39 @@ admin_cidrs = ["198.51.100.17/32", "203.0.113.0/24"]
 Node-to-node traffic does not pass through these rules, so narrowing this does
 not affect the cluster talking to itself.
 
+#### NodePort exposure — `nodeport_cidrs`
+
+This example installs MKE with `--nodeport-range=32768-35535`, so Kubernetes
+NodePort services land in that range on every node. `nodeport_cidrs` lists the
+CIDRs allowed to reach it. The range itself is stated once, as
+`local.nodeport_range` in `launchpad.tf`, and feeds both the install flag and
+the security group rule so the two cannot disagree.
+
+Leaving it unset means "use `admin_cidrs`", which keeps an existing
+`terraform.tfvars` working and carries `admin_cidrs`'s exposure with it: at
+both defaults the NodePort range is reachable from the whole internet. Set it
+when the people who reach your applications are not the people who administer
+the cluster — widening `admin_cidrs` to let application clients in would also
+hand them SSH and the MKE and Kubernetes APIs:
+
+```hcl
+nodeport_cidrs = ["203.0.113.0/24"]
+```
+
+The rule covers TCP and UDP, and does not include the VPC CIDR: nothing in
+this example load-balances the NodePort range, and node-to-node traffic is
+already covered by the cluster-internal rule.
+
+On `rhel_9` and `sles_15` nodes the host firewall is a second gate. The
+`user_data` in `terraform.tfvars.template` opens 2377, 7946, 4789 and 10250
+but not the NodePort range, so `firewall-cmd` still blocks it there whatever
+the security group says. Add the range to that `user_data` if you need
+NodePort services on those platforms.
+The `ubuntu_22.04` `user_data` omits the range in exactly the same way — it
+opens 2377, 7946, 10250/tcp and 7946, 4789/udp through `ufw` and nothing else —
+so the same gate applies on Ubuntu whenever `ufw` is active in that AMI, which
+is unverified here because confirming it needs a running AWS cluster.
+
 #### Credentials
 
 The MKE admin password (`launchpad.mke_connect.password`) and
