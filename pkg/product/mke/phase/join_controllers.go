@@ -29,6 +29,11 @@ func (p *JoinManagers) Run() error {
 			log.Infof("%s: already a swarm node", h)
 			continue
 		}
+		// The join token stays in the command line: docker swarm join
+		// accepts it only as --token, with no environment variable, file
+		// or stdin variant, and --token "$(cat f)" would be expanded by
+		// the shell before exec, putting the token in docker's own argv
+		// anyway. See the same note in join_workers.go and PRODENG-3923.
 		joinCmd := h.Configurer.DockerCmd().Raw("swarm join").Arg(fmt.Sprintf("--advertise-addr=%s", h.SwarmAddress())).Raw("--token").Arg(p.Config.Spec.MCR.Metadata.ManagerJoinToken).Arg(swarmLeader.SwarmAddress()).String()
 		log.Debugf("%s: joining as manager", h)
 		err := h.Exec(joinCmd, cmd.StreamOutput(), cmd.Redact(p.Config.Spec.MCR.Metadata.ManagerJoinToken))
