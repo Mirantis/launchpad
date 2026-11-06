@@ -421,10 +421,32 @@ func (c WindowsConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo stri
 	return nil
 }
 
+// setxCommand builds the setx command line for one environment variable.
+//
+// Extracted so the complete command can be asserted, not just the quoter:
+// a regression that replaced cmdQuote with ps.DoubleQuote, or dropped the
+// quoting entirely, would leave the quoter's own tests passing.
+func setxCommand(key, value string) string {
+	return fmt.Sprintf(`setx %s %s`, cmdQuote(key), cmdQuote(value))
+}
+
 // UpdateEnvironment updates the hosts's environment variables.
+//
+// setx is a cmd.exe command, so the line is quoted with cmdQuote, not with
+// ps.DoubleQuote. ps.DoubleQuote escapes a double quote as backtick-quote,
+// which is a PowerShell escape: cmd.exe does not honour the backtick, so the
+// quote stays live, closes the token and anything after an "&" runs as a
+// separate command in the administrator WinRM session.
+//
+// Keys are validated as well as quoted, mirroring the Linux implementation:
+// a key is not a value, and a name that is not a legal variable name cannot
+// be made safe by quoting it.
 func (c WindowsConfigurer) UpdateEnvironment(h Host, env map[string]string) error {
 	for k, v := range env {
-		if err := h.Exec(fmt.Sprintf(`setx %s %s`, ps.DoubleQuote(k), ps.DoubleQuote(v))); err != nil {
+		if !envKeyRegexp.MatchString(k) {
+			return fmt.Errorf("invalid environment variable key %q: must match %s", k, envKeyRegexp.String())
+		}
+		if err := h.Exec(setxCommand(k, v)); err != nil {
 			return fmt.Errorf("failed to set environment variable %s: %w", k, err)
 		}
 	}
@@ -433,12 +455,21 @@ func (c WindowsConfigurer) UpdateEnvironment(h Host, env map[string]string) erro
 
 // CleanupEnvironment removes environment variable configuration.
 func (c WindowsConfigurer) CleanupEnvironment(h Host, env map[string]string) error {
-	for k := range env {
-		if err := h.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'User')"`, ps.SingleQuote(k))); err != nil {
-			return fmt.Errorf("failed to remove user environment variable %s: %w", k, err)
+	for key := range env {
+		if !envKeyRegexp.MatchString(key) {
+			return fmt.Errorf("invalid environment variable key %q: must match %s", key, envKeyRegexp.String())
 		}
-		if err := h.Exec(fmt.Sprintf(`powershell "[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')"`, ps.SingleQuote(k))); err != nil {
-			return fmt.Errorf("failed to remove machine environment variable %s: %w", k, err)
+		// ps.Cmd rather than a `powershell "..."` line: the previous form
+		// placed a PowerShell-quoted value inside a region cmd.exe parses,
+		// and ps.SingleQuote does not escape a double quote, so a quote in
+		// the key closed the cmd.exe region and chained. ps.Cmd passes the
+		// script as base64 in -EncodedCommand, which neither cmd.exe nor the
+		// outer login shell interprets.
+		if err := h.Exec(ps.Cmd(fmt.Sprintf(`[Environment]::SetEnvironmentVariable(%s, $null, 'User')`, ps.SingleQuote(key)))); err != nil {
+			return fmt.Errorf("failed to remove user environment variable %s: %w", key, err)
+		}
+		if err := h.Exec(ps.Cmd(fmt.Sprintf(`[Environment]::SetEnvironmentVariable(%s, $null, 'Machine')`, ps.SingleQuote(key)))); err != nil {
+			return fmt.Errorf("failed to remove machine environment variable %s: %w", key, err)
 		}
 	}
 	return nil
@@ -524,8 +555,12 @@ func (c WindowsConfigurer) CleanupLingeringMCR(h Host, dockerInfo commonconfig.D
 }
 
 func (c WindowsConfigurer) attemptPathDelete(h Host, path string) {
-	// Remove a folder using PowerShell command.
-	removeCommand := fmt.Sprintf("powershell Remove-Item -LiteralPath %s -Force -Recurse ", ps.SingleQuote(path))
+	// ps.Cmd rather than a bare `powershell ...` line: the previous form had
+	// no outer quoting at all, so a docker root reported by the host that
+	// contained "&" chained a second command. The path is host-reported, not
+	// configuration, which makes it lower severity than the config-driven
+	// sites but no better quoted.
+	removeCommand := ps.Cmd(fmt.Sprintf("Remove-Item -LiteralPath %s -Force -Recurse", ps.SingleQuote(path)))
 
 	if err := h.Exec(removeCommand); err != nil {
 		log.Debugf("%s: failed to remove %s: %s", h, path, err)
