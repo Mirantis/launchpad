@@ -52,7 +52,10 @@ locals {
     }
   }
 
-  // standard MCR/MKE/MSR firewall rules [here we just leave it open until we can figure this out]
+  // MCR/MKE/MSR firewall rules.  The load-balanced ports accept the VPC CIDR
+  // as well as var.admin_cidrs, because the ingress load balancers reach the
+  // manager nodes from inside the VPC rather than from an administrator's
+  // address, and their health checks would fail without it.
   launchpad_securitygroups = {
     "manager" = {
       description = "Common security group for manager nodes"
@@ -60,20 +63,20 @@ locals {
       tags        = local.common_tags
       ingress_ipv4 = [
         {
-          description : "Allow https traffic from anywhere"
+          description : "Allow https traffic from administrators and the load balancers"
           from_port : 443
           to_port : 443
           protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
         },
         {
-          description : "Allow https traffic from anywhere for kube api server"
+          description : "Allow kube api server traffic from administrators and the load balancer"
           from_port : 6443
           to_port : 6443
           protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
         },
       ]
     }
@@ -107,7 +110,7 @@ locals {
 
     winrm_address : ngn.public_ip
     winrm_user : ng.winrm_user
-    winrm_password : var.windows_password
+    winrm_password : local.windows_password
     winrm_useHTTPS : ng.winrm_useHTTPS
     winrm_insecure : ng.winrm_insecure
   } if contains(local.launchpad_roles, ng.role) && ng.connection == "winrm" }]...)
@@ -182,6 +185,23 @@ resource "launchpad_config" "cluster" {
 }
 
 // ------- Ye old launchpad yaml (just for debugging)
+//
+// The credentials are written from the terraform variables that carry them:
+// var.launchpad.mke_connect.password and var.windows_password.  The document
+// this produces is usable as-is, with nothing exported into the environment
+// first.
+//
+// To keep a password out of a tfvars file on disk, supply the variable
+// through terraform's own environment mechanism instead -- TF_VAR_<name>,
+// which terraform reads for any input variable:
+//
+//   export TF_VAR_windows_password='...'
+//   export TF_VAR_launchpad='{"drain":false,...,"mke_connect":{"username":"admin","password":"...","insecure":true}}'
+//
+// TF_VAR_launchpad takes the whole object as JSON because the MKE password
+// is nested inside it; test/terraform.go does exactly this.  Either route
+// produces the same configuration -- the environment is an option for
+// keeping secrets off disk, not a requirement for running the example.
 output "launchpad_yaml" {
   description = "launchpad config file yaml (for debugging)"
   sensitive   = true

@@ -79,7 +79,8 @@ func TestMain(m *testing.M) {
 
 	name := fmt.Sprintf("smoke-%s", uTestId)
 
-	MKE_CONNECT["password"] = test.GenerateRandomAlphaNumericString(12)
+	mkePassword := test.GenerateRandomAlphaNumericString(12)
+	MKE_CONNECT["password"] = mkePassword
 
 	options := test.TerraformOptions(
 		t,
@@ -88,6 +89,7 @@ func TestMain(m *testing.M) {
 		map[string]any{
 			"name":            name,
 			"aws":             AWS,
+			"admin_cidrs":     test.AdminCIDRs(t),
 			"network":         NETWORK,
 			"subnets":         SUBNETS,
 			"ssh_pk_location": tempSSHKeyPathDir,

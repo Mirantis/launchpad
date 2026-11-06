@@ -154,6 +154,7 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 	vars := map[string]interface{}{
 		"name":              name,
 		"aws":               awsConfig,
+		"admin_cidrs":       test.AdminCIDRs(t),
 		"network":           networkConfig,
 		"subnets":           subnets,
 		"ssh_pk_location":   tempSSHKeyPathDir,
@@ -184,8 +185,10 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 			break
 		}
 	}
+	windowsPassword := ""
 	if hasWindows {
-		secretVars["windows_password"] = generateWindowsPassword(t)
+		windowsPassword = generateWindowsPassword(t)
+		secretVars["windows_password"] = windowsPassword
 	}
 
 	options := test.TerraformOptions(t, "../../examples/terraform/aws-simple", vars, secretVars)

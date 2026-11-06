@@ -2,11 +2,39 @@ package test
 
 import (
 	"encoding/json"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 )
+
+// AdminCIDRs returns the value for the examples' admin_cidrs variable, which
+// scopes SSH, WinRM and the MKE/Kubernetes API to named networks.
+//
+// The variable defaults to 0.0.0.0/0 in the examples. These suites provision
+// throwaway stacks from runners whose egress address is not known ahead of
+// time, so they pass that same open range explicitly rather than inheriting
+// it, which keeps the exposure stated at the caller where it can be found and
+// changed. Set SMOKE_ADMIN_CIDRS (comma separated) to narrow it.
+func AdminCIDRs(t *testing.T) []string {
+	t.Helper()
+
+	configured := os.Getenv("SMOKE_ADMIN_CIDRS")
+	if configured == "" {
+		t.Logf("SMOKE_ADMIN_CIDRS is unset: provisioning with admin_cidrs = [0.0.0.0/0]")
+
+		return []string{"0.0.0.0/0"}
+	}
+
+	cidrs := strings.Split(configured, ",")
+	for i, cidr := range cidrs {
+		cidrs[i] = strings.TrimSpace(cidr)
+	}
+
+	return cidrs
+}
 
 // TerraformOptions builds terraform.Options that keep credentials out of the
 // terraform command line.
