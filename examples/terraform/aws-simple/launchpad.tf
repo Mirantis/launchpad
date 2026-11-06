@@ -62,6 +62,21 @@ locals {
     }
   }
 
+  // The Kubernetes NodePort range.  Stated once here and used twice: for the
+  // ingress rule below and for the --nodeport-range install flag in the
+  // generated launchpad.yaml.  Declaring a range the security group does not
+  // admit produces a cluster whose NodePort services are unreachable, so the
+  // two must not be able to drift apart.
+  nodeport_range = {
+    from = 32768
+    to   = 35535
+  }
+
+  // NodePort services are reached by application clients from outside the
+  // cluster, who are not necessarily the administrators var.admin_cidrs
+  // names.  Unset means inherit admin_cidrs; see variables.tf.
+  nodeport_cidrs = var.nodeport_cidrs != null ? var.nodeport_cidrs : var.admin_cidrs
+
   // MCR/MKE/MSR firewall rules.
   //
   // Node-to-node traffic inside the group stays unrestricted: MKE, swarm and
@@ -75,6 +90,11 @@ locals {
   // local.launchpad_ingresses above reach the nodes from inside the VPC
   // rather than from an administrator's address, and their health checks
   // would fail if only var.admin_cidrs were allowed.
+  //
+  // The NodePort range takes its own CIDR list and no VPC CIDR: nothing in
+  // local.launchpad_ingresses load-balances it, so there is no in-VPC health
+  // check to admit, and node-to-node NodePort traffic is already covered by
+  // the self rule.
   launchpad_securitygroups = {
     "permissive" = {
       description = "Common SG for all cluster machines"
@@ -119,6 +139,22 @@ locals {
           protocol : "tcp"
           self : false
           cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
+        },
+        {
+          description : "Kubernetes NodePort services (TCP), from application clients"
+          from_port : local.nodeport_range.from
+          to_port : local.nodeport_range.to
+          protocol : "tcp"
+          self : false
+          cidr_blocks : local.nodeport_cidrs
+        },
+        {
+          description : "Kubernetes NodePort services (UDP), from application clients"
+          from_port : local.nodeport_range.from
+          to_port : local.nodeport_range.to
+          protocol : "udp"
+          self : false
+          cidr_blocks : local.nodeport_cidrs
         }
       ]
       egress_ipv4 = [
@@ -230,7 +266,7 @@ spec:
     installFlags: 
     - "--san=${local.MKE_URL}"
     - "--default-node-orchestrator=kubernetes"
-    - "--nodeport-range=32768-35535"
+    - "--nodeport-range=${local.nodeport_range.from}-${local.nodeport_range.to}"
     upgradeFlags:
     - "--force-recent-backup"
     - "--force-minimums"
