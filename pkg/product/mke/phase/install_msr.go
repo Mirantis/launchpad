@@ -43,6 +43,23 @@ func (p *InstallMSR) Run() error {
 	}
 
 	installFlags := p.Config.Spec.MSR.InstallFlags
+	// Read BEFORE the Merge below, so it holds only what the user put in
+	// spec.msr.installFlags, not the credentials msr.BuildMKEFlags adds.
+	// Do not "fix" that ordering: it does not widen what reaches the
+	// command line, and moving it would widen what this list masks.
+	//
+	// Argv is covered whoever supplies the credentials. msr.Bootstrap calls
+	// StageSecrets (bootstrap.go:51) on the MERGED flags, and
+	// secretEnvByFlag (secrets.go:17-27) maps --ucp-username and
+	// --ucp-password, so both are extracted into mode-0600 files on the
+	// host and are gone from operationFlags before dockerCmd is built at
+	// bootstrap.go:66.
+	//
+	// The residual is the installer's STREAMED OUTPUT: execOpts below go to
+	// ExecStreams, and that masking does only cover the values read here,
+	// so a credential that came from BuildMKEFlags rather than from
+	// spec.msr.installFlags is not masked in the stream. Whether the
+	// installer echoes one has not been measured.
 	redacts := []string{installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")}
 
 	// Configure the mkeFlags from existing MKEConfig

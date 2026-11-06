@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"regexp"
 	"strings"
 
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
@@ -114,22 +113,6 @@ func (p *InstallMKE) Run() error {
 	})
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
-	}
-
-	// The configured password is the only source now that it no longer
-	// passes through the flag list: MKEConfig.UnmarshalYAML hoists an
-	// installFlags --admin-password into Spec.MKE.AdminPassword.
-	if p.Config.Spec.MKE.AdminPassword == "" {
-		re := regexp.MustCompile(`msg="Generated random admin password: (.+?)"`)
-		md := re.FindStringSubmatch(output)
-		if len(md) > 0 && md[1] != "" {
-			log.Warnf("Using an automatically generated password for MKE admin user: %s -- you will have to set it to Spec.MKE.AdminPassword for any subsequent launchpad runs.", md[1])
-			p.Config.Spec.MKE.AdminPassword = md[1]
-			if p.Config.Spec.MKE.AdminUsername == "" {
-				log.Debugf("defaulting to mke admin username 'admin'")
-				p.Config.Spec.MKE.AdminUsername = "admin"
-			}
-		}
 	}
 
 	err = mke.CollectFacts(p.leader, p.Config.Spec.MKE.Metadata)
