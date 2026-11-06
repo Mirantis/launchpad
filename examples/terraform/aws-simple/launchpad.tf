@@ -62,14 +62,46 @@ locals {
     }
   }
 
-  // standard MCR/MKE/MSR firewall rules [here we just leave it open until we can figure this out]
+  // The Kubernetes NodePort range.  Stated once here and used twice: for the
+  // ingress rule below and for the --nodeport-range install flag in the
+  // generated launchpad.yaml.  Declaring a range the security group does not
+  // admit produces a cluster whose NodePort services are unreachable, so the
+  // two must not be able to drift apart.
+  nodeport_range = {
+    from = 32768
+    to   = 35535
+  }
+
+  // NodePort services are reached by application clients from outside the
+  // cluster, who are not necessarily the administrators var.admin_cidrs
+  // names.  Unset means inherit admin_cidrs; see variables.tf.
+  nodeport_cidrs = var.nodeport_cidrs != null ? var.nodeport_cidrs : var.admin_cidrs
+
+  // MCR/MKE/MSR firewall rules.
+  //
+  // Node-to-node traffic inside the group stays unrestricted: MKE, swarm and
+  // the kubelet use a wide and version-dependent port range between cluster
+  // members, and every member is in this security group.
+  //
+  // Everything arriving from outside the group is restricted to the ports the
+  // cluster actually serves, from the CIDRs the operator names in
+  // var.admin_cidrs.  The two load-balanced ports additionally accept the VPC
+  // CIDR, because the MKE and MSR load balancers defined in
+  // local.launchpad_ingresses above reach the nodes from inside the VPC
+  // rather than from an administrator's address, and their health checks
+  // would fail if only var.admin_cidrs were allowed.
+  //
+  // The NodePort range takes its own CIDR list and no VPC CIDR: nothing in
+  // local.launchpad_ingresses load-balances it, so there is no in-VPC health
+  // check to admit, and node-to-node NodePort traffic is already covered by
+  // the self rule.
   launchpad_securitygroups = {
     "permissive" = {
       description = "Common SG for all cluster machines"
       nodegroups  = [for n, ng in var.nodegroups : n]
       ingress_ipv4 = [
         {
-          description : "Permissive internal traffic [BAD RULE]"
+          description : "Cluster-internal traffic between members of this group"
           from_port : 0
           to_port : 0
           protocol : "-1"
@@ -77,12 +109,52 @@ locals {
           cidr_blocks : []
         },
         {
-          description : "Permissive external traffic [BAD RULE]"
-          from_port : 0
-          to_port : 0
-          protocol : "-1"
+          description : "SSH for launchpad host configuration"
+          from_port : 22
+          to_port : 22
+          protocol : "tcp"
           self : false
-          cidr_blocks : ["0.0.0.0/0"]
+          cidr_blocks : var.admin_cidrs
+        },
+        {
+          description : "WinRM over HTTPS for launchpad host configuration"
+          from_port : 5986
+          to_port : 5986
+          protocol : "tcp"
+          self : false
+          cidr_blocks : var.admin_cidrs
+        },
+        {
+          description : "MKE and MSR web/API, from administrators and from the load balancers"
+          from_port : 443
+          to_port : 443
+          protocol : "tcp"
+          self : false
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
+        },
+        {
+          description : "Kubernetes API, from administrators and from the load balancer"
+          from_port : 6443
+          to_port : 6443
+          protocol : "tcp"
+          self : false
+          cidr_blocks : concat(var.admin_cidrs, [var.network.cidr])
+        },
+        {
+          description : "Kubernetes NodePort services (TCP), from application clients"
+          from_port : local.nodeport_range.from
+          to_port : local.nodeport_range.to
+          protocol : "tcp"
+          self : false
+          cidr_blocks : local.nodeport_cidrs
+        },
+        {
+          description : "Kubernetes NodePort services (UDP), from application clients"
+          from_port : local.nodeport_range.from
+          to_port : local.nodeport_range.to
+          protocol : "udp"
+          self : false
+          cidr_blocks : local.nodeport_cidrs
         }
       ]
       egress_ipv4 = [
@@ -126,7 +198,7 @@ locals {
 
     winrm_address : ngn.public_ip
     winrm_user : ng.winrm_user
-    winrm_password : var.windows_password
+    winrm_password : local.windows_password
     winrm_useHTTPS : ng.winrm_useHTTPS
     winrm_insecure : ng.winrm_insecure
   } if contains(local.launchpad_roles, ng.role) && ng.connection == "winrm" }]...)
@@ -136,7 +208,23 @@ locals {
 }
 
 // ------- Ye old launchpad yaml (just for debugging)
-
+//
+// The credentials are written from the terraform variables that carry them:
+// var.launchpad.mke_connect.password and var.windows_password.  The document
+// this produces is usable as-is, with nothing exported into the environment
+// first.
+//
+// To keep a password out of a tfvars file on disk, supply the variable
+// through terraform's own environment mechanism instead -- TF_VAR_<name>,
+// which terraform reads for any input variable:
+//
+//   export TF_VAR_windows_password='...'
+//   export TF_VAR_launchpad='{"drain":false,...,"mke_connect":{"username":"admin","password":"...","insecure":true}}'
+//
+// TF_VAR_launchpad takes the whole object as JSON because the MKE password
+// is nested inside it; test/terraform.go does exactly this.  Either route
+// produces the same configuration -- the environment is an option for
+// keeping secrets off disk, not a requirement for running the example.
 locals {
   launchpad_yaml = <<-EOT
 apiVersion: launchpad.mirantis.com/mke/v1.6
@@ -178,7 +266,7 @@ spec:
     installFlags: 
     - "--san=${local.MKE_URL}"
     - "--default-node-orchestrator=kubernetes"
-    - "--nodeport-range=32768-35535"
+    - "--nodeport-range=${local.nodeport_range.from}-${local.nodeport_range.to}"
     upgradeFlags:
     - "--force-recent-backup"
     - "--force-minimums"
