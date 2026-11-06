@@ -126,3 +126,25 @@ func TestPsDoubleQuoteIsUnsafeForCmdExe(t *testing.T) {
 		t.Errorf("ps.DoubleQuote(%q) = %q: unexpectedly caret-escapes, which would make it cmd.exe-safe", chainPayload, got)
 	}
 }
+
+// TestSetxCommandNeutralisesCommandChaining asserts the complete command
+// line, not only the quoter. WinRS runs every command through cmd.exe
+// (WINRS_SKIP_CMD_SHELL is sent as FALSE by masterzen/winrm, request.go:77),
+// so the value is parsed by cmd.exe exactly once and must survive that parse
+// as a literal.
+func TestSetxCommandNeutralisesCommandChaining(t *testing.T) {
+	got := setxCommand("LP3919PROBE", chainPayload)
+
+	require.True(t, strings.HasPrefix(got, "setx "), "command must still invoke setx: %q", got)
+
+	for i, r := range got {
+		if r != '&' {
+			continue
+		}
+		require.NotEqual(t, 0, i, "command must not begin with '&': %q", got)
+		require.Equal(t, uint8('^'), got[i-1], "'&' at %d is not caret-escaped: %q", i, got)
+	}
+
+	require.NotContains(t, got, "`\"", "a PowerShell backtick escape would not be honoured by cmd.exe: %q", got)
+	require.Contains(t, got, "whoami", "the value must survive quoting, not be dropped: %q", got)
+}

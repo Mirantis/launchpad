@@ -15,6 +15,13 @@ func TestIsValidMCRChannel(t *testing.T) {
 		{name: "versioned stable", input: "stable-29.8.0", want: true},
 		{name: "versioned test", input: "test-29.8.0", want: true},
 		{name: "underscore", input: "stable_29", want: true},
+		// FIPS channels are published as a subdirectory, not as a name
+		// decoration: repos.mirantis.com/rhel/9/x86_64/stable-29.2.1/fips/
+		// is a real path. test/smoke/smoke_test.go and PRODENG-4062's
+		// installer test both use this form, and an earlier revision of
+		// this validator rejected it.
+		{name: "fips channel", input: "stable-29.2.1/fips", want: true},
+		{name: "fips test channel", input: "test-29.9.2/fips", want: true},
 
 		// Would break the apt Components: field, which is whitespace-delimited.
 		{name: "space", input: "stable test", want: false},
@@ -22,7 +29,13 @@ func TestIsValidMCRChannel(t *testing.T) {
 		{name: "newline", input: "stable\nSuites: evil", want: false},
 
 		// Would change the URL path depth or truncate it.
-		{name: "slash", input: "stable/../gpg", want: false},
+		{name: "traversal via a second segment", input: "stable/../gpg", want: false},
+		{name: "three segments", input: "stable/fips/extra", want: false},
+		{name: "trailing slash", input: "stable/", want: false},
+		{name: "leading slash", input: "/stable", want: false},
+		{name: "empty second segment", input: "stable//fips", want: false},
+		{name: "dot segment", input: "stable/.", want: false},
+		{name: "dotdot segment", input: "stable/..", want: false},
 		{name: "query", input: "stable?a=b", want: false},
 		{name: "fragment", input: "stable#frag", want: false},
 

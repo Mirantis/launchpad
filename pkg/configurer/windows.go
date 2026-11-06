@@ -414,6 +414,15 @@ func (c WindowsConfigurer) AuthenticateDocker(h Host, user, pass, imageRepo stri
 	return nil
 }
 
+// setxCommand builds the setx command line for one environment variable.
+//
+// Extracted so the complete command can be asserted, not just the quoter:
+// a regression that replaced cmdQuote with ps.DoubleQuote, or dropped the
+// quoting entirely, would leave the quoter's own tests passing.
+func setxCommand(key, value string) string {
+	return fmt.Sprintf(`setx %s %s`, cmdQuote(key), cmdQuote(value))
+}
+
 // UpdateEnvironment updates the hosts's environment variables.
 //
 // setx is a cmd.exe command, so the line is quoted with cmdQuote, not with
@@ -430,7 +439,7 @@ func (c WindowsConfigurer) UpdateEnvironment(h Host, env map[string]string) erro
 		if !envKeyRegexp.MatchString(k) {
 			return fmt.Errorf("invalid environment variable key %q: must match %s", k, envKeyRegexp.String())
 		}
-		if err := h.Exec(fmt.Sprintf(`setx %s %s`, cmdQuote(k), cmdQuote(v))); err != nil {
+		if err := h.Exec(setxCommand(k, v)); err != nil {
 			return fmt.Errorf("failed to set environment variable %s: %w", k, err)
 		}
 	}

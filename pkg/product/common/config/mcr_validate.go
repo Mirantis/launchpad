@@ -3,6 +3,7 @@ package config
 import (
 	"net/url"
 	"regexp"
+	"strings"
 )
 
 // The patterns below are derived from where the values are interpolated, not
@@ -12,21 +13,31 @@ import (
 //
 // channel is interpolated into:
 //
-//   - a yum .repo baseurl path segment   (enterpriselinux/el.go)
-//   - a zypper repo URL path segment     (sles/sles.go)
+//   - a yum .repo baseurl path                (enterpriselinux/el.go)
+//   - a zypper repo URL path                  (sles/sles.go)
 //   - the Components: field of an apt deb822 source, which is
-//     whitespace-delimited (ubuntu/ubuntu.go)
+//     whitespace-delimited                    (ubuntu/ubuntu.go)
 //   - a -Channel parameter to the Windows installer (configurer/windows.go)
 //
-// The union of those requires a single URL path segment that is also a single
-// whitespace-delimited token: no "/", which would change the path depth; no
-// "?" or "#", which would truncate the URL; no whitespace, which would split
-// the apt component list.
+// A channel is one or two path segments. Two, because the FIPS channels are
+// published as a subdirectory and not as a decoration of the name:
+// repos.mirantis.com/rhel/9/x86_64/stable-29.2.1/fips/ is a real path, and
+// test/smoke/smoke_test.go and PRODENG-4062's installer test both use that
+// form. An earlier revision of this validator allowed one segment only, on
+// the reasoning that a "/" would change the path depth -- which is true, and
+// is exactly what the FIPS channel deliberately does.
+//
+// What the sinks still forbid: whitespace, which would split the apt
+// component list; "?" and "#", which would truncate the URL; a leading or
+// trailing "/", an empty segment, and the dot-names, which would change
+// which directory is addressed rather than extend the path.
 //
 // If Mirantis ever publishes a channel this rejects, the constraint is what
 // needs revisiting -- not the channel -- and the reader can see why from this
 // comment rather than guessing whether the restriction was deliberate.
-var mcrChannelRe = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
+const mcrChannelSegment = `[a-zA-Z0-9][a-zA-Z0-9._-]*`
+
+var mcrChannelRe = regexp.MustCompile(`^` + mcrChannelSegment + `(?:/` + mcrChannelSegment + `)?$`)
 
 // mcrRepoURLSchemes are the schemes the package managers this value is handed
 // to can actually fetch. file is included deliberately: an air-gapped install
@@ -47,7 +58,20 @@ var mcrRepoURLCharsRe = regexp.MustCompile(`^[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-
 // IsValidMCRChannel reports whether s is usable as an MCR channel at every
 // site it reaches.
 func IsValidMCRChannel(s string) bool {
-	return s != "" && len(s) <= 256 && mcrChannelRe.MatchString(s)
+	if s == "" || len(s) > 256 || !mcrChannelRe.MatchString(s) {
+		return false
+	}
+
+	// The segment pattern cannot produce "." or ".." on its own, but spelling
+	// the check out keeps the traversal guarantee visible at the point a
+	// reader looks for it rather than requiring them to re-derive it.
+	for _, seg := range strings.Split(s, "/") {
+		if seg == "." || seg == ".." {
+			return false
+		}
+	}
+
+	return true
 }
 
 // IsValidMCRRepoURL reports whether s is an absolute URL with a scheme the
