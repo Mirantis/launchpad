@@ -11,6 +11,7 @@ import (
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/product/mke/phase"
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/Mirantis/launchpad/version"
 	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/mitchellh/go-homedir"
@@ -179,13 +180,24 @@ func addFileLogger(clusterName, filename string) (*os.File, error) {
 	}
 
 	clusterDir := path.Join(home, constant.StateBaseDir, "cluster", clusterName)
-	if err := os.MkdirAll(clusterDir, os.ModePerm); err != nil {
+	// Logs can contain cluster detail and the directory is per-user state.
+	// MkdirPrivate also narrows a directory left 0777 by an earlier release.
+	if err := fileutil.MkdirPrivate(clusterDir); err != nil {
 		return nil, fmt.Errorf("error while creating directory for logs: %w", err)
 	}
 	logFileName := path.Join(clusterDir, filename)
 	logFile, err := os.OpenFile(logFileName, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log file at %s: %w", logFileName, err)
+	}
+	// OpenFile applies its mode only when it creates the file, so a log left
+	// 0644 by an earlier release would be refilled with cluster detail at
+	// 0644. Chmod explicitly rather than routing through
+	// fileutil.WritePrivateFile, which owns its descriptor and cannot return
+	// the O_RDWR handle the log hook needs.
+	if err := logFile.Chmod(0o600); err != nil {
+		logFile.Close()
+		return nil, fmt.Errorf("failed to restrict log file at %s: %w", logFileName, err)
 	}
 
 	// Send all logs to named file, this ensures we always have debug logs also available when needed.

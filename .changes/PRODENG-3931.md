@@ -1,0 +1,1 @@
+`metadata.name` now rejects names that contain `/` or `\`, names that are exactly `.` or `..`, and names with leading or trailing whitespace. Dotted names such as `prod.eu` are unaffected. Configs using a rejected name stop applying on upgrade. Rejection was chosen over silent rewriting because a rewritten name silently relocates Launchpad's internal storage paths.
