@@ -83,23 +83,29 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: make smoke-legacy
 
-  # Bleeding-edge platforms (rhel10/rocky10). MCR package availability for
-  # these platforms lags their AMI/repo-metadata availability -- this job is
-  # intentionally merged ahead of full support so it goes green automatically,
-  # with no further workflow changes, once repos.mirantis.com publishes
-  # docker-ee for rhel/10 and rocky/10. Label-gated rather than always-on
-  # while that support is pending.
+  # Bleeding-edge platforms: rhel10, rocky10 and ubuntu26 as both managers and
+  # workers. Gated like every other suite in this file -- a push to main, or a
+  # smoke-test / smoke-cutting-edge label on a PR.
   smoke-cutting-edge:
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set-mirantis-public
     if: |
       github.event_name == 'push' ||
       contains(github.event.pull_request.labels.*.name, 'smoke-test') ||
       contains(github.event.pull_request.labels.*.name, 'smoke-cutting-edge')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: true
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
+        with:
+          terraform_wrapper: false
       - name: Run cutting-edge smoke test
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}

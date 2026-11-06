@@ -46,6 +46,35 @@ func (p Platform) GetMSR() map[string]interface{} {
 	}
 }
 
+// el10UserData is cloud-init user data for RHEL 10 / Rocky 10.
+//
+// It must start with a shebang: the provision-aws module passes user_data to
+// the launch template verbatim (base64-encoded, not wrapped), and cloud-init
+// only executes a payload it recognises.
+//
+// EL10 minimal and cloud images do not carry kernel-modules-extra, which
+// provides xt_addrtype. iptables 1.8.11-15.el10 stopped recommending that
+// package unconditionally, and docker-ee does not Require it, so MCR's bridge
+// driver fails to append "-m addrtype --dst-type LOCAL" to nat-PREROUTING and
+// dockerd exits before it ever serves the socket. The nftables firewall
+// backend is not an alternative here: Docker 29 refuses to enable it in Swarm
+// mode, which MKE requires. See docker/docker-ce-packaging#1340.
+//
+// The package is pinned to the running kernel on purpose; an unpinned install
+// can land modules for a newer, not-yet-booted kernel, leaving modprobe
+// failing until reboot.
+//
+// No firewall rules here, unlike the EL9 and earlier entries below: firewalld
+// is not installed on the EL10 AMIs this suite resolves, so firewall-cmd is
+// not on PATH. Node-to-node traffic is already carried by the security group's
+// self rule in examples/terraform/aws-simple/launchpad.tf.
+const el10UserData = `#!/bin/bash
+set -eux
+dnf install -y "kernel-modules-extra-$(uname -r)"
+modprobe xt_addrtype br_netfilter ip_tables
+printf 'xt_addrtype\nbr_netfilter\nip_tables\n' >/etc/modules-load.d/docker.conf
+`
+
 var Platforms = map[string]Platform{
 	"Ubuntu20": {
 		Name:       "ubuntu_20.04",
@@ -122,14 +151,14 @@ var Platforms = map[string]Platform{
 		Count:      1,
 		VolumeSize: "100",
 		Public:     true,
-		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+		UserData:   el10UserData,
 	},
 	"Rhel10": {
 		Name:       "rhel_10",
 		Count:      1,
 		VolumeSize: "100",
 		Public:     true,
-		UserData:   "sudo firewall-cmd --permanent --add-port=2377/tcp --add-port=7946/tcp --add-port=7946/udp --add-port=4789/udp --add-port=10250/tcp; sudo firewall-cmd --reload",
+		UserData:   el10UserData,
 	},
 	"Windows2019": {
 		Name:       "windows_2019",
