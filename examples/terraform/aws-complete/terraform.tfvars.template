@@ -1,9 +1,34 @@
 // used to name infrastructure (CHANGE THIS)
 //name = "test"
 
+// CIDRs allowed to reach the cluster from outside it (SSH, WinRM over HTTPS,
+// MKE and the Kubernetes API).
+//
+// Defaults to ["0.0.0.0/0"] -- open to the whole internet. That is a real
+// risk, and it is the exposure this example has always had; it is left as the
+// default so an existing tfvars keeps working and a first run needs no extra
+// arguments. Narrow it whenever you can: list the machine running launchpad
+// and the operators who need the MKE UI. Uncomment and edit:
+//
+// admin_cidrs = ["198.51.100.17/32", "203.0.113.0/24"]
+
 aws = {
   region = "us-east-2"
 }
+
+// Credentials: both the MKE admin password below and windows_password at the
+// bottom of this file are ordinary terraform variables, and setting them here
+// is all that is needed.
+//
+// If you would rather not keep a password in this file, terraform reads any
+// input variable from TF_VAR_<name> in the environment instead:
+//
+//   export TF_VAR_launchpad='{"drain":false,"mcr_version":"25.0.13","mke_version":"3.8.8","msr_version":"","mke_connect":{"username":"admin","password":"...","insecure":false},"skip_create":false,"skip_destroy":true}'
+//   export TF_VAR_windows_password='...'
+//
+// The MKE password is nested inside the launchpad object, so TF_VAR_launchpad
+// carries that whole object as JSON. Omit the launchpad block below if you
+// use it. Either route works; the environment is optional.
 
 launchpad = {
   drain = false
@@ -54,4 +79,6 @@ nodegroups = {
 // set a windows password, if you have windows nodes
 // windows passwords must match a pattern, or connections will fail.
 // use something like: `testp@ss!`
+// Required only when a nodegroup uses a windows_ platform; may also be
+// supplied as TF_VAR_windows_password instead of being written here.
 // windows_password = ""
