@@ -12,6 +12,19 @@
 //
 // admin_cidrs = ["198.51.100.17/32", "203.0.113.0/24"]
 
+// CIDRs allowed to reach the Kubernetes NodePort range (32768-35535, the
+// range this example installs MKE with).
+//
+// Unset means "the same as admin_cidrs", so with both left alone the
+// NodePort range is reachable from the whole internet -- the same real risk
+// as above, and the exposure this example had before its ingress rules were
+// scoped. Set this when the people who reach your applications are not the
+// people who administer the cluster: widening admin_cidrs to admit
+// application clients would also hand them SSH and the MKE and Kubernetes
+// APIs. Uncomment and edit:
+//
+// nodeport_cidrs = ["203.0.113.0/24"]
+
 aws = {
   region = "us-east-2"
 }
