@@ -10,6 +10,7 @@ import (
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/stringutil"
 	"github.com/avast/retry-go"
+	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -39,20 +40,22 @@ func CollectFacts(h *mkeconfig.Host) (*mkeconfig.MSRMetadata, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to get MSR rethink container labels: %w", err)
 		}
-		outputFields := strings.Fields(output)
+		labelVersion, labelReplicaID, err := parseComposeProjectLabel(output)
+		if err != nil {
+			return nil, err
+		}
 		if version == "" {
-			version = outputFields[3]
+			version = labelVersion
 		}
 		if replicaID == "" {
-			replicaID = strings.Trim(outputFields[len(outputFields)-1], ")")
+			replicaID = labelReplicaID
 		}
 	}
 
 	var bootstrapimage string
 	imagename, err := h.ExecOutput(h.Configurer.DockerCmd().Raw("inspect").Arg(rethinkdbContainerID).Raw(`--format '{{ .Config.Image }}'`).String())
 	if err == nil {
-		repo := imagename[:strings.LastIndexByte(imagename, '/')]
-		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
+		bootstrapimage = bootstrapImageFor(imagename, version)
 	}
 
 	msrMeta := &mkeconfig.MSRMetadata{
@@ -134,9 +137,9 @@ func BuildMKEFlags(config *mkeconfig.ClusterConfig) commonconfig.Flags {
 	}
 
 	return commonconfig.Flags{
-		fmt.Sprintf("--ucp-url=\"%s\"", mkeURLHost(config)),
-		fmt.Sprintf("--ucp-username=\"%s\"", mkeUser),
-		fmt.Sprintf("--ucp-password=\"%s\"", mkePass),
+		fmt.Sprintf("--ucp-url %s", shellescape.Quote(mkeURLHost(config))),
+		fmt.Sprintf("--ucp-username %s", shellescape.Quote(mkeUser)),
+		fmt.Sprintf("--ucp-password %s", shellescape.Quote(mkePass)),
 	}
 }
 
@@ -151,13 +154,22 @@ func mkeURLHost(config *mkeconfig.ClusterConfig) string {
 // installer if it fails.
 func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
+	// BuildMKEFlags returns shell-quoted flag values. Recover the raw values
+	// before handing them to DockerCmd, which applies its own quoting.
+	unquote := func(flag string) string {
+		if raw, err := shellescape.Unquote(mkeFlags.GetValue(flag)); err == nil {
+			return raw
+		}
+
+		return mkeFlags.GetValue(flag)
+	}
 	destroyCmd := h.Configurer.DockerCmd().
 		Raw("run -it --rm").
 		Arg(fmt.Sprintf("mirantis/dtr:%s", h.MSRMetadata.InstalledVersion)).
 		Raw("destroy --ucp-insecure-tls").
-		Raw("--ucp-url").Arg(mkeFlags.GetValue("--ucp-url")).
-		Raw("--ucp-username").Arg(mkeFlags.GetValue("--ucp-username")).
-		Raw("--ucp-password").Arg(mkeFlags.GetValue("--ucp-password")).
+		Raw("--ucp-url").Arg(unquote("--ucp-url")).
+		Raw("--ucp-username").Arg(unquote("--ucp-username")).
+		Raw("--ucp-password").Arg(unquote("--ucp-password")).
 		Raw("--replica-id").Arg(h.MSRMetadata.ReplicaID).
 		String()
 	if err := h.Exec(destroyCmd); err != nil {
@@ -208,6 +220,42 @@ func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 }
 
 var errMaxReplicaID = fmt.Errorf("max sequential msr replica id exceeded")
+
+// errUnexpectedLabel is returned when a container label read from a host does
+// not have the shape the parsing below assumes.
+var errUnexpectedLabel = fmt.Errorf("unexpected MSR container label")
+
+// composeProjectVersionField is the offset of the version within the
+// whitespace-separated com.docker.compose.project label.
+const composeProjectVersionField = 3
+
+// parseComposeProjectLabel extracts the MSR version and replica ID from the
+// com.docker.compose.project container label. The label is free-form output
+// read from a host, so each index is taken only after proving the field is
+// there: the previous code indexed [3] and [len-1] unconditionally and
+// panicked on a short or empty response.
+func parseComposeProjectLabel(output string) (version, replicaID string, err error) {
+	fields := strings.Fields(output)
+	if len(fields) <= composeProjectVersionField {
+		return "", "", fmt.Errorf("%w: expected more than %d whitespace-separated fields in the compose project label, got %d", errUnexpectedLabel, composeProjectVersionField, len(fields))
+	}
+
+	return fields[composeProjectVersionField], strings.Trim(fields[len(fields)-1], ")"), nil
+}
+
+// bootstrapImageFor derives the MSR bootstrap image reference from the
+// rethinkdb image name. strings.LastIndexByte returns -1 when the name
+// carries no registry or namespace component, which made the previous slice
+// expression panic; such a name has no repository to derive from, so the
+// bootstrap image is left empty.
+func bootstrapImageFor(imagename, version string) string {
+	slash := strings.LastIndexByte(imagename, '/')
+	if slash < 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/dtr:%s", imagename[:slash], version)
+}
 
 // AssignSequentialReplicaIDs goes through all the MSR hosts, finds the highest replica id and assigns sequential ones starting from that to all the hosts without replica ids.
 func AssignSequentialReplicaIDs(c *mkeconfig.ClusterConfig) error {

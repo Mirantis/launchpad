@@ -43,7 +43,7 @@ func (sp *singletonProduct) Setup(t *testing.T, options terraform.Options) {
 		t.Fatal(err)
 	}
 
-	mkeClusterConfig := terraform.Output(t, terraformOptions, "launchpad_yaml")
+	mkeClusterConfig := OutputSecret(t, terraformOptions, "launchpad_yaml")
 
 	product, err := config.ProductFromYAML([]byte(mkeClusterConfig))
 	sp.Product = product

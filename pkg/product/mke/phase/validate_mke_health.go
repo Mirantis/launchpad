@@ -110,7 +110,9 @@ func checkMKENodesReady(mkeURL *url.URL, tlsConfig *tls.Config, username, passwo
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	resp, err := client.Do(req) // #nosec G107 G704 -- mkeURL from cluster config (trusted source)
 	if err != nil {
-		log.Debugf("Failed to get response from %s (%d): %v", mkeURL.String(), resp.StatusCode, err)
+		// net/http guarantees resp == nil when err != nil, so the status code
+		// is not available here and reading it panicked.
+		log.Debugf("Failed to get response from %s: %v", mkeURL.String(), err)
 		return fmt.Errorf("failed to get response from %s: %w", mkeURL.String(), err)
 	}
 

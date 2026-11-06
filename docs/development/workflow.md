@@ -4,11 +4,9 @@ This guide covers building, testing, and contributing to the Launchpad codebase.
 
 ## Building Locally
 
-Launchpad uses `goreleaser` for production builds, but provides a `Makefile` for local development.
+Launchpad provides a `Makefile` for local development. Production release builds run in GitHub Actions (`.github/workflows/release.yml`).
 
 - **`make local`**: Builds a single, platform-specific binary for rapid testing.
-- **`make build-release`**: Performs a full production build, requiring a clean repository and release tag.
-- **`make sign-release`**: Signs the Windows binary (requires specific environment variables).
 
 ## Testing Strategy
 

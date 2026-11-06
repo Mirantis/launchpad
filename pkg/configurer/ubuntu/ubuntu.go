@@ -3,9 +3,11 @@ package ubuntu
 import (
 	"fmt"
 	"io/fs"
+	"net/url"
 
 	"github.com/Mirantis/launchpad/pkg/configurer"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
+	"github.com/k0sproject/rig/v2/sh"
 )
 
 // Configurer is a generic Ubuntu level configurer implementation. Some of the configurer interface implementation
@@ -26,6 +28,27 @@ func (c Configurer) PrepareHost(h configurer.Host) error {
 		}
 	}
 	return nil
+}
+
+// mirantisKeyringPath is where the Mirantis APT signing key is installed.
+const mirantisKeyringPath = "/usr/share/keyrings/mirantis-archive-keyring.gpg"
+
+// gpgKeyImportScript downloads an armoured signing key and dearmors it into
+// mirantisKeyringPath. The URL is referenced as the quoted positional "$1",
+// never interpolated into this text, so bash expands it as data and never
+// parses it as code. pipefail makes a failed download fail the command instead
+// of silently installing an empty keyring.
+const gpgKeyImportScript = `set -o pipefail; curl -fsSL -- "$1" | gpg --batch --yes --output ` + mirantisKeyringPath + ` --dearmor`
+
+// gpgImportCommand builds the signing key import command for gpgURL.
+//
+// gpgURL derives from user-supplied config (spec.mcr.repoURL) and reaches a
+// root-privileged shell. It is passed to bash as a positional argument rather
+// than formatted into the script, so shell metacharacters in the URL stay
+// literal data: a URL such as "https://host/$(id)/gpg" is fetched verbatim
+// instead of starting a second command.
+func gpgImportCommand(gpgURL string) string {
+	return sh.Command("bash", "-c", gpgKeyImportScript, "launchpad-mcr-gpg", gpgURL)
 }
 
 // InstallMCR install Docker EE engine on Linux.
@@ -53,7 +76,14 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 	// https://docs.mirantis.com/mcr/25.0/install/mcr-linux/ubuntu.html instructions
 
 	// 2. import the mirantis gpg key
-	if err := h.Sudo().Exec(fmt.Sprintf("gpg --batch --yes --output /usr/share/keyrings/mirantis-archive-keyring.gpg --dearmor <<< $(curl -fsSL %s)", gpgURL)); err != nil {
+	// engineConfig.RepoURL is user-supplied config. ParseRequestURI is a cheap
+	// early reject for obvious junk, not the security control: "$", "(", ")"
+	// and backticks are all legal URL characters and pass it. The control is
+	// gpgImportCommand keeping the URL out of the script text.
+	if _, err := url.ParseRequestURI(gpgURL); err != nil {
+		return fmt.Errorf("invalid MCR repo URL %q: %w", gpgURL, err)
+	}
+	if err := h.Sudo().Exec(gpgImportCommand(gpgURL)); err != nil {
 		return fmt.Errorf("could not install the Mirantis Ubuntu GPG signing key")
 	}
 
@@ -76,8 +106,13 @@ Signed-by: /usr/share/keyrings/mirantis-archive-keyring.gpg
 		return fmt.Errorf("package manager could not install docker-ee: %w", err)
 	}
 
+	// Not a package-install failure: the package is already installed by this
+	// point. Reporting it as one sent readers to the wrong subsystem, and
+	// discarding the error threw away the only description of what actually
+	// went wrong -- including the journalctl output EnableMCR collects for
+	// exactly this case.
 	if err := c.EnableMCR(h, engineConfig); err != nil {
-		return fmt.Errorf("package manager could not install docker-ee")
+		return fmt.Errorf("could not enable and start the MCR service: %w", err)
 	}
 	return nil
 }

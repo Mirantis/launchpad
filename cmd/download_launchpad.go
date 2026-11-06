@@ -21,7 +21,10 @@ func NewDownloadLaunchpadCommand() *cli.Command {
 		Name:  "download-launchpad",
 		Usage: "Download the latest launchpad version",
 		Action: func(_ *cli.Context) error {
-			latest := version.GetLatest(time.Second * 20)
+			latest, err := version.GetLatest(time.Second * 20)
+			if err != nil {
+				return fmt.Errorf("failed to look up the latest release: %w", err)
+			}
 			if !latest.IsNewer() {
 				return fmt.Errorf("%w: upgrade not available", errNoDownloadAvailable)
 			}

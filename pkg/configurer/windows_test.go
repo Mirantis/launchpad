@@ -3,6 +3,7 @@ package configurer
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -74,4 +75,66 @@ func TestExecCtxIsBoundedAndCancelable(t *testing.T) {
 	require.NoError(t, ctx.Err())
 	cancel()
 	require.ErrorIs(t, ctx.Err(), context.Canceled)
+}
+
+// TestWindowsMCRInstallCommand pins the MCR installer command line (PRODENG-4062).
+func TestWindowsMCRInstallCommand(t *testing.T) {
+	got := windowsMCRInstallCommand(
+		`C:\Users\Administrator\installer.ps1`,
+		"https://repos-internal.mirantis.com",
+		"test-29.9.2/fips",
+	)
+
+	require.Equal(t,
+		`powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive`+
+			` -File ^"C:\Users\Administrator\installer.ps1^"`+
+			` -DownloadUrl ^"https://repos-internal.mirantis.com^"`+
+			` -Channel ^"test-29.9.2/fips^"`+
+			` -Verbose`,
+		got)
+	require.Empty(t, unescapedCmdOperators(got))
+}
+
+// TestWindowsMCRInstallCommandDoesNotChainCommands covers PRODENG-3919.
+func TestWindowsMCRInstallCommandDoesNotChainCommands(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		repoURL string
+		channel string
+	}{
+		{name: "quote and && in channel", repoURL: "https://repos.mirantis.com", channel: `stable" && whoami && "`},
+		{name: "pipe in channel", repoURL: "https://repos.mirantis.com", channel: "stable | whoami"},
+		{name: "redirect in repo URL", repoURL: `https://repos.mirantis.com" > C:\pwned.txt`, channel: "stable"},
+		{name: "ampersand in repo URL query", repoURL: "https://mirror.example.com/?a=1&b=2", channel: "stable"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := windowsMCRInstallCommand(`C:\installer.ps1`, tc.repoURL, tc.channel)
+			require.Empty(t, unescapedCmdOperators(got), "cmd.exe would act on an operator in %q", got)
+		})
+	}
+}
+
+func TestWindowsMCRInstallCommandEscapesChannelQuote(t *testing.T) {
+	got := windowsMCRInstallCommand(`C:\installer.ps1`, "https://repos.mirantis.com", `x" && whoami`)
+	require.Contains(t, got, ` -Channel ^"x\^" ^&^& whoami^" -Verbose`)
+}
+
+// unescapedCmdOperators returns the &, |, < and > that cmd.exe would act on.
+func unescapedCmdOperators(line string) []string {
+	var ops []string
+
+	inQuote := false
+
+	for i := 0; i < len(line); i++ {
+		switch char := line[i]; {
+		case char == '^' && !inQuote:
+			i++
+		case char == '"':
+			inQuote = !inQuote
+		case !inQuote && strings.IndexByte("&|<>", char) >= 0:
+			ops = append(ops, string(char))
+		}
+	}
+
+	return ops
 }
