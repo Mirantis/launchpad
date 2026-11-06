@@ -14,7 +14,7 @@ import (
 // MKEConfig has all the bits needed to configure mke during installation.
 type MKEConfig struct {
 	Version          string       `yaml:"version" validate:"required"`
-	ImageRepo        string       `yaml:"imageRepo,omitempty"`
+	ImageRepo        string       `yaml:"imageRepo,omitempty" validate:"omitempty,image_repo"`
 	AdminUsername    string       `yaml:"adminUsername,omitempty"`
 	AdminPassword    string       `yaml:"adminPassword,omitempty"`
 	InstallFlags     common.Flags `yaml:"installFlags,omitempty,flow"`
