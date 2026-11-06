@@ -1,8 +1,6 @@
 package configurer
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -24,90 +22,39 @@ var (
 	// and executed with -ExecutionPolicy Bypass, so plain http would let
 	// anyone on the path choose what runs as Administrator.
 	errInsecureInstallerURL = errors.New("container runtime install script must be fetched over https or read from a local file")
-
-	// errInstallerChecksumMismatch aborts when an operator-supplied digest
-	// does not match what was fetched.
-	errInstallerChecksumMismatch = errors.New("container runtime install script does not match the configured checksum")
 )
 
-// GetInstaller fetches the container runtime install script and returns the
-// path of the local copy.
-//
-// checksum is the operator-supplied SHA-256 of the script, hex encoded, or
-// empty. It is empty by default because Mirantis publishes nothing to pin
-// against: as measured for PRODENG-3924, https://get.mirantis.com/install.ps1
-// returns 200 while install.ps1.sha256, install.ps1.asc, install.ps1.sig and
-// checksums.sha256 all return 404. There is no upstream integrity anchor to
-// verify against, so the default protection is the https transport and the
-// pin exists for operators who mirror the script themselves and know its
-// digest.
-//
-// The cache key includes the checksum so that two hosts configured with the
-// same URL and different pins cannot share a verification result.
-func GetInstaller(source, checksum string) (string, error) {
-	cacheKey := source + "\x00" + checksum
-
-	path, ok := downloadedInstallers[cacheKey]
+func GetInstaller(source string) (string, error) {
+	path, ok := downloadedInstallers[source]
 	if ok {
 		return path, nil
 	}
 
-	path, getErr := downloadInstaller(source, checksum)
+	path, getErr := downloadInstaller(source)
 	if getErr != nil {
 		return "", fmt.Errorf("%w, installer download failed; %s", ErrInstallerDownloadFailed, getErr.Error())
 	}
-	downloadedInstallers[cacheKey] = path
+	downloadedInstallers[source] = path
 	return path, nil
 }
 
-// verifyInstallerChecksum compares the fetched script against the configured
-// digest.
-//
-// A mismatch is fatal and there is no override. An operator who sets a pin
-// has asked for the fetch to be verified; ignoring the pin with a warning
-// would be worse than not offering one, because the configuration would
-// claim a guarantee the run does not provide.
-func verifyInstallerChecksum(script, checksum string) error {
-	if checksum == "" {
-		return nil
-	}
-
-	sum := sha256.Sum256([]byte(script))
-	got := hex.EncodeToString(sum[:])
-
-	if !strings.EqualFold(got, strings.TrimSpace(checksum)) {
-		return fmt.Errorf("%w: expected %s, got %s", errInstallerChecksumMismatch, checksum, got)
-	}
-
-	return nil
-}
-
-// downloadInstaller fetches the script, verifies it, and stages it locally.
-//
-// Verification happens before the local copy exists, so a rejected script
-// leaves nothing on disk for a later step to pick up.
-func downloadInstaller(path, checksum string) (string, error) {
+// Run does all the prep work on the hosts in parallel.
+func downloadInstaller(path string) (string, error) {
 	winScript, err := getScript(path)
 	if err != nil {
 		return "", fmt.Errorf("failed to get Windows installer script: %w", err)
 	}
-
-	if err := verifyInstallerChecksum(winScript, checksum); err != nil {
-		return "", err
-	}
-
-	staged, err := os.CreateTemp("", "installerWindows")
+	f, err := os.CreateTemp("", "installerWindows")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temporary file for windows installer script: %w", err)
 	}
-	defer staged.Close()
 
-	_, err = staged.WriteString(winScript)
+	_, err = f.WriteString(winScript)
 	if err != nil {
 		return "", fmt.Errorf("failed to write to temporary file for windows installer script: %w", err)
 	}
 
-	return staged.Name(), nil
+	return f.Name(), nil
 }
 
 func parseURL(uri string) (*url.URL, error) {

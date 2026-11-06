@@ -15,6 +15,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Mirantis/launchpad/pkg/util/releaseutil"
 	"github.com/Mirantis/launchpad/version"
 	"github.com/stretchr/testify/require"
 )
@@ -180,7 +181,7 @@ func TestPublishedDigestReadsCombinedChecksumsFile(t *testing.T) {
 		TagName: "9.9.9",
 		Assets: []version.Asset{
 			{Name: assetName, URL: srv.URL + "/asset"},
-			{Name: version.ChecksumsAssetName, URL: srv.URL + "/checksums"},
+			{Name: releaseutil.ChecksumsAssetName, URL: srv.URL + "/checksums"},
 		},
 	}
 
@@ -196,12 +197,12 @@ func TestPublishedDigestFailsWhenAssetIsNotListed(t *testing.T) {
 
 	latest := &version.LaunchpadRelease{
 		TagName: "9.9.9",
-		Assets:  []version.Asset{{Name: version.ChecksumsAssetName, URL: srv.URL}},
+		Assets:  []version.Asset{{Name: releaseutil.ChecksumsAssetName, URL: srv.URL}},
 	}
 
 	_, err := publishedDigest(latest, "launchpad_linux_amd64_9.9.9")
 
-	require.ErrorIs(t, err, version.ErrNoChecksum)
+	require.ErrorIs(t, err, releaseutil.ErrNoChecksum)
 }
 
 func TestPublishedDigestFailsWhenReleaseHasNoChecksums(t *testing.T) {
@@ -212,5 +213,5 @@ func TestPublishedDigestFailsWhenReleaseHasNoChecksums(t *testing.T) {
 
 	_, err := publishedDigest(latest, "launchpad_linux_amd64_9.9.9")
 
-	require.ErrorIs(t, err, version.ErrNoChecksum)
+	require.ErrorIs(t, err, releaseutil.ErrNoChecksum)
 }

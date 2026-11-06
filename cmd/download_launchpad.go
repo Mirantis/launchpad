@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Mirantis/launchpad/pkg/util/releaseutil"
 	"github.com/Mirantis/launchpad/version"
 	"github.com/schollz/progressbar/v3"
 	"github.com/urfave/cli/v2"
@@ -118,9 +119,9 @@ func fetchAsset(rawURL string) (*http.Response, error) {
 // binary unverified: the whole point of the check is that an operator who
 // runs download-launchpad gets an executable whose bytes were vouched for.
 func publishedDigest(latest *version.LaunchpadRelease, assetName string) (string, error) {
-	checksums := latest.ChecksumsAsset()
+	checksums := releaseutil.ChecksumsAsset(latest)
 	if checksums == nil {
-		return "", fmt.Errorf("%w: release %s publishes no %s", version.ErrNoChecksum, latest.TagName, version.ChecksumsAssetName)
+		return "", fmt.Errorf("%w: release %s publishes no %s", releaseutil.ErrNoChecksum, latest.TagName, releaseutil.ChecksumsAssetName)
 	}
 
 	resp, err := fetchAsset(checksums.URL)
@@ -134,7 +135,7 @@ func publishedDigest(latest *version.LaunchpadRelease, assetName string) (string
 		return "", fmt.Errorf("failed to read the published checksums: %w", err)
 	}
 
-	digest, err := version.DigestFor(body, assetName)
+	digest, err := releaseutil.DigestFor(body, assetName)
 	if err != nil {
 		return "", fmt.Errorf("failed to find the published checksum: %w", err)
 	}

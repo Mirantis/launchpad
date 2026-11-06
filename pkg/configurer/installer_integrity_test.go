@@ -3,8 +3,6 @@
 package configurer
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -36,7 +34,7 @@ func TestGetInstallerRejectsNonHTTPSURLs(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, err := GetInstaller(srv.URL+"/install.ps1", "")
+	_, err := GetInstaller(srv.URL + "/install.ps1")
 
 	require.ErrorIs(t, err, ErrInstallerDownloadFailed)
 	require.ErrorContains(t, err, "scheme")
@@ -62,54 +60,10 @@ func TestGetInstallerRejectsNon200Status(t *testing.T) {
 
 	t.Cleanup(func() { installerClient = original })
 
-	_, err := GetInstaller(srv.URL+"/install.ps1", "")
+	_, err := GetInstaller(srv.URL + "/install.ps1")
 
 	require.ErrorIs(t, err, ErrInstallerDownloadFailed)
 	require.ErrorContains(t, err, "404")
-}
-
-// A configured pin that does not match aborts the run. There is no
-// override: a pin that can be ignored is worse than no pin, because the
-// configuration claims a guarantee the run does not provide.
-func TestGetInstallerRejectsChecksumMismatch(t *testing.T) {
-	clearInstallerCache(t)
-
-	path := writeTempScript(t, fakeScript)
-
-	_, err := GetInstaller(path, "0000000000000000000000000000000000000000000000000000000000000000")
-
-	require.ErrorIs(t, err, ErrInstallerDownloadFailed)
-	require.ErrorContains(t, err, "checksum")
-}
-
-// The matching pin is accepted, and the staged file holds the script.
-func TestGetInstallerAcceptsMatchingChecksum(t *testing.T) {
-	clearInstallerCache(t)
-
-	path := writeTempScript(t, fakeScript)
-	sum := sha256.Sum256([]byte(fakeScript))
-
-	staged, err := GetInstaller(path, hex.EncodeToString(sum[:]))
-	require.NoError(t, err)
-
-	got, err := os.ReadFile(staged) //nolint:gosec // path produced by the code under test
-	require.NoError(t, err)
-	require.Equal(t, fakeScript, string(got))
-}
-
-// Two hosts configured with the same URL and different pins must not share
-// a verification result: the cache key includes the checksum, so the second
-// call verifies rather than returning the first call's staged file.
-func TestGetInstallerCacheIsKeyedByChecksum(t *testing.T) {
-	clearInstallerCache(t)
-
-	path := writeTempScript(t, fakeScript)
-
-	_, err := GetInstaller(path, "")
-	require.NoError(t, err)
-
-	_, err = GetInstaller(path, "0000000000000000000000000000000000000000000000000000000000000000")
-	require.ErrorIs(t, err, ErrInstallerDownloadFailed)
 }
 
 // The configured URL being https says nothing about where the server sends
@@ -135,7 +89,7 @@ func TestGetInstallerRejectsDowngradeRedirect(t *testing.T) {
 
 	t.Cleanup(func() { installerClient = original })
 
-	_, err := GetInstaller(secure.URL+"/install.ps1", "")
+	_, err := GetInstaller(secure.URL + "/install.ps1")
 
 	require.ErrorIs(t, err, ErrInstallerDownloadFailed)
 	require.ErrorContains(t, err, "https")
@@ -151,18 +105,18 @@ func TestGetInstallerLocalPathSpellings(t *testing.T) {
 
 	path := writeTempScript(t, fakeScript)
 
-	_, err := GetInstaller(path, "")
+	_, err := GetInstaller(path)
 	require.NoError(t, err, "the native path is the documented spelling and must work on every platform")
 
 	if runtime.GOOS != "windows" {
 		return
 	}
 
-	_, err = GetInstaller("file://"+path, "")
+	_, err = GetInstaller("file://" + path)
 	require.Error(t, err, "file:// with a native Windows path does not parse; the docs must not offer it")
 
 	t.Logf("file:/// with forward slashes: %v", func() error {
-		_, err := GetInstaller("file:///"+filepath.ToSlash(path), "")
+		_, err := GetInstaller("file:///" + filepath.ToSlash(path))
 
 		return err
 	}())

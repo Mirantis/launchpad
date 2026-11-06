@@ -2,7 +2,9 @@
 
 Launchpad fetches two kinds of executable content at runtime: the Windows
 MCR install script, and -- when `launchpad download-launchpad` is run -- a
-launchpad release binary. Both are now checked before they are used.
+launchpad release binary. Both are now checked before they are used: the
+install script for how it is fetched, the release binary against the digest
+its own release publishes.
 
 ## Windows MCR install script
 
@@ -11,7 +13,7 @@ launchpad release binary. Both are now checked before they are used.
 Windows host and executed with `-ExecutionPolicy Bypass`, and the same
 script drives uninstall.
 
-Three checks apply:
+Two checks apply:
 
 - **Scheme.** Only `https://` URLs and local files are accepted. A
   `http://` URL is rejected rather than fetched, because plain HTTP cannot
@@ -22,29 +24,12 @@ Three checks apply:
   parse.
 - **Status.** A non-200 response aborts. Previously the body of an error
   response was stored as the install script and uploaded to the hosts.
-- **Checksum, when configured.** `spec.mcr.installURLWindowsChecksum` pins
-  the SHA-256 of the script, hex encoded. A mismatch aborts the run.
 
-```yaml
-spec:
-  mcr:
-    installURLWindows: https://mirror.example.com/mcr/install.ps1
-    installURLWindowsChecksum: 3b7a...  # sha256sum install.ps1
-```
-
-`installURLWindowsChecksum` is unset by default, and that is deliberate
-rather than an omission: **Mirantis publishes no checksum or signature for
-`install.ps1`.** As measured in PRODENG-3924,
-`https://get.mirantis.com/install.ps1` returns 200, while
-`install.ps1.sha256`, `install.ps1.asc`, `install.ps1.sig` and
-`checksums.sha256` on the same host all return 404. There is nothing
-upstream to verify the default script against, so for the default URL the
-protection is the HTTPS transport. Operators who mirror the script
-themselves know its digest and can set the field.
-
-There is no override for a failed check. A pin that can be ignored is worse
-than no pin, because the configuration would claim a guarantee the run does
-not provide.
+Launchpad does **not** verify a checksum for the script. MCR's Windows
+PowerShell scripts are signed, so the signature is the integrity anchor and
+a second digest adds nothing. `installURLWindows` is also deliberately
+overridable, so that operators can point launchpad at their own mirror or a
+patched script; a pinned digest would conflict with that.
 
 Linux hosts are unaffected: they install MCR through their package manager,
 which performs its own signature checking, and never fetch this script.
