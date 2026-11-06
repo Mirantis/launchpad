@@ -92,6 +92,41 @@ spec:
 	require.Equal(t, string(v11), string(out))
 }
 
+// The = form was sliced from the separator rather than past it, so
+// --ucp-username="food" migrated to the username ="food while the source
+// flag was deleted, losing the real value. Every sibling extraction site
+// slices past the separator; this one did not.
+func TestCredentialsMigrationMSRUsernameEqualsForm(t *testing.T) {
+	v1 := []byte(`---
+apiVersion: "launchpad.mirantis.com/v1"
+kind: DockerEnterprise
+spec:
+  dtr:
+    installFlags:
+      - --ucp-username="food"
+      - --test
+      - --ucp-password="barbar"
+`)
+	// go's YAML marshal does not add the --- header
+	v11 := []byte(`apiVersion: launchpad.mirantis.com/mke/v1.1
+kind: mke+msr
+spec:
+  mke:
+    adminPassword: barbar
+    adminUsername: food
+  msr:
+    installFlags:
+    - --test
+`)
+
+	in := make(map[string]interface{})
+	require.NoError(t, yaml.Unmarshal(v1, in))
+	require.NoError(t, Migrate(in))
+	out, err := yaml.Marshal(in)
+	require.NoError(t, err)
+	require.Equal(t, string(v11), string(out))
+}
+
 func TestCredentialsMigrationMSRandMKE(t *testing.T) {
 	v1 := []byte(`---
 apiVersion: "launchpad.mirantis.com/v1"
