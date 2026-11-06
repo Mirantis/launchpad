@@ -26,7 +26,16 @@ func (p *InitSwarm) Run() error {
 
 	if !swarm.IsSwarmNode(swarmLeader) {
 		log.Infof("%s: initializing swarm", swarmLeader)
-		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCmd().Raw("swarm init").Arg(fmt.Sprintf("--advertise-addr=%s", swarmLeader.SwarmAddress())).Raw(p.Config.Spec.MCR.SwarmInstallFlags.Join()).String(), cmd.Redact(`--token \S+`))
+		// The worker join token is printed by "swarm init" itself, in the
+		// "docker swarm join --token ..." line of its output, so the value
+		// is not known here and cannot be given to cmd.Redact, which
+		// matches literally. The previous `--token \S+` pattern was a
+		// regex handed to that literal matcher and never matched anything,
+		// leaving the token in the log of every cluster initialisation.
+		// The output carries nothing else of use -- the tokens are read
+		// back with "swarm join-token" when they are needed -- so it is
+		// kept out of the log entirely.
+		err := swarmLeader.Exec(swarmLeader.Configurer.DockerCmd().Raw("swarm init").Arg(fmt.Sprintf("--advertise-addr=%s", swarmLeader.SwarmAddress())).Raw(p.Config.Spec.MCR.SwarmInstallFlags.Join()).String(), cmd.HideOutput())
 		if err != nil {
 			return fmt.Errorf("failed to initialize swarm: %w", err)
 		}

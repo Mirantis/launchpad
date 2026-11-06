@@ -12,6 +12,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
+	"github.com/Mirantis/launchpad/pkg/util/redact"
 	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
@@ -47,24 +48,35 @@ func adminCredentialFlags(username, password string) []string {
 	return flags
 }
 
-// adminCredentialRedactions returns regex patterns covering every form the
-// admin credentials take in the rendered command: the raw value and the
-// shell-quoted value produced by adminCredentialFlags. Redacting only the raw
-// value leaks the quoted one: shell-quoting a value that contains a single
-// quote rewrites it, so the raw pattern no longer matches what is logged.
-// Empty values are skipped, because an empty pattern matches everywhere.
+// adminCredentialRedactions returns the literal strings the admin
+// credentials take in the rendered command: the raw value and the
+// shell-quoted value produced by adminCredentialFlags. Redacting only the
+// raw value leaks the quoted one, because shell-quoting a value that
+// contains a single quote rewrites it.
+//
+// The values are returned unescaped. rig matches redactions literally
+// (cmd/execoptions.go RedactString is strings.ReplaceAll), so wrapping them
+// in regexp.QuoteMeta produced a spelling that never appears in the log --
+// invisibly, since QuoteMeta is the identity function for alphanumerics and
+// only a credential containing a regex metacharacter exposed it.
+//
+// They are returned longest first. rig replaces each value in turn, so a
+// username that is a prefix of the password -- "admin" against
+// "admin!s3cr3t" -- would otherwise be substituted first and leave the
+// remainder of the password in the log. Empty values are dropped, because
+// an empty match would redact everywhere.
 func adminCredentialRedactions(username, password string) []string {
 	var patterns []string
 	for _, value := range []string{username, password} {
 		if value == "" {
 			continue
 		}
-		patterns = append(patterns, regexp.QuoteMeta(value))
+		patterns = append(patterns, value)
 		if quoted := shellescape.Quote(value); quoted != value {
-			patterns = append(patterns, regexp.QuoteMeta(quoted))
+			patterns = append(patterns, quoted)
 		}
 	}
-	return patterns
+	return redact.ByLengthDesc(patterns...)
 }
 
 // Run the installer container.
@@ -137,7 +149,10 @@ func (p *InstallMKE) Run() error {
 		execOpts = append(execOpts, cmd.Redact(pattern))
 	}
 
-	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
+	// The flag list is deliberately not logged here: it carries
+	// --admin-password and --license with their values, and this line ran
+	// before rig's redaction, which applies only to the command rig
+	// executes. rig logs that command with the redactions above applied.
 	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: execOpts})
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
