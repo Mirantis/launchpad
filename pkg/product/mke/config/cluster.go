@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
 	"github.com/Mirantis/launchpad/pkg/docker/hub"
@@ -13,7 +15,14 @@ import (
 
 // ClusterMeta defines cluster metadata.
 type ClusterMeta struct {
-	Name string `yaml:"name" validate:"required"`
+	// Name is joined verbatim into local filesystem paths -- the log
+	// directory (cmd/common.go) and the client bundle directory
+	// (pkg/mke/mke.go) -- so it is validated as a single path element.
+	// A name carrying a separator or a dot-name is rejected rather than
+	// rewritten: silently sanitising it would move a user's bundle and logs
+	// somewhere they did not ask for, and could collapse two distinct
+	// cluster names onto one directory.
+	Name string `yaml:"name" validate:"required,cluster_name"`
 }
 
 // ClusterConfig describes launchpad.yaml configuration.
@@ -63,6 +72,9 @@ func (c *ClusterConfig) Validate() error {
 	if err := validator.RegisterValidation("mcr_repo_url", isValidMCRRepoURL); err != nil {
 		return fmt.Errorf("register mcr repo url validation: %w", err)
 	}
+	if err := validator.RegisterValidation("cluster_name", isPathSafeName); err != nil {
+		return fmt.Errorf("register cluster name validation: %w", err)
+	}
 	if err := validator.Struct(c); err != nil {
 		return fmt.Errorf("cluster config validation failed: %w", err)
 	}
@@ -75,6 +87,24 @@ func isValidMCRChannel(fl validator.FieldLevel) bool {
 
 func isValidMCRRepoURL(fl validator.FieldLevel) bool {
 	return common.IsValidMCRRepoURL(fl.Field().String())
+}
+
+// isPathSafeName accepts only values usable as a single filesystem path
+// element. The cluster name is joined into local paths, so a separator in
+// either form, a dot-name, or a value that is only whitespace would place
+// state outside the directory the user expects. "/" and "\" are both
+// rejected regardless of host OS, so a config written on Linux cannot
+// traverse when applied from Windows.
+func isPathSafeName(fl validator.FieldLevel) bool {
+	name := fl.Field().String()
+	if name == "" || name != strings.TrimSpace(name) {
+		return false
+	}
+	if name == "." || name == ".." {
+		return false
+	}
+
+	return !strings.ContainsAny(name, `/\`) && !strings.ContainsRune(name, os.PathSeparator)
 }
 
 func roleChecks(sl validator.StructLevel) {

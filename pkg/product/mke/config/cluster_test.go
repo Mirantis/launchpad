@@ -554,3 +554,56 @@ func getAllErrorFields(err error) []string {
 
 	return fields
 }
+
+func TestClusterNameMustBeASinglePathElement(t *testing.T) {
+	// The name is joined into the log directory (cmd/common.go) and the
+	// client bundle directory (pkg/mke/mke.go), so a separator or a dot-name
+	// relocates local state.
+	configWithName := func(name string) string {
+		return `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+metadata:
+  name: ` + name + `
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+      ssh:
+        address: 10.0.0.1
+`
+	}
+
+	tests := []struct {
+		name    string
+		cluster string
+		wantErr bool
+	}{
+		{name: "ordinary name", cluster: "my-cluster", wantErr: false},
+		{name: "dots inside the name are fine", cluster: "cluster.example.com", wantErr: false},
+		{name: "parent traversal", cluster: `".."`, wantErr: true},
+		{name: "relative traversal", cluster: `"../../etc"`, wantErr: true},
+		{name: "forward slash", cluster: `"a/b"`, wantErr: true},
+		{name: "backslash", cluster: `"a\\b"`, wantErr: true},
+		{name: "absolute path", cluster: `"/etc/passwd"`, wantErr: true},
+		{name: "current directory", cluster: `"."`, wantErr: true},
+		{name: "only whitespace", cluster: `"   "`, wantErr: true},
+		{name: "leading whitespace", cluster: `" trailing-space-matters"`, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := loadYaml(t, configWithName(tt.cluster))
+			err := c.Validate()
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			validateErrorField(t, err, "Name")
+		})
+	}
+}
