@@ -92,6 +92,13 @@ func (c WindowsConfigurer) InstallMCRLicense(h Host, lic string) error {
 	return nil
 }
 
+// windowsMCRInstallCommand passes the repo URL and channel as installer
+// parameters, not `set` env vars, which a "cmd.exe /C" prefix loses (PRODENG-4062).
+func windowsMCRInstallCommand(installer, repoURL, channel string) string {
+	return fmt.Sprintf(`powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -DownloadUrl %s -Channel %s -Verbose`,
+		cmdQuote(installer), cmdQuote(repoURL), cmdQuote(channel))
+}
+
 // windowsLicenseFilePath joins the license filename onto a host-reported
 // docker root with the target's separator.
 //
@@ -134,7 +141,7 @@ func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfi
 		}
 	}()
 
-	installCommand := fmt.Sprintf(`set "DOWNLOAD_URL=%s" && set "CHANNEL=%s" && powershell -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -Verbose`, engineConfig.RepoURL, engineConfig.Channel, ps.DoubleQuote(installer))
+	installCommand := windowsMCRInstallCommand(installer, engineConfig.RepoURL, engineConfig.Channel)
 
 	log.Infof("%s: running installer", h)
 
