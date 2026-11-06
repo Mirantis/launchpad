@@ -6,7 +6,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
-	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
@@ -72,10 +71,10 @@ func (p *InstallMSR) Run() error {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}
 
-	execOpts := make([]cmd.ExecOption, 0, len(redacts))
-	for _, r := range redacts {
-		execOpts = append(execOpts, cmd.Redact(r))
-	}
+	// redactOptions, not a hand written list: rig masks in registration
+	// order, so a username that prefixes the password would otherwise
+	// consume its leading characters and leave the tail in the log.
+	execOpts := redactOptions(redacts...)
 	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), SecretEnv: secretEnv, ExecOptions: execOpts}); err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %w", h, err)
 	}

@@ -102,11 +102,15 @@ func (p *InstallMKE) Run() error {
 	}
 
 	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
+	// redactOptions, not a hand written list: the username is a prefix of
+	// many passwords and rig masks in registration order.
+	execOpts := append([]cmd.ExecOption{cmd.StreamOutput()},
+		redactOptions(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword)...)
 	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{
 		OperationFlags:  installFlags,
 		CleanupDisabled: p.CleanupDisabled(),
 		SecretEnv:       secretEnv,
-		ExecOptions:     []cmd.ExecOption{cmd.StreamOutput(), cmd.Redact(p.Config.Spec.MKE.AdminUsername), cmd.Redact(p.Config.Spec.MKE.AdminPassword)},
+		ExecOptions:     execOpts,
 	})
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
