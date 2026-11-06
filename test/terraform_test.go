@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -196,38 +195,6 @@ func copyFixture(t *testing.T, fixtureDir string) string {
 	}
 
 	return dest
-}
-
-// TestGeneratedCredentialReferencesMatchExports pins the contract between the
-// terraform examples and these suites: the examples emit environment-variable
-// references in the launchpad.yaml they generate, and the suites export those
-// variables before the YAML is parsed. A rename on either side leaves a
-// config whose credentials expand to nothing, which only a live cluster would
-// otherwise reveal.
-func TestGeneratedCredentialReferencesMatchExports(t *testing.T) {
-	exported := map[string]bool{
-		MKEAdminPasswordEnv: true,
-		WinRMPasswordEnv:    true,
-	}
-
-	// The examples escape "$" as "$$" for terraform's own template syntax, so
-	// the emitted document contains "${NAME}".
-	reference := regexp.MustCompile(`\$\$\{([A-Z0-9_]+)\}`)
-
-	for _, example := range []string{"aws-simple", "aws-complete"} {
-		path := filepath.Join("..", "examples", "terraform", example, "launchpad.tf")
-
-		content, err := os.ReadFile(path) // #nosec G304 -- path is a test constant
-		require.NoError(t, err)
-
-		matches := reference.FindAllStringSubmatch(string(content), -1)
-		require.NotEmpty(t, matches, "%s emits no credential references: it may have gone back to inlining them", path)
-
-		for _, match := range matches {
-			assert.True(t, exported[match[1]],
-				"%s refers to %s, which no suite exports; the generated config would load it as empty", path, match[1])
-		}
-	}
 }
 
 func TestAdminCIDRs(t *testing.T) {

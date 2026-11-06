@@ -10,23 +10,13 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 )
 
-// Environment variables the examples' generated launchpad.yaml refers to
-// instead of inlining credentials. launchpad expands them through envsubst
-// when it loads the config, so a consumer of that YAML must export them
-// before parsing it or config loading fails on an unset reference.
-const (
-	MKEAdminPasswordEnv = "LAUNCHPAD_MKE_ADMIN_PASSWORD"
-	WinRMPasswordEnv    = "LAUNCHPAD_WINRM_PASSWORD"
-)
-
 // AdminCIDRs returns the value for the examples' admin_cidrs variable, which
 // scopes SSH, WinRM and the MKE/Kubernetes API to named networks.
 //
-// The variable is required and has no default, so that narrowing it is a
-// decision a caller makes rather than something a module silently decides.
-// These suites provision throwaway stacks from runners whose egress address
-// is not known ahead of time, so the fallback is 0.0.0.0/0: the same exposure
-// the examples had before, but stated at the caller where it can be found and
+// The variable defaults to 0.0.0.0/0 in the examples. These suites provision
+// throwaway stacks from runners whose egress address is not known ahead of
+// time, so they pass that same open range explicitly rather than inheriting
+// it, which keeps the exposure stated at the caller where it can be found and
 // changed. Set SMOKE_ADMIN_CIDRS (comma separated) to narrow it.
 func AdminCIDRs(t *testing.T) []string {
 	t.Helper()
@@ -44,17 +34,6 @@ func AdminCIDRs(t *testing.T) []string {
 	}
 
 	return cidrs
-}
-
-// ExportGeneratedCredentials publishes the credentials the generated
-// launchpad.yaml refers to, so that envsubst resolves them when the config is
-// loaded. Pass an empty windowsPassword for a stack with no Windows nodes;
-// the reference is only present in the document when a WinRM host is.
-func ExportGeneratedCredentials(t *testing.T, mkePassword, windowsPassword string) {
-	t.Helper()
-
-	t.Setenv(MKEAdminPasswordEnv, mkePassword)
-	t.Setenv(WinRMPasswordEnv, windowsPassword)
 }
 
 // TerraformOptions builds terraform.Options that keep credentials out of the

@@ -64,12 +64,26 @@ variable "extra_tags" {
 
 variable "admin_cidrs" {
   description = <<-EOT
-    CIDRs allowed to reach the cluster from outside it: SSH, WinRM over HTTPS,
-    and the MKE and Kubernetes API ports.  Required and intentionally without
-    a default: the previous rule set accepted those ports from 0.0.0.0/0, and
-    a default would reintroduce that silently.
+    CIDRs allowed to reach the cluster from outside it: SSH, WinRM over
+    HTTPS, and the MKE and Kubernetes API ports.
+
+    Open by default.  ["0.0.0.0/0"] means every one of those ports is
+    reachable from the whole internet, which is a real risk and not a
+    recommendation -- it is the same exposure this example has always had,
+    kept so that an existing tfvars still works and a first run still comes
+    up without extra arguments.
+
+    Narrowing it is one line: set admin_cidrs to the addresses that actually
+    need in -- the machine running launchpad, and the operators who need the
+    MKE UI.  For example:
+
+      admin_cidrs = ["198.51.100.17/32", "203.0.113.0/24"]
+
+    Node-to-node traffic does not come through here, so narrowing this does
+    not affect the cluster talking to itself.
   EOT
   type        = list(string)
+  default     = ["0.0.0.0/0"]
   validation {
     condition     = length(var.admin_cidrs) > 0
     error_message = "admin_cidrs must list at least one CIDR."

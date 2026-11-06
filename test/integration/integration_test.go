@@ -82,12 +82,6 @@ func TestMain(m *testing.M) {
 	mkePassword := test.GenerateRandomAlphaNumericString(12)
 	MKE_CONNECT["password"] = mkePassword
 
-	// The generated YAML refers to the MKE password by environment variable
-	// rather than inlining it; launchpad resolves it through envsubst when
-	// sp.Setup loads the config. This stack has no Windows nodes, so no WinRM
-	// reference is generated.
-	test.ExportGeneratedCredentials(t, mkePassword, "")
-
 	options := test.TerraformOptions(
 		t,
 		// The path to where the Terraform tf chart is located

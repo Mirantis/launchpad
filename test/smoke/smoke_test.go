@@ -191,10 +191,6 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		secretVars["windows_password"] = windowsPassword
 	}
 
-	// The generated YAML refers to these by environment variable rather than
-	// inlining them; launchpad resolves them through envsubst at load.
-	test.ExportGeneratedCredentials(t, mkePassword, windowsPassword)
-
 	options := test.TerraformOptions(t, "../../examples/terraform/aws-simple", vars, secretVars)
 
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)

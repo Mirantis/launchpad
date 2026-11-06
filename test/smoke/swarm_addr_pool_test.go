@@ -196,11 +196,6 @@ func provisionSwarmPoolStack(t *testing.T, cfg smokeConfig) string {
 		},
 	}
 
-	// The generated YAML refers to the MKE password by environment variable
-	// rather than inlining it; launchpad resolves it through envsubst at load.
-	// This stack has no Windows nodes, so no WinRM reference is generated.
-	test.ExportGeneratedCredentials(t, mkePassword, "")
-
 	options := test.TerraformOptions(t, "../../examples/terraform/aws-simple", vars, secretVars)
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &options)
 

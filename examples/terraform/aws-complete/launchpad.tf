@@ -186,11 +186,22 @@ resource "launchpad_config" "cluster" {
 
 // ------- Ye old launchpad yaml (just for debugging)
 //
-// Credentials are referenced by environment variable rather than inlined:
-// launchpad expands them through envsubst when it loads the config, and
-// docs/usage/getting-started.md tells users to source credentials from the
-// environment.  Export LAUNCHPAD_MKE_ADMIN_PASSWORD, and
-// LAUNCHPAD_WINRM_PASSWORD for Windows stacks, before running launchpad.
+// The credentials are written from the terraform variables that carry them:
+// var.launchpad.mke_connect.password and var.windows_password.  The document
+// this produces is usable as-is, with nothing exported into the environment
+// first.
+//
+// To keep a password out of a tfvars file on disk, supply the variable
+// through terraform's own environment mechanism instead -- TF_VAR_<name>,
+// which terraform reads for any input variable:
+//
+//   export TF_VAR_windows_password='...'
+//   export TF_VAR_launchpad='{"drain":false,...,"mke_connect":{"username":"admin","password":"...","insecure":true}}'
+//
+// TF_VAR_launchpad takes the whole object as JSON because the MKE password
+// is nested inside it; test/terraform.go does exactly this.  Either route
+// produces the same configuration -- the environment is an option for
+// keeping secrets off disk, not a requirement for running the example.
 output "launchpad_yaml" {
   description = "launchpad config file yaml (for debugging)"
   sensitive   = true
@@ -217,7 +228,7 @@ spec:
     winRM:
       address: ${h.winrm_address}
       user: ${h.winrm_user}
-      password: $${LAUNCHPAD_WINRM_PASSWORD}
+      password: ${h.winrm_password}
       useHTTPS: ${h.winrm_useHTTPS}
       insecure: ${h.winrm_insecure}
 %{~endfor}
@@ -225,7 +236,7 @@ spec:
     version: ${var.launchpad.mke_version}
     imageRepo: docker.io/mirantis
     adminUsername: ${var.launchpad.mke_connect.username}
-    adminPassword: $${LAUNCHPAD_MKE_ADMIN_PASSWORD}
+    adminPassword: ${var.launchpad.mke_connect.password}
     installFlags: 
     - "--san=${local.MKE_URL}"
     - "--nodeport-range=32768-35535"
