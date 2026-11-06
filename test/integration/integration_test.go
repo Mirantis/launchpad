@@ -37,11 +37,27 @@ var LAUNCHPAD = map[string]any{
 var NETWORK = map[string]any{
 	"cidr": "172.31.0.0/16",
 }
+
+// One subnet per AZ, each nodegroup in exactly one of them. The provision
+// module derives AZs as slice(available_azs, 0, len(subnets)), so the subnet
+// count is the AZ count; a single subnet put every nodegroup in one AZ and
+// made the stack fail when that AZ ran out of the instance type. The CIDRs
+// subdivide the /17 the single subnet used, leaving the VPC's upper half free.
 var SUBNETS = map[string]any{
-	"main": map[string]any{
-		"cidr":       "172.31.0.0/17",
+	"main0": map[string]any{
+		"cidr":       "172.31.0.0/19",
 		"private":    false,
-		"nodegroups": []string{"MngrUbuntu22", "WrkUbuntu22", "WrkRhel9", "WrkSles15"},
+		"nodegroups": []string{"MngrUbuntu22", "WrkUbuntu22"},
+	},
+	"main1": map[string]any{
+		"cidr":       "172.31.32.0/19",
+		"private":    false,
+		"nodegroups": []string{"WrkRhel9"},
+	},
+	"main2": map[string]any{
+		"cidr":       "172.31.64.0/19",
+		"private":    false,
+		"nodegroups": []string{"WrkSles15"},
 	},
 }
 

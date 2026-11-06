@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"sort"
 	"strings"
 	"testing"
 
@@ -15,12 +16,15 @@ import (
 )
 
 // smokeRegion is the AWS region every smoke stack is provisioned in, and the
-// region console-output capture queries. us-east-1 was abandoned because the
+// region console-output capture queries. us-west-2 allows 5 VPCs and five
+// smoke jobs run per push to main, so stacks fail at `terraform apply` with
+// VpcLimitExceeded; us-east-1 allows 50. The c6a.xlarge exhaustion that
+// prompted the move away from us-east-1 (runs 39792899324, 39793016128,
+// 39793337401) came from every nodegroup landing in one AZ, because the
 // provision module derives AZs as slice(available_azs, 0, len(subnets)) and
-// the tests declare one subnet, so every stack landed in us-east-1a, where
-// c6a.xlarge capacity repeatedly ran out (runs 39792899324, 39793016128,
-// 39793337401).
-const smokeRegion = "us-west-2"
+// the tests declared a single subnet. The partitioning below fixes that
+// directly rather than by changing region.
+const smokeRegion = "us-east-1"
 
 var awsConfig = map[string]interface{}{
 	"region": smokeRegion,
@@ -115,13 +119,34 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 	for k := range cfg.Nodegroups {
 		ngKeys = append(ngKeys, k)
 	}
+	// Sorted because Go randomises map iteration order: without this the
+	// round-robin below would place a given nodegroup in a different AZ on
+	// every run, making an AZ capacity failure unreproducible.
+	sort.Strings(ngKeys)
 
-	subnets := map[string]interface{}{
-		"main": map[string]interface{}{
-			"cidr":       "172.31.0.0/17",
+	// One subnet per AZ, each nodegroup in exactly one of them. The provision
+	// module derives AZs as slice(available_azs, 0, len(subnets)), so the
+	// subnet count is the AZ count. Spreading the nodegroups is what stops one
+	// AZ's instance-type capacity failing the whole stack. The CIDRs subdivide
+	// the /17 the single subnet used, leaving the VPC's upper half free.
+	subnetCIDRs := []string{"172.31.0.0/19", "172.31.32.0/19", "172.31.64.0/19"}
+	if len(ngKeys) < len(subnetCIDRs) {
+		subnetCIDRs = subnetCIDRs[:len(ngKeys)]
+	}
+
+	subnetNgs := make([][]string, len(subnetCIDRs))
+	for i, k := range ngKeys {
+		n := i % len(subnetCIDRs)
+		subnetNgs[n] = append(subnetNgs[n], k)
+	}
+
+	subnets := make(map[string]interface{}, len(subnetCIDRs))
+	for i, cidr := range subnetCIDRs {
+		subnets[fmt.Sprintf("main%d", i)] = map[string]interface{}{
+			"cidr":       cidr,
 			"private":    false,
-			"nodegroups": ngKeys,
-		},
+			"nodegroups": subnetNgs[i],
+		}
 	}
 
 	tempSSHKeyPathDir := t.TempDir()

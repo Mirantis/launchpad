@@ -2,6 +2,7 @@ package version
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,69 +83,91 @@ type tag struct {
 	Name string `json:"name"`
 }
 
-func latestTag(timeout time.Duration) string {
+// ErrNoRelease is returned when the latest release cannot be determined. The
+// previous contract was a nil return, which every caller had to remember to
+// check and two of three did not.
+var ErrNoRelease = errors.New("could not determine the latest launchpad release")
+
+// githubAPIBase is a variable rather than a constant so tests can point the
+// lookup at a local server and exercise the failure paths, which are
+// otherwise reachable only by exhausting the real API quota.
+var githubAPIBase = "https://api.github.com"
+
+func latestTag(timeout time.Duration) (string, error) {
 	client := &http.Client{
 		Timeout: timeout,
 	}
 
 	baseMsg := "getting launchpad tag list"
 	log.Debug(baseMsg)
-	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/tags?per_page=20&page=1", GitHubRepo))
+	resp, err := client.Get(fmt.Sprintf("%s/repos/%s/tags?per_page=20&page=1", githubAPIBase, GitHubRepo))
 	if err != nil {
-		log.Debugf("%s failed: %s", baseMsg, err.Error())
-		return "" // ignore connection errors
+		return "", fmt.Errorf("%w: %s: %w", ErrNoRelease, baseMsg, err)
 	}
+	defer resp.Body.Close()
 
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
 	if resp.StatusCode != http.StatusOK {
-		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
-		return "" // ignore backend failures
+		// The unauthenticated api.github.com quota is 60/hour and shared by
+		// every process on the host, so this is the common failure and the
+		// message needs to say which it was.
+		return "", fmt.Errorf("%w: %s returned http %d", ErrNoRelease, baseMsg, resp.StatusCode)
 	}
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Debugf("%s failed to read body: %s", baseMsg, err.Error())
-		return "" // ignore reading errors
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("%w: %s failed to read body: %w", ErrNoRelease, baseMsg, err)
 	}
 
 	var tags []tag
-	err = json.Unmarshal(body, &tags)
-	if err != nil {
-		log.Debugf("%s failed to unmarshal JSON: %s", baseMsg, err.Error())
-		return ""
+	if err := json.Unmarshal(body, &tags); err != nil {
+		return "", fmt.Errorf("%w: %s failed to unmarshal JSON: %w", ErrNoRelease, baseMsg, err)
 	}
 
-	versions := make([]*version.Version, len(tags))
-	idx := 0
+	return pickLatest(tags, baseMsg)
+}
+
+// pickLatest returns the newest parseable tag name. It is separate from the
+// HTTP plumbing so the selection logic can be tested directly: the previous
+// implementation filled a len(tags) slice by an index that advanced only on a
+// successful parse, leaving trailing nil entries that sort.Sort dereferences
+// in Less. One unparseable name in an otherwise successful response was enough
+// to panic, with no HTTP failure involved.
+func pickLatest(tags []tag, baseMsg string) (string, error) {
+	versions := make([]*version.Version, 0, len(tags))
 	for _, v := range tags {
-		version, err := version.NewVersion(v.Name)
-		if err == nil {
-			versions[idx] = version
-			idx++
+		parsed, err := version.NewVersion(v.Name)
+		if err != nil {
+			log.Debugf("%s: ignoring unparseable tag %q", baseMsg, v.Name)
+			continue
 		}
+		versions = append(versions, parsed)
+	}
+	if len(versions) == 0 {
+		return "", fmt.Errorf("%w: %s returned no parseable tags", ErrNoRelease, baseMsg)
 	}
 	sort.Sort(version.Collection(versions))
 
 	if strings.Contains(Version, "-") {
 		// Current is pre, assume pre is accepted as latest
-		return versions[len(versions)-1].Original()
+		return versions[len(versions)-1].Original(), nil
 	}
 
 	for i := len(versions) - 1; i >= 0; i-- {
 		if !strings.Contains(versions[i].Original(), "-") {
-			return versions[i].Original()
+			return versions[i].Original(), nil
 		}
 	}
 
-	return ""
+	return "", fmt.Errorf("%w: %s returned only prerelease tags", ErrNoRelease, baseMsg)
 }
 
-// GetLatest returns a LaunchpadRelease instance for the latest release.
-func GetLatest(timeout time.Duration) *LaunchpadRelease {
-	tag := latestTag(timeout)
-	if tag == "" {
-		return nil
+// GetLatest returns a LaunchpadRelease instance for the latest release, or an
+// error describing why it could not be determined. It previously returned a
+// bare nil on every failure, an unexpressed contract that two of its three
+// callers did not honour.
+func GetLatest(timeout time.Duration) (*LaunchpadRelease, error) {
+	tag, err := latestTag(timeout)
+	if err != nil {
+		return nil, err
 	}
 
 	client := &http.Client{
@@ -153,40 +176,36 @@ func GetLatest(timeout time.Duration) *LaunchpadRelease {
 
 	baseMsg := fmt.Sprintf("getting launchpad release information for version %s", tag)
 	log.Debug(baseMsg)
-	resp, err := client.Get(fmt.Sprintf("https://api.github.com/repos/%s/releases/tags/%s", GitHubRepo, tag))
+	resp, err := client.Get(fmt.Sprintf("%s/repos/%s/releases/tags/%s", githubAPIBase, GitHubRepo, tag))
 	if err != nil {
-		log.Debugf("%s failed: %s", baseMsg, err.Error())
-		return nil // ignore connection errors
+		return nil, fmt.Errorf("%w: %s: %w", ErrNoRelease, baseMsg, err)
 	}
+	defer resp.Body.Close()
 
-	if resp.Body != nil {
-		defer resp.Body.Close()
-	}
 	if resp.StatusCode != http.StatusOK {
-		log.Debugf("%s returned http %d", baseMsg, resp.StatusCode)
-		return nil // ignore backend failures
+		return nil, fmt.Errorf("%w: %s returned http %d", ErrNoRelease, baseMsg, resp.StatusCode)
 	}
-	body, readErr := io.ReadAll(resp.Body)
-	if readErr != nil {
-		log.Debugf("%s failed to read body: %s", baseMsg, err.Error())
-		return nil // ignore reading errors
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s failed to read body: %w", ErrNoRelease, baseMsg, err)
 	}
 
 	l := &LaunchpadRelease{}
-	err = json.Unmarshal(body, l)
-	if err != nil {
-		log.Debugf("%s failed to unmarshal JSON: %s", baseMsg, err.Error())
-		return nil
+	if err := json.Unmarshal(body, l); err != nil {
+		return nil, fmt.Errorf("%w: %s failed to unmarshal JSON: %w", ErrNoRelease, baseMsg, err)
 	}
 
-	return l
+	return l, nil
 }
 
 // GetUpgrade will return a LaunchpadRelease instance for the latest release if it's newer than the current version.
+// A nil return means no upgrade is available; the lookup failing is logged and
+// treated the same way, because an upgrade check must never block a command.
 func GetUpgrade() *LaunchpadRelease {
 	log.Debugf("checking for a launchpad upgrade")
-	l := GetLatest(time.Second * 2)
-	if l == nil {
+	l, err := GetLatest(time.Second * 2)
+	if err != nil {
+		log.Debugf("upgrade check failed: %s", err.Error())
 		return nil
 	}
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Mirantis/launchpad/pkg/util/fileutil"
 	"github.com/mitchellh/go-homedir"
 	"gopkg.in/yaml.v2"
 )
@@ -54,15 +55,20 @@ func SaveConfig(config *Config) error {
 		return fmt.Errorf("failed to expand config file path: %w", err)
 	}
 	configDir := filepath.Dir(configFile)
-	if err = os.MkdirAll(configDir, os.ModePerm); err != nil {
+	// The config file itself is written 0600 below; the directory holding it
+	// is per-user state and needs no group or other access. MkdirPrivate also
+	// narrows a directory left 0777 by an earlier release.
+	if err = fileutil.MkdirPrivate(configDir); err != nil {
 		return fmt.Errorf("failed to ensure config dir: %w", err)
 	}
 	d, err := yaml.Marshal(&config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
-	err = os.WriteFile(configFile, d, 0o600)
-	if err != nil {
+	// WritePrivateFile rather than os.WriteFile: the latter applies its mode
+	// only when it creates the file, so a user.yaml left 0644 by an earlier
+	// release would keep 0644 on every subsequent save.
+	if err := fileutil.WritePrivateFile(configFile, d); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 	return nil
