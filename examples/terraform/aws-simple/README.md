@@ -53,6 +53,10 @@ On `rhel_9` and `sles_15` nodes the host firewall is a second gate. The
 but not the NodePort range, so `firewall-cmd` still blocks it there whatever
 the security group says. Add the range to that `user_data` if you need
 NodePort services on those platforms.
+The `ubuntu_22.04` `user_data` omits the range in exactly the same way — it
+opens 2377, 7946, 10250/tcp and 7946, 4789/udp through `ufw` and nothing else —
+so the same gate applies on Ubuntu whenever `ufw` is active in that AMI, which
+is unverified here because confirming it needs a running AWS cluster.
 
 #### Credentials
 
