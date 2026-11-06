@@ -196,3 +196,17 @@ func copyFixture(t *testing.T, fixtureDir string) string {
 
 	return dest
 }
+
+func TestAdminCIDRs(t *testing.T) {
+	t.Run("falls back to the open range when unset", func(t *testing.T) {
+		t.Setenv("SMOKE_ADMIN_CIDRS", "")
+
+		assert.Equal(t, []string{"0.0.0.0/0"}, AdminCIDRs(t))
+	})
+
+	t.Run("honours a configured list", func(t *testing.T) {
+		t.Setenv("SMOKE_ADMIN_CIDRS", "203.0.113.4/32, 198.51.100.0/24")
+
+		assert.Equal(t, []string{"203.0.113.4/32", "198.51.100.0/24"}, AdminCIDRs(t))
+	})
+}
