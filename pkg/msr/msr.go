@@ -40,20 +40,22 @@ func CollectFacts(h *mkeconfig.Host) (*mkeconfig.MSRMetadata, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to get MSR rethink container labels: %w", err)
 		}
-		outputFields := strings.Fields(output)
+		labelVersion, labelReplicaID, err := parseComposeProjectLabel(output)
+		if err != nil {
+			return nil, err
+		}
 		if version == "" {
-			version = outputFields[3]
+			version = labelVersion
 		}
 		if replicaID == "" {
-			replicaID = strings.Trim(outputFields[len(outputFields)-1], ")")
+			replicaID = labelReplicaID
 		}
 	}
 
 	var bootstrapimage string
 	imagename, err := h.ExecOutput(h.Configurer.DockerCmd().Raw("inspect").Arg(rethinkdbContainerID).Raw(`--format '{{ .Config.Image }}'`).String())
 	if err == nil {
-		repo := imagename[:strings.LastIndexByte(imagename, '/')]
-		bootstrapimage = fmt.Sprintf("%s/dtr:%s", repo, version)
+		bootstrapimage = bootstrapImageFor(imagename, version)
 	}
 
 	msrMeta := &mkeconfig.MSRMetadata{
@@ -218,6 +220,42 @@ func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 }
 
 var errMaxReplicaID = fmt.Errorf("max sequential msr replica id exceeded")
+
+// errUnexpectedLabel is returned when a container label read from a host does
+// not have the shape the parsing below assumes.
+var errUnexpectedLabel = fmt.Errorf("unexpected MSR container label")
+
+// composeProjectVersionField is the offset of the version within the
+// whitespace-separated com.docker.compose.project label.
+const composeProjectVersionField = 3
+
+// parseComposeProjectLabel extracts the MSR version and replica ID from the
+// com.docker.compose.project container label. The label is free-form output
+// read from a host, so each index is taken only after proving the field is
+// there: the previous code indexed [3] and [len-1] unconditionally and
+// panicked on a short or empty response.
+func parseComposeProjectLabel(output string) (version, replicaID string, err error) {
+	fields := strings.Fields(output)
+	if len(fields) <= composeProjectVersionField {
+		return "", "", fmt.Errorf("%w: expected more than %d whitespace-separated fields in the compose project label, got %d", errUnexpectedLabel, composeProjectVersionField, len(fields))
+	}
+
+	return fields[composeProjectVersionField], strings.Trim(fields[len(fields)-1], ")"), nil
+}
+
+// bootstrapImageFor derives the MSR bootstrap image reference from the
+// rethinkdb image name. strings.LastIndexByte returns -1 when the name
+// carries no registry or namespace component, which made the previous slice
+// expression panic; such a name has no repository to derive from, so the
+// bootstrap image is left empty.
+func bootstrapImageFor(imagename, version string) string {
+	slash := strings.LastIndexByte(imagename, '/')
+	if slash < 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("%s/dtr:%s", imagename[:slash], version)
+}
 
 // AssignSequentialReplicaIDs goes through all the MSR hosts, finds the highest replica id and assigns sequential ones starting from that to all the hosts without replica ids.
 func AssignSequentialReplicaIDs(c *mkeconfig.ClusterConfig) error {
