@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net"
+	"regexp"
 
 	// needed to load the build func in package init.
 	_ "github.com/Mirantis/launchpad/pkg/configurer/centos"
@@ -80,27 +81,45 @@ func (p *GatherFacts) Run() error {
 		}
 
 		msrHosts := p.Config.Spec.MSRs()
-		_ = msrHosts.ParallelEach(func(h *mkeconfig.Host) error {
-			if h.Metadata != nil && h.Metadata.MCRVersion != "" {
-				msrMeta, err := msr.CollectFacts(h)
-				if err != nil {
-					log.Debugf("%s: failed to collect existing msr details: %s", h, err.Error())
-				}
-				h.MSRMetadata = msrMeta
-				if msrMeta.Installed {
-					log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
-				} else {
-					log.Infof("%s: msr is not installed", h)
-				}
+		// CollectFacts returns a nil metadata pointer with its error. The
+		// previous form logged the error and then dereferenced that nil, so
+		// a host whose MSR details could not be read panicked here instead
+		// of failing the phase. The error is propagated and the result of
+		// ParallelEach is checked rather than discarded.
+		if err := msrHosts.ParallelEach(func(h *mkeconfig.Host) error {
+			if h.Metadata == nil || h.Metadata.MCRVersion == "" {
+				return nil
+			}
+
+			msrMeta, err := msr.CollectFacts(h)
+			if err != nil {
+				return fmt.Errorf("%s: failed to collect existing msr details: %w", h, err)
+			}
+
+			h.MSRMetadata = msrMeta
+			if msrMeta.Installed {
+				log.Infof("%s: msr has version %s", h, msrMeta.InstalledVersion)
+			} else {
+				log.Infof("%s: msr is not installed", h)
 			}
 			return nil
-		})
+		}); err != nil {
+			return fmt.Errorf("failed to gather msr facts: %w", err)
+		}
 	}
 
 	return nil
 }
 
-var errInvalidIP = errors.New("invalid IP address")
+var (
+	errInvalidIP       = errors.New("invalid IP address")
+	errInvalidHostname = errors.New("invalid hostname")
+)
+
+// validHostnameRegexp matches a RFC 1123 hostname: letters, digits, hyphens
+// and dots only. The value is host-reported and is later interpolated into
+// MSR bootstrapper flags, so anything looser is an injection vector.
+var validHostnameRegexp = regexp.MustCompile(`^[a-zA-Z0-9.-]+$`)
 
 func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterConfig) error {
 	log.Infof("%s: gathering host facts", h)
@@ -133,7 +152,11 @@ func (p *GatherFacts) investigateHost(h *mkeconfig.Host, _ *mkeconfig.ClusterCon
 
 	h.Metadata.MCRVersion = version
 
-	h.Metadata.Hostname, _ = h.FS().Hostname()
+	hostname, err := h.FS().Hostname()
+	if err == nil && hostname != "" && !validHostnameRegexp.MatchString(hostname) {
+		return fmt.Errorf("%s: %w: %q", h, errInvalidHostname, hostname)
+	}
+	h.Metadata.Hostname = hostname
 	h.Metadata.LongHostname, _ = h.FS().LongHostname()
 
 	if h.PrivateInterface == "" {

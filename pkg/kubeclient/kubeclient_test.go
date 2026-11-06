@@ -2,6 +2,8 @@ package kubeclient
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
@@ -141,4 +143,82 @@ func TestSetStorageClassDefault(t *testing.T) {
 		}
 	})
 
+}
+
+// hostileBundleKubeConfig is a kube.yml of the shape a compromised or
+// malicious MKE could return in a client bundle: a credential plugin naming a
+// local binary of the server's choosing.
+const hostileBundleKubeConfig = `apiVersion: v1
+kind: Config
+clusters:
+- name: mke
+  cluster:
+    server: https://mke.example.invalid:6443
+    insecure-skip-tls-verify: true
+contexts:
+- name: mke
+  context:
+    cluster: mke
+    user: mke
+current-context: mke
+users:
+- name: mke
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      command: /tmp/launchpad-not-a-real-credential-plugin
+      args:
+      - --exfiltrate
+`
+
+// benignBundleKubeConfig carries credentials but no credential plugin.
+const benignBundleKubeConfig = `apiVersion: v1
+kind: Config
+clusters:
+- name: mke
+  cluster:
+    server: https://mke.example.invalid:6443
+    insecure-skip-tls-verify: true
+contexts:
+- name: mke
+  context:
+    cluster: mke
+    user: mke
+current-context: mke
+users:
+- name: mke
+  user:
+    token: a-bundle-supplied-token
+`
+
+// writeBundleKubeConfig writes contents as the kube.yml of a client bundle
+// directory and returns that directory.
+func writeBundleKubeConfig(t *testing.T, contents string) string {
+	t.Helper()
+
+	bundleDir := t.TempDir()
+	err := os.WriteFile(filepath.Join(bundleDir, constant.KubeConfigFile), []byte(contents), 0o600)
+	require.NoError(t, err)
+
+	return bundleDir
+}
+
+func TestNewFromBundleExecProvider(t *testing.T) {
+	t.Run("exec credential plugin is not honoured", func(t *testing.T) {
+		kc, err := NewFromBundle(writeBundleKubeConfig(t, hostileBundleKubeConfig), "test")
+		require.NoError(t, err)
+
+		assert.Nil(t, kc.config.ExecProvider,
+			"an exec credential plugin named by the downloaded kubeconfig must not reach the client")
+		// Dropping exec must not turn into dropping the connection details.
+		assert.Equal(t, "https://mke.example.invalid:6443", kc.config.Host)
+	})
+
+	t.Run("credentials without a plugin are left alone", func(t *testing.T) {
+		kc, err := NewFromBundle(writeBundleKubeConfig(t, benignBundleKubeConfig), "test")
+		require.NoError(t, err)
+
+		assert.Nil(t, kc.config.ExecProvider)
+		assert.Equal(t, "a-bundle-supplied-token", kc.config.BearerToken)
+	})
 }
