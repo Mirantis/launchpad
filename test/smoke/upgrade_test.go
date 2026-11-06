@@ -89,6 +89,7 @@ func runUpgradeTest(t *testing.T, cfg upgradeConfig) {
 	vars := map[string]interface{}{
 		"name":              name,
 		"aws":               awsConfig,
+		"admin_cidrs":       test.AdminCIDRs(t),
 		"network":           networkConfig,
 		"subnets":           subnets,
 		"ssh_pk_location":   tempSSHKeyPathDir,
