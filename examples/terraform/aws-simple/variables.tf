@@ -96,6 +96,39 @@ variable "admin_cidrs" {
   }
 }
 
+variable "nodeport_cidrs" {
+  description = <<-EOT
+    CIDRs allowed to reach the Kubernetes NodePort range on the cluster
+    nodes.  The range itself is local.nodeport_range in launchpad.tf, which
+    also builds the --nodeport-range install flag, so the rule and the flag
+    cannot drift apart.
+
+    Unset (null) means "use admin_cidrs", which is the default and keeps an
+    existing tfvars working unchanged.  Set it when the people who reach
+    your applications are not the people who administer the cluster:
+    admin_cidrs admits SSH, WinRM and the MKE and Kubernetes APIs, and
+    widening it to admit application clients would hand them those too.
+
+      nodeport_cidrs = ["203.0.113.0/24"]
+
+    Inheriting admin_cidrs inherits its exposure as well: with both left at
+    their defaults the NodePort range is reachable from the whole internet.
+    That is a real risk and not a recommendation -- it is the exposure this
+    example had before the ingress rules were scoped.
+
+    An empty list is rejected rather than treated as "no rule", because a
+    cluster installed with --nodeport-range and no way in is the failure
+    this variable exists to prevent.  Node-to-node traffic does not come
+    through here.
+  EOT
+  type        = list(string)
+  default     = null
+  validation {
+    condition     = var.nodeport_cidrs == null || length(coalesce(var.nodeport_cidrs, [])) > 0
+    error_message = "nodeport_cidrs must list at least one CIDR, or be left unset to inherit admin_cidrs."
+  }
+}
+
 variable "windows_password" {
   description = <<-EOT
     Password set on the local Administrator account of Windows nodes and used
