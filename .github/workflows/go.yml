@@ -1,6 +1,13 @@
 name: Go unit tests
 
-on: 
+# The job checks out the repository, installs Go and runs the unit tests. It
+# publishes nothing: no artifacts, no comments, no checks, no OIDC token. Read
+# access to the repository contents is all `actions/checkout` requires, and
+# module downloads go through the public proxy, which uses no token at all.
+permissions:
+  contents: read
+
+on:
   pull_request:
     paths:
       - '**.go'
