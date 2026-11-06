@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Mirantis/launchpad/pkg/docker/reference"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	retry "github.com/avast/retry-go"
 	"github.com/gammazero/workerpool"
@@ -47,10 +48,31 @@ func (i *Image) String() string {
 	return fmt.Sprintf("%s/%s:%s", i.Repository, i.Name, i.Tag)
 }
 
+// errInvalidReference is returned for an image reference that is not
+// well-formed.
+var errInvalidReference = errors.New("invalid image reference")
+
+// Validate reports whether the rendered reference is well-formed.
+//
+// The repository half is already validated at config load, but a reference is
+// assembled from the repository, a name and a tag, and the tag carries
+// spec.*.version -- also user-supplied and also expanded by envsubst. This
+// checks the assembled result, so no reference reaches a docker command
+// unless the whole of it parses.
+func (i *Image) Validate() error {
+	if !reference.IsValidReference(i.String()) {
+		return fmt.Errorf("%w: %q", errInvalidReference, i.String())
+	}
+	return nil
+}
+
 // Pull pulls an image on a host.
 func (i *Image) Pull(h *mkeconfig.Host) error {
 	err := retry.Do(
 		func() error {
+			if err := i.Validate(); err != nil {
+				return err
+			}
 			log.Infof("%s: pulling image %s", h, i)
 			if i.Exist(h) {
 				log.Infof("%s: already exists: %s", h, i)
@@ -81,6 +103,12 @@ func (i *Image) Pull(h *mkeconfig.Host) error {
 // Retag retags image A to image B.
 func (i *Image) Retag(h *mkeconfig.Host, a, b *Image) error {
 	log.Debugf("%s: retag %s --> %s", h, a, b)
+	if err := a.Validate(); err != nil {
+		return err
+	}
+	if err := b.Validate(); err != nil {
+		return err
+	}
 	if err := h.Exec(h.Configurer.DockerCmd().Raw("tag").Arg(a.String()).Arg(b.String()).String()); err != nil {
 		return fmt.Errorf("%s: failed to retag image %s --> %s: %w", h, a, b, err)
 	}
@@ -89,6 +117,9 @@ func (i *Image) Retag(h *mkeconfig.Host, a, b *Image) error {
 
 // Exist returns true if a docker image exists on the host.
 func (i *Image) Exist(h *mkeconfig.Host) bool {
+	if err := i.Validate(); err != nil {
+		return false
+	}
 	return h.Exec(h.Configurer.DockerCmd().Raw("image inspect").Arg(i.String()).Raw(`--format '{{.ID}}'`).String()) == nil
 }
 
