@@ -19,13 +19,13 @@ type DockerDaemonConfig struct {
 
 // MCRConfig holds the Mirantis Container Runtime installation specific options.
 type MCRConfig struct {
-	RepoURL                     string   `yaml:"repoURL,omitempty"`
+	RepoURL                     string   `yaml:"repoURL,omitempty" validate:"omitempty,mcr_repo_url"`
 	AdditionalRuntimes          string   `yaml:"additionalRuntimes,omitempty"`
 	DefaultRuntime              string   `yaml:"defaultRuntime,omitempty"`
 	License                     string   `yaml:"license"`
 	InstallScriptRemoteDirLinux string   `yaml:"installScriptRemoteDirLinux,omitempty"`
 	InstallURLWindows           string   `yaml:"installURLWindows,omitempty"`
-	Channel                     string   `yaml:"channel,omitempty"`
+	Channel                     string   `yaml:"channel,omitempty" validate:"omitempty,mcr_channel"`
 	Prune                       bool     `yaml:"prune,omitempty"`
 	ForceUpgrade                bool     `yaml:"forceUpgrade,omitempty"`
 	SwarmInstallFlags           Flags    `yaml:"swarmInstallFlags,omitempty,flow"`
