@@ -68,12 +68,13 @@ func (p Platform) GetMSR() map[string]interface{} {
 // is not installed on the EL10 AMIs this suite resolves, so firewall-cmd is
 // not on PATH. Node-to-node traffic is already carried by the security group's
 // self rule in examples/terraform/aws-simple/launchpad.tf.
-const el10UserData = `#!/bin/bash
-set -eux
-dnf install -y "kernel-modules-extra-$(uname -r)"
-modprobe xt_addrtype br_netfilter ip_tables
-printf 'xt_addrtype\nbr_netfilter\nip_tables\n' >/etc/modules-load.d/docker.conf
-`
+//
+// Written on one line with literal \n escapes, and with no double quotes:
+// terratest renders Vars into `-var 'nodegroups={...}'` without escaping, so a
+// Go string carrying real newlines reaches terraform as a quoted HCL string
+// split over several lines, which is a parse error. HCL unescapes the \n on
+// the way in, so the instance still receives a normal multi-line script.
+const el10UserData = `#!/bin/bash\nset -eux\ndnf install -y kernel-modules-extra-$(uname -r)\nmodprobe xt_addrtype br_netfilter ip_tables\nprintf 'xt_addrtype\nbr_netfilter\nip_tables\n' >/etc/modules-load.d/docker.conf\n`
 
 var Platforms = map[string]Platform{
 	"Ubuntu20": {
