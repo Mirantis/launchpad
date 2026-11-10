@@ -45,6 +45,8 @@ type upgradeConfig struct {
 	Base              smokeConfig
 	UpgradeMCRChannel string
 	UpgradeMKEVersion string
+	// UpgradeMSRVersion is empty for a cluster with no MSR node.
+	UpgradeMSRVersion string
 }
 
 // runUpgradeTest provisions the cluster with Base versions, upgrades to the
@@ -131,7 +133,7 @@ func runUpgradeTest(t *testing.T, cfg upgradeConfig) {
 	// Unmarshal the Terraform-generated YAML into a generic map so we can
 	// update version fields without disturbing host addresses, SANs, LB names,
 	// or any other infrastructure-specific values the module injected.
-	upgradeYAML, err := bumpVersions(baseYAML, cfg.UpgradeMCRChannel, cfg.UpgradeMKEVersion)
+	upgradeYAML, err := bumpVersions(baseYAML, cfg.UpgradeMCRChannel, cfg.UpgradeMKEVersion, cfg.UpgradeMSRVersion)
 	require.NoError(t, err, "mutate YAML for upgrade")
 
 	// ── Step 3: upgrade ───────────────────────────────────────────────────────
@@ -164,12 +166,17 @@ func runUpgradeTest(t *testing.T, cfg upgradeConfig) {
 	}
 }
 
-// bumpVersions deserialises yamlStr, replaces spec.mcr.channel and
-// spec.mke.version with the supplied values, and returns the re-serialised
-// YAML. The rest of the document (hosts, SANs, LB addresses, flags, …) is
-// preserved verbatim so the upgrade runs against the same infrastructure that
-// was just provisioned.
-func bumpVersions(yamlStr, mcrChannel, mkeVersion string) (string, error) {
+// bumpVersions deserialises yamlStr, replaces spec.mcr.channel,
+// spec.mke.version and spec.msr.version with the supplied values, and returns
+// the re-serialised YAML. The rest of the document (hosts, SANs, LB
+// addresses, flags, …) is preserved verbatim so the upgrade runs against the
+// same infrastructure that was just provisioned.
+//
+// msrVersion is empty for a cluster with no MSR node: launchpad.tf only emits
+// spec.msr when an msr-role nodegroup exists, so an absent block is the
+// normal shape rather than an error, and an absent block with a version to
+// apply is a configuration mistake worth reporting.
+func bumpVersions(yamlStr, mcrChannel, mkeVersion, msrVersion string) (string, error) {
 	var doc map[interface{}]interface{}
 	if err := yaml.Unmarshal([]byte(yamlStr), &doc); err != nil {
 		return "", fmt.Errorf("unmarshal cluster YAML: %w", err)
@@ -192,6 +199,14 @@ func bumpVersions(yamlStr, mcrChannel, mkeVersion string) (string, error) {
 		return "", fmt.Errorf("cluster YAML missing spec.mke")
 	}
 
+	if msrVersion != "" {
+		msr, ok := spec["msr"].(map[interface{}]interface{})
+		if !ok {
+			return "", fmt.Errorf("upgrade to MSR %s requested but cluster YAML has no spec.msr", msrVersion)
+		}
+		msr["version"] = msrVersion
+	}
+
 	out, err := yaml.Marshal(doc)
 	if err != nil {
 		return "", fmt.Errorf("re-marshal upgraded YAML: %w", err)
@@ -199,10 +214,10 @@ func bumpVersions(yamlStr, mcrChannel, mkeVersion string) (string, error) {
 	return string(out), nil
 }
 
-// TestUpgradeLegacyToModern installs MKE 3.8.8 / MCR stable-25.0 on a
-// legacy Linux matrix (rhel8, rocky8, ubuntu22) and then upgrades it to
-// MKE 3.9.2 / MCR stable-29.2 in place. This is the primary real-world
-// upgrade path for customers running the 3.8 stack.
+// TestUpgradeLegacyToModern installs MKE 3.8.8 / MCR stable-25.0 / MSR 2.9.28
+// on a legacy Linux matrix (rhel8, rocky8, ubuntu22) and then upgrades it to
+// MKE 3.9.2 / MCR stable-29.2 / MSR 2.9.30 in place. This is the primary
+// real-world upgrade path for customers running the 3.8 stack.
 func TestUpgradeLegacyToModern(t *testing.T) {
 	runUpgradeTest(t, upgradeConfig{
 		Base: smokeConfig{
@@ -218,17 +233,20 @@ func TestUpgradeLegacyToModern(t *testing.T) {
 				"WrkRhel8":     test.Platforms["Rhel8"].GetWorker(),
 				"WrkRocky8":    test.Platforms["Rocky8"].GetWorker(),
 				"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
+				"MsrUbuntu22":  test.Platforms["Ubuntu22"].GetMSR(),
 			},
 		},
 		UpgradeMCRChannel: "stable-29.2",
 		UpgradeMKEVersion: "3.9.2",
+		UpgradeMSRVersion: "2.9.30",
 	})
 }
 
-// TestUpgradeModernClusterFromLegacy installs MKE 3.8.8 / MCR stable-25.0 on
-// the modern Linux matrix (rhel9, ubuntu24, rocky9 managers; rhel9, sles15,
-// ubuntu24, rocky9 workers -- same nodegroups as TestModernCluster) and then
-// upgrades in place to MKE 3.9.2 / MCR stable-29.2. Exercises the same
+// TestUpgradeModernClusterFromLegacy installs MKE 3.8.8 / MCR stable-25.0 /
+// MSR 2.9.28 on the modern Linux matrix (rhel9, ubuntu24, rocky9 managers;
+// rhel9, sles15, ubuntu24, rocky9 workers; ubuntu24 MSR -- same nodegroups as
+// TestModernCluster) and then upgrades in place to MKE 3.9.2 / MCR
+// stable-29.2 / MSR 2.9.30. Exercises the same
 // version transition as TestUpgradeLegacyToModern but against newer OS
 // releases, covering the per-OS configurer paths (rhel9/ubuntu24/rocky9/
 // sles15) that TestUpgradeLegacyToModern's rhel8/rocky8/ubuntu22 matrix does
@@ -249,9 +267,11 @@ func TestUpgradeModernClusterFromLegacy(t *testing.T) {
 				"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
 				"WrkUbuntu24":  test.Platforms["Ubuntu24"].GetWorker(),
 				"WrkRocky9":    test.Platforms["Rocky9"].GetWorker(),
+				"MsrUbuntu24":  test.Platforms["Ubuntu24"].GetMSR(),
 			},
 		},
 		UpgradeMCRChannel: "stable-29.2",
 		UpgradeMKEVersion: "3.9.2",
+		UpgradeMSRVersion: "2.9.30",
 	})
 }

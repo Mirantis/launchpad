@@ -225,13 +225,19 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 }
 
 // TestModernCluster exercises rhel9/ubuntu24/rocky9 managers and rhel9/sles15/ubuntu24/rocky9 workers
-// with MCR stable-29.2 and MKE 3.9.2.
+// with MCR stable-29.2 and MKE 3.9.2, plus an ubuntu24 MSR replica.
+//
+// MSR is 2.9.28, not 3.x: examples/terraform/aws-simple/launchpad.tf renders
+// `kind: mke+msr` with --dtr-external-url and --ucp-insecure-tls, and this
+// launchpad has no MSR 3 support at all. The 3.1.18 that stood here was never
+// exercised -- with no msr-role nodegroup, launchpad.tf's has_msr was false
+// and the whole msr block was skipped.
 func TestModernCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		Name:            "modern",
 		MCRChannel:      "stable-29.2",
 		MKEVersion:      "3.9.2",
-		MSRVersion:      "3.1.18",
+		MSRVersion:      "2.9.28",
 		SSHKeyAlgorithm: "ed25519",
 		Nodegroups: map[string]interface{}{
 			"MngrRhel9":    test.Platforms["Rhel9"].GetManager(),
@@ -241,6 +247,7 @@ func TestModernCluster(t *testing.T) {
 			"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
 			"WrkUbuntu24":  test.Platforms["Ubuntu24"].GetWorker(),
 			"WrkRocky9":    test.Platforms["Rocky9"].GetWorker(),
+			"MsrUbuntu24":  test.Platforms["Ubuntu24"].GetMSR(),
 		},
 	})
 }
