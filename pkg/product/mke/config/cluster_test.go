@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -28,6 +29,8 @@ import (
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta3"
 	"github.com/Mirantis/launchpad/pkg/constant"
 	validator "github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
+	logrustest "github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )
@@ -444,9 +447,15 @@ spec:
       winRM:
         address: 10.0.0.1
         user: User
+        password: NOT-A-REAL-PASSWORD
 `
 	c := loadYaml(t, data)
 
+	// The password is here only so the host has a complete credential for
+	// Validate to accept. The assertions below are about default
+	// application, which is what this test is for; inverting it to expect a
+	// validation error would convert a defaults test into a validation test
+	// and drop that coverage.
 	require.NoError(t, c.Validate())
 
 	require.Equal(t, c.Spec.Hosts[0].WinRM.User, "User")
@@ -510,6 +519,203 @@ spec:
 
 }
 
+func TestWinRMPasswordExposureWarning(t *testing.T) {
+	// An obviously fake value: the point of the assertions below is that this
+	// string never reaches the log, so it must be recognisable if it ever does.
+	const fakePassword = "NOT-A-REAL-PASSWORD"
+
+	// Markers that tell the two warnings apart. A reader must be able to see
+	// which failure applies, so the tests assert on the distinguishing phrase
+	// rather than on "a warning happened".
+	const (
+		cleartextMarker = "sent in clear"
+		unverifiedCert  = "winRM.caCertPath"
+	)
+
+	configWithWinRM := func(settings string) string {
+		return `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+      winRM:
+        address: 10.0.0.1
+        user: Administrator
+` + settings
+	}
+
+	tests := []struct {
+		name     string
+		settings string
+		// want is the phrase the single warning must contain, or "" when no
+		// warning may be emitted at all.
+		want string
+		// wantRejected marks a host that Validate now refuses outright,
+		// because rig requires a user and a password together. Such a host
+		// must also emit no warning: the exposure warning describes a
+		// password that reaches the wire, and there is no password here.
+		wantRejected bool
+	}{
+		{
+			name:     "insecure https with a password warns about the certificate",
+			settings: "        useHTTPS: true\n        insecure: true\n        password: " + fakePassword + "\n",
+			want:     unverifiedCert,
+		},
+		{
+			// port 5986 implies TLS without an explicit useHTTPS: rig's
+			// winrm.Config.SetDefaults flips UseHTTPS for that port, and
+			// creasty/defaults invokes it from Host.UnmarshalYAML, so the
+			// flag is already true by the time Validate runs. This case
+			// locks that in: the warning must not depend on the user
+			// having spelled useHTTPS out.
+			name:     "insecure with implicit https via port 5986 warns about the certificate",
+			settings: "        port: 5986\n        insecure: true\n        password: " + fakePassword + "\n",
+			want:     unverifiedCert,
+		},
+		{
+			// Added by user ruling, beyond the ticket's two named findings.
+			// rig installs no transport decorator for plain HTTP without
+			// NTLM, so go-winrm falls back to SetBasicAuth and the password
+			// crosses the network with no encryption.
+			name:     "plain http with a password warns about cleartext",
+			settings: "        useHTTPS: false\n        password: " + fakePassword + "\n",
+			want:     cleartextMarker,
+		},
+		{
+			name:     "plain http with a password and insecure warns about cleartext, not the certificate",
+			settings: "        useHTTPS: false\n        insecure: true\n        password: " + fakePassword + "\n",
+			want:     cleartextMarker,
+		},
+		{
+			// NTLM negotiates its own message-level encryption, so the
+			// password is not cleartext even over plain HTTP.
+			name:     "plain http with ntlm does not warn",
+			settings: "        useHTTPS: false\n        useNTLM: true\n        password: " + fakePassword + "\n",
+			want:     "",
+		},
+		{
+			name:         "insecure https without a password is rejected and does not warn",
+			settings:     "        useHTTPS: true\n        insecure: true\n",
+			want:         "",
+			wantRejected: true,
+		},
+		{
+			name:     "verified https with a password does not warn",
+			settings: "        useHTTPS: true\n        insecure: false\n        password: " + fakePassword + "\n",
+			want:     "",
+		},
+		{
+			name:         "host with no password is rejected and does not warn",
+			settings:     "",
+			want:         "",
+			wantRejected: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hook := logrustest.NewGlobal()
+			defer hook.Reset()
+
+			c := loadYaml(t, configWithWinRM(tt.settings))
+			err := c.Validate()
+			if tt.wantRejected {
+				require.Error(t, err, "a host with a user and no password must not validate")
+			} else {
+				require.NoError(t, err)
+			}
+
+			var warnings []string
+			for _, entry := range hook.AllEntries() {
+				require.NotContains(t, entry.Message, fakePassword, "the warning must never print the password")
+				// Structured fields are a separate leak route from the
+				// formatted message: a change that moved the value into a
+				// logrus field would otherwise go unnoticed here.
+				require.NotContains(t, fmt.Sprint(entry.Data), fakePassword, "the password must never reach a log field")
+				if entry.Level == logrus.WarnLevel {
+					warnings = append(warnings, entry.Message)
+				}
+			}
+
+			if tt.want == "" {
+				require.Empty(t, warnings)
+				return
+			}
+
+			require.Len(t, warnings, 1)
+			require.Contains(t, warnings[0], "10.0.0.1")
+			require.Contains(t, warnings[0], tt.want)
+
+			// The two warnings must stay distinguishable: a host is told
+			// either that its password crosses the wire unencrypted, or that
+			// its peer is unauthenticated, never a blend of the two.
+			other := cleartextMarker
+			if tt.want == cleartextMarker {
+				other = unverifiedCert
+			}
+			require.NotContains(t, warnings[0], other)
+		})
+	}
+}
+
+func TestWinRMPasswordExposureWarningIsPerHost(t *testing.T) {
+	hook := logrustest.NewGlobal()
+	defer hook.Reset()
+
+	data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+      winRM:
+        address: 10.0.0.1
+        user: Administrator
+        useHTTPS: true
+        insecure: true
+        password: NOT-A-REAL-PASSWORD
+    - role: worker
+      winRM:
+        address: 10.0.0.2
+        user: Administrator
+        useHTTPS: false
+        password: ALSO-NOT-REAL
+    - role: worker
+      winRM:
+        address: 10.0.0.3
+        user: Administrator
+        useHTTPS: true
+        password: SAFE-NOT-REAL
+`
+	c := loadYaml(t, data)
+	require.NoError(t, c.Validate())
+
+	var warnings []string
+	for _, entry := range hook.AllEntries() {
+		if entry.Level == logrus.WarnLevel {
+			warnings = append(warnings, entry.Message)
+		}
+	}
+
+	// One warning per affected host, each diagnosing that host's own
+	// transport: 10.0.0.1 has an unverified certificate, 10.0.0.2 sends the
+	// password in clear, and 10.0.0.3 uses verified TLS so is not reported.
+	require.Len(t, warnings, 2)
+	require.Contains(t, warnings[0], "10.0.0.1")
+	require.Contains(t, warnings[0], "winRM.caCertPath")
+	require.Contains(t, warnings[1], "10.0.0.2")
+	require.Contains(t, warnings[1], "sent in clear")
+}
+
 // Just a small helper to load the config struct from yaml to get defaults etc. in place.
 func loadYaml(t *testing.T, data string) *ClusterConfig {
 	c := &ClusterConfig{}
@@ -553,6 +759,108 @@ func getAllErrorFields(err error) []string {
 	}
 
 	return fields
+}
+
+// TestEmptyWinRMPasswordIsRejected covers the defect the exposure warning
+// could not see. The warning fires where the password survives; it was silent
+// where the password vanished entirely, because an empty Password reads as
+// "no password configured". rig has the right guard but launchpad never
+// reached it, connecting through CompositeConfig.Connection() rather than
+// Validate(), so such a host authenticated as the configured user with no
+// password at all.
+func TestEmptyWinRMPasswordIsRejected(t *testing.T) {
+	tests := []struct {
+		name        string
+		host        string
+		wantErr     bool
+		wantWarning bool
+	}{
+		{
+			// The YAML-truncation shape: a password beginning with "#" is
+			// consumed as a comment during substitution, so the key parses
+			// as null and the field is empty by the time Validate runs.
+			name:    "password present in the file but empty after parsing",
+			host:    "        address: 10.0.0.1\n        user: Administrator\n        password:\n",
+			wantErr: true,
+		},
+		{
+			name:    "explicit empty string password",
+			host:    "        address: 10.0.0.1\n        user: Administrator\n        password: \"\"\n",
+			wantErr: true,
+		},
+		{
+			name:    "no winRM password key at all",
+			host:    "        address: 10.0.0.1\n        user: Administrator\n",
+			wantErr: true,
+		},
+		{
+			name:        "a real password still validates and still warns about cleartext",
+			host:        "        address: 10.0.0.1\n        user: Administrator\n        password: NOT-A-REAL-PASSWORD\n",
+			wantErr:     false,
+			wantWarning: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hook := logrustest.NewGlobal()
+			defer hook.Reset()
+
+			data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+      winRM:
+` + tt.host
+
+			c := loadYaml(t, data)
+			err := c.Validate()
+
+			if tt.wantErr {
+				require.Error(t, err, "an empty password must be rejected, not used to authenticate")
+				require.ErrorContains(t, err, "user and password must both be set")
+			} else {
+				require.NoError(t, err)
+			}
+
+			var warned bool
+			for _, entry := range hook.AllEntries() {
+				if entry.Level == logrus.WarnLevel {
+					warned = true
+				}
+			}
+			require.Equal(t, tt.wantWarning, warned,
+				"the warning describes a password that reaches the wire; an absent one has nothing to expose")
+		})
+	}
+}
+
+// TestHostWithNoProtocolIsRejected covers the other shape rig's validation
+// catches: a host entry with no connection block at all previously validated
+// and failed later at connect time.
+func TestHostWithNoProtocolIsRejected(t *testing.T) {
+	data := `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+  hosts:
+    - role: manager
+`
+	c := loadYaml(t, data)
+	err := c.Validate()
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "no protocol configuration")
 }
 
 // TestImageRepoRejectsShellMetacharacters covers AC-3. spec.*.imageRepo is
