@@ -225,19 +225,13 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 }
 
 // TestModernCluster exercises rhel9/ubuntu24/rocky9 managers and rhel9/sles15/ubuntu24/rocky9 workers
-// with MCR stable-29.2 and MKE 3.9.2, plus an ubuntu24 MSR replica.
-//
-// MSR is 2.9.28, not 3.x: examples/terraform/aws-simple/launchpad.tf renders
-// `kind: mke+msr` with --dtr-external-url and --ucp-insecure-tls, and this
-// launchpad has no MSR 3 support at all. The 3.1.18 that stood here was never
-// exercised -- with no msr-role nodegroup, launchpad.tf's has_msr was false
-// and the whole msr block was skipped.
+// with MCR stable-29.2 and MKE 3.9.2.
 func TestModernCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		Name:            "modern",
 		MCRChannel:      "stable-29.2",
 		MKEVersion:      "3.9.2",
-		MSRVersion:      "2.9.28",
+		MSRVersion:      "3.1.18",
 		SSHKeyAlgorithm: "ed25519",
 		Nodegroups: map[string]interface{}{
 			"MngrRhel9":    test.Platforms["Rhel9"].GetManager(),
@@ -247,7 +241,6 @@ func TestModernCluster(t *testing.T) {
 			"WrkSles15":    test.Platforms["Sles15"].GetWorker(),
 			"WrkUbuntu24":  test.Platforms["Ubuntu24"].GetWorker(),
 			"WrkRocky9":    test.Platforms["Rocky9"].GetWorker(),
-			"MsrUbuntu24":  test.Platforms["Ubuntu24"].GetMSR(),
 		},
 	})
 }
@@ -343,6 +336,46 @@ func TestFIPSCluster(t *testing.T) {
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
 			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
+		},
+	})
+}
+
+// TestMSRCluster is the only suite that installs MSR.
+//
+// It exists because MSR cannot ride along with the other suites. test/
+// platforms.go has always defined GetMSR(), but nothing called it, so
+// launchpad.tf's has_msr (:207, counting msr-role nodegroups) was always
+// false: every suite rendered `kind: mke`, the spec.msr block was skipped,
+// and the MSRVersion each one declares was discarded at the last gate. No
+// smoke test had ever installed MSR.
+//
+// The versions are the legacy stack, not the modern one, and that is forced.
+// Measured on CI run 43022186758, MSR 2.9.28 against MCR 29.2:
+//
+//	FATA Failed to get new conv client: Docker version check failed:
+//	client version 1.24 is too old. Minimum supported API version is 1.40
+//
+// The MSR 2.x bootstrapper speaks Docker API 1.24 and MCR 29 requires 1.40,
+// so MSR 2.x cannot install on a modern cluster at all. MCR stable-25.0 still
+// accepts 1.24. MSR 3.x is not an escape either: launchpad.tf renders MSR 2.x
+// config only (`kind: mke+msr`, --dtr-external-url, --ucp-insecure-tls) and
+// this launchpad has no MSR 3 support -- no msr3 kind anywhere in pkg/, and
+// the MSR phases are DTR-era.
+//
+// Hence its own `smoke-msr` label rather than a nodegroup added to an
+// existing suite: the only stack MSR runs on is one no other suite installs
+// by default, and an MSR node costs an instance and an ingress per run.
+func TestMSRCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		Name:            "msr",
+		MCRChannel:      "stable-25.0",
+		MKEVersion:      "3.8.8",
+		MSRVersion:      "2.9.28",
+		SSHKeyAlgorithm: "ed25519",
+		Nodegroups: map[string]interface{}{
+			"MngrRhel8":   test.Platforms["Rhel8"].GetManager(),
+			"WrkUbuntu22": test.Platforms["Ubuntu22"].GetWorker(),
+			"MsrUbuntu22": test.Platforms["Ubuntu22"].GetMSR(),
 		},
 	})
 }

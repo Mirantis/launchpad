@@ -215,3 +215,30 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: make smoke-swarm-pool
+
+  # MSR runs only when asked for, like smoke-swarm-pool and unlike the
+  # version-matrix suites: it is the only suite that installs MSR, it costs an
+  # extra instance and ingress, and MSR 2.x pins it to the legacy MCR/MKE
+  # stack that no other suite would otherwise pair it with.
+  smoke-msr:
+    runs-on: arc-runner-set-mirantis-public
+    if: contains(github.event.pull_request.labels.*.name, 'smoke-msr')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
+        with:
+          terraform_wrapper: false
+      - name: Run MSR smoke test
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: make smoke-msr
