@@ -6,20 +6,25 @@ import (
 	"testing"
 
 	rig "github.com/k0sproject/rig/v2"
+	"github.com/k0sproject/rig/v2/protocol"
 	"github.com/stretchr/testify/require"
 )
 
 // TestConnectRetriesTransientAuthErrors is the regression test for the WinRM
 // half of PRODENG-3594.
 //
-// rig v2 wraps WinRM 401/403 as ErrNonRetryable, so the connect phase abandoned
-// a host on its first attempt. A Windows host answers WinRM before its
-// provisioning has configured authentication, so that aborted clusters which
-// would have come up moments later. rig v0 retried these.
+// rig v2.1 wrapped WinRM 401/403 in ErrNonRetryable, so the connect phase
+// abandoned a host on its first attempt. A Windows host answers WinRM before
+// its provisioning has configured authentication, so that aborted clusters
+// which would have come up moments later.
+//
+// rig v2.2 tags a credential rejection with protocol.ErrAuthFailed and
+// deliberately does not wrap it in ErrNonRetryable, so the retry happens
+// without launchpad classifying anything itself. These cases use the shapes
+// rig produces now; the substring matching they used to need is gone.
 func TestConnectRetriesTransientAuthErrors(t *testing.T) {
-	// Both message shapes the WinRM library produces, as seen in CI.
 	ciError := fmt.Errorf("connect: connect: client connect: retry: abort condition reached after 1 attempts: %w",
-		fmt.Errorf("%w: create shell: http response error: 401 - invalid content type", rig.ErrNonRetryable))
+		fmt.Errorf("%w: create shell: http response error: 401 - invalid content type", protocol.ErrAuthFailed))
 
 	for _, tc := range []struct {
 		name  string
@@ -33,12 +38,12 @@ func TestConnectRetriesTransientAuthErrors(t *testing.T) {
 		},
 		{
 			name:  "401 in the library's alternate format",
-			err:   fmt.Errorf("%w: create shell: http error 401: unauthorized", rig.ErrNonRetryable),
+			err:   fmt.Errorf("%w: create shell: http error 401: unauthorized", protocol.ErrAuthFailed),
 			retry: true,
 		},
 		{
 			name:  "403 is also a provisioning race, not a permanent state",
-			err:   fmt.Errorf("%w: create shell: http error 403: forbidden", rig.ErrNonRetryable),
+			err:   fmt.Errorf("%w: create shell: http error 403: forbidden", protocol.ErrAuthFailed),
 			retry: true,
 		},
 		{
