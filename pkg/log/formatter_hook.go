@@ -67,17 +67,41 @@ func NewStdoutHook() *FormatterWriterHook {
 	return stdoutHook
 }
 
-// NewFileHook creates logrus hook for logging all levels to file.
+// NewFileHook creates a logrus hook for logging to file.
+//
+// The file is persistent, so the levels it receives are not log.AllLevels.
+// Trace and Debug records carry remote command lines and their output, and
+// the file is written for every run regardless of flags, so an unredacted
+// value in a Trace record outlives the terminal it would otherwise have
+// scrolled past. Trace is written only with --trace and Debug only with
+// --debug; without either, the file holds Info and above, which is what it
+// is read for. See PRODENG-3922.
 func NewFileHook(logFile *os.File) *FormatterWriterHook {
 	fileFormatter := &log.TextFormatter{
 		DisableColors:   true,
 		FullTimestamp:   true,
 		TimestampFormat: time.RFC822,
 	}
+
+	levels := []log.Level{
+		log.PanicLevel,
+		log.FatalLevel,
+		log.ErrorLevel,
+		log.WarnLevel,
+		log.InfoLevel,
+	}
+
+	switch {
+	case Trace:
+		levels = append(levels, log.DebugLevel, log.TraceLevel)
+	case Debug:
+		levels = append(levels, log.DebugLevel)
+	}
+
 	fileHook := &FormatterWriterHook{
 		Writer:    logFile,
 		Formatter: fileFormatter,
-		LogLevels: log.AllLevels,
+		LogLevels: levels,
 	}
 
 	return fileHook

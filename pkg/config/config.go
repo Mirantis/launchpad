@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/config/migration"
@@ -30,6 +29,7 @@ import (
 	_ "github.com/Mirantis/launchpad/pkg/config/migration/v1beta3"
 	"github.com/Mirantis/launchpad/pkg/product"
 	"github.com/Mirantis/launchpad/pkg/product/mke"
+	"github.com/Mirantis/launchpad/pkg/util/redact"
 	"github.com/a8m/envsubst"
 	"github.com/k0sproject/rig/v2/cmd"
 	log "github.com/sirupsen/logrus"
@@ -83,8 +83,7 @@ func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
 
 	cfg := string(plain)
 	if !cmd.DisableRedact {
-		re := regexp.MustCompile(`(username|password)([:= ]) ?\S+`)
-		cfg = re.ReplaceAllString(cfg, "$1$2[REDACTED]")
+		cfg = redactConfigDump(plain)
 	}
 
 	log.Debugf("loaded configuration:\n%s", cfg)
@@ -103,6 +102,32 @@ func ProductFromYAML(data []byte) (product.Product, error) { //nolint:ireturn
 	default:
 		return nil, fmt.Errorf("%w: %s", errUnknownConfigKind, kindStr)
 	}
+}
+
+// redactConfigDump masks credentials in the configuration before it is
+// written to the debug log, which persists to disk.
+//
+// A configuration that fails to parse is still dumped, because a debug dump
+// of a broken configuration is exactly when the output is wanted. It gets
+// redact.Text instead of redact.YAML: the same key set and the same
+// environment-variable fragments, applied line by line rather than over a
+// parsed structure.
+//
+// The difference is stated in the log line rather than left for the reader
+// to infer. redact.Text cannot see a credential that is not on the same
+// line as its key -- a YAML block scalar holding a private key is the case
+// that matters -- so the output is masked on a best-effort basis and an
+// operator deciding whether to attach it to a ticket needs to know which of
+// the two they are looking at.
+func redactConfigDump(plain []byte) string {
+	masked, err := redact.YAML(plain)
+	if err == nil {
+		return string(masked)
+	}
+
+	log.Warnf("configuration could not be parsed for redaction (%s); the dump below is masked line by line on a best-effort basis and may still contain credentials that span lines", err)
+
+	return string(redact.Text(plain))
 }
 
 var errUnknownConfigKind = errors.New("unknown configuration kind")
