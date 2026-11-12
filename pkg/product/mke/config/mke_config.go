@@ -12,11 +12,18 @@ import (
 )
 
 // MKEConfig has all the bits needed to configure mke during installation.
+//
+// AdminPassword is required. When it was optional the bootstrapper generated
+// one, and launchpad recovered it by matching a regexp against the
+// installer's output and logging it in the clear, because every later phase
+// that authenticates to MKE -- pkg/mke.GetToken's callers, the MKE health
+// check, node removal -- needs the password and there was no other source
+// for it. Configuration is that source now.
 type MKEConfig struct {
 	Version          string       `yaml:"version" validate:"required"`
 	ImageRepo        string       `yaml:"imageRepo,omitempty" validate:"omitempty,image_repo"`
 	AdminUsername    string       `yaml:"adminUsername,omitempty"`
-	AdminPassword    string       `yaml:"adminPassword,omitempty"`
+	AdminPassword    string       `yaml:"adminPassword" validate:"required"`
 	InstallFlags     common.Flags `yaml:"installFlags,omitempty,flow"`
 	UpgradeFlags     common.Flags `yaml:"upgradeFlags,omitempty,flow"`
 	ConfigFile       string       `yaml:"configFile,omitempty" validate:"omitempty,file"`

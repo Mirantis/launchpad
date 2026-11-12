@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"regexp"
 	"strings"
 
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
@@ -12,9 +11,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
 	"github.com/Mirantis/launchpad/pkg/util/installutil"
-	"github.com/Mirantis/launchpad/pkg/util/redact"
 	"github.com/k0sproject/rig/v2/cmd"
-	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,51 +29,6 @@ type InstallMKE struct {
 // Title prints the phase title.
 func (p *InstallMKE) Title() string {
 	return "Install MKE components"
-}
-
-// adminCredentialFlags renders the MKE admin credential install flags. The
-// values are shell-quoted because they are placed on a remote command line.
-// adminCredentialRedactions must be kept in step with the quoting done here.
-func adminCredentialFlags(username, password string) []string {
-	var flags []string
-	if username != "" {
-		flags = append(flags, "--admin-username "+shellescape.Quote(username))
-	}
-	if password != "" {
-		flags = append(flags, "--admin-password "+shellescape.Quote(password))
-	}
-	return flags
-}
-
-// adminCredentialRedactions returns the literal strings the admin
-// credentials take in the rendered command: the raw value and the
-// shell-quoted value produced by adminCredentialFlags. Redacting only the
-// raw value leaks the quoted one, because shell-quoting a value that
-// contains a single quote rewrites it.
-//
-// The values are returned unescaped. rig matches redactions literally
-// (cmd/execoptions.go RedactString is strings.ReplaceAll), so wrapping them
-// in regexp.QuoteMeta produced a spelling that never appears in the log --
-// invisibly, since QuoteMeta is the identity function for alphanumerics and
-// only a credential containing a regex metacharacter exposed it.
-//
-// They are returned longest first. rig replaces each value in turn, so a
-// username that is a prefix of the password -- "admin" against
-// "admin!s3cr3t" -- would otherwise be substituted first and leave the
-// remainder of the password in the log. Empty values are dropped, because
-// an empty match would redact everywhere.
-func adminCredentialRedactions(username, password string) []string {
-	var patterns []string
-	for _, value := range []string{username, password} {
-		if value == "" {
-			continue
-		}
-		patterns = append(patterns, value)
-		if quoted := shellescape.Quote(value); quoted != value {
-			patterns = append(patterns, quoted)
-		}
-	}
-	return redact.ByLengthDesc(patterns...)
 }
 
 // Run the installer container.
@@ -115,13 +67,21 @@ func (p *InstallMKE) Run() error {
 		}
 	}
 
+	// Secrets go to the installer as environment values, staged in
+	// mode-0600 files on the host by pkg/util/secretenv, so they are absent
+	// from the remote command line and from everything that records it.
+	secretEnv := map[string]string{
+		"UCP_ADMIN_USER":     p.Config.Spec.MKE.AdminUsername,
+		"UCP_ADMIN_PASSWORD": p.Config.Spec.MKE.AdminPassword,
+	}
+
 	if licenseFilePath := p.Config.Spec.MKE.LicenseFilePath; licenseFilePath != "" {
 		log.Debugf("Installing MKE with LicenseFilePath: %s", licenseFilePath)
-		licenseFlag, err := installutil.SetupLicenseFile(p.Config.Spec.MKE.LicenseFilePath)
+		license, err := installutil.ReadLicense(licenseFilePath)
 		if err != nil {
 			return fmt.Errorf("error while reading license file %s: %w", licenseFilePath, err)
 		}
-		installFlags.AddUnlessExist(licenseFlag)
+		secretEnv["UCP_LICENSE"] = license
 	}
 
 	if p.Config.Spec.MKE.Cloud != nil {
@@ -140,35 +100,19 @@ func (p *InstallMKE) Run() error {
 		installFlags.AddUnlessExist("--pull never")
 	}
 
-	for _, flag := range adminCredentialFlags(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword) {
-		installFlags.AddUnlessExist(flag)
-	}
-
-	execOpts := []cmd.ExecOption{cmd.StreamOutput()}
-	for _, pattern := range adminCredentialRedactions(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword) {
-		execOpts = append(execOpts, cmd.Redact(pattern))
-	}
-
-	// The flag list is deliberately not logged here: it carries
-	// --admin-password and --license with their values, and this line ran
-	// before rig's redaction, which applies only to the command rig
-	// executes. rig logs that command with the redactions above applied.
-	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: execOpts})
+	log.Debugf("%s: install flags: %s", p.leader, installFlags.Join())
+	// redactOptions, not a hand written list: the username is a prefix of
+	// many passwords and rig masks in registration order.
+	execOpts := append([]cmd.ExecOption{cmd.StreamOutput()},
+		redactOptions(p.Config.Spec.MKE.AdminUsername, p.Config.Spec.MKE.AdminPassword)...)
+	output, err := mke.Bootstrap("install", *p.Config, mke.BootstrapOptions{
+		OperationFlags:  installFlags,
+		CleanupDisabled: p.CleanupDisabled(),
+		SecretEnv:       secretEnv,
+		ExecOptions:     execOpts,
+	})
 	if err != nil {
 		return fmt.Errorf("%s: failed to run MKE installer: \n output: %s \n error: %w", p.leader, output, err)
-	}
-
-	if installFlags.GetValue("--admin-password") == "" {
-		re := regexp.MustCompile(`msg="Generated random admin password: (.+?)"`)
-		md := re.FindStringSubmatch(output)
-		if len(md) > 0 && md[1] != "" {
-			log.Warnf("Using an automatically generated password for MKE admin user: %s -- you will have to set it to Spec.MKE.AdminPassword for any subsequent launchpad runs.", md[1])
-			p.Config.Spec.MKE.AdminPassword = md[1]
-			if p.Config.Spec.MKE.AdminUsername == "" {
-				log.Debugf("defaulting to mke admin username 'admin'")
-				p.Config.Spec.MKE.AdminUsername = "admin"
-			}
-		}
 	}
 
 	err = mke.CollectFacts(p.leader, p.Config.Spec.MKE.Metadata)
