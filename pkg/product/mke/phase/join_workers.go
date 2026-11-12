@@ -40,6 +40,17 @@ func (p *JoinWorkers) Run() error {
 			log.Infof("%s: already a swarm node", h)
 			continue
 		}
+		// The join token stays in the command line because docker swarm
+		// join takes it no other way: its only options are
+		// --advertise-addr, --availability, --data-path-addr,
+		// --listen-addr and --token, with no environment variable, file or
+		// stdin variant. Reading it from a file in the command -- --token
+		// "$(cat f)" -- does not help either: the shell expands it before
+		// exec, so the token is in the docker process' own argv regardless.
+		// It is therefore readable in /proc/<pid>/cmdline and in auditd
+		// execve records on the joining host for the life of the command.
+		// cmd.Redact below covers launchpad's own logging only. See
+		// PRODENG-3923.
 		joinCmd := h.Configurer.DockerCmd().Raw("swarm join").Arg(fmt.Sprintf("--advertise-addr=%s", h.SwarmAddress())).Raw("--token").Arg(p.Config.Spec.MCR.Metadata.WorkerJoinToken).Arg(swarmLeader.SwarmAddress()).String()
 		log.Debugf("%s: joining as worker", h)
 		err := h.Exec(joinCmd, cmd.Redact(p.Config.Spec.MCR.Metadata.WorkerJoinToken))
