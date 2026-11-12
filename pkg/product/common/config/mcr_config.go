@@ -31,24 +31,6 @@ type MCRConfig struct {
 	SwarmInstallFlags           Flags    `yaml:"swarmInstallFlags,omitempty,flow"`
 	SwarmUpdateCommands         []string `yaml:"swarmUpdateCommands,omitempty,flow"`
 
-	// InstallURLWindowsAllowUnsigned runs the Windows install script without
-	// requiring an Authenticode signature.
-	//
-	// launchpad normally invokes install.ps1 under -ExecutionPolicy AllSigned,
-	// so PowerShell refuses a script whose signature is absent, broken, or from
-	// an untrusted publisher. The script Mirantis publishes at
-	// get.mirantis.com/install.ps1 is signed, so the default costs nothing.
-	//
-	// InstallURLWindows exists so an operator can point launchpad at their own
-	// script, and an operator's script will not generally carry a signature
-	// trusted by the host. This is the escape hatch for that case: it is opt-in,
-	// it is named for what it gives up, and it applies to the uninstall
-	// invocation too, which runs the same script with -Uninstall.
-	//
-	// Windows only. Linux hosts install MCR through their package manager,
-	// which does its own signature checking, and never fetch this script.
-	InstallURLWindowsAllowUnsigned bool `yaml:"installURLWindowsAllowUnsigned,omitempty"`
-
 	// InstallRecommends tells the package manager to install the runtime's
 	// recommended packages even when the host is configured not to.
 	//
