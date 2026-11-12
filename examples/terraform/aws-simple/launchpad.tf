@@ -16,8 +16,15 @@ variable "launchpad" {
 
     mcr_channel  = string
     mcr_repo_url = optional(string, "https://repos.mirantis.com")
-    mke_version  = string
-    msr_version  = string // unused if you have no MSR hosts
+
+    // Runs the Windows MCR install script without requiring an Authenticode
+    // signature. Defaults to false, matching launchpad's own default. The
+    // smoke suites set it true while PRODENG-3924's AllSigned enforcement is
+    // under investigation: a stock Windows host refuses the signed script and
+    // the install fails before any launchpad behaviour is exercised.
+    mcr_install_url_windows_allow_unsigned = optional(bool, false)
+    mke_version                            = string
+    msr_version                            = string // unused if you have no MSR hosts
 
     mke_connect = object({
       username = string
@@ -257,6 +264,7 @@ spec:
     channel: ${var.launchpad.mcr_channel}
     repoURL: ${var.launchpad.mcr_repo_url}
     installURLWindows: https://get.mirantis.com/install.ps1
+    installURLWindowsAllowUnsigned: ${var.launchpad.mcr_install_url_windows_allow_unsigned}
     prune: true
   mke:
     version: ${var.launchpad.mke_version}

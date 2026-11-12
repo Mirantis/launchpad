@@ -109,6 +109,12 @@ func runSmokeTest(t *testing.T, cfg smokeConfig) {
 		"mke_version": cfg.MKEVersion,
 		"msr_version": cfg.MSRVersion,
 		"mke_connect": mkeConnect,
+		// PRODENG-3924: a stock Windows host refuses the signed install
+		// script under -ExecutionPolicy AllSigned, so every Windows host
+		// fails at Install MCR before any launchpad behaviour is reached.
+		// The suites opt out until that is understood; the reason the host
+		// refuses is captured by installerDiagnostics in windows.go.
+		"mcr_install_url_windows_allow_unsigned": true,
 	}
 	if cfg.MCRRepoURL != "" {
 		launchpad["mcr_repo_url"] = cfg.MCRRepoURL

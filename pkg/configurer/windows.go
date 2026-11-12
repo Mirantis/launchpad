@@ -106,6 +106,52 @@ func installerExecutionPolicy(allowUnsigned bool) string {
 	return "AllSigned"
 }
 
+// installerDiagnostics describes why PowerShell refused or failed the install
+// script, for attaching to the error the caller returns.
+//
+// rig truncates a command's output into its error at about a hundred
+// characters, so a PowerShell refusal arrives as
+//
+//	File C:\...\installerWindows123.ps1 cannot be loaded. The contents of file  ...
+//
+// cut off exactly where the reason would be. Those reasons need opposite
+// fixes -- a hash mismatch means the file was altered in transit, an
+// untrusted publisher means the host was never going to accept it -- and
+// neither is recoverable from the truncated form. This is the Windows
+// counterpart of the journalctl capture EnableMCR does on Linux, and it
+// exists for the same reason: the only description of what went wrong was
+// being discarded.
+//
+// Best effort throughout. A failure collecting diagnostics must not replace
+// the original error, so every probe's own error is ignored.
+func (c WindowsConfigurer) installerDiagnostics(h Host, installer, output string) string {
+	var diag strings.Builder
+
+	if trimmed := strings.TrimSpace(output); trimmed != "" {
+		diag.WriteString("\ninstaller output:\n")
+		diag.WriteString(trimmed)
+	}
+
+	sig, sigErr := h.ExecOutput(ps.Cmd(fmt.Sprintf(
+		"$s = Get-AuthenticodeSignature %s; "+
+			"Write-Output \"status=$($s.Status)\"; "+
+			"Write-Output \"statusMessage=$($s.StatusMessage)\"; "+
+			"Write-Output \"signer=$($s.SignerCertificate.Subject)\"",
+		ps.DoubleQuotePath(installer))))
+	if sigErr == nil && strings.TrimSpace(sig) != "" {
+		diag.WriteString("\nscript signature:\n")
+		diag.WriteString(strings.TrimSpace(sig))
+	}
+
+	policy, policyErr := h.ExecOutput(ps.Cmd("Get-ExecutionPolicy -List | Out-String"))
+	if policyErr == nil && strings.TrimSpace(policy) != "" {
+		diag.WriteString("\nexecution policy:\n")
+		diag.WriteString(strings.TrimSpace(policy))
+	}
+
+	return diag.String()
+}
+
 // windowsMCRInstallCommand passes the repo URL and channel as installer
 // parameters, not `set` env vars, which a "cmd.exe /C" prefix loses (PRODENG-4062).
 func windowsMCRInstallCommand(installer, repoURL, channel string, allowUnsigned bool) string {
@@ -169,7 +215,7 @@ func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfi
 		if isExitCode3010(err) {
 			needsReboot = true
 		} else {
-			return fmt.Errorf("failed to run MCR installer: %w", err)
+			return fmt.Errorf("failed to run MCR installer: %w%s", err, c.installerDiagnostics(h, installer, output))
 		}
 	}
 
