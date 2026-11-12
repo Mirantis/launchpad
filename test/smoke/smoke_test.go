@@ -245,6 +245,42 @@ func TestModernCluster(t *testing.T) {
 	})
 }
 
+// TestCuttingEdgeCluster exercises rhel10/rocky10/ubuntu26 managers and
+// workers, using the latest MCR and MKE versions. The rhel_10/rocky_10
+// platform keys are available in terraform-mirantis-provision-aws >= v0.1.7
+// (pinned to 0.1.8 in examples/terraform/aws-simple).
+//
+// MCR package availability, checked 2026-11-03:
+//   - rhel/10 (also used by rocky10): stable-29.2 through stable-29.8.0
+//   - ubuntu resolute: stable-29.8.0 and test-29.8.0 only, hence the channel
+//   - sles/16: no directory under repos.mirantis.com/sles/ (12, 12.3, 15
+//     only), so a sles16 worker cannot install MCR and is not in the matrix
+//
+// Separately tracked: the RHEL10/Rocky10 MCR-daemon-start gap (missing xt_*
+// kernel modules break iptables, and MCR's nftables backend is incompatible
+// with swarm mode).
+func TestCuttingEdgeCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		// AWS LB/target-group names are capped at 32 chars: the stack name is
+		// "smoke-{Name}-{5-char-random}" and Terraform appends suffixes like
+		// "-mke-kube" (9 chars), capping len(Name) at 11. Hence "cuttingedge"
+		// rather than "cutting-edge" (12 chars).
+		Name:            "cuttingedge",
+		MCRChannel:      "stable-29.8.0",
+		MKEVersion:      "3.9.7",
+		MSRVersion:      "3.1.18",
+		SSHKeyAlgorithm: "ed25519",
+		Nodegroups: map[string]interface{}{
+			"MngrRhel10":   test.Platforms["Rhel10"].GetManager(),
+			"MngrRocky10":  test.Platforms["Rocky10"].GetManager(),
+			"MngrUbuntu26": test.Platforms["Ubuntu26"].GetManager(),
+			"WrkRhel10":    test.Platforms["Rhel10"].GetWorker(),
+			"WrkRocky10":   test.Platforms["Rocky10"].GetWorker(),
+			"WrkUbuntu26":  test.Platforms["Ubuntu26"].GetWorker(),
+		},
+	})
+}
+
 // TestLegacyCluster exercises rhel8/rocky8/ubuntu22 managers and workers
 // with MCR stable-25.0 and MKE 3.8.8. sles12 was tried as a worker here but
 // launchpad's Validate Hosts phase fails on it (hostname --all-ip-addresses
@@ -300,24 +336,6 @@ func TestFIPSCluster(t *testing.T) {
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
 			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
-		},
-	})
-}
-
-// TestCuttingEdgeCluster exercises a single ubuntu_26.04 (Resolute) manager
-// against repos-internal.mirantis.com's test-29 channel, the only place
-// Ubuntu 26.04 MCR packages exist as of 2026-09-29 (repos.mirantis.com has
-// none yet). Validates PRODENG-3593's ResoluteConfigurer end-to-end.
-func TestCuttingEdgeCluster(t *testing.T) {
-	runSmokeTest(t, smokeConfig{
-		Name:            "edge",
-		MCRChannel:      "test-29",
-		MCRRepoURL:      "https://repos-internal.mirantis.com",
-		MKEVersion:      "3.9.2",
-		MSRVersion:      "3.1.18",
-		SSHKeyAlgorithm: "ed25519",
-		Nodegroups: map[string]interface{}{
-			"MngrUbuntu26": test.Platforms["Ubuntu26"].GetManager(),
 		},
 	})
 }

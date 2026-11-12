@@ -60,6 +60,13 @@ functional-test:
 integration-test:
 	go test -v ./test/integration/... -timeout 20m
 
+# TestCuttingEdgeCluster: rhel10, rocky10 and ubuntu26 as both managers and
+# workers, on the newest MCR/MKE pairing. Run manually, or in CI on a push to
+# main or the smoke-cutting-edge label.
+.PHONY: smoke-cutting-edge
+smoke-cutting-edge:
+	go test -count=1 -v ./test/smoke/... -run TestCuttingEdgeCluster -timeout 50m
+
 .PHONY: smoke-modern
 smoke-modern:
 	go test -count=1 -v ./test/smoke/... -run TestModernCluster -timeout 50m
