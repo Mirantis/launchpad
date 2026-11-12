@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 	"time"
 
@@ -109,56 +108,22 @@ func (p *Connect) connectHost(host connectable) error {
 
 // shouldRetryConnect reports whether a failed connect attempt is worth another
 // try. Everything is retried except states no amount of waiting will change.
+//
+// A credential rejection is retried, and rig decides that rather than this
+// phase. Protocol implementations tag it with protocol.ErrAuthFailed -- an
+// HTTP 401/403 on WinRM, an exhausted handshake on SSH -- and rig deliberately
+// does not wrap that in ErrNonRetryable, because a rejection is routinely
+// transient while a host is still being provisioned: the WinRM listener
+// answers before authentication is configured, and sshd accepts connections
+// before authorized_keys is written.
+//
+// Launchpad used to match "http error 401" and friends by substring here,
+// because rig v2.1 classified 401/403 as ErrNonRetryable and aborted this wait
+// on its first attempt (smoke-fips regressed on exactly that). rig v2.2
+// carries that fix, so the substring matching is gone. See PRODENG-3594 and
+// k0sproject/rig#421.
 func shouldRetryConnect(err error) bool {
-	if isTransientAuthError(err) {
-		return true
-	}
-
 	return !errors.Is(err, rig.ErrNonRetryable)
-}
-
-// isTransientAuthError reports whether err is a WinRM HTTP 401/403.
-//
-// This phase exists to wait for hosts to become reachable, and on Windows an
-// auth rejection is an expected part of that wait: the WinRM HTTPS listener
-// starts answering before provisioning has finished configuring authentication,
-// so a freshly booted host returns 401 for a while with entirely correct
-// credentials.
-//
-// rig v2 wraps 401/403 as protocol.ErrNonRetryable, which is reasonable for a
-// general purpose library but wrong here -- it aborts the wait on its first
-// attempt. rig v0 did not classify these, so launchpad retried them and the
-// condition healed itself; smoke-fips regressed on exactly this. Treat them as
-// retryable again, while still honouring ErrNonRetryable for everything else
-// (bad certificates, host key mismatches, misconfigured bastions), which no
-// amount of waiting will fix.
-//
-// The cost is that genuinely wrong credentials now take the full retry budget
-// to report instead of failing immediately. That is the right trade for a
-// provisioning tool: a cluster that would have come up must not fail, and the
-// budget is bounded at a few minutes.
-//
-// Matching is by substring because the underlying WinRM library returns untyped
-// formatted errors and rig exports no sentinel for them. rig's own isAuthError
-// does the same thing, and both message shapes it covers are matched here. See
-// PRODENG-3594.
-func isTransientAuthError(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	for _, probe := range []string{
-		"http error 401",
-		"http error 403",
-		"http response error: 401",
-		"http response error: 403",
-	} {
-		if strings.Contains(msg, probe) {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (p *Connect) testConnection(h connectable) error {
