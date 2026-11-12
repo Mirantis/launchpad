@@ -285,6 +285,13 @@ func TestCuttingEdgeCluster(t *testing.T) {
 // with MCR stable-25.0 and MKE 3.8.8. sles12 was tried as a worker here but
 // launchpad's Validate Hosts phase fails on it (hostname --all-ip-addresses
 // is unsupported on SLES 12's toolchain) -- see PRODENG-3588.
+//
+// This is the only suite with an msr-role nodegroup, and so the only one
+// that installs MSR: examples/terraform/aws-simple/launchpad.tf derives
+// local.has_msr (:207) from whether any nodegroup has role "msr", and
+// without one it emits "kind: mke" and omits the spec.msr block entirely,
+// leaving MSRVersion inert. MSR 2.9.28 is compatible with MKE 3.8.x and
+// MCR 23.x/25.x, which is what this suite installs.
 func TestLegacyCluster(t *testing.T) {
 	runSmokeTest(t, smokeConfig{
 		Name:            "legacy",
@@ -299,6 +306,7 @@ func TestLegacyCluster(t *testing.T) {
 			"WrkRhel8":     test.Platforms["Rhel8"].GetWorker(),
 			"WrkRocky8":    test.Platforms["Rocky8"].GetWorker(),
 			"WrkUbuntu22":  test.Platforms["Ubuntu22"].GetWorker(),
+			"MsrUbuntu22":  test.Platforms["Ubuntu22"].GetMSR(),
 		},
 	})
 }
@@ -336,6 +344,46 @@ func TestFIPSCluster(t *testing.T) {
 		Nodegroups: map[string]interface{}{
 			"MngrUbuntu22FIPS": test.Platforms["Ubuntu22FIPS"].GetManager(),
 			"WrkWin2025":       test.Platforms["Windows2025"].GetWorker(),
+		},
+	})
+}
+
+// TestMSRCluster is the only suite that installs MSR.
+//
+// It exists because MSR cannot ride along with the other suites. test/
+// platforms.go has always defined GetMSR(), but nothing called it, so
+// launchpad.tf's has_msr (:207, counting msr-role nodegroups) was always
+// false: every suite rendered `kind: mke`, the spec.msr block was skipped,
+// and the MSRVersion each one declares was discarded at the last gate. No
+// smoke test had ever installed MSR.
+//
+// The versions are the legacy stack, not the modern one, and that is forced.
+// Measured on CI run 43022186758, MSR 2.9.28 against MCR 29.2:
+//
+//	FATA Failed to get new conv client: Docker version check failed:
+//	client version 1.24 is too old. Minimum supported API version is 1.40
+//
+// The MSR 2.x bootstrapper speaks Docker API 1.24 and MCR 29 requires 1.40,
+// so MSR 2.x cannot install on a modern cluster at all. MCR stable-25.0 still
+// accepts 1.24. MSR 3.x is not an escape either: launchpad.tf renders MSR 2.x
+// config only (`kind: mke+msr`, --dtr-external-url, --ucp-insecure-tls) and
+// this launchpad has no MSR 3 support -- no msr3 kind anywhere in pkg/, and
+// the MSR phases are DTR-era.
+//
+// Hence its own `smoke-msr` label rather than a nodegroup added to an
+// existing suite: the only stack MSR runs on is one no other suite installs
+// by default, and an MSR node costs an instance and an ingress per run.
+func TestMSRCluster(t *testing.T) {
+	runSmokeTest(t, smokeConfig{
+		Name:            "msr",
+		MCRChannel:      "stable-25.0",
+		MKEVersion:      "3.8.8",
+		MSRVersion:      "2.9.28",
+		SSHKeyAlgorithm: "ed25519",
+		Nodegroups: map[string]interface{}{
+			"MngrRhel8":   test.Platforms["Rhel8"].GetManager(),
+			"WrkUbuntu22": test.Platforms["Ubuntu22"].GetWorker(),
+			"MsrUbuntu22": test.Platforms["Ubuntu22"].GetMSR(),
 		},
 	})
 }

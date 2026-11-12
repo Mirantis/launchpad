@@ -89,6 +89,9 @@ smoke-upgrade:
 .PHONY: smoke-swarm-pool
 smoke-swarm-pool:
 	go test -count=1 -v ./test/smoke/... -run TestSwarmAddrPoolCluster -timeout 60m
+.PHONY: smoke-msr
+smoke-msr:
+	go test -count=1 -v ./test/smoke/... -run TestMSRCluster -timeout 60m
 .PHONY: clean-launchpad-chart
 clean-launchpad-chart:
 	terraform -chdir=./examples/tf-aws/launchpad apply --auto-approve --destroy

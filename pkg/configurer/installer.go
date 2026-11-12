@@ -16,6 +16,12 @@ import (
 var (
 	downloadedInstallers       = map[string]string{} // Global list of downloaded installers, to prevent repetition.
 	ErrInstallerDownloadFailed = errors.New("could not download installer")
+
+	// errInsecureInstallerURL rejects a transport that cannot authenticate
+	// the server. The bytes fetched here are uploaded to every Windows host
+	// and executed with -ExecutionPolicy Bypass, so plain http would let
+	// anyone on the path choose what runs as Administrator.
+	errInsecureInstallerURL = errors.New("container runtime install script must be fetched over https or read from a local file")
 )
 
 func GetInstaller(source string) (string, error) {
@@ -65,18 +71,30 @@ func parseURL(uri string) (*url.URL, error) {
 
 var errInvalidScript = fmt.Errorf("invalid container runtime install script")
 
+// getScript reads the install script from a local path or fetches it over
+// https.
+//
+// Any scheme other than https is rejected. The previous behaviour passed
+// whatever url.ParseRequestURI accepted straight to http.Get, so a config
+// naming an http:// URL fetched an executable over a transport that cannot
+// authenticate the server, and the bytes were then run on every Windows
+// host with -ExecutionPolicy Bypass. A local file remains allowed, which is
+// how an air-gapped install supplies its own script.
 func getScript(uri string) (string, error) {
-	u, err := parseURL(uri)
+	parsed, err := parseURL(uri)
 	if err != nil {
 		return "", err
 	}
 
 	var data string
 
-	if u.Scheme == "file" {
-		data, err = readFile(u.Path)
-	} else {
+	switch parsed.Scheme {
+	case "file":
+		data, err = readFile(parsed.Path)
+	case "https":
 		data, err = downloadFile(uri)
+	default:
+		return "", fmt.Errorf("%w: %s uses scheme %q", errInsecureInstallerURL, uri, parsed.Scheme)
 	}
 
 	log.Debugf("read %d bytes from %s", len(data), uri)
@@ -97,13 +115,55 @@ func getScript(uri string) (string, error) {
 	return data, nil
 }
 
+// errInstallerHTTPStatus aborts on any non-200 response. Without this, a 404
+// page was stored as the install script and uploaded to the hosts: the body
+// of an error response is still a body, and the only thing standing between
+// it and execution was the 10-byte length check.
+var errInstallerHTTPStatus = errors.New("unexpected HTTP status fetching container runtime install script")
+
+// installerClient refuses to follow a redirect off https.
+//
+// Validating only the configured URL is not enough: the server it names
+// chooses where the request goes next, and the default client follows an
+// https-to-http redirect without complaint. The final response would carry
+// a 200 and the script would run on every Windows host having crossed a
+// transport that cannot authenticate the server, which is the thing the
+// scheme check exists to prevent. It is a variable so tests can supply a
+// client that trusts httptest's CA.
+var installerClient = &http.Client{
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return errors.New("stopped after 10 redirects")
+		}
+
+		if req.URL.Scheme != "https" {
+			return fmt.Errorf("%w: redirected to %s", errInsecureInstallerURL, req.URL.Redacted())
+		}
+
+		return nil
+	},
+}
+
 func downloadFile(url string) (string, error) {
 	log.Infof("downloading container runtime install script from %s", url)
-	resp, err := http.Get(url) //nolint:gosec // "G107: Url provided to HTTP request as taint input" -- user-provided URL is ok here
+
+	// The URL is operator-supplied by design (spec.mcr.installURLWindows);
+	// getScript rejects every scheme but https, and installerClient rejects
+	// a redirect that leaves it.
+	req, err := http.NewRequest(http.MethodGet, url, nil) //nolint:noctx // no context is threaded through this call path
+	if err != nil {
+		return "", fmt.Errorf("failed to build the install script request: %w", err)
+	}
+
+	resp, err := installerClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to download container runtime install script: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%w: %s returned %s", errInstallerHTTPStatus, url, resp.Status)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

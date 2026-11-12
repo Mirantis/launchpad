@@ -154,8 +154,29 @@ func mkeURLHost(config *mkeconfig.ClusterConfig) string {
 // installer if it fails.
 func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 	mkeFlags := BuildMKEFlags(config)
+
+	// The MKE administrator credentials travel as staged environment
+	// values, not as arguments.
+	secrets, mkeFlags, err := StageSecrets(h, mkeFlags, nil)
+	if err != nil {
+		return fmt.Errorf("%s: %w", h, err)
+	}
+
+	defer func() {
+		if rmErr := secrets.Remove(); rmErr != nil {
+			log.Warnf("%s: %s", h, rmErr)
+		}
+	}()
+
+	runFlags := commonconfig.Flags{"-it", "--rm"}
+	for _, flag := range secrets.PassFlags() {
+		runFlags.Add(flag)
+	}
+
 	// BuildMKEFlags returns shell-quoted flag values. Recover the raw values
 	// before handing them to DockerCmd, which applies its own quoting.
+	// PRODENG-3917 added this for the credentials as well; they no longer
+	// reach the command line, but --ucp-url still does.
 	unquote := func(flag string) string {
 		if raw, err := shellescape.Unquote(mkeFlags.GetValue(flag)); err == nil {
 			return raw
@@ -163,16 +184,15 @@ func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 
 		return mkeFlags.GetValue(flag)
 	}
+
 	destroyCmd := h.Configurer.DockerCmd().
-		Raw("run -it --rm").
+		Raw("run").Raw(runFlags.Join()).
 		Arg(fmt.Sprintf("mirantis/dtr:%s", h.MSRMetadata.InstalledVersion)).
 		Raw("destroy --ucp-insecure-tls").
 		Raw("--ucp-url").Arg(unquote("--ucp-url")).
-		Raw("--ucp-username").Arg(unquote("--ucp-username")).
-		Raw("--ucp-password").Arg(unquote("--ucp-password")).
 		Raw("--replica-id").Arg(h.MSRMetadata.ReplicaID).
 		String()
-	if err := h.Exec(destroyCmd); err != nil {
+	if err := h.Exec(strings.TrimSpace(secrets.Assignments() + " " + destroyCmd)); err != nil {
 		return fmt.Errorf("failed to run MSR destroy: %w", err)
 	}
 	// Remove containers
