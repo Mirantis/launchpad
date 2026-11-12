@@ -55,6 +55,7 @@ spec:
       role: worker
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
 `
 	c := loadYaml(t, data)
 	err := c.Validate()
@@ -81,6 +82,7 @@ spec:
       role: worker
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
 `
 	c := loadYaml(t, data)
 	err := c.Validate()
@@ -98,6 +100,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
 `
 	c := loadYaml(t, data)
@@ -114,6 +117,7 @@ kind: mke
 spec:
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
   hosts:
     - ssh:
         address: "1.2.3.4"
@@ -134,6 +138,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
   - ssh:
       address: "512.1.2.3.@"
@@ -155,6 +160,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
   - ssh:
       address: "10.10.10.10"
@@ -175,6 +181,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - ssh:
         address: "1-2-foo.@"
@@ -196,6 +203,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - ssh:
         address: "foo.example.com"
@@ -216,6 +224,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - ssh:
         address: "1.2.3.4"
@@ -237,6 +246,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
   - address: "1.2.3.4"
     ssh:
@@ -258,6 +268,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
   - ssh:
       address: "1.2.3.4"
@@ -282,6 +293,7 @@ kind: mke
 spec:
 	ucp:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   engine:
     installURLWindows: http://example.com/install.ps1
   hosts:
@@ -308,6 +320,7 @@ kind: mke
 spec:
   ucp:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   engine:
     installURLWindows: http://example.com/install.ps1
   hosts:
@@ -329,6 +342,7 @@ kind: mke
 spec:
 	ucp:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   engine:
     version: 1.2.3
   hosts:
@@ -357,6 +371,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - role: manager
       winRM:
@@ -379,6 +394,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - role: manager
       winRM:
@@ -401,6 +417,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - role: manager
       winRM:
@@ -422,6 +439,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - ssh:
         address: "1.2.3.4"
@@ -442,6 +460,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
   hosts:
     - role: manager
       winRM:
@@ -477,6 +496,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
 	msr:
 	  version: 2.8.5
   hosts:
@@ -501,6 +521,7 @@ spec:
     channel: stable
 	mke:
 	  version: 3.3.7
+	  adminPassword: fake-admin-password
 	msr:
 	  version: 2.8.5
   hosts:
@@ -517,6 +538,54 @@ spec:
 		require.NoError(t, c.Validate())
 	})
 
+}
+
+// TestAdminPasswordIsRequired pins the two halves of the requirement, which
+// live in different functions and run in a fixed order: MKEConfig.
+// UnmarshalYAML hoists an installFlags --admin-password into AdminPassword,
+// and only then does Validate apply the required tag. A config that supplies
+// the password through the flag must therefore still validate; nothing else
+// pins that the hoist happens first.
+func TestAdminPasswordIsRequired(t *testing.T) {
+	config := func(mkeBody string) string {
+		return `
+apiVersion: launchpad.mirantis.com/mke/v1.6
+kind: mke
+spec:
+  mcr:
+    channel: stable
+  mke:
+    version: 3.3.7
+` + mkeBody + `  hosts:
+    - role: manager
+      ssh:
+        address: 10.0.0.1
+`
+	}
+
+	t.Run("absent", func(t *testing.T) {
+		err := loadYaml(t, config("")).Validate()
+		require.Error(t, err)
+		validateErrorField(t, err, "AdminPassword")
+	})
+
+	t.Run("empty string", func(t *testing.T) {
+		err := loadYaml(t, config("    adminPassword: \"\"\n")).Validate()
+		require.Error(t, err)
+		validateErrorField(t, err, "AdminPassword")
+	})
+
+	t.Run("set directly", func(t *testing.T) {
+		require.NoError(t, loadYaml(t, config("    adminPassword: fake-admin-password\n")).Validate())
+	})
+
+	t.Run("hoisted from an installFlags --admin-password", func(t *testing.T) {
+		body := "    installFlags:\n    - --admin-password=fake-admin-password\n"
+		c := loadYaml(t, config(body))
+		require.NoError(t, c.Validate())
+		require.Equal(t, "fake-admin-password", c.Spec.MKE.AdminPassword)
+		require.NotContains(t, c.Spec.MKE.InstallFlags, "--admin-password=fake-admin-password")
+	})
 }
 
 func TestWinRMPasswordExposureWarning(t *testing.T) {
@@ -541,6 +610,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
   hosts:
     - role: manager
       winRM:
@@ -675,6 +745,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
   hosts:
     - role: manager
       winRM:
@@ -814,6 +885,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
   hosts:
     - role: manager
       winRM:
@@ -853,6 +925,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
   hosts:
     - role: manager
 `
@@ -878,6 +951,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
 `
 		if product == "mke" {
 			spec += "    imageRepo: " + repo + "\n"
@@ -947,6 +1021,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
     imageRepo: ` + repo + `
   hosts:
     - role: manager
@@ -965,6 +1040,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
   msr:
     version: 2.9.10
     imageRepo: ` + repo + `
@@ -996,6 +1072,7 @@ spec:
     channel: stable
   mke:
     version: 3.3.7
+    adminPassword: fake-admin-password
   hosts:
     - role: manager
       ssh:

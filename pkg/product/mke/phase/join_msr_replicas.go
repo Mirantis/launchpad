@@ -2,6 +2,7 @@ package phase
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
@@ -71,7 +72,7 @@ func (p *JoinMSRReplicas) Run() error {
 			runFlags.Add("--security-opt label=disable")
 		}
 		joinFlags := commonconfig.Flags{}
-		redacts := []string{}
+
 		joinFlags.Add(fmt.Sprintf("--ucp-node %s", shellescape.Quote(h.Metadata.Hostname)))
 		joinFlags.Add(fmt.Sprintf("--existing-replica-id %s", shellescape.Quote(msrLeader.MSRMetadata.ReplicaID)))
 		joinFlags.MergeOverwrite(mkeFlags)
@@ -80,11 +81,6 @@ func (p *JoinMSRReplicas) Run() error {
 		for _, f := range msr.PluckSharedInstallFlags(p.Config.Spec.MSR.InstallFlags, msr.SharedInstallJoinFlags) {
 			joinFlags.AddOrReplace(f)
 		}
-		if p.Config.Spec.MKE.CACertData != "" {
-			escaped := shellescape.Quote(p.Config.Spec.MKE.CACertData)
-			joinFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
-			redacts = append(redacts, escaped)
-		}
 		if h.MSRMetadata != nil && h.MSRMetadata.ReplicaID != "" {
 			log.Infof("%s: joining MSR replica to cluster with replica id: %s", h, h.MSRMetadata.ReplicaID)
 			joinFlags.AddOrReplace(fmt.Sprintf("--replica-id %s", shellescape.Quote(h.MSRMetadata.ReplicaID)))
@@ -92,13 +88,28 @@ func (p *JoinMSRReplicas) Run() error {
 			log.Infof("%s: joining MSR replica to cluster", h)
 		}
 
-		joinCmd := msrLeader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(msrLeader.MSRMetadata.InstalledBootstrapImage).Raw("join").Raw(joinFlags.Join()).String()
-		execOpts := make([]cmd.ExecOption, 0, 1+len(redacts))
-		execOpts = append(execOpts, cmd.StreamOutput())
-		for _, r := range redacts {
-			execOpts = append(execOpts, cmd.Redact(r))
+		// The MKE administrator password and the MKE CA travel as staged
+		// environment values, not as arguments.
+		secrets, joinFlags, err := msr.StageSecrets(msrLeader, joinFlags, map[string]string{"UCP_CA": p.Config.Spec.MKE.CACertData})
+		if err != nil {
+			return fmt.Errorf("%s: %w", h, err)
 		}
-		err := msrLeader.Exec(joinCmd, execOpts...)
+
+		for _, flag := range secrets.PassFlags() {
+			runFlags.Add(flag)
+		}
+
+		joinCmd := msrLeader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(msrLeader.MSRMetadata.InstalledBootstrapImage).Raw("join").Raw(joinFlags.Join()).String()
+		// No redactions are needed: the credentials are staged as
+		// environment values, so nothing secret is in the command string.
+		execOpts := []cmd.ExecOption{cmd.StreamOutput()}
+
+		err = msrLeader.Exec(strings.TrimSpace(secrets.Assignments()+" "+joinCmd), execOpts...)
+
+		if rmErr := secrets.Remove(); rmErr != nil {
+			log.Warnf("%s: %s", msrLeader, rmErr)
+		}
+
 		if err != nil {
 			return fmt.Errorf("%s: failed to run MSR join: %w", h, err)
 		}

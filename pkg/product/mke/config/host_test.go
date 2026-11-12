@@ -123,3 +123,29 @@ func TestHostWinRMHTTPSPortDefault(t *testing.T) {
 		})
 	}
 }
+
+// Secrets reach the MKE and MSR bootstrappers as shell variable assignments
+// in front of the docker command (pkg/util/secretenv). Sudo routing must not
+// change because a command needed them: a sudodocker host that stopped using
+// sudo would fail every install.
+func TestIsSudoCommandLooksPastEnvironmentAssignments(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		command string
+		want    bool
+	}{
+		{"plain docker", "/usr/bin/docker run hello", true},
+		{"bare docker", "docker ps", true},
+		{"one staged secret", `UCP_ADMIN_PASSWORD="$(cat -- /tmp/launchpad-env-1)" /usr/bin/docker run hello`, true},
+		{"several staged secrets", `MSR_KEY="$(cat -- /tmp/a)" UCP_PASSWORD="$(cat -- /tmp/b)" /usr/bin/docker run hello`, true},
+		{"quoted path", `UCP_CA="$(cat -- '/tmp/dir with space/env')" docker run hello`, true},
+		{"unquoted value", "FOO=bar docker run hello", true},
+		{"not docker", "systemctl restart docker", false},
+		{"assignment before another command", `FOO="$(cat -- /tmp/a)" systemctl restart docker`, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, (&Host{SudoDocker: true}).IsSudoCommand(tc.command))
+			require.False(t, (&Host{}).IsSudoCommand(tc.command), "sudodocker is off for this host")
+		})
+	}
+}

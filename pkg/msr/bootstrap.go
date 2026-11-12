@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"strings"
 
 	mcclog "github.com/Mirantis/launchpad/pkg/log"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
@@ -18,6 +19,7 @@ type BootstrapOptions struct {
 	OperationFlags  commonconfig.Flags  // OPTIONAL: flags to pass to the bootstrapper command
 	CleanupDisabled bool                // OPTIONAL: if true, then the bootstrapper container will not be removed
 	ExecOptions     []rigcmd.ExecOption // OPTIONAL: additional rig exec options to pass down to rig
+	SecretEnv       map[string]string   // OPTIONAL: values staged on the host and passed by environment, keyed by variable name
 }
 
 // Bootstrap a leader host using the MKE bootsrapper as docker run, returning output.
@@ -44,7 +46,25 @@ func Bootstrap(operation string, config mkeconfig.ClusterConfig, bootoptions Boo
 		runFlags.Add("--security-opt label=disable")
 	}
 
-	cmd := leader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(image).Arg(operation).Raw(bootoptions.OperationFlags.Join()).String()
+	// Secrets are staged in mode-0600 files on the host and read back into
+	// the environment when the command runs, so they never enter argv.
+	secrets, operationFlags, err := StageSecrets(leader, bootoptions.OperationFlags, bootoptions.SecretEnv)
+	if err != nil {
+		return output, fmt.Errorf("msr bootstrap secret staging error: %w", err)
+	}
+
+	defer func() {
+		if rmErr := secrets.Remove(); rmErr != nil {
+			logrus.Warnf("%s: %s", leader, rmErr)
+		}
+	}()
+
+	for _, flag := range secrets.PassFlags() {
+		runFlags.Add(flag)
+	}
+
+	dockerCmd := leader.Configurer.DockerCmd().Raw("run").Raw(runFlags.Join()).Arg(image).Arg(operation).Raw(operationFlags.Join()).String()
+	cmd := strings.TrimSpace(secrets.Assignments() + " " + dockerCmd)
 
 	buf := cmdbuffer.NewBuffer()
 
