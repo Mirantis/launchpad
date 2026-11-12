@@ -1,10 +1,9 @@
-# Integrity of fetched executables
+# Integrity of the Windows MCR install script
 
-Launchpad fetches two kinds of executable content at runtime: the Windows
-MCR install script, and -- when `launchpad download-launchpad` is run -- a
-launchpad release binary. Both are now checked before they are used: the
-install script for how it is fetched, the release binary against the digest
-its own release publishes.
+Launchpad fetches the Windows MCR install script at runtime, uploads it to
+every Windows host, and executes it. This describes what is checked before
+that happens: how the script is fetched, and whether its signature is
+verified on the host.
 
 ## Windows MCR install script
 
@@ -60,24 +59,3 @@ allow.
 
 Linux hosts are unaffected: they install MCR through their package manager,
 which performs its own signature checking, and never fetch this script.
-
-## `launchpad download-launchpad`
-
-The downloaded binary is verified against the digest the release publishes
-before it replaces the local file.
-
-- The release's combined `checksums.sha256` asset is fetched and the line
-  for the current OS/architecture asset is used. A release that publishes
-  no checksums file, or that does not list the asset, aborts the download.
-- The asset host must be a GitHub release host, both for the initial URL
-  and for every redirect hop.
-- The download is written to a temporary file in the destination directory,
-  hashed **as it exists on disk**, and renamed into place only if the digest
-  matches. A rejected download is removed.
-
-Hashing the file rather than the response matters: the previous code opened
-the destination with `os.O_CREATE|os.O_WRONLY` and no `os.O_TRUNC`, so
-overwriting a longer existing binary with a shorter one left the tail of the
-old file in place. The result was a corrupt executable produced by a
-download that reported success, and a digest checked against the response
-bytes would still have passed.
