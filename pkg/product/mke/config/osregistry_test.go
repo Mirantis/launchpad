@@ -81,7 +81,7 @@ func linuxRunner() *fakeRunner {
 //
 // Detecting a Windows host must not change how the next Linux host is detected.
 func TestOSRegistryOrderingIsStable(t *testing.T) {
-	registry := osReleaseRegistry()
+	registry := rigos.DefaultRegistry()
 
 	// Baseline: a Linux host on its own is identified correctly.
 	before, err := registry.Get(linuxRunner())
