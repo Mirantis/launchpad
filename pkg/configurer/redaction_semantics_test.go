@@ -23,10 +23,12 @@ import (
 //   - repeated cmd.Redact options compose rather than overwrite, so a call
 //     site may list the raw and the shell-quoted form of the same value.
 //
-// go.mod replaces github.com/k0sproject/rig/v2 with a fork, so neither
-// property can be assumed from the upstream module's source: the v1 API
-// compiled a regexp. If the fork is bumped and the semantics change, this
-// test fails rather than the redaction silently doing nothing.
+// Neither property is safe to assume from reading the API: rig's v1 Redact
+// compiled a regexp, so the opposite was once true. This branch was written
+// against a fork of rig and these tests passed there; they pass unchanged
+// against upstream v2.2.1, which launchpad now builds on (#707). If a future
+// bump changes the semantics, this fails rather than the redaction silently
+// doing nothing.
 func TestRigRedactionIsLiteral(t *testing.T) {
 	t.Parallel()
 
