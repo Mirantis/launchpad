@@ -92,26 +92,10 @@ func (c WindowsConfigurer) InstallMCRLicense(h Host, lic string) error {
 	return nil
 }
 
-// installerExecutionPolicy is the PowerShell execution policy the MCR install
-// script runs under.
-//
-// AllSigned makes PowerShell itself verify the script's Authenticode signature
-// before executing a line of it, which is the check `Bypass` disabled. The
-// script published at get.mirantis.com is signed, so this is free for the
-// default installURLWindows; an operator supplying their own unsigned script
-// opts out with spec.mcr.installURLWindowsAllowUnsigned.
-func installerExecutionPolicy(allowUnsigned bool) string {
-	if allowUnsigned {
-		return "Bypass"
-	}
-	return "AllSigned"
-}
-
 // windowsMCRInstallCommand passes the repo URL and channel as installer
 // parameters, not `set` env vars, which a "cmd.exe /C" prefix loses (PRODENG-4062).
-func windowsMCRInstallCommand(installer, repoURL, channel string, allowUnsigned bool) string {
-	return fmt.Sprintf(`powershell.exe -ExecutionPolicy %s -NoProfile -NonInteractive -File %s -DownloadUrl %s -Channel %s -Verbose`,
-		installerExecutionPolicy(allowUnsigned),
+func windowsMCRInstallCommand(installer, repoURL, channel string) string {
+	return fmt.Sprintf(`powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -DownloadUrl %s -Channel %s -Verbose`,
 		cmdQuote(installer), cmdQuote(repoURL), cmdQuote(channel))
 }
 
@@ -157,7 +141,7 @@ func (c WindowsConfigurer) InstallMCR(h Host, engineConfig commonconfig.MCRConfi
 		}
 	}()
 
-	installCommand := windowsMCRInstallCommand(installer, engineConfig.RepoURL, engineConfig.Channel, engineConfig.InstallURLWindowsAllowUnsigned)
+	installCommand := windowsMCRInstallCommand(installer, engineConfig.RepoURL, engineConfig.Channel)
 
 	log.Infof("%s: running installer", h)
 
@@ -294,10 +278,7 @@ func (c WindowsConfigurer) UninstallMCR(h Host, engineConfig commonconfig.MCRCon
 			}
 		}()
 
-		// Same script as the install path, run with -Uninstall, so it is subject
-		// to the same signature requirement and the same opt-out.
-		uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy %s -File %s -Uninstall -Verbose",
-			installerExecutionPolicy(engineConfig.InstallURLWindowsAllowUnsigned), ps.DoubleQuote(uninstaller))
+		uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", ps.DoubleQuote(uninstaller))
 		uninstallCtx, uninstallCancel := execCtx()
 		err = h.ExecContext(uninstallCtx, uninstallCommand)
 		uninstallCancel()
