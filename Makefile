@@ -47,10 +47,12 @@ TEST_FLAGS?=
 # installed, which is every unit-test job today -- hashicorp/setup-terraform is
 # only used by smoke-tests.yaml. Installing terraform for these jobs is tracked
 # with the workflow work. The subdirectories under test/ are not included:
-# those need provisioned infrastructure.
+# those need provisioned infrastructure. ./cmd is included because it holds
+# the download-launchpad verification tests added in PRODENG-3924; without
+# it they exist but never run in CI.
 .PHONY: unit-test
 unit-test:
-	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/... ./test ./version/...
+	go test -v --tags 'testing' $(TEST_FLAGS) ./pkg/... ./cmd/... ./test ./version/...
 
 .PHONY: functional-test
 functional-test:
