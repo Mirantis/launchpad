@@ -6,7 +6,6 @@ import (
 	"github.com/Mirantis/launchpad/pkg/msr"
 	"github.com/Mirantis/launchpad/pkg/phase"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
-	"github.com/k0sproject/rig/v2/cmd"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 	log "github.com/sirupsen/logrus"
 )
@@ -44,6 +43,23 @@ func (p *InstallMSR) Run() error {
 	}
 
 	installFlags := p.Config.Spec.MSR.InstallFlags
+	// Read BEFORE the Merge below, so it holds only what the user put in
+	// spec.msr.installFlags, not the credentials msr.BuildMKEFlags adds.
+	// Do not "fix" that ordering: it does not widen what reaches the
+	// command line, and moving it would widen what this list masks.
+	//
+	// Argv is covered whoever supplies the credentials. msr.Bootstrap calls
+	// StageSecrets (bootstrap.go:51) on the MERGED flags, and
+	// secretEnvByFlag (secrets.go:17-27) maps --ucp-username and
+	// --ucp-password, so both are extracted into mode-0600 files on the
+	// host and are gone from operationFlags before dockerCmd is built at
+	// bootstrap.go:66.
+	//
+	// The residual is the installer's STREAMED OUTPUT: execOpts below go to
+	// ExecStreams, and that masking does only cover the values read here,
+	// so a credential that came from BuildMKEFlags rather than from
+	// spec.msr.installFlags is not masked in the stream. Whether the
+	// installer echoes one has not been measured.
 	redacts := []string{installFlags.GetValue("--ucp-username"), installFlags.GetValue("--ucp-password")}
 
 	// Configure the mkeFlags from existing MKEConfig
@@ -54,28 +70,15 @@ func (p *InstallMSR) Run() error {
 
 	installFlags.Merge(mkeFlags)
 
-	if p.Config.Spec.MSR.CACertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CACertData)
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-ca %s", escaped))
-		redacts = append(redacts, escaped)
-	}
-
-	if p.Config.Spec.MSR.CertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.CertData)
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-cert %s", escaped))
-		redacts = append(redacts, escaped)
-	}
-
-	if p.Config.Spec.MSR.KeyData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MSR.KeyData)
-		installFlags.AddOrReplace(fmt.Sprintf("--dtr-key %s", escaped))
-		redacts = append(redacts, escaped)
-	}
-
-	if p.Config.Spec.MKE.CACertData != "" {
-		escaped := shellescape.Quote(p.Config.Spec.MKE.CACertData)
-		installFlags.AddOrReplace(fmt.Sprintf("--ucp-ca %s", escaped))
-		redacts = append(redacts, escaped)
+	// The TLS material is PEM, multi-line, and secret. It goes to the
+	// installer as environment values staged in mode-0600 files on the host
+	// by pkg/util/secretenv, never on the command line, so no shell quoting
+	// of a private key is needed and nothing records it.
+	secretEnv := map[string]string{
+		"MSR_CA":   p.Config.Spec.MSR.CACertData,
+		"MSR_CERT": p.Config.Spec.MSR.CertData,
+		"MSR_KEY":  p.Config.Spec.MSR.KeyData,
+		"UCP_CA":   p.Config.Spec.MKE.CACertData,
 	}
 
 	if h.MSRMetadata.ReplicaID != "" {
@@ -85,11 +88,11 @@ func (p *InstallMSR) Run() error {
 		log.Infof("%s: installing MSR version %s", h, p.Config.Spec.MSR.Version)
 	}
 
-	execOpts := make([]cmd.ExecOption, 0, len(redacts))
-	for _, r := range redacts {
-		execOpts = append(execOpts, cmd.Redact(r))
-	}
-	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), ExecOptions: execOpts}); err != nil {
+	// redactOptions, not a hand written list: rig masks in registration
+	// order, so a username that prefixes the password would otherwise
+	// consume its leading characters and leave the tail in the log.
+	execOpts := redactOptions(redacts...)
+	if _, err := msr.Bootstrap("install", *p.Config, msr.BootstrapOptions{OperationFlags: installFlags, CleanupDisabled: p.CleanupDisabled(), SecretEnv: secretEnv, ExecOptions: execOpts}); err != nil {
 		return fmt.Errorf("%s: failed to run MSR installer: %w", h, err)
 	}
 

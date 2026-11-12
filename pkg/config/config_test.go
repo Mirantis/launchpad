@@ -97,6 +97,7 @@ spec:
     version: 25.0.14
   mke:
     version: "3.8.6"
+    adminPassword: fake-admin-password
 `))
 	require.NoError(t, err)
 	m, ok := p.(*mke.MKE)
@@ -120,6 +121,7 @@ spec:
     version: "25.0"
   mke:
     version: "3.8.6"
+    adminPassword: fake-admin-password
     swarmInstallFlags:
     - --default-addr-pool=172.20.0.0/14
 `))
