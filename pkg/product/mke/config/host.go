@@ -47,23 +47,25 @@ var rigLogger = slog.New(sloglogrus.Option{
 	Logger: log.StandardLogger(),
 }.NewLogrusHandler())
 
-// osReleaseRegistry resolves a host's OS release. It deliberately mirrors rig's
-// os.DefaultRegistry minus ResolveLinuxCompat.
+// osReleaseRegistry mirrors rig's os.DefaultRegistry minus ResolveLinuxCompat.
 //
-// rig's registry reorders itself: on a successful match the winning resolver is
-// swapped to the front so later hosts hit it first. That optimisation is unsafe
-// when one resolver matches a superset of another. ResolveLinuxCompat is exactly
-// that -- a fallback for hosts with no /etc/os-release, which reports ID "linux"
-// for any Linux host. Resolving a Windows host swaps ResolveWindows to index 0,
-// which pushes ResolveLinuxCompat ahead of ResolveLinux, and every Linux host
-// resolved afterwards is misreported as "linux" and fails configurer lookup.
-// Mixed Linux/Windows clusters therefore broke while Linux-only ones passed.
+// It originally had two jobs. The first is gone: rig's registry used to promote
+// the winning resolver to the front, which let ResolveLinuxCompat -- a resolver
+// matching every Linux host -- overtake ResolveLinux once a Windows host had
+// been resolved, misreporting every subsequent Linux host as "linux". rig
+// v2.2's ResolveLinuxCompat stands down when os-release identifies the host, so
+// order no longer decides the outcome. TestOSRegistryOrderingIsStable now
+// asserts that against rig's own DefaultRegistry.
 //
-// Dropping the fallback also restores rig v0's behaviour: a host whose
-// os-release cannot be read now fails with os.ErrNotRecognized naming the real
-// cause, instead of being silently misclassified. Every OS launchpad supports
-// ships an os-release file, so the fallback could never yield a usable
-// configurer anyway. See PRODENG-3594.
+// The second job remains. Compat synthesizes a release from the host's package
+// manager: a host with no readable os-release but with apt-get resolves to
+// ID "linux", IDLike ["debian"]. Every matcher registered with
+// configurer.RegisterOSModule compares r.ID against an exact distribution name
+// and none consults IDLike, so such a host matches no configurer and fails
+// later, further from the cause. Excluding compat keeps the failure at
+// resolution, as os.ErrNotRecognized naming the real problem. Every OS
+// launchpad supports ships an os-release file, so the fallback could not yield
+// a usable configurer in the first place. See PRODENG-3594.
 var osReleaseRegistry = sync.OnceValue(func() *rigos.Registry {
 	r := rigos.NewRegistry()
 	r.Register(rigos.ResolveLinux)
