@@ -8,17 +8,61 @@ import (
 )
 
 func TestNewImage(t *testing.T) {
-	image := docker.NewImage("xyz/foofoo:1.2.3-latest")
-	require.Equal(t, "xyz", image.Repository)
-	require.Equal(t, "foofoo", image.Name)
-	require.Equal(t, "1.2.3-latest", image.Tag)
-	require.Equal(t, "xyz/foofoo:1.2.3-latest", image.String())
+	t.Run("valid references", func(t *testing.T) {
+		cases := []struct {
+			input string
+			repo  string
+			name  string
+			tag   string
+		}{
+			{input: "xyz/foofoo:1.2.3-latest", repo: "xyz", name: "foofoo", tag: "1.2.3-latest"},
+			{input: "docker.io/xyz/foofoo:1.2.3-latest", repo: "docker.io/xyz", name: "foofoo", tag: "1.2.3-latest"},
+			{input: "docker.io:8888/foo2/bar3:PRODENG", repo: "docker.io:8888/foo2", name: "bar3", tag: "PRODENG"},
+			{input: "docker.io/mirantis/ucp:3.7.0", repo: "docker.io/mirantis", name: "ucp", tag: "3.7.0"},
+		}
 
-	image = docker.NewImage("docker.io/xyz/foofoo:1.2.3-latest")
-	require.Equal(t, "docker.io/xyz", image.Repository)
-	require.Equal(t, "foofoo", image.Name)
-	require.Equal(t, "1.2.3-latest", image.Tag)
-	require.Equal(t, "docker.io/xyz/foofoo:1.2.3-latest", image.String())
+		for _, tc := range cases {
+			t.Run(tc.input, func(t *testing.T) {
+				image, err := docker.NewImage(tc.input)
+				require.NoError(t, err)
+				require.Equal(t, tc.repo, image.Repository)
+				require.Equal(t, tc.name, image.Name)
+				require.Equal(t, tc.tag, image.Tag)
+				require.Equal(t, tc.input, image.String())
+			})
+		}
+	})
+
+	// A malformed reference must produce an error, not a panic. Every input
+	// here panicked before: the slicing in NewImage assumed a slash and a
+	// colon in that order and checked neither.
+	t.Run("malformed references", func(t *testing.T) {
+		cases := []struct {
+			desc  string
+			input string
+		}{
+			{desc: "empty", input: ""},
+			{desc: "no slash and no colon", input: "foo"},
+			{desc: "no slash, with colon", input: "foo:1.2.3"},
+			{desc: "no colon", input: "docker.io/mirantis/ucp"},
+			{desc: "colon only", input: ":"},
+			{desc: "slash only", input: "/"},
+			{desc: "colon before last slash", input: "registry.example.com:5000/mirantis/ucp"},
+			{desc: "slash in tag", input: "docker.io/mirantis/ucp:1.0/x"},
+			{desc: "empty name", input: "docker.io/mirantis/:1.2.3"},
+			{desc: "empty tag", input: "docker.io/mirantis/ucp:"},
+			{desc: "empty repository", input: "/ucp:1.2.3"},
+		}
+
+		for _, tc := range cases {
+			t.Run(tc.desc, func(t *testing.T) {
+				image, err := docker.NewImage(tc.input)
+				require.Error(t, err)
+				require.Nil(t, image)
+				require.Contains(t, err.Error(), tc.input)
+			})
+		}
+	})
 }
 
 func TestAllFromString(t *testing.T) {

@@ -24,12 +24,27 @@ type Image struct {
 	Tag        string
 }
 
-// NewImage parses an image URL and returns a new Image instance.
-func NewImage(s string) *Image {
-	repo := s[:strings.LastIndexByte(s, '/')]
-	name := s[strings.LastIndexByte(s, '/')+1 : strings.LastIndexByte(s, ':')]
-	tag := s[strings.LastIndexByte(s, ':')+1:]
-	return &Image{Repository: repo, Name: name, Tag: tag}
+// NewImage parses an image reference and returns a new Image instance.
+//
+// The reference is user-influenced: it is assembled from spec.*.imageRepo and
+// spec.*.version, both of which are expanded by envsubst. Every part is
+// bounds-checked here, so a malformed reference is a descriptive error rather
+// than a slice-bounds panic.
+func NewImage(s string) (*Image, error) {
+	slash := strings.LastIndexByte(s, '/')
+	colon := strings.LastIndexByte(s, ':')
+
+	if slash < 1 {
+		return nil, fmt.Errorf("%w: no repository in %q", errInvalidReference, s)
+	}
+	if colon < slash+2 {
+		return nil, fmt.Errorf("%w: no tag in %q", errInvalidReference, s)
+	}
+	if colon == len(s)-1 {
+		return nil, fmt.Errorf("%w: empty tag in %q", errInvalidReference, s)
+	}
+
+	return &Image{Repository: s[:slash], Name: s[slash+1 : colon], Tag: s[colon+1:]}, nil
 }
 
 // AllFromString parses a list of images from a newline separated string and returns a list of images.
