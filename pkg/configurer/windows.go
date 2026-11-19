@@ -94,6 +94,31 @@ func (c WindowsConfigurer) InstallMCRLicense(h Host, lic string) error {
 
 // windowsMCRInstallCommand passes the repo URL and channel as installer
 // parameters, not `set` env vars, which a "cmd.exe /C" prefix loses (PRODENG-4062).
+//
+// -ExecutionPolicy Bypass is deliberate, and AllSigned is not an option here.
+// Enforcing the Authenticode check was tried and reverted (#699, reverted by
+// #709, closing PRODENG-3924 as Won't Do) because it broke Windows MCR
+// installs on every host in the default configuration, for two independent
+// reasons:
+//
+//   - get.mirantis.com/install.ps1 is signed but does not verify --
+//     Get-AuthenticodeSignature reports HashMismatch, because the script is
+//     published as UTF-8 where Authenticode requires UTF-16 LE with a BOM.
+//     That is a docker-install-ee defect, tracked as PRODENG-4197.
+//   - A valid signature and a trusted publisher are separate checks. Even a
+//     correctly signed script fails AllSigned under -NonInteractive with
+//     UnauthorizedAccess unless its signer is in the host's
+//     Cert:\LocalMachine\TrustedPublisher store. Putting it there would mean
+//     launchpad granting blanket permanent trust to everything Mirantis signs
+//     as a side effect of installing MCR, and would make the check
+//     self-certifying.
+//
+// spec.mcr.installURLWindows also exists so operators can supply a mirrored,
+// air-gapped or patched script, which will not generally carry a signature
+// the host trusts. Do not reintroduce signature enforcement, a pinned digest
+// or a bypass flag without resolving PRODENG-4197 and the TrustedPublisher
+// problem first. UninstallMCR runs the same script and the same reasoning
+// applies there.
 func windowsMCRInstallCommand(installer, repoURL, channel string) string {
 	return fmt.Sprintf(`powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File %s -DownloadUrl %s -Channel %s -Verbose`,
 		cmdQuote(installer), cmdQuote(repoURL), cmdQuote(channel))
@@ -278,6 +303,8 @@ func (c WindowsConfigurer) UninstallMCR(h Host, engineConfig commonconfig.MCRCon
 			}
 		}()
 
+		// -ExecutionPolicy Bypass: see windowsMCRInstallCommand for why the
+		// Authenticode check is not enforced on this script.
 		uninstallCommand := fmt.Sprintf("powershell -NonInteractive -NoProfile -ExecutionPolicy Bypass -File %s -Uninstall -Verbose", ps.DoubleQuote(uninstaller))
 		uninstallCtx, uninstallCancel := execCtx()
 		err = h.ExecContext(uninstallCtx, uninstallCommand)
