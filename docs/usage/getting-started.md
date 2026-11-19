@@ -4,7 +4,12 @@ Launchpad is a single-binary CLI for managing MKE and MCR clusters.
 
 ## Installation
 
-Download the binary for your platform (Linux, macOS, or Windows) from the [latest GitHub releases](https://github.com/Mirantis/launchpad/releases).
+Download the binary for your platform (Linux, macOS, or Windows) from the [GitHub releases page](https://github.com/Mirantis/launchpad/releases).
+
+Use the release marked **Latest** unless you have been asked for a specific
+version. Entries labelled **Pre-release** (tags such as `v1.5.20-rc1` or
+`v1.5.20-tp1`) are release candidates and tech previews, not supported
+releases.
 
 For Linux and macOS (AMD64 and ARM64):
 - Download the binary.
