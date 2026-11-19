@@ -1,6 +1,7 @@
 package msr
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	"github.com/Mirantis/launchpad/pkg/configurer"
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	mkeconfig "github.com/Mirantis/launchpad/pkg/product/mke/config"
+	"github.com/Mirantis/launchpad/pkg/util/secretenv"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 	"github.com/stretchr/testify/require"
 )
@@ -99,18 +101,15 @@ func TestBuildMKEFlagsQuotesCredentials(t *testing.T) {
 	flags := BuildMKEFlags(config)
 
 	for _, flag := range []string{"--ucp-username", "--ucp-password"} {
-		value := flags.GetValue(flag)
-		require.Equal(t, value, strings.TrimSpace(value), "%s value is a single word: %q", flag, value)
+		// The rendered token, not Flags.GetValue, which decodes the quoting
+		// this test is about.
+		rendered := strings.TrimPrefix(flags.Get(flag), flag+" ")
+		require.Equal(t, rendered, strings.TrimSpace(rendered), "%s value is a single word: %q", flag, rendered)
+		require.NotEqual(t, rendered, mustUnquote(t, rendered), "%s value is quoted: %q", flag, rendered)
 	}
 
-	require.Equal(t,
-		`ad'min"$(touch /tmp/pwned)`,
-		mustUnquote(t, flags.GetValue("--ucp-username")),
-	)
-	require.Equal(t,
-		"p$(touch /tmp/pwned)`id`$HOME",
-		mustUnquote(t, flags.GetValue("--ucp-password")),
-	)
+	require.Equal(t, `ad'min"$(touch /tmp/pwned)`, flags.GetValue("--ucp-username"))
+	require.Equal(t, "p$(touch /tmp/pwned)`id`$HOME", flags.GetValue("--ucp-password"))
 }
 
 // TestDestroyQuotesCredentials pins the single-word property the remote
@@ -270,6 +269,122 @@ func TestBootstrapImageFor(t *testing.T) {
 			var got string
 			require.NotPanics(t, func() { got = bootstrapImageFor(tt.imagename, tt.version) })
 			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// credentialPayloads are the shell-significant shapes a credential can take.
+var credentialPayloads = []struct {
+	name string
+	pass string
+}{
+	{"plain", "simple"},
+	{"backslash", `a\b`},
+	{"windows path", `C:\temp\x`},
+	{"double quote", `a"b`},
+	{"dollar", "pa$word"},
+	{"single quote", "it's"},
+	{"hash", "a#b"},
+	{"space", "p@ss word"},
+	{"all of them", "a\\b\"c$d'e#f g`h"},
+}
+
+// stagedCredential runs a flag list through the extraction every MSR
+// bootstrapper invocation goes through and returns the staged password.
+func stagedCredential(flags commonconfig.Flags) string {
+	values, _ := secretenv.Extract(flags, map[string]string{"--ucp-password": "UCP_PASSWORD"})
+
+	return values["UCP_PASSWORD"]
+}
+
+func configWithPassword(pass string, installFlags commonconfig.Flags) *mkeconfig.ClusterConfig {
+	return &mkeconfig.ClusterConfig{
+		Spec: &mkeconfig.ClusterSpec{
+			MKE: mkeconfig.MKEConfig{
+				AdminUsername: "admin",
+				AdminPassword: pass,
+				InstallFlags:  commonconfig.Flags{"--san ucp.acme.com"},
+			},
+			MSR: &mkeconfig.MSRConfig{InstallFlags: installFlags},
+		},
+	}
+}
+
+// TestBuildMKEFlagsCredentialRoundTrip covers the flag list BuildMKEFlags
+// writes: whatever the configured password is, the value the bootstrapper is
+// given has to be that password byte for byte.
+func TestBuildMKEFlagsCredentialRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range credentialPayloads {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			flags := BuildMKEFlags(configWithPassword(tt.pass, nil))
+			require.Equal(t, tt.pass, stagedCredential(flags))
+		})
+	}
+}
+
+// TestBuildMKEFlagsCredentialRoundTripPositiveControl is the control for the
+// test above: the encoding BuildMKEFlags used before PRODENG-3917 -- a value
+// wrapped in double quotes with no escaping -- must fail the same assertion,
+// or the round-trip test proves nothing.
+func TestBuildMKEFlagsCredentialRoundTripPositiveControl(t *testing.T) {
+	t.Parallel()
+
+	var broken int
+
+	for _, tt := range credentialPayloads {
+		naive := commonconfig.Flags{fmt.Sprintf(`--ucp-password="%s"`, tt.pass)}
+		if stagedCredential(naive) != tt.pass {
+			broken++
+		}
+	}
+
+	require.Positive(t, broken, "unescaped double quoting must mangle at least one payload")
+}
+
+// TestInstallAndDestroyStageTheSameCredential pins the property PRODENG-4115
+// restores. A credential written by hand in spec.msr.installFlags reaches the
+// installer as the user's own flag element, and reaches destroy, join and
+// remove through BuildMKEFlags. Both have to decode it identically: when they
+// did not, destroy authenticated with a password the install had never set,
+// and the failure presented as a working cluster suddenly refusing the
+// administrator.
+func TestInstallAndDestroyStageTheSameCredential(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		flag string
+		want string
+	}{
+		{"double-quoted backslash", `--ucp-password="a\b"`, `a\b`},
+		{"double-quoted windows path", `--ucp-password="C:\temp"`, `C:\temp`},
+		{"single-quoted space", `--ucp-password='p@ss word'`, "p@ss word"},
+		{"double-quoted escaped quote", `--ucp-password="a\"b"`, `a"b`},
+		{"double-quoted dollar", `--ucp-password="pa\$word"`, "pa$word"},
+		{"single-quoted hash", `--ucp-password='a#b'`, "a#b"},
+		{"bare value", `--ucp-password=simple`, "simple"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			config := configWithPassword("unused", commonconfig.Flags{tt.flag})
+
+			// The install path: the phase merges BuildMKEFlags into the
+			// user's own list, which keeps the user's element.
+			installFlags := commonconfig.Flags{tt.flag}
+			installFlags.Merge(BuildMKEFlags(config))
+
+			// The destroy, join and remove paths: BuildMKEFlags only.
+			destroyFlags := BuildMKEFlags(config)
+
+			require.Equal(t, tt.want, stagedCredential(installFlags), "install")
+			require.Equal(t, tt.want, stagedCredential(destroyFlags), "destroy")
 		})
 	}
 }

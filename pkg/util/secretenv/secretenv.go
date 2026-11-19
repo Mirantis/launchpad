@@ -32,6 +32,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/Mirantis/launchpad/pkg/util/shellword"
 	"github.com/k0sproject/rig/v2/remotefs"
 	"github.com/k0sproject/rig/v2/sh/shellescape"
 )
@@ -186,7 +187,7 @@ func Extract(flags []string, envByFlag map[string]string) (map[string]string, []
 		// A bare credential flag takes the next element as its value.
 		if !hasValue && i+1 < len(flags) {
 			if _, _, nextHasValue := splitFlag(flags[i+1]); !nextHasValue && !strings.HasPrefix(flags[i+1], "-") {
-				values[env] = unquote(flags[i+1])
+				values[env] = shellword.Unquote(flags[i+1])
 				i++
 
 				continue
@@ -213,85 +214,7 @@ func splitFlag(flag string) (name, value string, hasValue bool) {
 		return flag, "", false
 	}
 
-	return flag[:idx], unquote(strings.TrimSpace(flag[idx+1:])), true
-}
-
-// unquote decodes one shell word as a POSIX shell would, without performing
-// any expansion. A flag list is written by hand and then joined into a shell
-// command, so a value may be single quoted, double quoted, backslash escaped
-// or a concatenation of those: --registry-password="pa\$word" reached the
-// registry as pa$word before these values were taken out of the command
-// line, and must still do so now.
-//
-// Expansions are deliberately not performed: $(...) and $VAR were expanded by
-// the shell before, and reproducing that here would execute host-supplied
-// text in launchpad. They are left as written, which is the safe difference.
-//
-// One deviation from a real shell: a word ending in an unescaped backslash
-// escapes the following space when the flag list is joined, so the shell
-// would merge the next flag into this value. That is not reachable from a
-// shellescape.Quote'd value, and the pre-existing behaviour was worse -- the
-// merged word went to the bootstrapper as one argument.
-func unquote(value string) string {
-	var out strings.Builder
-
-	for pos := 0; pos < len(value); {
-		switch char := value[pos]; char {
-		case '\'':
-			end := strings.IndexByte(value[pos+1:], '\'')
-			if end < 0 {
-				out.WriteString(value[pos+1:])
-
-				return out.String()
-			}
-
-			out.WriteString(value[pos+1 : pos+1+end])
-			pos += end + 2
-		case '"':
-			consumed := writeDoubleQuoted(&out, value[pos+1:])
-			pos += consumed + 1
-		case '\\':
-			if pos+1 < len(value) {
-				out.WriteByte(value[pos+1])
-				pos += 2
-
-				continue
-			}
-
-			pos++
-		default:
-			out.WriteByte(char)
-			pos++
-		}
-	}
-
-	return out.String()
-}
-
-// writeDoubleQuoted writes the contents of a double-quoted section and
-// returns how many bytes of it were consumed, including the closing quote
-// when there is one. Inside double quotes a backslash escapes only ", \, $
-// and a backtick; anywhere else it is literal.
-func writeDoubleQuoted(out *strings.Builder, value string) int {
-	for pos := 0; pos < len(value); pos++ {
-		switch value[pos] {
-		case '"':
-			return pos + 1
-		case '\\':
-			if pos+1 < len(value) && strings.IndexByte(`"\$`+"`", value[pos+1]) >= 0 {
-				out.WriteByte(value[pos+1])
-				pos++
-
-				continue
-			}
-
-			out.WriteByte('\\')
-		default:
-			out.WriteByte(value[pos])
-		}
-	}
-
-	return len(value)
+	return flag[:idx], shellword.Unquote(strings.TrimSpace(flag[idx+1:])), true
 }
 
 func sortedNames(values map[string]string) []string {

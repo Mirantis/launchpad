@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/Mirantis/launchpad/pkg/constant"
@@ -131,4 +132,35 @@ func TestMKEConfig_CredentialsFromInstallFlags(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "foo", cfg.AdminUsername)
 	require.Equal(t, "bar", cfg.AdminPassword)
+}
+
+// TestMKEConfig_QuotedCredentialsFromInstallFlags covers PRODENG-4115: the
+// lift out of installFlags decodes the value as a shell would, so the
+// password staged for the installer is the one written in the config. It
+// used to go through strconv.Unquote, which read "C:\temp" as C:<TAB>emp and
+// left a single-quoted value wrapped in its own quotes.
+func TestMKEConfig_QuotedCredentialsFromInstallFlags(t *testing.T) {
+	tests := []struct {
+		name string
+		flag string
+		want string
+	}{
+		{"double-quoted backslash", `--admin-password="a\b"`, `a\b`},
+		{"double-quoted windows path", `--admin-password="C:\temp"`, `C:\temp`},
+		{"single-quoted space", `--admin-password='p@ss word'`, "p@ss word"},
+		{"double-quoted escaped quote", `--admin-password="a\"b"`, `a"b`},
+		{"double-quoted dollar", `--admin-password="pa\$word"`, "pa$word"},
+		{"single-quoted hash", `--admin-password='a#b'`, "a#b"},
+		{"single-quoted apostrophe", `--admin-password='it'"'"'s'`, "it's"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := MKEConfig{Version: "3.4.0"}
+			doc := fmt.Sprintf("installFlags:\n  - %q\n", tt.flag)
+			require.NoError(t, yaml.Unmarshal([]byte(doc), &cfg))
+			require.Equal(t, tt.want, cfg.AdminPassword)
+			require.False(t, cfg.InstallFlags.Include("--admin-password"), "the flag is lifted out of the list")
+		})
+	}
 }

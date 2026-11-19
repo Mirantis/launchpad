@@ -3,7 +3,7 @@ package phase
 import (
 	commonconfig "github.com/Mirantis/launchpad/pkg/product/common/config"
 	"github.com/Mirantis/launchpad/pkg/util/redact"
-	"github.com/k0sproject/rig/v2/sh/shellescape"
+	"github.com/Mirantis/launchpad/pkg/util/shellword"
 )
 
 // msrCredentialFlags are the MSR bootstrapper flags whose values are
@@ -36,7 +36,7 @@ func msrCredentialRedactions(flags commonconfig.Flags) []string {
 		for _, rendered := range renderedFlagValues(flags, name) {
 			values = append(values, rendered)
 
-			if decoded, err := shellescape.Unquote(rendered); err == nil && decoded != rendered {
+			if decoded := shellword.Unquote(rendered); decoded != rendered {
 				values = append(values, decoded)
 			}
 		}
