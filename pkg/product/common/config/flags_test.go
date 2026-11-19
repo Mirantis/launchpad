@@ -147,8 +147,13 @@ func TestFlagValue(t *testing.T) {
 		{"equals", "--san=10.0.0.1", "10.0.0.1"},
 		{"space", "--san 10.0.0.1", "10.0.0.1"},
 		{"quoted double", "--user \"foo bar\"", "foo bar"},
-		// strconv.Unquote only unquotes Go double-quoted strings; single-quoted value is returned as-is
-		{"equals single-quoted value", "--x='a b'", "'a b'"},
+		{"equals single-quoted value", "--x='a b'", "a b"},
+		{"double-quoted backslash stays literal", `--x="C:\temp"`, `C:\temp`},
+		{"double-quoted escaped quote", `--x="a\"b"`, `a"b`},
+		{"single quotes keep a backslash", `--x='a\b'`, `a\b`},
+		{"double-quoted escaped dollar", `--x="pa\$word"`, "pa$word"},
+		{"single-quoted hash", "--x='a#b'", "a#b"},
+		{"expansions are not performed", `--x="$(id)"`, "$(id)"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -173,23 +173,16 @@ func Destroy(h *mkeconfig.Host, config *mkeconfig.ClusterConfig) error {
 		runFlags.Add(flag)
 	}
 
-	// BuildMKEFlags returns shell-quoted flag values. Recover the raw values
-	// before handing them to DockerCmd, which applies its own quoting.
-	// PRODENG-3917 added this for the credentials as well; they no longer
-	// reach the command line, but --ucp-url still does.
-	unquote := func(flag string) string {
-		if raw, err := shellescape.Unquote(mkeFlags.GetValue(flag)); err == nil {
-			return raw
-		}
-
-		return mkeFlags.GetValue(flag)
-	}
-
+	// Flags.GetValue already decodes the shell quoting BuildMKEFlags applied,
+	// so the value handed to DockerCmd -- which applies its own quoting -- is
+	// the raw one. The shellescape.Unquote PRODENG-3917 wrapped around this
+	// is gone: a second decode here would strip a second layer that was never
+	// added.
 	destroyCmd := h.Configurer.DockerCmd().
 		Raw("run").Raw(runFlags.Join()).
 		Arg(fmt.Sprintf("mirantis/dtr:%s", h.MSRMetadata.InstalledVersion)).
 		Raw("destroy --ucp-insecure-tls").
-		Raw("--ucp-url").Arg(unquote("--ucp-url")).
+		Raw("--ucp-url").Arg(mkeFlags.GetValue("--ucp-url")).
 		Raw("--replica-id").Arg(h.MSRMetadata.ReplicaID).
 		String()
 	if err := h.Exec(strings.TrimSpace(secrets.Assignments() + " " + destroyCmd)); err != nil {

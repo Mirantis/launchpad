@@ -1,8 +1,9 @@
 package config
 
 import (
-	"strconv"
 	"strings"
+
+	"github.com/Mirantis/launchpad/pkg/util/shellword"
 )
 
 // Flags is a slice of strings with added functions to ease manipulating lists of command-line flags.
@@ -125,6 +126,14 @@ func (f *Flags) Join() string {
 }
 
 // FlagValue returns the value part of a string such as "--san 10.0.0.1" or "--san=10.0.0.1".
+//
+// The value is decoded as a POSIX shell would, which is how every consumer of
+// these flags reads them: a flag list is joined and handed to a remote shell,
+// and the credential flags are decoded by pkg/util/secretenv before being
+// staged as environment values. This used to use strconv.Unquote, which reads
+// Go string rules instead -- "C:\temp" came back as C:<TAB>emp and a
+// single-quoted value kept its quotes -- so the same configured credential
+// decoded one way for the MSR install and another for the MSR destroy.
 func FlagValue(s string) string {
 	if s == "" {
 		return ""
@@ -135,11 +144,5 @@ func FlagValue(s string) string {
 		return ""
 	}
 
-	val := s[idx+1:]
-	s, err := strconv.Unquote(val)
-	if err == nil {
-		return s
-	}
-
-	return val
+	return shellword.Unquote(s[idx+1:])
 }
