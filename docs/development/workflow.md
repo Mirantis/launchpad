@@ -8,6 +8,37 @@ Launchpad provides a `Makefile` for local development. Production release builds
 
 - **`make local`**: Builds a single, platform-specific binary for rapid testing.
 
+## Cutting a Release
+
+A release is produced by pushing a tag. The tag's shape, and nothing else,
+decides what the workflow creates:
+
+| Tag | Example | Result |
+| --- | --- | --- |
+| `vX.Y.Z` | `v1.5.20` | Draft, full release |
+| `vX.Y.Z-rcN` or `-tpN` | `v1.5.20-rc1`, `v1.5.20-tp2` | Draft, prerelease |
+| `vX.Y.Z-alphaN` or `-betaN` | `v1.5.20-alpha1` | Draft, prerelease |
+| Anything else | `v1.5.20-PRODENG-1234` | **No release.** Binaries are uploaded as a workflow artifact only |
+
+The classification lives in `.github/scripts/release-state.sh` and is printed
+in the run summary. Run it locally to check a tag before pushing it:
+
+```bash
+./.github/scripts/release-state.sh v1.5.20-rc1
+```
+
+**Every release is created as a draft, and a draft is not visible to anyone
+without push access.** The workflow's job ends there. A maintainer then reviews
+the assembled release notes (see `.changes/README.md`) and the attached
+binaries, and publishes the release from the GitHub UI. Whether the published
+release becomes "Latest" is chosen at that point — GitHub cannot mark a draft
+as latest, so the workflow does not set it.
+
+Use a non-release tag shape when you want built binaries without a release:
+the build job runs in full and attaches them to the workflow run. This is the
+supported way to get a one-off build for a ticket, and it is why such tags
+deliberately produce nothing a maintainer has to delete afterwards.
+
 ## Testing Strategy
 
 Launchpad's system-centric nature requires a layered testing approach:

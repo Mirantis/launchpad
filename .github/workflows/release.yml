@@ -109,7 +109,16 @@ jobs:
           echo "Assembled $count fragment(s):"
           cat "$notes"
 
+      - name: Determine release state
+        id: state
+        # The tag name reaches the script through the environment and is never
+        # spliced into script text, for the reason given on the build step above.
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: .github/scripts/release-state.sh
+
       - name: Create GitHub Release
+        if: steps.state.outputs.create_release == 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: dist/*
@@ -117,7 +126,12 @@ jobs:
           # (commits and contributors) are appended below them.
           body_path: ${{ runner.temp }}/release-notes.md
           generate_release_notes: true
-          draft: true
+          # Both decided by the tag shape alone -- see .github/scripts/release-state.sh.
+          # Every release is created as a draft for a human to review and publish;
+          # `make_latest` is deliberately not set here, because GitHub cannot mark a
+          # draft as latest and the choice is made at publish time.
+          draft: ${{ steps.state.outputs.draft }}
+          prerelease: ${{ steps.state.outputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
