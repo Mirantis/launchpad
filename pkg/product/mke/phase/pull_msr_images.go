@@ -56,7 +56,10 @@ func (p *PullMSRImages) Run() error {
 // ListImages obtains a list of images from MSR.
 func (p *PullMSRImages) ListImages() ([]*docker.Image, error) {
 	leader := p.Config.Spec.MSRLeader()
-	bootstrap := docker.NewImage(p.Config.Spec.MSR.GetBootstrapperImage())
+	bootstrap, err := docker.NewImage(p.Config.Spec.MSR.GetBootstrapperImage())
+	if err != nil {
+		return nil, fmt.Errorf("invalid MSR bootstrapper image: %w", err)
+	}
 
 	if !bootstrap.Exist(leader) {
 		if err := bootstrap.Pull(leader); err != nil {

@@ -24,12 +24,35 @@ type Image struct {
 	Tag        string
 }
 
-// NewImage parses an image URL and returns a new Image instance.
-func NewImage(s string) *Image {
-	repo := s[:strings.LastIndexByte(s, '/')]
-	name := s[strings.LastIndexByte(s, '/')+1 : strings.LastIndexByte(s, ':')]
-	tag := s[strings.LastIndexByte(s, ':')+1:]
-	return &Image{Repository: repo, Name: name, Tag: tag}
+// NewImage parses an image reference and returns a new Image instance.
+//
+// The reference is user-influenced: it is assembled from spec.*.imageRepo and
+// spec.*.version, both of which are expanded by envsubst. Nothing is sliced on
+// an unchecked index, so a malformed reference is a descriptive error rather
+// than a slice-bounds panic.
+//
+// The tag half is split by ImageRepoAndTag so that the two parsers cannot
+// disagree about what "localhost:5000/my-image" means: an omitted tag is
+// "latest", as it is for docker itself. What is left is split on the last
+// slash -- unlike ImageRepoAndTag, which folds the image name into its repo,
+// an Image keeps the two apart, and a reference with no slash has no
+// repository to put in one.
+func NewImage(s string) (*Image, error) {
+	repoAndName, tag, err := ImageRepoAndTag(s)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q: %w", errInvalidReference, s, err)
+	}
+
+	slash := strings.LastIndexByte(repoAndName, '/')
+	if slash < 1 {
+		return nil, fmt.Errorf("%w: no repository in %q", errInvalidReference, s)
+	}
+
+	image := &Image{Repository: repoAndName[:slash], Name: repoAndName[slash+1:], Tag: tag}
+	if err := image.Validate(); err != nil {
+		return nil, err
+	}
+	return image, nil
 }
 
 // AllFromString parses a list of images from a newline separated string and returns a list of images.

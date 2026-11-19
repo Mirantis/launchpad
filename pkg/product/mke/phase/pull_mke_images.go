@@ -113,7 +113,10 @@ func (p *PullMKEImages) Run() error {
 // ListImages obtains a list of images from MKE.
 func (p *PullMKEImages) ListImages(win, swarmOnly bool) ([]*docker.Image, error) {
 	leader := p.Config.Spec.SwarmLeader()
-	bootstrap := docker.NewImage(p.Config.Spec.MKE.GetBootstrapperImage())
+	bootstrap, err := docker.NewImage(p.Config.Spec.MKE.GetBootstrapperImage())
+	if err != nil {
+		return nil, fmt.Errorf("invalid MKE bootstrapper image: %w", err)
+	}
 
 	if !bootstrap.Exist(leader) {
 		if err := bootstrap.Pull(leader); err != nil {
