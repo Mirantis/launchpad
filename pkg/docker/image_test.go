@@ -14,11 +14,17 @@ func TestNewImage(t *testing.T) {
 			repo  string
 			name  string
 			tag   string
+			want  string
 		}{
-			{input: "xyz/foofoo:1.2.3-latest", repo: "xyz", name: "foofoo", tag: "1.2.3-latest"},
-			{input: "docker.io/xyz/foofoo:1.2.3-latest", repo: "docker.io/xyz", name: "foofoo", tag: "1.2.3-latest"},
-			{input: "docker.io:8888/foo2/bar3:PRODENG", repo: "docker.io:8888/foo2", name: "bar3", tag: "PRODENG"},
-			{input: "docker.io/mirantis/ucp:3.7.0", repo: "docker.io/mirantis", name: "ucp", tag: "3.7.0"},
+			{input: "xyz/foofoo:1.2.3-latest", repo: "xyz", name: "foofoo", tag: "1.2.3-latest", want: "xyz/foofoo:1.2.3-latest"},
+			{input: "docker.io/xyz/foofoo:1.2.3-latest", repo: "docker.io/xyz", name: "foofoo", tag: "1.2.3-latest", want: "docker.io/xyz/foofoo:1.2.3-latest"},
+			{input: "docker.io:8888/foo2/bar3:PRODENG", repo: "docker.io:8888/foo2", name: "bar3", tag: "PRODENG", want: "docker.io:8888/foo2/bar3:PRODENG"},
+			{input: "docker.io/mirantis/ucp:3.7.0", repo: "docker.io/mirantis", name: "ucp", tag: "3.7.0", want: "docker.io/mirantis/ucp:3.7.0"},
+			// An omitted tag is "latest", as it is for docker and for
+			// ImageRepoAndTag, which does this half of the parsing.
+			{input: "docker.io/mirantis/ucp", repo: "docker.io/mirantis", name: "ucp", tag: "latest", want: "docker.io/mirantis/ucp:latest"},
+			// The colon here is the registry port, not a tag separator.
+			{input: "registry.example.com:5000/mirantis/ucp", repo: "registry.example.com:5000/mirantis", name: "ucp", tag: "latest", want: "registry.example.com:5000/mirantis/ucp:latest"},
 		}
 
 		for _, tc := range cases {
@@ -28,7 +34,7 @@ func TestNewImage(t *testing.T) {
 				require.Equal(t, tc.repo, image.Repository)
 				require.Equal(t, tc.name, image.Name)
 				require.Equal(t, tc.tag, image.Tag)
-				require.Equal(t, tc.input, image.String())
+				require.Equal(t, tc.want, image.String())
 			})
 		}
 	})
@@ -44,14 +50,13 @@ func TestNewImage(t *testing.T) {
 			{desc: "empty", input: ""},
 			{desc: "no slash and no colon", input: "foo"},
 			{desc: "no slash, with colon", input: "foo:1.2.3"},
-			{desc: "no colon", input: "docker.io/mirantis/ucp"},
 			{desc: "colon only", input: ":"},
 			{desc: "slash only", input: "/"},
-			{desc: "colon before last slash", input: "registry.example.com:5000/mirantis/ucp"},
 			{desc: "slash in tag", input: "docker.io/mirantis/ucp:1.0/x"},
 			{desc: "empty name", input: "docker.io/mirantis/:1.2.3"},
 			{desc: "empty tag", input: "docker.io/mirantis/ucp:"},
 			{desc: "empty repository", input: "/ucp:1.2.3"},
+			{desc: "shell metacharacter in tag", input: "docker.io/mirantis/ucp:3.7.0;id"},
 		}
 
 		for _, tc := range cases {

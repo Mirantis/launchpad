@@ -27,24 +27,32 @@ type Image struct {
 // NewImage parses an image reference and returns a new Image instance.
 //
 // The reference is user-influenced: it is assembled from spec.*.imageRepo and
-// spec.*.version, both of which are expanded by envsubst. Every part is
-// bounds-checked here, so a malformed reference is a descriptive error rather
+// spec.*.version, both of which are expanded by envsubst. Nothing is sliced on
+// an unchecked index, so a malformed reference is a descriptive error rather
 // than a slice-bounds panic.
+//
+// The tag half is split by ImageRepoAndTag so that the two parsers cannot
+// disagree about what "localhost:5000/my-image" means: an omitted tag is
+// "latest", as it is for docker itself. What is left is split on the last
+// slash -- unlike ImageRepoAndTag, which folds the image name into its repo,
+// an Image keeps the two apart, and a reference with no slash has no
+// repository to put in one.
 func NewImage(s string) (*Image, error) {
-	slash := strings.LastIndexByte(s, '/')
-	colon := strings.LastIndexByte(s, ':')
+	repoAndName, tag, err := ImageRepoAndTag(s)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %q: %w", errInvalidReference, s, err)
+	}
 
+	slash := strings.LastIndexByte(repoAndName, '/')
 	if slash < 1 {
 		return nil, fmt.Errorf("%w: no repository in %q", errInvalidReference, s)
 	}
-	if colon < slash+2 {
-		return nil, fmt.Errorf("%w: no tag in %q", errInvalidReference, s)
-	}
-	if colon == len(s)-1 {
-		return nil, fmt.Errorf("%w: empty tag in %q", errInvalidReference, s)
-	}
 
-	return &Image{Repository: s[:slash], Name: s[slash+1 : colon], Tag: s[colon+1:]}, nil
+	image := &Image{Repository: repoAndName[:slash], Name: repoAndName[slash+1:], Tag: tag}
+	if err := image.Validate(); err != nil {
+		return nil, err
+	}
+	return image, nil
 }
 
 // AllFromString parses a list of images from a newline separated string and returns a list of images.
