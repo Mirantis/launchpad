@@ -187,7 +187,7 @@ func Extract(flags []string, envByFlag map[string]string) (map[string]string, []
 		// A bare credential flag takes the next element as its value.
 		if !hasValue && i+1 < len(flags) {
 			if _, _, nextHasValue := splitFlag(flags[i+1]); !nextHasValue && !strings.HasPrefix(flags[i+1], "-") {
-				values[env] = unquote(flags[i+1])
+				values[env] = shellword.Unquote(flags[i+1])
 				i++
 
 				continue
@@ -214,15 +214,7 @@ func splitFlag(flag string) (name, value string, hasValue bool) {
 		return flag, "", false
 	}
 
-	return flag[:idx], unquote(strings.TrimSpace(flag[idx+1:])), true
-}
-
-// unquote decodes one shell word as a POSIX shell would. The decoder itself
-// lives in pkg/util/shellword, because commonconfig.FlagValue has to read a
-// quoted flag value by the same rules: a credential written by hand in
-// installFlags reaches a bootstrapper through either path.
-func unquote(value string) string {
-	return shellword.Unquote(value)
+	return flag[:idx], shellword.Unquote(strings.TrimSpace(flag[idx+1:])), true
 }
 
 func sortedNames(values map[string]string) []string {
